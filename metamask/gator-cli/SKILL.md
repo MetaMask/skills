@@ -19,6 +19,12 @@ metadata:
 
 Use this skill to run the gator CLI from the repo and to choose the correct command/flags for delegation workflows.
 
+## Installation
+
+```sh
+npm install -g @metamask/gator-cli
+```
+
 ## CLI Overview
 
 - Binary name: `gator`
@@ -42,7 +48,6 @@ Edit the profile config after `gator init`:
 
 - `delegationStorage` is optional; when missing, delegations are stored locally.
 - `rpcUrl` is required for on-chain actions.
-- If you need a storage API key, tag `@osobotai` on X.
 
 ## Commands
 
@@ -51,7 +56,7 @@ Edit the profile config after `gator init`:
 Generate a private key and save config. Errors if the profile already exists.
 
 - `gator init [--chain <chain>] [--profile <profile-name>]`
-- `--chain` values: `base`, `sepolia` (default: `base`)
+- `--chain` values: `base` (default), `baseSepolia`, `sepolia`
 - `--profile` default: `default`
 - Prints: address, chain, and config file path.
 
@@ -94,9 +99,8 @@ Scope flags:
 - Token scopes: `--tokenAddress <token-address>`, `--maxAmount <amount>`, `--tokenId <id>`
 - Periodic scopes: `--periodAmount <amount>`, `--periodDuration <seconds>`, `--startDate <timestamp>`
 - Streaming scopes: `--amountPerSecond <amount>`, `--initialAmount <amount>`, `--startTime <timestamp>`
-- Function call scope: `--targets <addresses>`, `--selectors <sigs>`
+- Function call scope: `--targets <addresses>`, `--selectors <sigs>`, `--valueLte <ether>`
 - Ownership transfer: `--contractAddress <contract-address>`
-- Additional: `--valueLte <ether>` for `functionCall`
 
 Supported scopes:
 
@@ -112,17 +116,20 @@ Supported scopes:
 
 Grant flags per scope:
 
-| Scope                       | Required Flags                                                          |
-| --------------------------- | ----------------------------------------------------------------------- |
-| `erc20TransferAmount`       | `--tokenAddress`, `--maxAmount`                                         |
-| `erc20PeriodTransfer`       | `--tokenAddress`, `--periodAmount`, `--periodDuration`                  |
-| `erc20Streaming`            | `--tokenAddress`, `--amountPerSecond`, `--initialAmount`, `--maxAmount` |
-| `erc721Transfer`            | `--tokenAddress`, `--tokenId`                                           |
-| `nativeTokenTransferAmount` | `--maxAmount`                                                           |
-| `nativeTokenPeriodTransfer` | `--periodAmount`, `--periodDuration`                                    |
-| `nativeTokenStreaming`      | `--amountPerSecond`, `--initialAmount`, `--maxAmount`                   |
-| `functionCall`              | `--targets`, `--selectors`                                              |
-| `ownershipTransfer`         | `--contractAddress`                                                     |
+| Scope                       | Required Flags                                                          | Optional Flags   |
+| --------------------------- | ----------------------------------------------------------------------- | ---------------- |
+| `erc20TransferAmount`       | `--tokenAddress`, `--maxAmount`                                         |                  |
+| `erc20PeriodTransfer`       | `--tokenAddress`, `--periodAmount`, `--periodDuration`                  | `--startDate`    |
+| `erc20Streaming`            | `--tokenAddress`, `--amountPerSecond`, `--initialAmount`, `--maxAmount` | `--startTime`    |
+| `erc721Transfer`            | `--tokenAddress`, `--tokenId`                                           |                  |
+| `nativeTokenTransferAmount` | `--maxAmount`                                                           |                  |
+| `nativeTokenPeriodTransfer` | `--periodAmount`, `--periodDuration`                                    | `--startDate`    |
+| `nativeTokenStreaming`      | `--amountPerSecond`, `--initialAmount`, `--maxAmount`                   | `--startTime`    |
+| `functionCall`              | `--targets`, `--selectors`                                              | `--valueLte`     |
+| `ownershipTransfer`         | `--contractAddress`                                                     |                  |
+
+- `--startDate` and `--startTime` default to the current time (unix seconds) when omitted.
+- `--valueLte` sets the max native token value per call for `functionCall` scopes.
 
 ### redeem
 
@@ -219,7 +226,10 @@ gator revoke --profile <profile-name> --to <to-address>
 
 ## Operational Notes
 
+- **Private key security**: This is alpha version. Private keys are stored in plaintext JSON. Never use accounts with significant funds.
 - `--from` refers to the delegator address; `--to` refers to the delegate/recipient.
 - `--targets` and `--selectors` are comma-separated lists.
-- `--function` accepts a signature string like `"approve(address,uint256)"`.
+- `--function` accepts a human-readable Solidity function signature like `"approve(address,uint256)"`. Do **not** pass a 4-byte selector (e.g. `0x095ea7b3`) — the CLI derives the selector from the signature automatically.
+- `--startDate` and `--startTime` accept unix timestamps in seconds. When omitted, they default to the current time.
 - `--action` is required for `redeem` and must be one of: `erc20Transfer`, `erc721Transfer`, `nativeTransfer`, `functionCall`, `ownershipTransfer`, `raw`.
+- Supported chains for `--chain` in `gator init`: `base` (default), `baseSepolia`, `sepolia`.
