@@ -33,3 +33,6 @@ logs/
 .env.local
 .env.*.local
 secrets.json
+
+# Maintainer-local config for tools/deploy
+.targets.local

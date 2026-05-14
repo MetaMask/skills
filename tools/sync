@@ -1,0 +1,282 @@
+#!/usr/bin/env bash
+# tools/sync — invoked by `yarn skills` in consumer repos.
+#
+# Pulls latest MetaMask/skills (public) and/or Consensys/skills (private),
+# walks the engineer through domain selection (or uses saved/env values),
+# then exec into tools/install. Does not auto-clone — prints setup help if
+# no source is configured.
+#
+# Domain selection order of precedence:
+#   1. --domain CLI flag           (one-off override)
+#   2. SKILLS_DOMAINS env var      (CI-friendly)
+#   3. saved selection in <target>/.skills.local
+#   4. interactive prompt (TTY)
+#   5. all domains (fallback)
+#
+# Skills with `mandatory: true` install regardless of selection.
+# Skills with `scope: user` install at user-level (~/.claude, ~/.codex).
+#
+# Env (at least one required):
+#   METAMASK_SKILLS_DIR   Path to local MetaMask/skills checkout (public, no auth).
+#   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills checkout (private overlay).
+#                         When both set, private overrides public on name conflict.
+#   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
+#
+# Usage (via `yarn skills`):
+#   tools/sync --repo metamask-extension --target /path/to/repo
+#   tools/sync --repo metamask-mobile --target . --domain perps,testing --dry-run
+#   tools/sync --repo metamask-mobile --target . --reset      # forget saved selection
+
+set -euo pipefail
+
+REPO_NAME=""
+TARGET="$(pwd)"
+DOMAIN_OVERRIDE=""
+DRY_RUN=false
+RESET=false
+SAVE=true
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") --repo <name> --target <path> [options]
+
+Required:
+  --repo <name>        Consumer repo (metamask-extension, metamask-mobile)
+  --target <path>      Path to consumer repo (default: cwd)
+
+Options:
+  --domain <list>      Comma-separated domains; overrides saved + env
+  --dry-run            Preview without writing
+  --reset              Forget saved selection in <target>/.skills.local
+  --no-save            Don't persist selection to .skills.local
+  -h, --help           Show this help
+
+Env:
+  METAMASK_SKILLS_DIR  Path to local MetaMask/skills checkout (public, no auth)
+  CONSENSYS_SKILLS_DIR Path to local Consensys/skills checkout (private overlay)
+  SKILLS_DOMAINS       Domain filter (overrides saved selection)
+EOF
+  exit "${1:-1}"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)     REPO_NAME="$2"; shift 2 ;;
+    --target)   TARGET="$2"; shift 2 ;;
+    --domain)   DOMAIN_OVERRIDE="$2"; shift 2 ;;
+    --dry-run)  DRY_RUN=true; shift ;;
+    --reset)    RESET=true; shift ;;
+    --no-save)  SAVE=false; shift ;;
+    -h|--help)  usage 0 ;;
+    *)          echo "Unknown arg: $1" >&2; usage ;;
+  esac
+done
+
+[[ -z "$REPO_NAME" ]] && { echo "Error: --repo required" >&2; usage; }
+[[ ! -d "$TARGET" ]] && { echo "Error: target not found: $TARGET" >&2; exit 1; }
+
+SOURCES=()
+PRIMARY_SKILLS_DIR=""
+
+if [[ -n "${METAMASK_SKILLS_DIR:-}" ]]; then
+  if [[ ! -d "$METAMASK_SKILLS_DIR/.git" ]]; then
+    cat >&2 <<EOF
+METAMASK_SKILLS_DIR points to "$METAMASK_SKILLS_DIR", but that's not a git checkout.
+
+Either fix the path or clone the source repo there:
+  git clone https://github.com/MetaMask/skills.git "$METAMASK_SKILLS_DIR"
+EOF
+    exit 1
+  fi
+  SOURCES+=("$METAMASK_SKILLS_DIR")
+  PRIMARY_SKILLS_DIR="$METAMASK_SKILLS_DIR"
+fi
+
+if [[ -n "${CONSENSYS_SKILLS_DIR:-}" ]]; then
+  if [[ ! -d "$CONSENSYS_SKILLS_DIR/.git" ]]; then
+    cat >&2 <<EOF
+CONSENSYS_SKILLS_DIR points to "$CONSENSYS_SKILLS_DIR", but that's not a git checkout.
+
+Either fix the path or clone the source repo there:
+  git clone git@github.com:Consensys/skills.git "$CONSENSYS_SKILLS_DIR"
+EOF
+    exit 1
+  fi
+  SOURCES+=("$CONSENSYS_SKILLS_DIR")
+  [[ -z "$PRIMARY_SKILLS_DIR" ]] && PRIMARY_SKILLS_DIR="$CONSENSYS_SKILLS_DIR"
+fi
+
+if [[ ${#SOURCES[@]} -eq 0 ]]; then
+  cat >&2 <<EOF
+No skill source configured. Set at least one of:
+
+  METAMASK_SKILLS_DIR   public MetaMask/skills checkout (no auth needed)
+  CONSENSYS_SKILLS_DIR  private Consensys/skills checkout (internal overlay)
+
+To set up (one time, public — recommended starting point):
+  1. Clone the public source repo:
+       git clone https://github.com/MetaMask/skills.git ~/dev/metamask/skills
+  2. Export the env var (add to your shell rc):
+       export METAMASK_SKILLS_DIR=~/dev/metamask/skills
+
+For private overlays (Consensys internal):
+       git clone git@github.com:Consensys/skills.git ~/dev/Consensys/skills
+       export CONSENSYS_SKILLS_DIR=~/dev/Consensys/skills
+
+Once configured, re-run \`yarn skills\`.
+EOF
+  exit 1
+fi
+
+CONFIG_FILE="$TARGET/.skills.local"
+
+if $RESET; then
+  if [[ -f "$CONFIG_FILE" ]]; then
+    rm -f "$CONFIG_FILE"
+    echo "Removed saved selection: $CONFIG_FILE"
+  else
+    echo "No saved selection at $CONFIG_FILE"
+  fi
+  exit 0
+fi
+
+for src in "${SOURCES[@]}"; do
+  echo "Updating $src"
+  git -C "$src" pull --ff-only 2>&1 | sed 's/^/  /' || echo "  (pull skipped — local changes or offline)"
+done
+
+# ---- domain resolution ----
+
+load_saved() {
+  [[ -f "$CONFIG_FILE" ]] || return 0
+  awk -F= '/^SKILLS_DOMAINS=/{sub(/^SKILLS_DOMAINS=/,""); print; exit}' "$CONFIG_FILE"
+}
+
+domain_has_mandatory() {
+  local domain_dir="$1"
+  grep -lE '^mandatory:[[:space:]]*(true|yes|1)' "$domain_dir"/skills/*/skill.md >/dev/null 2>&1
+}
+
+list_domains() {
+  # Union of domain names across all configured sources, dedup, sorted.
+  for src in "${SOURCES[@]}"; do
+    for d in "$src"/domains/*/; do
+      [[ -d "$d" ]] || continue
+      basename "$d"
+    done
+  done | sort -u
+}
+
+domain_dirs_for() {
+  local domain="$1"
+  for src in "${SOURCES[@]}"; do
+    [[ -d "$src/domains/$domain" ]] && printf '%s\n' "$src/domains/$domain"
+  done
+}
+
+interactive_select() {
+  local domains=()
+  while IFS= read -r d; do domains+=("$d"); done < <(list_domains)
+
+  echo >&2
+  echo "Available domains:" >&2
+  local i=0
+  for d in "${domains[@]}"; do
+    i=$((i+1))
+    local marker=""
+    while IFS= read -r dd; do
+      domain_has_mandatory "$dd" && { marker=" ★"; break; }
+    done < <(domain_dirs_for "$d")
+    printf "  %2d) %s%s\n" "$i" "$d" "$marker" >&2
+  done
+  echo >&2
+  echo "  ★ = contains mandatory skills (always installed regardless)" >&2
+  echo >&2
+
+  local choice
+  read -rp "Pick (numbers comma-separated, 'a' = all, blank = all): " choice
+  if [[ -z "$choice" || "$choice" == "a" || "$choice" == "all" ]]; then
+    return 0
+  fi
+
+  local out="" n
+  IFS=',' read -ra sel <<< "$choice"
+  for n in "${sel[@]}"; do
+    n="${n//[[:space:]]/}"
+    if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#domains[@]} )); then
+      out="${out:+$out,}${domains[$((n-1))]}"
+    else
+      echo "  (skipping invalid: $n)" >&2
+    fi
+  done
+  echo "$out"
+}
+
+# Resolution order: --domain > env > saved > interactive > all
+DOMAINS=""
+SOURCE=""
+if [[ -n "$DOMAIN_OVERRIDE" ]]; then
+  DOMAINS="$DOMAIN_OVERRIDE"; SOURCE="--domain flag"
+elif [[ -n "${SKILLS_DOMAINS:-}" ]]; then
+  DOMAINS="$SKILLS_DOMAINS"; SOURCE="SKILLS_DOMAINS env"
+else
+  saved=$(load_saved || true)
+  if [[ -n "$saved" ]]; then
+    DOMAINS="$saved"; SOURCE="saved (.skills.local)"
+    if [[ -t 0 ]]; then
+      echo
+      echo "Saved selection: ${DOMAINS:-<all>} (from .skills.local)"
+      read -rp "Use this? [Y/n/c=change]: " yn
+      case "$yn" in
+        n|N) DOMAINS=""; SOURCE="declined-saved" ;;
+        c|C) DOMAINS=$(interactive_select); SOURCE="interactive (override)" ;;
+        *)   ;;
+      esac
+    fi
+  elif [[ -t 0 ]]; then
+    DOMAINS=$(interactive_select); SOURCE="interactive"
+  else
+    SOURCE="all (no TTY, no env, no saved)"
+  fi
+fi
+
+echo
+if [[ -n "$DOMAINS" ]]; then
+  echo "Domains: $DOMAINS  (source: $SOURCE)"
+else
+  echo "Domains: <all>  (source: $SOURCE)"
+fi
+
+# Persist if interactive selection produced something new and --no-save not set
+if $SAVE && [[ "$SOURCE" == "interactive" || "$SOURCE" == "interactive (override)" ]]; then
+  cat > "$CONFIG_FILE" <<EOF
+# Auto-generated by MetaMask/skills tools/sync.
+# Edit to change which domains \`yarn skills\` installs by default.
+# Use \`--reset\` to wipe, \`--domain <list>\` for one-off override,
+# or set SKILLS_DOMAINS env to override globally.
+SKILLS_DOMAINS=$DOMAINS
+EOF
+  echo "Saved to $CONFIG_FILE"
+fi
+
+# ---- delegate to install ----
+echo
+INSTALL_ARGS=(--repo "$REPO_NAME" --target "$TARGET")
+for src in "${SOURCES[@]}"; do
+  INSTALL_ARGS+=(--source "$src")
+done
+[[ -n "$DOMAINS" ]] && INSTALL_ARGS+=(--domain "$DOMAINS")
+$DRY_RUN && INSTALL_ARGS+=(--dry-run)
+
+INSTALL_BIN=""
+for src in "${SOURCES[@]}"; do
+  if [[ -x "$src/tools/install" ]]; then
+    INSTALL_BIN="$src/tools/install"
+  fi
+done
+if [[ -z "$INSTALL_BIN" ]]; then
+  echo "Error: no tools/install found in any configured source." >&2
+  echo "  Sources: ${SOURCES[*]}" >&2
+  exit 1
+fi
+exec "$INSTALL_BIN" "${INSTALL_ARGS[@]}"

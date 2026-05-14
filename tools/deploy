@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# tools/deploy — push installed skills to all targets in .targets.local.
+#
+# Maintainer driver for Flow 1. Reads a gitignored config file mapping
+# repo names to local paths, then calls tools/install for each.
+#
+# Setup (one time):
+#   cp .targets.local.example .targets.local
+#   # edit paths to match your local checkouts
+#
+# Usage:
+#   tools/deploy                            # push to all targets
+#   tools/deploy --domain perps             # filter by domain
+#   tools/deploy --maturity experimental    # filter by maturity
+#   tools/deploy --dry-run                  # preview only
+#   tools/deploy --source ~/dev/metamask/skills --source .   # layered sources
+#
+# Extra args are forwarded as-is to tools/install, including --source.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG="$SCRIPT_DIR/.targets.local"
+
+if [[ ! -f "$CONFIG" ]]; then
+  echo "Error: $CONFIG not found." >&2
+  echo "Copy .targets.local.example and fill in your paths:" >&2
+  echo "  cp $SCRIPT_DIR/.targets.local.example $CONFIG" >&2
+  exit 1
+fi
+
+EXTRA_ARGS=("$@")
+
+shopt -s nullglob
+
+while IFS='=' read -r REPO TARGET_PATTERN; do
+  REPO="${REPO## }"; REPO="${REPO%% }"
+  [[ -z "$REPO" || "$REPO" =~ ^# ]] && continue
+  TARGET_PATTERN="${TARGET_PATTERN## }"; TARGET_PATTERN="${TARGET_PATTERN%% }"
+  TARGET_PATTERN="${TARGET_PATTERN//\$HOME/$HOME}"
+  TARGET_PATTERN="${TARGET_PATTERN/#~/$HOME}"
+
+  # Glob-expand: a single line can match many worktrees (e.g. metamask-mobile-*).
+  matched=0
+  for TARGET in $TARGET_PATTERN; do
+    [[ -d "$TARGET" ]] || continue
+    matched=$((matched + 1))
+    echo
+    echo "=== $REPO → $TARGET ==="
+    "$SCRIPT_DIR/tools/install" --repo "$REPO" --target "$TARGET" "${EXTRA_ARGS[@]}"
+  done
+
+  if [[ "$matched" -eq 0 ]]; then
+    echo "Skipping $REPO — no directory matched: $TARGET_PATTERN" >&2
+  fi
+done < "$CONFIG"

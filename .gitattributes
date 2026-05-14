@@ -1,0 +1,7 @@
+# Force LF for shell scripts so `tools/*` work in WSL / Git Bash on Windows.
+# Without this, Windows clones with core.autocrlf=true rewrite to CRLF and bash
+# fails with `$'\r': command not found` and `set: invalid option`.
+tools/install   text eol=lf
+tools/sync      text eol=lf
+tools/deploy    text eol=lf
+*.sh            text eol=lf

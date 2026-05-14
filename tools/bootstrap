@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# tools/bootstrap — zero-config installer for cloud agents.
+#
+# Clones MetaMask/skills (public, no auth) into a cache dir, then runs
+# tools/install against the current working directory. Designed to be
+# invoked via curl | bash by Cursor/Codex/Claude cloud runners that
+# can't set env vars or use SSH keys.
+#
+# Usage (from inside the consumer repo checkout):
+#   curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap \
+#     | bash -s -- --repo metamask-extension
+#
+#   curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap \
+#     | bash -s -- --repo metamask-mobile --domain perps,testing
+#
+# Env:
+#   SKILLS_CACHE_DIR  Where to clone (default: $HOME/.cache/metamask-skills).
+#   SKILLS_REF        Git ref to checkout (default: main).
+#
+# Extra args after --repo are forwarded to tools/install.
+
+set -euo pipefail
+
+REPO=""
+EXTRA=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo) REPO="$2"; shift 2 ;;
+    -h|--help)
+      sed -n '2,18p' "$0"
+      exit 0
+      ;;
+    *) EXTRA+=("$1"); shift ;;
+  esac
+done
+
+if [[ -z "$REPO" ]]; then
+  echo "Error: --repo <name> required (e.g. metamask-extension, metamask-mobile)" >&2
+  exit 1
+fi
+
+CACHE="${SKILLS_CACHE_DIR:-$HOME/.cache/metamask-skills}"
+REF="${SKILLS_REF:-main}"
+TARGET="$(pwd)"
+
+if [[ ! -d "$CACHE/.git" ]]; then
+  echo "Cloning MetaMask/skills into $CACHE"
+  mkdir -p "$(dirname "$CACHE")"
+  git clone --depth 1 --branch "$REF" https://github.com/MetaMask/skills.git "$CACHE"
+else
+  echo "Updating $CACHE"
+  git -C "$CACHE" fetch --depth 1 origin "$REF" 2>&1 | sed 's/^/  /'
+  git -C "$CACHE" checkout "$REF" 2>&1 | sed 's/^/  /'
+  git -C "$CACHE" reset --hard "origin/$REF" 2>&1 | sed 's/^/  /'
+fi
+
+exec "$CACHE/tools/install" --repo "$REPO" --target "$TARGET" --source "$CACHE" "${EXTRA[@]}"
