@@ -158,14 +158,26 @@ tools/install \
 
 ### Flags
 
-| Flag         | Default  | Purpose                                                                          |
-| ------------ | -------- | -------------------------------------------------------------------------------- |
-| `--repo`     | required | Consuming repo name (`metamask-extension`, `metamask-mobile`)                    |
-| `--target`   | required | Path to consuming repo                                                            |
-| `--source`   | this repo | Skill source dir (repeatable, ordered; later overrides earlier on name collision) |
-| `--domain`   | all      | Comma-separated domain filter (e.g., `perps,testing`)                            |
-| `--maturity` | `stable` | Min maturity: `experimental`, `stable`, `deprecated`                             |
-| `--dry-run`  | off      | Preview without writing                                                          |
+| Flag             | Default  | Purpose                                                                          |
+| ---------------- | -------- | -------------------------------------------------------------------------------- |
+| `--target`       | required | Path to consuming repo                                                           |
+| `--repo`         | auto     | Consuming repo name. Auto-detected from `<target>/package.json` `name` (fallback: target dirname). |
+| `--source`       | this repo | Skill source dir (repeatable, ordered; later overrides earlier on name collision) |
+| `--domain`       | all      | Comma-separated domain filter. Default installs **all** domains; pass to opt out. |
+| `--maturity`     | `stable` | Min maturity: `experimental`, `stable`, `deprecated`                             |
+| `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
+| `--dry-run`      | off      | Preview without writing                                                          |
+
+**Install-all default.** Skills install for every domain by default. Engineers
+opt out per-machine by editing `.skills.local` (`SKILLS_DOMAINS=perps,testing`)
+or by running `yarn skills --select` for an interactive picker. New domains
+land automatically on the next sync — that's by design so new tooling is
+discoverable.
+
+**User-scope skills (`scope: user` in frontmatter).** Some skills target the
+engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
+of the target repo. They are **never auto-installed** — installer lists them
+in a final warning. Run with `--include-user` to install manually.
 
 ### Output
 

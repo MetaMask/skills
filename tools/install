@@ -29,6 +29,7 @@ TARGET=""
 DOMAIN_FILTER=""
 MATURITY_FILTER="stable"
 DRY_RUN=false
+INCLUDE_USER=false
 SOURCES=()
 
 usage() {
@@ -36,10 +37,12 @@ usage() {
 Usage: $(basename "$0") --repo <repo-name> --target <repo-path> [options]
 
 Required:
-  --repo <name>       GitHub repo name (e.g., metamask-extension, metamask-mobile)
   --target <path>     Path to the consuming repo
 
 Optional:
+  --repo <name>       GitHub repo name (auto-detected from <target>/package.json
+                      name field, falling back to basename of --target).
+                      Override e.g., --repo metamask-extension.
   --source <dir>      Skill source repo (repeatable, ordered). Later sources
                       override earlier ones on name conflict. Defaults to the
                       repo containing this script.
@@ -47,6 +50,9 @@ Optional:
                       e.g., --domain perps,testing
   --maturity <level>  Minimum maturity: experimental, stable, deprecated
                       (default: stable; matches stable+deprecated when set to stable)
+  --include-user      Also install skills with `scope: user` (writes to
+                      \$HOME/.claude/skills and \$HOME/.codex/skills, outside
+                      the target repo). Off by default — warns + lists them.
   --dry-run           Preview without writing files
   -h, --help          Show this help
 
@@ -61,19 +67,28 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --repo)      REPO="$2"; shift 2 ;;
-    --target)    TARGET="$2"; shift 2 ;;
-    --source)    SOURCES+=("$2"); shift 2 ;;
-    --domain)    DOMAIN_FILTER="$2"; shift 2 ;;
-    --maturity)  MATURITY_FILTER="$2"; shift 2 ;;
-    --dry-run)   DRY_RUN=true; shift ;;
-    -h|--help)   usage 0 ;;
-    *)           echo "Unknown arg: $1"; usage ;;
+    --repo)          REPO="$2"; shift 2 ;;
+    --target)        TARGET="$2"; shift 2 ;;
+    --source)        SOURCES+=("$2"); shift 2 ;;
+    --domain)        DOMAIN_FILTER="$2"; shift 2 ;;
+    --maturity)      MATURITY_FILTER="$2"; shift 2 ;;
+    --include-user)  INCLUDE_USER=true; shift ;;
+    --dry-run)       DRY_RUN=true; shift ;;
+    -h|--help)       usage 0 ;;
+    *)               echo "Unknown arg: $1"; usage ;;
   esac
 done
 
-[[ -z "$REPO" || -z "$TARGET" ]] && usage
+[[ -z "$TARGET" ]] && usage
 [[ ! -d "$TARGET" ]] && { echo "Error: target directory does not exist: $TARGET" >&2; exit 1; }
+
+# Auto-detect --repo from <target>/package.json name, fallback to dirname.
+if [[ -z "$REPO" ]]; then
+  if [[ -f "$TARGET/package.json" ]]; then
+    REPO=$(awk -F'"' '/"name"[[:space:]]*:[[:space:]]*"/ {print $4; exit}' "$TARGET/package.json")
+  fi
+  [[ -z "$REPO" ]] && REPO=$(basename "$(cd "$TARGET" && pwd)")
+fi
 
 if [[ ${#SOURCES[@]} -eq 0 ]]; then
   SOURCES=("$REPO_ROOT")
@@ -279,9 +294,15 @@ process_skill() {
 
   local out_name="${PREFIX}${name}"
 
-  # User-scope skills: skip overlays, write to ~/.claude and ~/.codex.
-  # Project-scope (default): merge repo overlay, write to <target>.
+  # User-scope skills: write outside the target repo (\$HOME/.claude, \$HOME/.codex).
+  # Off by default — collected for a summary warning so engineers can opt in
+  # manually via --include-user. Never auto-sync to home dir.
   if [[ "$scope" == "user" ]]; then
+    if ! $INCLUDE_USER; then
+      SKIPPED_USER_SKILLS+=("$name")
+      log "skipped (scope=user — pass --include-user to install to \$HOME)"
+      return
+    fi
     local body; body=$(body_after_frontmatter "$base")
     write_user_claude "$out_name" "$out_name" "$description" "$body"
     write_user_codex  "$out_name" "$out_name" "$description" "$body"
@@ -321,6 +342,7 @@ echo "  dry-run:  $DRY_RUN"
 declare -A RESOLVED_DIR
 declare -A RESOLVED_DOMAIN
 declare -a RESOLVED_NAMES
+SKIPPED_USER_SKILLS=()
 
 for src in "${SOURCES[@]}"; do
   for domain_dir in "$src"/domains/*/; do
@@ -353,3 +375,16 @@ done
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."
+
+set +u
+SKIPPED_USER_COUNT=${#SKIPPED_USER_SKILLS[@]}
+set -u
+if (( SKIPPED_USER_COUNT > 0 )); then
+  echo
+  echo "Note: $SKIPPED_USER_COUNT user-scope skill(s) skipped (not auto-installed):"
+  for s in "${SKIPPED_USER_SKILLS[@]}"; do echo "  - $s"; done
+  echo
+  echo "These install to \$HOME/.claude/skills and \$HOME/.codex/skills (outside this repo)."
+  echo "If you want them, re-run with --include-user:"
+  echo "  tools/install --target $TARGET --include-user"
+fi
