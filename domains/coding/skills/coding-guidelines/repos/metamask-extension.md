@@ -671,7 +671,7 @@ Before adding a package:
 
 ### General Guidelines
 
-- Use consistent formatting (Prettier handles this)
+- Use consistent formatting via the repo's lint commands
 - Follow ESLint rules configured in the project
 - Keep functions small and focused
 - Avoid deep nesting (max 3-4 levels)
@@ -679,6 +679,16 @@ Before adding a package:
 - Add comments for complex logic only
 - Remove commented-out code
 - Remove console.logs before committing
+
+### Formatting
+
+For `metamask-extension`:
+
+- Run `yarn lint:changed:fix` for normal changed-file cleanup.
+- Use `yarn lint:format:fix` or `oxfmt -c oxfmt.config.mts` for code files.
+- Use `yarn lint:json:fix` for JSON files such as `package.json`.
+- Do not run Prettier directly on code files; Prettier remains for JSON
+  formatting and changelog validation.
 
 ### Early Returns
 
@@ -783,7 +793,7 @@ Before submitting a PR, ensure:
 ### Linting & Formatting
 
 - [ ] Code passes ESLint checks
-- [ ] Code is formatted with Prettier
+- [ ] Code files are formatted with oxfmt; JSON files are formatted with Prettier
 - [ ] No TypeScript errors
 - [ ] All imports are used
 
