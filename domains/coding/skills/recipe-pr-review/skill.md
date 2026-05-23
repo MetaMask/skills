@@ -11,6 +11,7 @@ maturity: experimental
 Load only what applies:
 
 - Evidence formatting: use `/recipe-evidence`
+- Runtime setup: use `/recipe-harness`
 - Recipe authoring: use `/recipe-cook`
 - Recipe critique: use `/recipe-quality`
 - Target-repo review notes are appended below when installed.
@@ -25,7 +26,7 @@ Load only what applies:
    - needs a new or updated test;
    - needs a runtime recipe;
    - manual or environment-only.
-5. For runtime targets, call `/recipe-cook`.
+5. For runtime targets, require `/recipe-harness verify`, then call `/recipe-cook`. If harness verification fails, mark runtime proof blocked rather than product-failed.
 6. Call `/recipe-quality` on any recipe or evidence before trusting it.
 7. Return findings first, then the proof plan.
 

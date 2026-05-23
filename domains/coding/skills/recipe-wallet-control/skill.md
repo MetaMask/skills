@@ -24,4 +24,4 @@ Load the repo overlay for the checkout you are controlling:
 
 Installed skills include this file plus the matching repo overlay. Source-repo references under `references/` are reviewer/deep-dive material; the overlays intentionally embed the essential commands and snippets so a fresh agent can start without reading a pile of external docs.
 
-Extension note: full MetaMask Extension fixture/runtime injection is intentionally not carried here. Until that code moves into Extension itself, it belongs in `/recipe-cook` / recipe-runtime tooling where recipes can own browser launch, storage prefill, fixture injection, and reset semantics without overloading this mobile control skill.
+Extension note: full MetaMask Extension fixture/runtime injection is intentionally not carried here. It belongs in `/recipe-harness`, where recipes can own browser launch, storage prefill, fixture injection, and reset semantics without overloading this mobile control skill.

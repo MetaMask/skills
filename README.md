@@ -80,6 +80,7 @@ domains/<area>/
     skill.md                    # base skill
     references/                 # optional supporting docs
     scripts/                    # optional helper scripts
+    adapters/                   # optional runtime payloads used by scripts
     repos/<consuming-repo>.md   # optional repo-specific overlay
   knowledge/                    # optional shared domain reference
 tools/
@@ -216,6 +217,7 @@ domains/<area>/
     skill.md
     references/                   # optional supporting docs
     scripts/                      # optional helper scripts
+    adapters/                     # optional runtime payloads used by scripts
     repos/metamask-extension.md   # optional repo overlay
     repos/metamask-mobile.md      # optional repo overlay
 ```

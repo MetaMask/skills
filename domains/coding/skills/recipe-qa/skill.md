@@ -11,6 +11,7 @@ maturity: experimental
 Load only what applies:
 
 - Author missing recipes with `/recipe-cook`
+- Install/verify runtimes with `/recipe-harness`
 - Critique recipes and run artifacts with `/recipe-quality`
 - Format PR evidence with `/recipe-evidence`
 - Target-repo QA notes are appended below when installed.
@@ -19,11 +20,14 @@ Load only what applies:
 
 1. Read the PR/task and existing recipe files or validation notes.
 2. Identify proof targets and existing coverage.
-3. Run available recipes if the environment is ready.
-4. If no recipe exists for a needed runtime target, call `/recipe-cook`.
-5. Package artifacts: `recipe.json`, `summary.json`, `trace.json`, `artifact-manifest.json`, screenshots/logs/reports.
-6. Call `/recipe-quality`.
-7. Report pass, pass-with-gaps, or fail.
+3. For Mobile or Extension runtime proof, run `/recipe-harness verify` first.
+4. Run available recipes if the environment is ready.
+5. If no recipe exists for a needed runtime target, call `/recipe-cook`.
+6. Package artifacts: `recipe.json`, `summary.json`, `trace.json`, `artifact-manifest.json`, screenshots/logs/reports.
+7. Call `/recipe-quality`.
+8. Report pass, pass-with-gaps, or fail.
+
+If harness verification fails or is missing, report runtime proof as blocked, not as a product failure.
 
 ## Output
 

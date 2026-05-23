@@ -1,0 +1,6 @@
+{
+  "adapter": "extension",
+  "runtime": "MetaMask Extension Farmslot recipe runtime",
+  "version": 1,
+  "defaultInstallPath": "temp/agentic/recipes"
+}

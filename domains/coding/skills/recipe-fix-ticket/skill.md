@@ -11,6 +11,7 @@ maturity: experimental
 Load only what applies:
 
 - Runtime validation: `/recipe-qa`
+- Runtime setup: `/recipe-harness`
 - Recipe authoring: `/recipe-cook`
 - Recipe critique: `/recipe-quality`
 - PR evidence formatting: `/recipe-evidence`
@@ -23,7 +24,7 @@ Load only what applies:
 3. Find the smallest relevant code path and existing tests.
 4. Add or update focused tests where they directly prove the bug.
 5. Patch the root cause.
-6. Use `/recipe-cook` for runtime proof if the bug is user-visible, stateful, cross-system, or historically flaky.
+6. Use `/recipe-harness` and `/recipe-cook` for runtime proof if the bug is user-visible, stateful, cross-system, or historically flaky.
 7. Run `/recipe-qa` and `/recipe-quality`.
 8. Return the patch summary and evidence.
 

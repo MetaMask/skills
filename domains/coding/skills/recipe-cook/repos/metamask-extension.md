@@ -7,6 +7,17 @@ parent: recipe-cook
 
 Use this overlay when cooking recipes for `metamask-extension`.
 
+## Runtime Harness
+
+Before claiming live Extension recipe proof, install and verify `/recipe-harness`:
+
+```sh
+recipe-harness extension install --target .
+recipe-harness extension verify --target . --cdp-port <port>
+```
+
+Use `mme-4` when available. Record `.agent/recipe-harness/extension/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.
+
 ## Discovery
 
 Before authoring new actions, inspect the checkout for existing automation:

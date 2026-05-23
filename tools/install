@@ -262,7 +262,7 @@ HEREDOC
 copy_bundle_dirs() {
   local skill_dir="$1" dest_dir="$2" label="$3"
   local bundle
-  for bundle in references scripts assets; do
+  for bundle in references scripts assets adapters; do
     [[ -d "$skill_dir/$bundle" ]] || continue
     action "$label/$bundle/"
     $DRY_RUN && continue

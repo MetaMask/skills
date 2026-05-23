@@ -22,6 +22,7 @@ For v1 recipes, check:
 - every non-terminal node has `next`, `cases`, or `default`;
 - transition targets exist;
 - at least one terminal `end` node exists;
+- `assert_exit_code` nodes use numeric `expected`, not legacy or ambiguous fields such as `code`;
 - setup, action, assertion, evidence, and teardown are not collapsed into one opaque node.
 
 `must-fix`: the graph cannot execute or can pass unconditionally.
@@ -47,6 +48,9 @@ Evidence must prove the claim:
 - Capture screenshots after settle conditions.
 - Link every artifact to a node and proof target.
 - Do not let success rely on an artifact whose content is never asserted.
+- Negative log assertions must prove the watched log source was live. Prefer a benign marker or heartbeat after the baseline; otherwise record baseline/end offsets and treat `0` appended bytes as a gap, not clean proof.
+- For portable recipes, do not fail an otherwise complete evidence package only because an in-graph `artifact_index` omits runner-generated `summary.json` or `trace.json`; those files may be written after the manifest node. Do flag missing summary/trace files themselves.
+- Before marking trace evidence missing, search runner output locations named by the runner, such as `.agent/recipe-runs/<timestamp>/summary.json` and `.agent/recipe-runs/<timestamp>/trace.json`. If trace exists outside the task artifact directory, use it as authoritative evidence instead of stdout-only counts.
 
 `must-fix`: evidence exists but does not prove the acceptance criterion.
 
@@ -55,6 +59,7 @@ Evidence must prove the claim:
 Flag:
 
 - sleeps without state waits;
+- long-running command nodes without `timeout_ms`;
 - assertions against loading, empty, or transitional UI;
 - hidden wallet/account/network prerequisites;
 - missing fixture reset or teardown;

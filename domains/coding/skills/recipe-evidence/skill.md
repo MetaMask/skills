@@ -22,6 +22,7 @@ Use available files:
 - `trace.json`
 - `artifact-manifest.json`
 - screenshots, videos, logs, reports
+- `.agent/recipe-harness/<adapter>/manifest.json` and verify artifacts when runtime proof is claimed
 - command output
 - PR acceptance criteria or proof targets
 
@@ -33,6 +34,7 @@ Use available files:
 - Do not paste long logs.
 - Redact secrets and private account data.
 - Never claim a recipe passed if the run did not complete.
+- Never claim Mobile or Extension runtime proof without a passing `/recipe-harness verify`; report missing harness proof as a gap.
 
 ## Output
 

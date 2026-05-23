@@ -18,19 +18,21 @@ Use this shape unless the target repo already publishes a stricter schema.
           "action": "command",
           "description": "Run a project-native check",
           "cmd": "yarn test --runInBand path/to/test",
+          "stdout": "logs/test.log",
+          "timeout_ms": 120000,
           "next": "assert-result"
         },
         "assert-result": {
-          "action": "assert_json",
-          "description": "Check the command produced the expected result",
-          "path": "reports/result.json",
-          "equals": { "status": "pass" },
+          "action": "assert_exit_code",
+          "description": "Check the project-native check passed",
+          "expected": 0,
+          "log_must_contain": ["PASS"],
           "next": "index-artifacts"
         },
         "index-artifacts": {
           "action": "artifact_index",
           "description": "Write the artifact manifest",
-          "artifacts": ["reports/result.json"],
+          "artifacts": ["logs/test.log"],
           "next": "done"
         },
         "done": { "action": "end", "status": "pass" }
@@ -65,3 +67,13 @@ Action classes:
 - Project-owned: `eval_ref`, `eval_sync`, `eval_async`, `service_worker`, or documented repo actions.
 
 Prefer named project actions over raw eval. If raw eval is unavoidable, keep it to inspection/setup and explain why the user-facing claim is still proven.
+
+Runner expectations:
+
+- `command` runs from the target repo root and may capture `stdout`/`stderr` files under the artifact directory. If only `stdout` is declared, runners should capture combined stdout+stderr because many test runners print results to stderr. Use `timeout_ms` for commands that can hang or take unbounded time.
+- `assert_exit_code` checks the previous command with `expected` as a number, for example `"expected": 0`. Do not use legacy fields such as `code`.
+- `assert_json` reads an artifact JSON file and compares fields from `equals`.
+- `assert_file` checks that an expected artifact exists.
+- `artifact_index` writes or updates `artifact-manifest.json`. For the portable overlay, list recipe-authored artifacts that already exist before the graph ends, such as logs, reports, screenshots, and runner metadata. Do not list runner-generated `summary.json` or `trace.json` in this node unless the target runner explicitly writes the manifest after those files exist.
+- Recipes that assert an error is absent from logs should record a baseline before the user action, prove the watched stream advanced after the action, and write the searched strings plus baseline/end offsets into the evidence package.
+- Every runner should emit `summary.json` and `trace.json` after the graph completes.

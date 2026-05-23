@@ -18,8 +18,20 @@ yarn --silent a:status 2>/dev/null || true
 
 If `/recipe-wallet-control` is installed, read its Mobile overlay and action vocabulary. Treat it as an implementation layer for wallet primitives, not as the recipe contract.
 
+## Runtime Harness
+
+Before claiming live Mobile recipe proof, install and verify `/recipe-harness`:
+
+```sh
+recipe-harness mobile install --target .
+recipe-harness mobile verify --target .
+```
+
+Do this especially on historical commits, where the checked-out runner may be stale or absent. Record `.agent/recipe-harness/mobile/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.
+
 ## Preferred Surfaces
 
+- `/recipe-harness` verified Mobile runtime for live recipe proof.
 - Existing e2e flows and page objects for navigation and selectors.
 - Existing fixtures for wallet/account/network setup.
 - Simulator/device status commands before UI work.
@@ -38,7 +50,9 @@ If `/recipe-wallet-control` is installed, read its Mobile overlay and action voc
 ## Mobile Quality Bar
 
 - State the simulator/device, platform, build type, and wallet fixture.
+- Prefer focused tests or recipe commands over broad lint/test globs. Do not run full-repo eslint or unbounded `**/*` commands from recipes.
 - Avoid recipes that rely on arbitrary sleeps.
+- Add `timeout_ms` to slow Mobile commands so runner output records a real timeout instead of leaving the operator to infer a stall.
 - Avoid raw runtime eval as the only proof of user-visible behavior.
 - Teardown or isolate wallet state so repeated runs do not inherit balances, permissions, pending txs, or network changes.
 - If a recipe cannot be run, include the missing device/build/fixture requirement as a gap.

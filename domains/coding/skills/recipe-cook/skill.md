@@ -13,6 +13,7 @@ Load only the files needed for the target repo:
 - Recipe format: `references/recipe-v1.md`
 - Good and bad examples: `references/examples.md`
 - Evidence package shape: `references/evidence-package.md`
+- Runtime harness: use `/recipe-harness` before claiming live Mobile or Extension recipe proof.
 - Target-repo instructions are appended below when installed.
 
 ## When to Use
@@ -47,9 +48,14 @@ Use this skill for PRs that need runtime proof, reproducible evidence, or a repe
    - Give every node a stable `id`, an `action`, and a human-readable `description`.
    - Every non-terminal node must transition with `next`, `cases`, or `default`.
    - Every assertion should point back to a proof target.
+   - For `assert_exit_code`, use `"expected": 0` or another numeric expected code. Do not use `"code"`.
+   - Add `timeout_ms` to commands that can hang, such as focused Jest, build, simulator, or browser checks.
 
 4. **Run or dry-run what you can**
    - Execute non-destructive commands on the target device/session when available.
+   - For historical commits or fresh checkouts, run `/recipe-harness install` and `/recipe-harness verify` before judging runner support.
+   - Treat dry-run as schema validation only; a recipe is not proven until the run emits `summary.json`, `trace.json`, and the named artifacts.
+   - Runtime proof must record the harness adapter, source/version, verification status, and artifact paths.
    - Save artifacts under `/tmp` or a repo-ignored evidence directory unless the user asks to commit them.
    - If a runner is missing, still produce the recipe plus the exact command or adapter work needed to run it.
 
