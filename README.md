@@ -173,7 +173,9 @@ tools/install \
 opt out per-machine by editing `.skills.local` (`SKILLS_DOMAINS=perps,testing`)
 or by running `yarn skills --select` for an interactive picker. New domains
 land automatically on the next sync — that's by design so new tooling is
-discoverable.
+discoverable. Recipe skills live in the `coding` domain; engineers who pin
+`SKILLS_DOMAINS` to a subset must include `coding` or reset to the default all
+domains if they want recipe authoring, harness, QA, and evidence skills.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -187,6 +189,13 @@ Per consuming repo, the CLI writes:
 - `.claude/skills/mms-<name>/SKILL.md` — Claude Code, OpenCode
 - `.cursor/rules/mms-<name>/RULE.md` — Cursor
 - `.agents/skills/mms-<name>/SKILL.md` + `agents/openai.yaml` — Codex, OpenCode
+
+When a source skill includes bundled resources, `references/`, `scripts/`,
+`assets/`, and `adapters/` are mirrored into each output skill directory.
+Large runtime skills such as recipe harnesses can therefore add sizeable
+ignored payloads under `.claude/skills/`, `.cursor/rules/`, and
+`.agents/skills/`; this is intentional so installed skills remain
+self-contained. Repo overlays still decide which adapter an agent should use.
 
 All output names are prefixed `mms-` (managed metamask skill). Source
 frontmatter `name:` stays unprefixed; the prefix is applied at install time.

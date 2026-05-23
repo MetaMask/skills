@@ -1,7 +1,7 @@
 ---
 name: recipe-fix-ticket
 description: Fix a MetaMask bug from a Jira/GitHub ticket using recipe-backed validation. Use when an agent needs to understand a bug report, implement a minimal fix, prove the fix with a recipe, and prepare reviewer-ready evidence.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe Fix Ticket

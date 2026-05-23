@@ -48,10 +48,15 @@ check_file "$OUT/validate-recipe.sh"
 check_file "$OUT/validate-recipe.js"
 check_file "$OUT/lib/workflow.js"
 
+live_mode="static-only"
 if [ "$STATIC_ONLY" = false ]; then
   if [ -z "$CDP_PORT" ]; then
-    echo "Live extension verify requires --cdp-port; running static checks only" > "$ARTIFACTS/logs/live-skipped.log"
+    echo "Live extension verify requires --cdp-port. Static checks may pass, but runtime proof is missing." > "$ARTIFACTS/logs/live-missing-cdp.log"
+    checks+=("{\"name\":\"live runtime CDP port\",\"status\":\"fail\",\"detail\":\"missing --cdp-port\"}")
+    status="fail"
+    live_mode="missing-cdp"
   else
+    live_mode="live"
     if (
       cd "$TARGET"
       bash "$OUT/validate-recipe.sh" "$OUT/domains/browser-features/recipes/service-worker-smoke.json" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/non-ui"
@@ -78,14 +83,16 @@ if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
   git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude)$OUT" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
-node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const [artifacts, status, ...checks] = process.argv.slice(2);
 const parsedChecks = checks.map((entry) => JSON.parse(entry));
+const liveMode = process.env.RECIPE_HARNESS_LIVE_MODE || 'unknown';
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'extension',
   status,
+  liveMode,
   checks: parsedChecks,
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);

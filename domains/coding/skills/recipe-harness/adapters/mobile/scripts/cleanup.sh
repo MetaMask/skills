@@ -33,6 +33,54 @@ fi
 # shellcheck disable=SC1090
 . "$STATE_FILE"
 
+HASH_FILE="$BACKUP_DIR/managed-hashes.tsv"
+
+hash_path() {
+  local rel="$1"
+  if [ ! -e "$TARGET/$rel" ]; then
+    printf 'MISSING'
+  elif [ -d "$TARGET/$rel" ]; then
+    (
+      cd "$TARGET"
+      find "$rel" -type f | LC_ALL=C sort | while IFS= read -r file; do
+        shasum -a 256 "$file"
+      done | shasum -a 256 | awk '{print $1}'
+    )
+  else
+    (cd "$TARGET" && shasum -a 256 "$rel" | awk '{print $1}')
+  fi
+}
+
+verify_managed_paths_unchanged() {
+  if [ ! -f "$HASH_FILE" ]; then
+    cat >&2 <<EOF
+Refusing cleanup: no managed hash file found at $HASH_FILE.
+Re-run mobile harness install from the current skill to refresh safety metadata, or restore manually.
+EOF
+    exit 1
+  fi
+  local rel expected actual conflicts=0
+  while IFS=$'\t' read -r rel expected; do
+    [ -n "$rel" ] || continue
+    actual="$(hash_path "$rel")"
+    if [ "$actual" != "$expected" ]; then
+      echo "Refusing cleanup: managed harness path changed after install: $rel" >&2
+      echo "  expected: $expected" >&2
+      echo "  actual:   $actual" >&2
+      conflicts=1
+    fi
+  done < "$HASH_FILE"
+  if [ "$conflicts" != "0" ]; then
+    cat >&2 <<EOF
+Cleanup would restore backups over files that changed after harness install.
+Save/stash those changes, rerun harness install to refresh managed hashes, or restore manually.
+EOF
+    exit 1
+  fi
+}
+
+verify_managed_paths_unchanged
+
 restore_path() {
   local rel="$1"
   local existed="$2"

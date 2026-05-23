@@ -1,6 +1,6 @@
 {
   "adapter": "mobile",
-  "runtime": "MetaMask Mobile Farmslot recipe runtime",
+  "runtime": "MetaMask Mobile recipe runtime",
   "version": 1,
   "installs": [
     "scripts/perps/agentic/**",

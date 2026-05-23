@@ -6,7 +6,7 @@ Use this vocabulary when recording wallet validation evidence or composing `/rec
 
 | Action | Args | MetaMask Mobile command | Return shape |
 |---|---|---|---|
-| `status` | none | `yarn a:status` or `bash scripts/perps/agentic/app-state.sh status` | current account, route, device, platform |
+| `status` | none | `bash scripts/perps/agentic/app-state.sh status` (`yarn a:status` convenience alias only) | current account, route, device, platform |
 | `unlock` | `password` or `MM_PASSWORD` | `bash scripts/perps/agentic/unlock-wallet.sh "$WALLET_PASSWORD"` | success/failure plus post-unlock route |
 | `setup-wallet` | `fixturePath` | `bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json` | `{ ok, accountCount, selectedAccount }` or account summary |
 | `navigate` | `routeName`, optional params JSON | `bash scripts/perps/agentic/app-navigate.sh <RouteName> [params-json]` | previous/current route plus optional screenshot path |

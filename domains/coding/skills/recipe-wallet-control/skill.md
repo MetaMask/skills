@@ -1,7 +1,7 @@
 ---
 name: recipe-wallet-control
 description: Control MetaMask debug wallets through harness-backed wallet-aware setup/unlock, account selection, route navigation, screenshots, UI interaction, CDP/state introspection, fixture handling, recovery, and recipe handoff. Use when an agent needs to validate Mobile or Extension wallet behavior end-to-end or collect PR evidence on a live debug runtime.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe Wallet Control

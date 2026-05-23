@@ -1,7 +1,7 @@
 ---
 name: recipe-qa
 description: Run or prepare recipe-backed QA for a MetaMask PR. Use when an agent needs to validate changed behavior, execute available recipes, collect artifacts, judge evidence quality, and report whether the PR is runtime-proven.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe QA

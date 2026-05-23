@@ -20,11 +20,13 @@ If a required simulator, Metro, or fixture prerequisite is missing, stop and ask
 
 ## Status and Preflight
 
-Start with the non-destructive status check whenever the `a:*` aliases are available:
+Start with the non-destructive direct script status check for automation:
 
 ```bash
-yarn a:status
+bash scripts/perps/agentic/app-state.sh status
 ```
+
+`yarn a:status` is an optional human convenience alias after the harness has patched `package.json`; recipes and agents should prefer direct scripts so the command does not depend on package aliases.
 
 Expected output includes an `account.address`, `route.name`, `deviceName`, and `platform`. If status proves the app is already live/unlocked, validate non-destructive primitives before running any clean fixture setup.
 

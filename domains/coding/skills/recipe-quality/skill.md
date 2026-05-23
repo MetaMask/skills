@@ -1,7 +1,7 @@
 ---
 name: recipe-quality
 description: Critique per-PR validation recipes and their evidence. Use when an agent or reviewer needs a structured verdict on acceptance-criteria coverage, recipe graph quality, adapter independence, evidence fit, flake risk, and the highest-value fixes before trusting a recipe.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe Quality

@@ -11,7 +11,7 @@ Required fields:
 - `source`: skill/runtime source path and git revision when available
 - `target`
 - `installedPaths`
-- `patchedFiles`
+- `patchedFiles` (may be an empty array for adapters that only copy ignored runtime files)
 - `backupDir`
 - `cleanupCommand`
 - `productDiffExcludes`
@@ -42,3 +42,11 @@ Extension verification should prove:
 - product diff excludes harness files.
 
 Static verification is useful for install/idempotency checks but does not prove runtime behavior.
+
+## Source Revision Caveat
+
+When install runs from a copied installed skill directory rather than a git checkout, `source.revision` may be `unknown`. Treat `source.skillDir`, `source.runtime`, adapter name, manifest timestamp, and the PR/branch that installed the skill as the audit trail in that case.
+
+## Static vs Live Verification
+
+Static verification can prove install shape and idempotency only. Live Extension verification requires `--cdp-port`; if it is omitted outside `--static-only`, verification must fail or report `liveMode: missing-cdp` so agents cannot claim runtime proof from static checks.

@@ -234,7 +234,7 @@ bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setu
 bash scripts/perps/agentic/preflight.sh --platform ios --clean --wallet-setup       # legacy clean rebuild (unchanged)
 ```
 
-Farmslot dispatch: once this branch lands on `main`, switch `projects/metamask-mobile-farm/project.json` `preflight` hook from `--clean` to `--mode auto`. Keep `--mode clean` as the explicit burn-it-down escape.
+Project dispatch: prefer `--mode auto` for routine recipe preflight once the cache is trusted. Keep `--mode clean` as the explicit burn-it-down escape.
 
 ## CLI
 

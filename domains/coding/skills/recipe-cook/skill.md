@@ -1,7 +1,7 @@
 ---
 name: recipe-cook
 description: Author, run, and refine executable per-PR validation recipes for MetaMask work. Use when an agent needs to turn acceptance criteria, changed behavior, or reviewer requests into a portable recipe graph with concrete proof targets, project-native actions, and reviewable artifacts. Recipes may use recipe-wallet-control when available, but must not depend on it.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe Cook
@@ -11,10 +11,77 @@ maturity: experimental
 Load only the files needed for the target repo:
 
 - Recipe format: `references/recipe-v1.md`
-- Good and bad examples: `references/examples.md`
+- Mobile-first recipe examples and composition patterns: `references/examples.md`
 - Evidence package shape: `references/evidence-package.md`
-- Runtime harness: use `/recipe-harness` before claiming live Mobile or Extension recipe proof.
+- Runtime harness: use `/recipe-harness` before claiming live Mobile recipe proof.
 - Target-repo instructions are appended below when installed.
+
+
+## Mobile-First Quick Example
+
+For Mobile, start with a small proof-target map, then compose existing flows or actions:
+
+- PT-1: app is reachable on the intended simulator/device.
+- PT-2: the target screen can be opened through the UI/navigation layer.
+- PT-3: the changed state is asserted after a real wait condition.
+- PT-4: reviewer-visible evidence is captured after the assertion.
+
+Minimal Mobile smoke recipe shape:
+
+```json
+{
+  "schema_version": 1,
+  "title": "Mobile smoke — wallet view is reachable",
+  "description": "Proves the debug Mobile app is reachable and can execute a harmless UI adapter action.",
+  "validate": {
+    "workflow": {
+      "pre_conditions": ["mm-4 or another intended simulator is booted", "debug app is installed"],
+      "entry": "status",
+      "nodes": {
+        "status": {
+          "action": "command",
+          "description": "PT-1: read app status through the Mobile agentic script",
+          "cmd": "bash scripts/perps/agentic/app-state.sh status",
+          "timeout_ms": 30000,
+          "stdout": "logs/status.json",
+          "next": "assert-status"
+        },
+        "assert-status": {
+          "action": "assert_json",
+          "description": "PT-1: status reports a device, platform, and current route",
+          "path": "logs/status.json",
+          "equals": { "platform": "ios" },
+          "next": "scroll"
+        },
+        "scroll": {
+          "action": "command",
+          "description": "PT-2: execute a harmless UI adapter scroll",
+          "cmd": "bash scripts/perps/agentic/app-state.sh scroll --offset 40",
+          "timeout_ms": 30000,
+          "stdout": "logs/scroll.json",
+          "next": "assert-scroll"
+        },
+        "assert-scroll": {
+          "action": "assert_json",
+          "description": "PT-2: scroll command reports ok=true",
+          "path": "logs/scroll.json",
+          "equals": { "ok": true },
+          "next": "index-artifacts"
+        },
+        "index-artifacts": {
+          "action": "artifact_index",
+          "description": "Index status and scroll proof logs",
+          "artifacts": ["logs/status.json", "logs/scroll.json"],
+          "next": "done"
+        },
+        "done": { "action": "end", "status": "pass" }
+      }
+    }
+  }
+}
+```
+
+For product recipes, replace the smoke nodes with existing Mobile flows where possible: navigate first, wait for settled state, assert state/UI, then capture evidence. See `references/examples.md` for concrete Mobile composition patterns.
 
 ## When to Use
 

@@ -80,6 +80,7 @@ cat > "$HARNESS_DIR/manifest.json" <<EOF
   },
   "target": "$TARGET",
   "installedPaths": ["$OUT"],
+  "patchedFiles": [],
   "backupDir": "$BACKUP_DIR",
   "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET --out $OUT",
   "productDiffExcludes": [

@@ -78,6 +78,7 @@ if [ ! -f "$STATE_FILE" ]; then
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
   rm -rf "$BACKUP_DIR"
+  mkdir -p "$(dirname "$BACKUP_DIR")"
   mv "$TMP_BACKUP_DIR" "$BACKUP_DIR"
 fi
 
@@ -197,6 +198,37 @@ add_git_exclude "temp/agentic/recipe-harness/"
 add_git_exclude "scripts/perps/agentic/"
 add_git_exclude "app/core/AgenticService/"
 
+write_managed_hashes() {
+  local hash_file="$BACKUP_DIR/managed-hashes.tsv"
+  local rel
+  : > "$hash_file"
+  hash_one() {
+    local item="$1"
+    if [ ! -e "$TARGET/$item" ]; then
+      printf 'MISSING'
+    elif [ -d "$TARGET/$item" ]; then
+      (
+        cd "$TARGET"
+        find "$item" -type f | LC_ALL=C sort | while IFS= read -r file; do
+          shasum -a 256 "$file"
+        done | shasum -a 256 | awk '{print $1}'
+      )
+    else
+      (cd "$TARGET" && shasum -a 256 "$item" | awk '{print $1}')
+    fi
+  }
+  for rel in \
+    "scripts/perps/agentic" \
+    "app/core/AgenticService" \
+    "package.json" \
+    "app/core/NavigationService/NavigationService.ts" \
+    "app/components/Nav/App/App.tsx"; do
+    printf '%s\t%s\n' "$rel" "$(hash_one "$rel")" >> "$hash_file"
+  done
+}
+
+write_managed_hashes
+
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 cat > "$HARNESS_DIR/manifest.json" <<EOF
 {
@@ -218,6 +250,7 @@ cat > "$HARNESS_DIR/manifest.json" <<EOF
     "app/components/Nav/App/App.tsx"
   ],
   "backupDir": "$BACKUP_DIR",
+  "managedHashes": "$BACKUP_DIR/managed-hashes.tsv",
   "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET",
   "productDiffExcludes": [
     ":(exclude).agent/recipe-harness",

@@ -1,7 +1,7 @@
 ---
 name: recipe-evidence
 description: Format recipe run outputs into concise PR-ready validation evidence for MetaMask reviewers. Use when an agent has recipe artifacts, screenshots, logs, or trace output and needs a clear PR comment or description section.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe Evidence

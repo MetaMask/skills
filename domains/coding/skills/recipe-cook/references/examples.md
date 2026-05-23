@@ -1,5 +1,137 @@
 # Examples
 
+Use these as composition patterns. Keep the recipe small: proof targets first, then setup, action, assertion, evidence, teardown.
+
+## Mobile Composition Pattern
+
+For MetaMask Mobile PRs, compose existing flows instead of inventing raw evals:
+
+1. **Preflight/status** — prove the intended simulator/device and debug app are reachable.
+2. **Setup** — load or assert the wallet/network fixture needed by the claim.
+3. **Navigate** — use a route or existing flow to reach the screen under test.
+4. **Wait/assert** — wait on state or UI, not a fixed sleep.
+5. **Capture** — screenshot/video/log only after the assertion proves the screen settled.
+6. **Teardown** — reset wallet/app state when a run changes balances, permissions, txs, or network.
+
+Good Mobile recipes usually reference existing checked-in flows such as:
+
+- `scripts/perps/agentic/teams/perps/flows/market-discovery.json`
+- `scripts/perps/agentic/teams/perps/flows/trade-open-market.json`
+- `scripts/perps/agentic/teams/perps/flows/trade-close-position.json`
+- `scripts/perps/agentic/teams/perps/flows/tpsl-create.json`
+- `scripts/perps/agentic/teams/perps/recipes/provider-smoke.json`
+- `scripts/perps/agentic/teams/perps/recipes/app-lifecycle.json`
+
+When reusing a flow, state which proof target it covers and add only the nodes needed for the PR-specific claim.
+
+## Mobile Direct Smoke Recipe
+
+Use this for live-device validation of the recipe plumbing itself. It intentionally avoids wallet-specific dependencies.
+
+```json
+{
+  "schema_version": 1,
+  "title": "Mobile direct smoke — status and harmless scroll",
+  "description": "Proves the Mobile debug app is reachable and the UI adapter accepts a harmless scroll command.",
+  "validate": {
+    "workflow": {
+      "pre_conditions": ["Run from the metamask-mobile checkout", "Debug app is already running on the intended simulator"],
+      "entry": "status",
+      "nodes": {
+        "status": {
+          "action": "command",
+          "description": "PT-1: read app route/device/account status",
+          "cmd": "bash scripts/perps/agentic/app-state.sh status",
+          "timeout_ms": 30000,
+          "stdout": "logs/status.json",
+          "next": "assert-status"
+        },
+        "assert-status": {
+          "action": "assert_json",
+          "description": "PT-1: status includes platform and route",
+          "path": "logs/status.json",
+          "equals": { "platform": "ios" },
+          "next": "scroll"
+        },
+        "scroll": {
+          "action": "command",
+          "description": "PT-2: perform a harmless scroll through the UI adapter",
+          "cmd": "bash scripts/perps/agentic/app-state.sh scroll --offset 40",
+          "timeout_ms": 30000,
+          "stdout": "logs/scroll.json",
+          "next": "assert-scroll"
+        },
+        "assert-scroll": {
+          "action": "assert_json",
+          "description": "PT-2: scroll reports ok=true",
+          "path": "logs/scroll.json",
+          "equals": { "ok": true },
+          "next": "index-artifacts"
+        },
+        "index-artifacts": {
+          "action": "artifact_index",
+          "description": "Index command outputs used as proof",
+          "artifacts": ["logs/status.json", "logs/scroll.json"],
+          "next": "done"
+        },
+        "done": { "action": "end", "status": "pass" }
+      },
+      "teardown": []
+    }
+  }
+}
+```
+
+## Mobile Flow-Based Recipe
+
+This pattern composes a real Mobile flow and adds a PR-specific assertion. It is stronger than a direct smoke recipe because it proves the user path plus the state after the path settles.
+
+```json
+{
+  "schema_version": 1,
+  "title": "Perps market detail shows a loaded BTC price",
+  "description": "Proves the market list can open BTC details and the price is loaded after navigation settles.",
+  "inputs": { "symbol": "BTC" },
+  "validate": {
+    "workflow": {
+      "pre_conditions": ["wallet.unlocked", "perps.feature_enabled"],
+      "entry": "market-discovery",
+      "nodes": {
+        "market-discovery": {
+          "action": "flow_ref",
+          "description": "PT-1: reuse the existing market-discovery flow to find BTC and open detail",
+          "ref": "scripts/perps/agentic/teams/perps/flows/market-discovery.json",
+          "inputs": { "symbol": "{{symbol}}" },
+          "next": "assert-price"
+        },
+        "assert-price": {
+          "action": "eval_async",
+          "description": "PT-2: after navigation settles, BTC has a non-zero price",
+          "expression": "Engine.context.PerpsController.getMarketDataWithPrices().then(function(ms){var m=ms.find(function(x){return x.symbol==='{{symbol}}'});return JSON.stringify({found:!!m,price:m?m.price:'0'})})",
+          "assert": { "operator": "neq", "field": "price", "value": "0" },
+          "timeout_ms": 30000,
+          "next": "capture-detail"
+        },
+        "capture-detail": {
+          "action": "screenshot",
+          "description": "PT-2: reviewer-visible settled market detail screen",
+          "path": "screenshots/perps-btc-detail.png",
+          "next": "index-artifacts"
+        },
+        "index-artifacts": {
+          "action": "artifact_index",
+          "description": "Index state and screenshot evidence",
+          "artifacts": ["screenshots/perps-btc-detail.png"],
+          "next": "done"
+        },
+        "done": { "action": "end", "status": "pass" }
+      },
+      "teardown": []
+    }
+  }
+}
+```
+
 ## Backend or Non-UI Recipe
 
 Use command assertions when the PR claim is not user-facing.
@@ -20,6 +152,7 @@ Use command assertions when the PR claim is not user-facing.
           "action": "command",
           "description": "PT-1: focused unit test covers malformed metadata",
           "cmd": "yarn test --runInBand app/core/token-service/metadata.test.ts",
+          "timeout_ms": 120000,
           "outputs": { "json": "reports/jest-token-metadata.json" },
           "next": "assert-pass"
         },
@@ -39,72 +172,6 @@ Use command assertions when the PR claim is not user-facing.
         "done": { "action": "end", "status": "pass" }
       },
       "teardown": []
-    }
-  }
-}
-```
-
-## Mobile UI Recipe
-
-Use project actions for wallet state and UI. `/recipe-wallet-control` may supply these primitives, but the recipe still states the action intent.
-
-```json
-{
-  "schema_version": 1,
-  "title": "Confirm send amount error clears after editing",
-  "description": "Proves the Send flow clears an invalid amount error when the user enters a valid amount.",
-  "validate": {
-    "workflow": {
-      "pre_conditions": ["Simulator is booted", "Test wallet is unlocked"],
-      "setup": [
-        { "action": "fixture", "description": "Load a wallet with ETH on the target test network", "fixture": "send-eth-basic" }
-      ],
-      "entry": "open-send",
-      "nodes": {
-        "open-send": {
-          "action": "navigate",
-          "description": "PT-1: open the Send amount screen through the wallet UI",
-          "route": "send.amount",
-          "next": "enter-invalid"
-        },
-        "enter-invalid": {
-          "action": "set_input",
-          "description": "PT-1: enter an amount larger than balance",
-          "target": "send.amount.input",
-          "value": "999999",
-          "next": "wait-error"
-        },
-        "wait-error": {
-          "action": "wait_for",
-          "description": "PT-1: wait for insufficient funds error",
-          "target": "send.amount.error.insufficientFunds",
-          "next": "enter-valid"
-        },
-        "enter-valid": {
-          "action": "set_input",
-          "description": "PT-2: replace invalid amount with a valid value",
-          "target": "send.amount.input",
-          "value": "0.001",
-          "next": "assert-error-cleared"
-        },
-        "assert-error-cleared": {
-          "action": "eval_ref",
-          "description": "PT-2: error is absent and Continue is enabled",
-          "ref": "send.amount.validState",
-          "expect": { "errorVisible": false, "continueEnabled": true },
-          "next": "capture"
-        },
-        "capture": {
-          "action": "screenshot",
-          "description": "PT-2: settled valid amount screen",
-          "path": "screenshots/send-valid-amount.png",
-          "next": "done"
-        },
-        "done": { "action": "end", "status": "pass" }
-      },
-      "teardown": [
-        { "action": "reset_fixture", "description": "Return simulator to clean wallet state" }
-      ]
     }
   }
 }

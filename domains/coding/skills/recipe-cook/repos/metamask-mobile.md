@@ -23,8 +23,8 @@ If `/recipe-wallet-control` is installed, read its Mobile overlay and action voc
 Before claiming live Mobile recipe proof, install and verify `/recipe-harness`:
 
 ```sh
-recipe-harness mobile install --target .
-recipe-harness mobile verify --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
 ```
 
 Do this especially on historical commits, where the checked-out runner may be stale or absent. Record `.agent/recipe-harness/mobile/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.

@@ -1,7 +1,7 @@
 ---
 name: recipe-pr-review
 description: Review a MetaMask PR by extracting behavioral claims, finding code risks, and requiring recipe-backed proof for claims that need runtime validation. Use when a reviewer or agent needs code review plus executable evidence strategy, especially for ADR-58 recipe workflows.
-maturity: experimental
+maturity: stable
 ---
 
 # Recipe PR Review
