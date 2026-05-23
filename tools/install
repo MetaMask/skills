@@ -259,6 +259,32 @@ ${content}
 HEREDOC
 }
 
+copy_bundle_dirs() {
+  local skill_dir="$1" dest_dir="$2" label="$3"
+  local bundle
+  for bundle in references scripts assets; do
+    [[ -d "$skill_dir/$bundle" ]] || continue
+    action "$label/$bundle/"
+    $DRY_RUN && continue
+    mkdir -p "$dest_dir"
+    rm -rf "$dest_dir/$bundle"
+    cp -R "$skill_dir/$bundle" "$dest_dir/$bundle"
+  done
+}
+
+copy_project_bundles() {
+  local skill_dir="$1" out_name="$2"
+  copy_bundle_dirs "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
+  copy_bundle_dirs "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
+  copy_bundle_dirs "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
+}
+
+copy_user_bundles() {
+  local skill_dir="$1" out_name="$2"
+  [[ -d "$HOME/.claude" ]] && copy_bundle_dirs "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
+  [[ -d "$HOME/.codex" ]] && copy_bundle_dirs "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+}
+
 process_skill() {
   local skill_dir="$1" domain_name="$2"
   local skill_name; skill_name=$(basename "$skill_dir")
@@ -306,6 +332,7 @@ process_skill() {
     local body; body=$(body_after_frontmatter "$base")
     write_user_claude "$out_name" "$out_name" "$description" "$body"
     write_user_codex  "$out_name" "$out_name" "$description" "$body"
+    copy_user_bundles "$skill_dir" "$out_name"
     return
   fi
 
@@ -327,6 +354,7 @@ ${overlay_content}"
   write_claude "$out_name" "$out_name" "$description" "$merged"
   write_cursor "$out_name" "$description" "$merged"
   write_agents "$out_name" "$out_name" "$description" "$merged"
+  copy_project_bundles "$skill_dir" "$out_name"
 }
 
 echo "MetaMask skills install"

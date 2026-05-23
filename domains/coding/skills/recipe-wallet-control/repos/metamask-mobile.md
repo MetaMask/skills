@@ -1,9 +1,9 @@
 ---
 repo: metamask-mobile
-parent: wallet-control
+parent: recipe-wallet-control
 ---
 
-# Wallet Control — MetaMask Mobile
+# Recipe Wallet Control — MetaMask Mobile
 
 Use the agentic mobile scripts under `scripts/perps/agentic/` to drive a debug MetaMask Mobile app through wallet-semantic primitives. The shell wrappers call `scripts/perps/agentic/cdp-bridge.js` for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs. Reuse `simulator-control` or `agent-device` for generic device inspection when useful, but prefer this overlay for wallet setup, route navigation, screenshots, and controller state.
 
@@ -92,7 +92,7 @@ Some route aliases are idempotent when the app is already on the target tab/scre
 Capture the current simulator/emulator screen:
 
 ```bash
-bash scripts/perps/agentic/screenshot.sh wallet-control-home
+bash scripts/perps/agentic/screenshot.sh recipe-wallet-control-home
 ```
 
 Expected output is an absolute PNG path under `.agent/screenshots/`. Failure usually means no matching booted simulator or connected Android device was found.
@@ -160,4 +160,4 @@ The primitives currently live under `scripts/perps/agentic/`. A follow-up should
 
 ## Compose-Up Note
 
-If you are authoring a per-PR verification recipe, use `/cook` and let it call these primitives. Do not hand-write large recipe graphs inside this skill.
+If you are authoring a per-PR verification recipe, use `/recipe-cook` and let it call these primitives. Do not hand-write large recipe graphs inside this skill.

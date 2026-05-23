@@ -1,6 +1,6 @@
-# Wallet Control Action Vocabulary
+# Recipe Wallet Control Action Vocabulary
 
-Use this vocabulary when recording mobile validation evidence or composing `/cook` recipes that call MetaMask Mobile agentic scripts. These primitives are mobile-focused; Extension fixture/runtime injection belongs in `/cook` recipe-runtime tooling until it is available in Extension itself.
+Use this vocabulary when recording mobile validation evidence or composing `/recipe-cook` recipes that call MetaMask Mobile agentic scripts. These primitives are mobile-focused; Extension fixture/runtime injection belongs in `/recipe-cook` recipe-runtime tooling until it is available in Extension itself.
 
 | Action | Args | MetaMask Mobile command | Return shape |
 |---|---|---|---|
