@@ -373,6 +373,34 @@ ${overlay_content}"
   copy_project_bundles "$skill_dir" "$out_name"
 }
 
+preflight_skill() {
+  local skill_dir="$1" domain_name="$2"
+  local base="$skill_dir/skill.md"
+
+  [[ -f "$base" ]] || return 0
+
+  local maturity;  maturity=$(frontmatter_value "$base" "maturity")
+  local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
+
+  if ! maturity_allowed "$maturity"; then
+    return 0
+  fi
+
+  if ! domain_allowed "$domain_name"; then
+    is_truthy "$mandatory" || return 0
+  fi
+
+  local name;        name=$(frontmatter_value "$base" "name")
+  local description; description=$(frontmatter_value "$base" "description")
+
+  if [[ -z "$name" ]]; then
+    FAILED_SKILLS+=("$base missing name")
+  fi
+  if [[ -z "$description" ]]; then
+    FAILED_SKILLS+=("$base missing description")
+  fi
+}
+
 echo "MetaMask skills install"
 echo "  repo:     $REPO"
 echo "  target:   $TARGET"
@@ -385,9 +413,9 @@ echo "  dry-run:  $DRY_RUN"
 # letting later sources overwrite earlier ones. Then process the resolved set.
 # Keep this Bash 3-compatible: macOS /bin/bash is still 3.2, so avoid
 # associative arrays here.
-declare -a RESOLVED_KEYS
-declare -a RESOLVED_DIRS
-declare -a RESOLVED_DOMAINS
+RESOLVED_KEYS=()
+RESOLVED_DIRS=()
+RESOLVED_DOMAINS=()
 SKIPPED_USER_SKILLS=()
 FAILED_SKILLS=()
 
@@ -424,6 +452,21 @@ for src in "${SOURCES[@]}"; do
   done
 done
 
+for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+  preflight_skill "${RESOLVED_DIRS[$i]}" "${RESOLVED_DOMAINS[$i]}"
+done
+
+set +u
+FAILED_SKILL_COUNT=${#FAILED_SKILLS[@]}
+set -u
+if (( FAILED_SKILL_COUNT > 0 )); then
+  echo
+  echo "Error: $FAILED_SKILL_COUNT malformed skill(s) encountered before install:" >&2
+  for s in "${FAILED_SKILLS[@]}"; do echo "  - $s" >&2; done
+  echo "No target files were written." >&2
+  exit 1
+fi
+
 current_domain=""
 for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
   domain_name="${RESOLVED_DOMAINS[$i]}"
@@ -435,16 +478,6 @@ for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
   log "skill: $(basename "${RESOLVED_DIRS[$i]}")"
   process_skill "${RESOLVED_DIRS[$i]}" "$domain_name"
 done
-
-set +u
-FAILED_SKILL_COUNT=${#FAILED_SKILLS[@]}
-set -u
-if (( FAILED_SKILL_COUNT > 0 )); then
-  echo
-  echo "Error: $FAILED_SKILL_COUNT malformed skill(s) encountered:" >&2
-  for s in "${FAILED_SKILLS[@]}"; do echo "  - $s" >&2; done
-  exit 1
-fi
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."
