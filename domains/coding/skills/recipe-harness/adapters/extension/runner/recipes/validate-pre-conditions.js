@@ -12,8 +12,24 @@ function main() {
   const appRoot = getAppRoot();
   const registry = loadPreConditionRegistry(appRoot);
   const failures = [];
+  let fixtureChecked = 0;
+  let runtimeOnly = 0;
 
   Object.entries(registry).forEach(([name, entry]) => {
+    if (typeof entry.check !== 'function') {
+      failures.push(`  ${name}: missing async check function`);
+    }
+
+    if (!entry.assert && !entry.fixtures) {
+      runtimeOnly += 1;
+      return;
+    }
+
+    if (!entry.assert) {
+      failures.push(`  ${name}: fixtures require an assert block`);
+      return;
+    }
+
     const fixtures = entry.fixtures;
     if (!fixtures) {
       failures.push(`  ${name}: missing fixtures.pass and fixtures.fail`);
@@ -50,6 +66,8 @@ function main() {
           `    assert:  ${JSON.stringify(assertSpec)}`
       );
     }
+
+    fixtureChecked += 1;
   });
 
   if (failures.length > 0) {
@@ -58,7 +76,7 @@ function main() {
   }
 
   console.log(
-    `All ${Object.keys(registry).length} pre-condition(s) pass assertion correctness checks.`
+    `All ${Object.keys(registry).length} pre-condition(s) are registered (${fixtureChecked} fixture assertion check(s), ${runtimeOnly} runtime-only check(s)).`
   );
 }
 

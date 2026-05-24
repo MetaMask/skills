@@ -134,7 +134,8 @@ tools/deploy --domain perps --dry-run      # forwarded to install
 From inside a consumer repo:
 
 ```bash
-yarn skills                                          # interactive prompt
+yarn skills                                          # sync all/default saved domains
+yarn skills --select                                 # interactive domain picker
 SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```

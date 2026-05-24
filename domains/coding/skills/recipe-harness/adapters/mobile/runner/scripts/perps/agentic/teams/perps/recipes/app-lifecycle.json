@@ -126,11 +126,11 @@
           "description": "Detect login vs wallet after restart",
           "when": { "operator": "eq", "field": "inputs.test_restart", "value": true },
           "expression": "(function(){try{var r=globalThis.__AGENTIC__.getRoute();return JSON.stringify({route:r.name})}catch(e){return JSON.stringify({route:'unknown'})}})()",
+          "assert": { "operator": "not_null", "field": "route" },
           "next": "check-needs-unlock"
         },
         "check-needs-unlock": {
           "action": "switch",
-          "when": { "operator": "eq", "field": "inputs.test_restart", "value": true },
           "cases": [
             {
               "label": "needs-login",

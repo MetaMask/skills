@@ -270,7 +270,10 @@ copy_bundle_dirs() {
       rm -rf "$dest_dir/$bundle"
       cp -R "$skill_dir/$bundle" "$dest_dir/$bundle"
     else
-      $DRY_RUN && continue
+      if $DRY_RUN; then
+        [[ -e "$dest_dir/$bundle" ]] && action "$label/$bundle/ (remove stale)"
+        continue
+      fi
       # Remove stale bundles left by older versions of this skill.
       rm -rf "$dest_dir/$bundle"
     fi
@@ -320,8 +323,16 @@ process_skill() {
   local name;        name=$(frontmatter_value "$base" "name")
   local description; description=$(frontmatter_value "$base" "description")
 
-  [[ -z "$name" ]]        && { echo "Error: $base missing 'name' frontmatter" >&2; return; }
-  [[ -z "$description" ]] && { echo "Error: $base missing 'description' frontmatter" >&2; return; }
+  if [[ -z "$name" ]]; then
+    echo "Error: $base missing 'name' frontmatter" >&2
+    FAILED_SKILLS+=("$base missing name")
+    return
+  fi
+  if [[ -z "$description" ]]; then
+    echo "Error: $base missing 'description' frontmatter" >&2
+    FAILED_SKILLS+=("$base missing description")
+    return
+  fi
 
   local out_name="${PREFIX}${name}"
 
@@ -378,6 +389,7 @@ declare -a RESOLVED_KEYS
 declare -a RESOLVED_DIRS
 declare -a RESOLVED_DOMAINS
 SKIPPED_USER_SKILLS=()
+FAILED_SKILLS=()
 
 find_resolved_index() {
   local needle="$1"
@@ -423,6 +435,16 @@ for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
   log "skill: $(basename "${RESOLVED_DIRS[$i]}")"
   process_skill "${RESOLVED_DIRS[$i]}" "$domain_name"
 done
+
+set +u
+FAILED_SKILL_COUNT=${#FAILED_SKILLS[@]}
+set -u
+if (( FAILED_SKILL_COUNT > 0 )); then
+  echo
+  echo "Error: $FAILED_SKILL_COUNT malformed skill(s) encountered:" >&2
+  for s in "${FAILED_SKILLS[@]}"; do echo "  - $s" >&2; done
+  exit 1
+fi
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."

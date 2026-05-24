@@ -35,6 +35,7 @@ STATE_FILE="$BACKUP_DIR/state.env"
 mkdir -p "$HARNESS_DIR"
 
 INSTALLED=false
+INSTALL_MUTATING=false
 
 digest_file() {
   local file="$1"
@@ -140,6 +141,72 @@ backup_path() {
   fi
 }
 
+rollback_path() {
+  local rel="$1"
+  local existed="$2"
+  local target_path="$TARGET/$rel"
+  local backup_path="$BACKUP_DIR/$rel"
+  if [ "$existed" = "1" ]; then
+    if [ -e "$backup_path" ]; then
+      rm -rf "$target_path"
+      mkdir -p "$(dirname "$target_path")"
+      cp -a "$backup_path" "$target_path"
+    else
+      echo "Rollback warning: missing backup for $rel at $backup_path" >&2
+    fi
+  else
+    rm -rf "$target_path"
+  fi
+}
+
+rollback_git_exclude() {
+  [ -f "$BACKUP_DIR/added-git-exclude" ] || return 0
+  local git_dir exclude_file tmp_file entry
+  git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null || true)"
+  [ -n "$git_dir" ] || return 0
+  case "$git_dir" in
+    /*) ;;
+    *) git_dir="$TARGET/$git_dir" ;;
+  esac
+  exclude_file="$git_dir/info/exclude"
+  [ -f "$exclude_file" ] || return 0
+  tmp_file="$(mktemp)"
+  cp "$exclude_file" "$tmp_file"
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    grep -vxF "$entry" "$tmp_file" > "$tmp_file.next" || true
+    mv "$tmp_file.next" "$tmp_file"
+  done < "$BACKUP_DIR/added-git-exclude"
+  mv "$tmp_file" "$exclude_file"
+}
+
+rollback_failed_install() {
+  local code="${1:-1}"
+  if [ "$INSTALL_MUTATING" != true ]; then
+    exit "$code"
+  fi
+
+  set +e
+  echo "Mobile recipe harness install failed; restoring backed-up product files." >&2
+  if [ -f "$STATE_FILE" ]; then
+    # shellcheck disable=SC1090
+    . "$STATE_FILE"
+    rollback_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
+    rollback_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
+    rollback_path "package.json" "${PACKAGE_JSON_EXISTED:-0}"
+    rollback_path "app/core/NavigationService/NavigationService.ts" "${NAVIGATION_SERVICE_EXISTED:-0}"
+    rollback_path "app/components/Nav/App/App.tsx" "${APP_TSX_EXISTED:-0}"
+    rollback_git_exclude
+  else
+    echo "Rollback warning: no backup state found at $STATE_FILE" >&2
+  fi
+  rm -rf "$HARNESS_DIR"
+  rm -rf "$BACKUP_DIR"
+  exit "$code"
+}
+
+trap 'rollback_failed_install $?' ERR
+
 if [ ! -f "$STATE_FILE" ]; then
   TMP_BACKUP_DIR="$(mktemp -d "$HARNESS_DIR/backup.tmp.XXXXXX")"
   ACTIVE_BACKUP_DIR="$TMP_BACKUP_DIR"
@@ -154,6 +221,8 @@ if [ ! -f "$STATE_FILE" ]; then
   mkdir -p "$(dirname "$BACKUP_DIR")"
   mv "$TMP_BACKUP_DIR" "$BACKUP_DIR"
 fi
+
+INSTALL_MUTATING=true
 
 mkdir -p "$TARGET/scripts/perps" "$TARGET/app/core"
 rsync -a --delete "$ADAPTER_DIR/runner/scripts/perps/agentic" "$TARGET/scripts/perps/"
@@ -286,6 +355,8 @@ write_managed_hashes() {
 }
 
 write_managed_hashes
+INSTALL_MUTATING=false
+trap - ERR
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 cat > "$HARNESS_DIR/manifest.json" <<EOF

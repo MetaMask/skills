@@ -17,6 +17,7 @@
         "check-tutorial": {
           "action": "eval_sync",
           "expression": "JSON.stringify({ visible: !!document.querySelector('[data-testid=\"perps-tutorial-modal\"]') })",
+          "assert": { "operator": "not_null", "field": "visible" },
           "save_as": "tutorial_state",
           "next": "tutorial-switch"
         },
@@ -32,7 +33,8 @@
         },
         "wait-tutorial-gone": {
           "action": "wait_for",
-          "expression": "!document.querySelector('[data-testid=\"perps-tutorial-modal\"]')",
+          "expression": "(function(){return JSON.stringify({gone:!document.querySelector('[data-testid=\"perps-tutorial-modal\"]')})})()",
+          "assert": { "operator": "eq", "field": "gone", "value": true },
           "timeout_ms": 5000,
           "next": "wait-tab-mount"
         },
