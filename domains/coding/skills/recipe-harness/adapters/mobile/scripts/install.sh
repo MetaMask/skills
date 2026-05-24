@@ -35,9 +35,55 @@ STATE_FILE="$BACKUP_DIR/state.env"
 mkdir -p "$HARNESS_DIR"
 
 INSTALLED=false
+
+hash_path() {
+  local item="$1"
+  if [ ! -e "$TARGET/$item" ]; then
+    printf 'MISSING'
+  elif [ -d "$TARGET/$item" ]; then
+    (
+      cd "$TARGET"
+      find "$item" -type f | LC_ALL=C sort | while IFS= read -r file; do
+        shasum -a 256 "$file"
+      done | shasum -a 256 | awk '{print $1}'
+    )
+  else
+    (cd "$TARGET" && shasum -a 256 "$item" | awk '{print $1}')
+  fi
+}
+
+verify_installed_paths_unchanged() {
+  local hash_file="$BACKUP_DIR/managed-hashes.tsv"
+  if [ ! -f "$hash_file" ]; then
+    return 0
+  fi
+  local rel expected actual conflicts=0
+  while IFS=$'\t' read -r rel expected; do
+    [ -n "$rel" ] || continue
+    actual="$(hash_path "$rel")"
+    if [ "$actual" != "$expected" ]; then
+      echo "Refusing to refresh mobile recipe harness: managed path changed after install: $rel" >&2
+      echo "  expected: $expected" >&2
+      echo "  actual:   $actual" >&2
+      conflicts=1
+    fi
+  done < "$hash_file"
+  if [ "$conflicts" != "0" ]; then
+    cat >&2 <<EOF
+Reinstall would bless local edits as harness-managed and make cleanup unsafe.
+Save/stash product changes or rerun with --allow-dirty-harness-paths if you intentionally want to overwrite and refresh harness-managed state.
+EOF
+    exit 1
+  fi
+}
+
 if [ -f "$HARNESS_DIR/manifest.json" ] && [ -f "$STATE_FILE" ]; then
   INSTALLED=true
   echo "Existing mobile recipe harness found; refreshing injected files from source." >&2
+fi
+
+if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = true ]; then
+  verify_installed_paths_unchanged
 fi
 
 if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = false ] && git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
@@ -202,28 +248,13 @@ write_managed_hashes() {
   local hash_file="$BACKUP_DIR/managed-hashes.tsv"
   local rel
   : > "$hash_file"
-  hash_one() {
-    local item="$1"
-    if [ ! -e "$TARGET/$item" ]; then
-      printf 'MISSING'
-    elif [ -d "$TARGET/$item" ]; then
-      (
-        cd "$TARGET"
-        find "$item" -type f | LC_ALL=C sort | while IFS= read -r file; do
-          shasum -a 256 "$file"
-        done | shasum -a 256 | awk '{print $1}'
-      )
-    else
-      (cd "$TARGET" && shasum -a 256 "$item" | awk '{print $1}')
-    fi
-  }
   for rel in \
     "scripts/perps/agentic" \
     "app/core/AgenticService" \
     "package.json" \
     "app/core/NavigationService/NavigationService.ts" \
     "app/components/Nav/App/App.tsx"; do
-    printf '%s\t%s\n' "$rel" "$(hash_one "$rel")" >> "$hash_file"
+    printf '%s\t%s\n' "$rel" "$(hash_path "$rel")" >> "$hash_file"
   done
 }
 

@@ -15,6 +15,8 @@ Use the Extension adapter for `metamask-extension` checkouts, especially histori
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension cleanup --target .
 ```
 
+The same `scripts/recipe-harness.sh` path is also mirrored under `.claude/skills/mms-recipe-harness/` and `.cursor/rules/mms-recipe-harness/` for Claude/Cursor operators; examples use `.agents/skills` because Codex reads that tree.
+
 If running from the source skills checkout instead, use:
 
 ```bash
@@ -22,6 +24,10 @@ domains/coding/skills/recipe-harness/scripts/recipe-harness.sh extension verify 
 ```
 
 Use `mme-4` for Extension validation when available.
+
+## Runtime Dependencies
+
+The copied Extension runner expects the target checkout to provide its normal Node dependency set, including `@playwright/test`, `@metamask/client-mcp-core`, and `ws`. If verify fails with module-resolution errors, run the repo's package install/bootstrap first; do not treat that as product behavior failure.
 
 ## Adapter Behavior
 

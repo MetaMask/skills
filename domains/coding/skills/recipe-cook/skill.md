@@ -13,7 +13,7 @@ Load only the files needed for the target repo:
 - Recipe format: `references/recipe-v1.md`
 - Mobile-first recipe examples and composition patterns: `references/examples.md`
 - Evidence package shape: `references/evidence-package.md`
-- Runtime harness: use `/recipe-harness` before claiming live Mobile recipe proof.
+- Runtime harness: use `/recipe-harness` before claiming live Mobile or Extension recipe proof.
 - Target-repo instructions are appended below when installed.
 
 

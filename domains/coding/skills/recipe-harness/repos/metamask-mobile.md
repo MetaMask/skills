@@ -15,6 +15,8 @@ Use the Mobile adapter for `metamask-mobile` checkouts, especially historical co
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile cleanup --target .
 ```
 
+The same `scripts/recipe-harness.sh` path is also mirrored under `.claude/skills/mms-recipe-harness/` and `.cursor/rules/mms-recipe-harness/` for Claude/Cursor operators; examples use `.agents/skills` because Codex reads that tree.
+
 If running from the source skills checkout instead, use:
 
 ```bash

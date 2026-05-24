@@ -27,6 +27,8 @@ Before claiming live Mobile recipe proof, install and verify `/recipe-harness`:
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
 ```
 
+The same `scripts/recipe-harness.sh` path is mirrored under `.claude/skills/mms-recipe-harness/` and `.cursor/rules/mms-recipe-harness/`; examples use `.agents/skills` because Codex reads that tree.
+
 Do this especially on historical commits, where the checked-out runner may be stale or absent. Record `.agent/recipe-harness/mobile/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.
 
 ## Preferred Surfaces

@@ -149,7 +149,15 @@ fi
 
 for src in "${SOURCES[@]}"; do
   echo "Updating $src"
-  git -C "$src" pull --ff-only 2>&1 | sed 's/^/  /' || echo "  (pull skipped — local changes or offline)"
+  if ! pull_output=$(git -C "$src" pull --ff-only 2>&1); then
+    printf '%s\n' "$pull_output" | sed 's/^/  /' >&2
+    cat >&2 <<EOF
+Error: failed to update configured skill source: $src
+Refusing to install potentially stale skills. Fix the checkout (commit/stash/rebase, restore connectivity, or point the env var at an up-to-date source) and rerun.
+EOF
+    exit 1
+  fi
+  printf '%s\n' "$pull_output" | sed 's/^/  /'
 done
 
 # ---- domain resolution ----
