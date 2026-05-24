@@ -50,7 +50,7 @@ Optional:
                       e.g., --domain perps,testing
   --maturity <level>  Minimum maturity: experimental, stable, deprecated
                       (default: stable; matches stable+deprecated when set to stable)
-  --include-user      Also install skills with `scope: user` (writes to
+  --include-user      Also install skills with \`scope: user\` (writes to
                       \$HOME/.claude/skills and \$HOME/.codex/skills, outside
                       the target repo). Off by default — warns + lists them.
   --dry-run           Preview without writing files
@@ -372,10 +372,24 @@ echo "  dry-run:  $DRY_RUN"
 
 # Two-pass resolution: collect (domain, skill_dir) per name across all sources,
 # letting later sources overwrite earlier ones. Then process the resolved set.
-declare -A RESOLVED_DIR
-declare -A RESOLVED_DOMAIN
-declare -a RESOLVED_NAMES
+# Keep this Bash 3-compatible: macOS /bin/bash is still 3.2, so avoid
+# associative arrays here.
+declare -a RESOLVED_KEYS
+declare -a RESOLVED_DIRS
+declare -a RESOLVED_DOMAINS
 SKIPPED_USER_SKILLS=()
+
+find_resolved_index() {
+  local needle="$1"
+  local i
+  for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+    if [[ "${RESOLVED_KEYS[$i]}" == "$needle" ]]; then
+      echo "$i"
+      return 0
+    fi
+  done
+  echo "-1"
+}
 
 for src in "${SOURCES[@]}"; do
   for domain_dir in "$src"/domains/*/; do
@@ -385,25 +399,29 @@ for src in "${SOURCES[@]}"; do
       [[ -d "$skill_dir" ]] || continue
       skill_name=$(basename "$skill_dir")
       key="${domain_name}/${skill_name}"
-      if [[ -z "${RESOLVED_DIR[$key]:-}" ]]; then
-        RESOLVED_NAMES+=("$key")
+      resolved_index=$(find_resolved_index "$key")
+      if [[ "$resolved_index" == "-1" ]]; then
+        RESOLVED_KEYS+=("$key")
+        RESOLVED_DIRS+=("$skill_dir")
+        RESOLVED_DOMAINS+=("$domain_name")
+      else
+        RESOLVED_DIRS[$resolved_index]="$skill_dir"
+        RESOLVED_DOMAINS[$resolved_index]="$domain_name"
       fi
-      RESOLVED_DIR[$key]="$skill_dir"
-      RESOLVED_DOMAIN[$key]="$domain_name"
     done
   done
 done
 
 current_domain=""
-for key in "${RESOLVED_NAMES[@]}"; do
-  domain_name="${RESOLVED_DOMAIN[$key]}"
+for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+  domain_name="${RESOLVED_DOMAINS[$i]}"
   if [[ "$domain_name" != "$current_domain" ]]; then
     echo
     echo "Domain: $domain_name"
     current_domain="$domain_name"
   fi
-  log "skill: $(basename "${RESOLVED_DIR[$key]}")"
-  process_skill "${RESOLVED_DIR[$key]}" "$domain_name"
+  log "skill: $(basename "${RESOLVED_DIRS[$i]}")"
+  process_skill "${RESOLVED_DIRS[$i]}" "$domain_name"
 done
 
 echo

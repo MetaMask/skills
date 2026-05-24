@@ -12,6 +12,7 @@ Use the Mobile adapter for `metamask-mobile` checkouts, especially historical co
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target . --static-only
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile cleanup --target .
 ```
 
@@ -43,6 +44,10 @@ For live runtime proof, verify that:
 - wallet fixture setup/unlock works when fixture data exists;
 - screenshot capture works;
 - a tiny recipe emits `summary.json`, `trace.json`, and `artifact-manifest.json`.
+
+Use `--static-only` only for install/idempotency checks when the simulator,
+Metro, or CDP is unavailable. Static verification is intentionally not runtime
+proof.
 
 Harness automation should call direct scripts, for example:
 

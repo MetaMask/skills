@@ -10,6 +10,7 @@ Examples:
   recipe-harness.sh mobile verify --target /path/to/metamask-mobile
   recipe-harness.sh extension install --target /path/to/metamask-extension
   recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port 9222
+  recipe-harness.sh extension verify --target /path/to/metamask-extension --static-only
 EOF
 }
 

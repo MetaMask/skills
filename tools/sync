@@ -48,8 +48,9 @@ Required:
 Options:
   --repo <name>        Consumer repo (auto-detected from <target>/package.json)
   --domain <list>      Comma-separated domain opt-in filter (overrides default-all)
-  --select             Interactively pick which domains to install. Default
-                       behavior is install all — use this to opt out of some.
+  --select             Interactively pick which domains to install (requires
+                       a TTY). Default behavior is install all — use this to
+                       opt out of some.
   --include-user       Also install skills with \`scope: user\` (writes to
                        \$HOME — outside this repo). Off by default.
   --dry-run            Preview without writing
@@ -145,6 +146,14 @@ if $RESET; then
     echo "No saved selection at $CONFIG_FILE"
   fi
   exit 0
+fi
+
+if $SELECT && [[ ! -t 0 ]]; then
+  cat >&2 <<EOF
+Error: --select requires an interactive TTY.
+Use --domain <list> or SKILLS_DOMAINS=<list> for non-interactive sync.
+EOF
+  exit 1
 fi
 
 for src in "${SOURCES[@]}"; do

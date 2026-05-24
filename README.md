@@ -195,7 +195,11 @@ When a source skill includes bundled resources, `references/`, `scripts/`,
 Large runtime skills such as recipe harnesses can therefore add sizeable
 ignored payloads under `.claude/skills/`, `.cursor/rules/`, and
 `.agents/skills/`; this is intentional so installed skills remain
-self-contained. Repo overlays still decide which adapter an agent should use.
+self-contained. Sync removes stale managed bundle directories when the source
+skill removes them. "Self-contained" means the skill payload is present; live
+runtime proof still depends on the target repo dependencies, device/browser,
+and CDP state described by each repo overlay. Repo overlays still decide which
+adapter an agent should use.
 
 All output names are prefixed `mms-` (managed metamask skill). Source
 frontmatter `name:` stays unprefixed; the prefix is applied at install time.

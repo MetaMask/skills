@@ -12,6 +12,7 @@ Use the Extension adapter for `metamask-extension` checkouts, especially histori
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install --target .
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension verify --target . --cdp-port <port>
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension verify --target . --static-only
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension cleanup --target .
 ```
 
@@ -20,6 +21,7 @@ The same `scripts/recipe-harness.sh` path is also mirrored under `.claude/skills
 If running from the source skills checkout instead, use:
 
 ```bash
+domains/coding/skills/recipe-harness/scripts/recipe-harness.sh extension install --target /path/to/metamask-extension
 domains/coding/skills/recipe-harness/scripts/recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port 9222
 ```
 
