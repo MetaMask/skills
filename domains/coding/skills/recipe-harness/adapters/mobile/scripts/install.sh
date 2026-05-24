@@ -36,6 +36,9 @@ mkdir -p "$HARNESS_DIR"
 
 INSTALLED=false
 INSTALL_MUTATING=false
+ROLLBACK_BACKUP_DIR="$BACKUP_DIR"
+ROLLBACK_STATE_FILE="$STATE_FILE"
+REFRESH_BACKUP_DIR=""
 
 digest_file() {
   local file="$1"
@@ -145,7 +148,7 @@ rollback_path() {
   local rel="$1"
   local existed="$2"
   local target_path="$TARGET/$rel"
-  local backup_path="$BACKUP_DIR/$rel"
+  local backup_path="$ROLLBACK_BACKUP_DIR/$rel"
   if [ "$existed" = "1" ]; then
     if [ -e "$backup_path" ]; then
       rm -rf "$target_path"
@@ -160,7 +163,7 @@ rollback_path() {
 }
 
 rollback_git_exclude() {
-  [ -f "$BACKUP_DIR/added-git-exclude" ] || return 0
+  [ -f "$ROLLBACK_BACKUP_DIR/added-git-exclude" ] || return 0
   local git_dir exclude_file tmp_file entry
   git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null || true)"
   [ -n "$git_dir" ] || return 0
@@ -176,7 +179,7 @@ rollback_git_exclude() {
     [ -n "$entry" ] || continue
     grep -vxF "$entry" "$tmp_file" > "$tmp_file.next" || true
     mv "$tmp_file.next" "$tmp_file"
-  done < "$BACKUP_DIR/added-git-exclude"
+  done < "$ROLLBACK_BACKUP_DIR/added-git-exclude"
   mv "$tmp_file" "$exclude_file"
 }
 
@@ -188,9 +191,9 @@ rollback_failed_install() {
 
   set +e
   echo "Mobile recipe harness install failed; restoring backed-up product files." >&2
-  if [ -f "$STATE_FILE" ]; then
+  if [ -f "$ROLLBACK_STATE_FILE" ]; then
     # shellcheck disable=SC1090
-    . "$STATE_FILE"
+    . "$ROLLBACK_STATE_FILE"
     rollback_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
     rollback_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
     rollback_path "package.json" "${PACKAGE_JSON_EXISTED:-0}"
@@ -198,10 +201,14 @@ rollback_failed_install() {
     rollback_path "app/components/Nav/App/App.tsx" "${APP_TSX_EXISTED:-0}"
     rollback_git_exclude
   else
-    echo "Rollback warning: no backup state found at $STATE_FILE" >&2
+    echo "Rollback warning: no backup state found at $ROLLBACK_STATE_FILE" >&2
   fi
-  rm -rf "$HARNESS_DIR"
-  rm -rf "$BACKUP_DIR"
+  if [ "$INSTALLED" = true ]; then
+    [ -n "$REFRESH_BACKUP_DIR" ] && rm -rf "$REFRESH_BACKUP_DIR"
+  else
+    rm -rf "$HARNESS_DIR"
+    rm -rf "$BACKUP_DIR"
+  fi
   exit "$code"
 }
 
@@ -220,6 +227,18 @@ if [ ! -f "$STATE_FILE" ]; then
   rm -rf "$BACKUP_DIR"
   mkdir -p "$(dirname "$BACKUP_DIR")"
   mv "$TMP_BACKUP_DIR" "$BACKUP_DIR"
+else
+  REFRESH_BACKUP_DIR="$(mktemp -d "$HARNESS_DIR/refresh-backup.tmp.XXXXXX")"
+  ACTIVE_BACKUP_DIR="$REFRESH_BACKUP_DIR"
+  ACTIVE_STATE_FILE="$REFRESH_BACKUP_DIR/state.env"
+  : > "$ACTIVE_STATE_FILE"
+  backup_path "scripts/perps/agentic" "SCRIPTS_EXISTED"
+  backup_path "app/core/AgenticService" "AGENTIC_SERVICE_EXISTED"
+  backup_path "package.json" "PACKAGE_JSON_EXISTED"
+  backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
+  backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
+  ROLLBACK_BACKUP_DIR="$REFRESH_BACKUP_DIR"
+  ROLLBACK_STATE_FILE="$REFRESH_BACKUP_DIR/state.env"
 fi
 
 INSTALL_MUTATING=true
@@ -357,6 +376,7 @@ write_managed_hashes() {
 write_managed_hashes
 INSTALL_MUTATING=false
 trap - ERR
+[ -n "$REFRESH_BACKUP_DIR" ] && rm -rf "$REFRESH_BACKUP_DIR"
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 cat > "$HARNESS_DIR/manifest.json" <<EOF

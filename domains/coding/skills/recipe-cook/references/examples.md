@@ -98,10 +98,10 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
       "entry": "market-discovery",
       "nodes": {
         "market-discovery": {
-          "action": "flow_ref",
+          "action": "call",
           "description": "PT-1: reuse the existing market-discovery flow to find BTC and open detail",
-          "ref": "scripts/perps/agentic/teams/perps/flows/market-discovery.json",
-          "inputs": { "symbol": "{{symbol}}" },
+          "ref": "perps/market-discovery",
+          "params": { "symbol": "{{symbol}}" },
           "next": "assert-price"
         },
         "assert-price": {
@@ -115,6 +115,7 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
         "capture-detail": {
           "action": "screenshot",
           "description": "PT-2: reviewer-visible settled market detail screen",
+          "note": "BTC market detail is settled with a loaded non-zero price.",
           "path": "screenshots/perps-btc-detail.png",
           "next": "index-artifacts"
         },
