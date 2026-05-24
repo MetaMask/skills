@@ -11,6 +11,8 @@
 const { promises: fs, createWriteStream } = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
 const { chromium } = require('@playwright/test');
 const {
   resolveExtensionId,
@@ -18,6 +20,8 @@ const {
   ErrorCodes,
 } = require('@metamask/client-mcp-core');
 const { getExtensionState: readExtensionState } = require('./state-inspector');
+
+const execFileAsync = promisify(execFile);
 
 class CdpSessionManager {
   #browser;
@@ -65,8 +69,14 @@ class CdpSessionManager {
       warn: (message, error) => process.stderr.write(`[cdp] WARN: ${message} ${error || ''}\n`),
     };
 
-    const extensionId = await resolveExtensionId({ context: cdpContext, log });
+    const configuredExtensionId = String(process.env.RECIPE_HARNESS_EXTENSION_ID || '').trim();
+    const extensionId = /^[a-z]{32}$/.test(configuredExtensionId)
+      ? configuredExtensionId
+      : await resolveExtensionId({ context: cdpContext, log });
     if (!extensionId) throw new Error('CDP: Could not resolve MetaMask extension ID');
+    if (configuredExtensionId && configuredExtensionId === extensionId) {
+      log.info(`Using configured MetaMask extension ID: ${extensionId}`);
+    }
 
     const homeUrl = `chrome-extension://${extensionId}/home.html`;
 
@@ -79,8 +89,16 @@ class CdpSessionManager {
 
       const cdpSession = await cdpContext.newCDPSession(candidate);
       await cdpSession.send('Page.navigate', { url: homeUrl });
-      await candidate.waitForLoadState('domcontentloaded').catch(() => {});
+      await candidate.waitForLoadState('domcontentloaded').catch((err) => {
+        log.warn('MetaMask home navigation did not reach domcontentloaded before inspection:', err);
+      });
       activePage = candidate;
+    } else if (activePage.url().startsWith('chrome-error://')) {
+      const cdpSession = await cdpContext.newCDPSession(activePage);
+      await cdpSession.send('Page.navigate', { url: homeUrl });
+      await activePage.waitForLoadState('domcontentloaded').catch((err) => {
+        log.warn('MetaMask home recovery did not reach domcontentloaded before inspection:', err);
+      });
     }
 
     // Disable Playwright's default media emulation so we don't override the
@@ -1013,14 +1031,21 @@ class CdpSessionManager {
 
     let screenshotBuffer;
 
-    if (options.selector) {
-      const element = this.#activePage.locator(options.selector);
-      screenshotBuffer = await element.screenshot({ path: filepath });
-    } else {
-      screenshotBuffer = await this.#activePage.screenshot({
-        path: filepath,
-        fullPage: options.fullPage !== false,
-      });
+    try {
+      if (options.selector) {
+        const element = this.#activePage.locator(options.selector);
+        screenshotBuffer = await element.screenshot({ path: filepath });
+      } else {
+        screenshotBuffer = await this.#activePage.screenshot({
+          path: filepath,
+          fullPage: options.fullPage !== false,
+        });
+      }
+    } catch (err) {
+      if (process.platform !== 'darwin') throw err;
+      await this.#activePage.bringToFront().catch(() => {});
+      await execFileAsync('/usr/sbin/screencapture', ['-x', filepath], { timeout: 15000 });
+      screenshotBuffer = await fs.readFile(filepath);
     }
 
     const sharp = await import('sharp').then((m) => m.default);

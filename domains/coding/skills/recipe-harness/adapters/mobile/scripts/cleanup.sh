@@ -2,10 +2,12 @@
 set -euo pipefail
 
 TARGET="$PWD"
+ALLOW_MANAGED_CHANGES=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
-    -h|--help) echo "Usage: cleanup.sh [--target <metamask-mobile>]"; exit 0 ;;
+    --allow-managed-changes) ALLOW_MANAGED_CHANGES=true; shift ;;
+    -h|--help) echo "Usage: cleanup.sh [--target <metamask-mobile>] [--allow-managed-changes]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -106,7 +108,11 @@ EOF
   fi
 }
 
-verify_managed_paths_unchanged
+if [ "$ALLOW_MANAGED_CHANGES" != "true" ]; then
+  verify_managed_paths_unchanged
+else
+  echo "Allowing cleanup over changed managed harness paths."
+fi
 
 restore_path() {
   local rel="$1"

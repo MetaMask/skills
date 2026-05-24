@@ -355,6 +355,7 @@ add_git_exclude() {
 }
 
 add_git_exclude ".agent/recipe-harness/"
+add_git_exclude ".skills-cache/"
 add_git_exclude "temp/agentic/recipe-harness/"
 add_git_exclude "scripts/perps/agentic/"
 add_git_exclude "app/core/AgenticService/"
@@ -403,6 +404,7 @@ cat > "$HARNESS_DIR/manifest.json" <<EOF
   "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET",
   "productDiffExcludes": [
     ":(exclude).agent/recipe-harness",
+    ":(exclude).skills-cache",
     ":(exclude)scripts/perps/agentic",
     ":(exclude)app/core/AgenticService"
   ]

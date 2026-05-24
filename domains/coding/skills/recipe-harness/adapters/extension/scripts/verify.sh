@@ -29,6 +29,11 @@ if ! OUT_ABS="$(resolve_harness_out "$TARGET" "$OUT")"; then
 fi
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
+EXTENSION_ID_FILE="$TARGET/temp/runtime/extension.id"
+if [ -f "$EXTENSION_ID_FILE" ]; then
+  RECIPE_HARNESS_EXTENSION_ID="$(tr -d '[:space:]' < "$EXTENSION_ID_FILE")"
+  export RECIPE_HARNESS_EXTENSION_ID
+fi
 
 status="pass"
 checks=()
@@ -80,7 +85,7 @@ if [ "$STATIC_ONLY" = false ]; then
 fi
 
 if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude)$OUT" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
+  git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude).skills-cache" ":(exclude)$OUT" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
 RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
