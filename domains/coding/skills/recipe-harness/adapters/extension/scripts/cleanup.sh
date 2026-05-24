@@ -77,4 +77,5 @@ if [ -f "$BACKUP_DIR/added-git-exclude" ]; then
 fi
 
 rm -rf "$HARNESS_DIR"
+rm -rf "$TARGET/.skills-cache"
 echo "Cleaned extension recipe harness from $TARGET"

@@ -163,4 +163,5 @@ fi
 
 rm -rf "$HARNESS_DIR"
 rm -rf "$BACKUP_DIR"
+rm -rf "$TARGET/.skills-cache"
 echo "Cleaned mobile recipe harness from $TARGET"
