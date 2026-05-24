@@ -701,7 +701,7 @@ const AgenticService = {
               );
               await KeyringController.createNewVaultAndRestore(
                 fixture.password,
-                mnemonicAccount.value,
+                mnemonic,
               );
               usedLegacyVaultSetup = true;
             }
