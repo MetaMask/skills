@@ -91,7 +91,13 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
   "schema_version": 1,
   "title": "Perps market detail shows a loaded BTC price",
   "description": "Proves the market list can open BTC details and the price is loaded after navigation settles.",
-  "inputs": { "symbol": "BTC" },
+  "inputs": {
+    "symbol": {
+      "type": "string",
+      "default": "BTC",
+      "description": "Perps market symbol to open and assert"
+    }
+  },
   "validate": {
     "workflow": {
       "pre_conditions": ["wallet.unlocked", "perps.feature_enabled"],
@@ -116,13 +122,13 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
           "action": "screenshot",
           "description": "PT-2: reviewer-visible settled market detail screen",
           "note": "BTC market detail is settled with a loaded non-zero price.",
-          "path": "screenshots/perps-btc-detail.png",
+          "filename": "perps-btc-detail",
           "next": "index-artifacts"
         },
         "index-artifacts": {
           "action": "artifact_index",
           "description": "Index state and screenshot evidence",
-          "artifacts": ["screenshots/perps-btc-detail.png"],
+          "artifacts": ["screenshots/"],
           "next": "done"
         },
         "done": { "action": "end", "status": "pass" }
@@ -152,9 +158,8 @@ Use command assertions when the PR claim is not user-facing.
         "run-focused-test": {
           "action": "command",
           "description": "PT-1: focused unit test covers malformed metadata",
-          "cmd": "yarn test --runInBand app/core/token-service/metadata.test.ts",
+          "cmd": "mkdir -p \"$RECIPE_ARTIFACT_DIR/reports\" && yarn test --runInBand app/core/token-service/metadata.test.ts --json --outputFile \"$RECIPE_ARTIFACT_DIR/reports/jest-token-metadata.json\"",
           "timeout_ms": 120000,
-          "outputs": { "json": "reports/jest-token-metadata.json" },
           "next": "assert-pass"
         },
         "assert-pass": {
