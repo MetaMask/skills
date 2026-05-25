@@ -183,6 +183,25 @@ engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
 of the target repo. They are **never auto-installed** — installer lists them
 in a final warning. Run with `--include-user` to install manually.
 
+### Recipe skills quick use
+
+After `yarn skills`, consumer repos expose these as `mms-` skills. Start high level:
+
+- `/mms-recipe-dev <task or ticket>` — build a feature/dev change, run live proof when applicable, package evidence, stop for human review.
+- `/mms-recipe-fix-ticket <Jira/GitHub>` — fix a bug and prove it with recipe evidence.
+- `/mms-recipe-pr-review <PR>` — review code, extract proof targets, and say what runtime evidence is missing.
+- `/mms-recipe-qa <PR/task>` — run or prepare recipe-backed QA for an existing change.
+
+Drop lower only when steering/debugging:
+
+- `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
+- `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
+- `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
+- `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
+
+Happy path: task → code/review → live recipe run → screenshots/trace/summary/manifest → evidence block → human validation.
+
 ### Output
 
 Per consuming repo, the CLI writes:
