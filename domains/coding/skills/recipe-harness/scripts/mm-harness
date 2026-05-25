@@ -144,11 +144,82 @@ has_arg() {
   return 1
 }
 
+resolve_extension_cdp_port() {
+  local target="$1"
+  if [ -n "${CDP_PORT:-}" ]; then
+    printf '%s\n' "$CDP_PORT"
+    return 0
+  fi
+
+  # Local env files are useful outside farmslot. Keep this generic: accept an
+  # explicit CDP_PORT assignment only, not repo/slot-specific variable names.
+  local env_file line value
+  for env_file in "$target/.js.env" "$target/.env" "$target/.env.local"; do
+    [ -f "$env_file" ] || continue
+    line=$(grep -E '^[[:space:]]*(export[[:space:]]+)?CDP_PORT=' "$env_file" | tail -1 || true)
+    [ -n "$line" ] || continue
+    value="${line#*=}"
+    value="${value%%#*}"
+    value="$(printf '%s' "$value" | tr -d "\"'[:space:]")"
+    if [ -n "$value" ]; then
+      printf '%s\n' "$value"
+      return 0
+    fi
+  done
+
+  # If this repo is managed by farmslot, infer the port from the pool registry.
+  # Prefer the local host pool to avoid collisions with remote nodes whose repo
+  # paths may look identical from their own machine.
+  local farmslot_dir="${FARMSLOT_DIR:-}"
+  [ -n "$farmslot_dir" ] || farmslot_dir="$HOME/dev/farmslot"
+  [ -d "$farmslot_dir/pool" ] || return 1
+
+  TARGET_FOR_CDP="$target" FARMSLOT_FOR_CDP="$farmslot_dir" python3 - <<'INNERPY'
+import json, os, socket, subprocess
+from pathlib import Path
+
+target = Path(os.environ['TARGET_FOR_CDP']).expanduser().resolve()
+root = Path(os.environ['FARMSLOT_FOR_CDP']).expanduser()
+pool = root / 'pool'
+host = socket.gethostname().split('.')[0]
+try:
+    local = subprocess.check_output(['scutil', '--get', 'LocalHostName'], stderr=subprocess.DEVNULL, text=True).strip()
+except Exception:
+    local = ''
+preferred = []
+for name in dict.fromkeys([host, local]):
+    if name:
+        preferred.append(pool / f'{name}.json')
+preferred.extend(sorted(p for p in pool.glob('*.json') if p not in preferred))
+
+for path in preferred:
+    try:
+        data = json.loads(path.read_text())
+    except Exception:
+        continue
+    for slot in data.get('slots', []):
+        repo = slot.get('repo')
+        if not repo:
+            continue
+        try:
+            same = Path(repo).expanduser().resolve() == target
+        except Exception:
+            same = False
+        if not same:
+            continue
+        port = ((slot.get('resources') or {}).get('browser') or {}).get('cdp_port')
+        if port:
+            print(port)
+            raise SystemExit(0)
+raise SystemExit(1)
+INNERPY
+}
+
 if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
   if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
-    if [ -n "${CDP_PORT:-}" ]; then
-      log "Using CDP_PORT=$CDP_PORT from environment"
-      set -- --cdp-port "$CDP_PORT" "$@"
+    if resolved_cdp_port="$(resolve_extension_cdp_port "$TARGET")"; then
+      log "Using CDP port $resolved_cdp_port for extension verify"
+      set -- --cdp-port "$resolved_cdp_port" "$@"
     else
       log "Tip: extension live verify needs --cdp-port <port>; use --static-only for static verification."
     fi
