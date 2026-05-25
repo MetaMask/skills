@@ -403,6 +403,106 @@ async function hudClear(ctx) {
   }
 }
 
+function compactIntent(value, max = 96) {
+  const text = String(value || '').replace(/\s+/gu, ' ').trim();
+  if (!text) return '';
+  return text.length > max ? `${text.slice(0, Math.max(0, max - 1))}…` : text;
+}
+
+function describeStep(node) {
+  const explicit = compactIntent(node.description || node.note, 140);
+  if (explicit) return explicit;
+
+  const saveSuffix = node.save_as ? ` → ${node.save_as}` : '';
+  switch (node.action) {
+    case 'command':
+      return compactIntent(`run ${node.cmd || 'command'}${saveSuffix}`);
+    case 'assert_exit_code':
+      return `assert exit code ${node.expected ?? 0}`;
+    case 'assert_json':
+      return `assert JSON ${node.path || 'artifact'}`;
+    case 'assert_file':
+      return `assert file ${node.path || 'artifact exists'}`;
+    case 'artifact_index':
+      return 'write artifact index';
+    case 'navigate':
+      return `navigate to ${node.target || 'target route'}`;
+    case 'ext_navigate_hash':
+      return `navigate extension to #/${String(node.hash || '').replace(/^\//u, '') || 'home'}`;
+    case 'ext_wait_for_screen':
+      return `wait for extension screen ${node.screen || 'target'}`;
+    case 'ext_switch_tab':
+      return `switch to ${node.role || 'extension'} tab`;
+    case 'ext_check_dom':
+      return `check DOM ${node.test_id || node.selector || node.text || 'condition'}`;
+    case 'wait':
+      return `wait ${node.ms || 1000}ms`;
+    case 'wait_for':
+      return `wait for ${node.test_id || node.route || (node.not_route ? `not ${node.not_route}` : '') || compactIntent(node.expression, 48) || 'condition'}`;
+    case 'press':
+      return `press ${node.test_id || 'target'}`;
+    case 'set_input':
+      return `set ${node.test_id || 'input'}`;
+    case 'type_keypad':
+      return `type ${node.value || ''}`.trim();
+    case 'clear_keypad':
+      return 'clear keypad';
+    case 'screenshot':
+      return `capture screenshot ${node.filename || node.id || ''}`.trim();
+    case 'eval_ref':
+      return `evaluate ${node.ref || 'reference'}${saveSuffix}`;
+    case 'eval_sync':
+    case 'eval_async':
+      return `evaluate ${node.target || 'extension state'}${saveSuffix}`;
+    case 'call':
+      return `run flow ${node.ref || 'nested recipe'}`;
+    case 'log_watch':
+      return 'scan logs for warnings/errors';
+    case 'cdp_probe':
+      return 'probe CDP runtime';
+    case 'network':
+      return `${node.network_action || node.action} network state`;
+    case 'emulation':
+      return `set emulation ${node.emulation || node.color_scheme || node.reduced_motion || ''}`.trim();
+    case 'storage':
+      return `${node.storage || 'inspect'} storage`;
+    case 'service_worker':
+      return `${node.worker || 'inspect'} service worker`;
+    case 'target':
+      return `${node.target_action || 'inspect'} CDP target`;
+    case 'page':
+      return `${node.page_action || 'inspect'} page`;
+    case 'browser':
+      return `${node.browser_action || 'inspect'} browser`;
+    case 'fetch':
+      return `${node.fetch_action || 'inspect'} fetch`;
+    case 'performance':
+      return `${node.performance_action || 'inspect'} performance`;
+    case 'trace_start':
+      return `start trace ${node.label || node.name || ''}`.trim();
+    case 'trace_stop':
+      return `stop trace ${node.label || node.name || ''}`.trim();
+    case 'scroll':
+      return `scroll ${node.test_id || node.selector || 'view'}`;
+    case 'key_press':
+      return `press key ${node.key || ''}`.trim();
+    case 'manual':
+      return node.id ? `manual: ${node.id}` : 'manual step';
+    case 'select_account':
+      return `select account ${node.address || ''}`.trim();
+    case 'toggle_testnet':
+      return `toggle testnet${node.enabled !== undefined ? `=${node.enabled}` : ''}`;
+    case 'switch_provider':
+      return `switch provider ${node.provider || ''}`.trim();
+    case 'switch':
+      return 'evaluate branch';
+    case 'end':
+      return `${node.status || 'pass'} end`;
+    default:
+      return node.action || node.id || 'recipe step';
+  }
+}
+
 // ── Workflow graph execution ────────────────────────────────────────
 
 async function executeWorkflow(doc, ctx) {
@@ -497,7 +597,7 @@ async function executeWorkflow(doc, ctx) {
 
     // Execute the node action
     traversal.push(currentNodeId);
-    const hudDesc = (typeof node.note === 'string' && node.note.trim()) ? node.note.trim() : node.action;
+    const hudDesc = describeStep(node);
     if (!ctx.noHud) await hudUpdate(ctx, currentNodeId, hudDesc, breadcrumbData);
 
     // Playback pause — auto-mode delay or step-mode wait. Skip for 'manual' nodes:
@@ -541,6 +641,7 @@ async function executeWorkflow(doc, ctx) {
     trace.push({
       id: currentNodeId,
       action: node.action,
+      description: hudDesc,
       ok: nodePassed,
       raw: relativizeArtifactPaths(result.raw, ctx.artifactsDir),
       durationMs: duration,
@@ -632,7 +733,7 @@ function dryRun(doc) {
   for (const [nodeId, node] of Object.entries(workflow.nodes)) {
     const nextStr = node.next ? ` -> ${node.next}` : '';
     const guardStr = node.when ? ' [when]' : node.unless ? ' [unless]' : '';
-    process.stdout.write(`  ${nodeId}: ${node.action}${guardStr}${nextStr}\n`);
+    process.stdout.write(`  ${nodeId}: ${describeStep(node)} [${node.action}]${guardStr}${nextStr}\n`);
 
     if (node.action === 'switch' && Array.isArray(node.cases)) {
       for (const c of node.cases) {

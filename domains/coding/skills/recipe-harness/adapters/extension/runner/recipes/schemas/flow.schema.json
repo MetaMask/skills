@@ -95,6 +95,7 @@
           "description": "Unique kebab-case identifier for this step."
         },
         "action": { "$ref": "#/$defs/action" },
+        "description": { "type": "string", "description": "Human-readable intent shown in HUD/video overlays and trace artifacts." },
         "test_id": { "type": "string" },
         "value": { "type": "string" },
         "target": { "type": "string" },
@@ -180,6 +181,7 @@
       "required": ["action"],
       "properties": {
         "action": { "$ref": "#/$defs/action" },
+        "description": { "type": "string", "description": "Human-readable intent shown in HUD/video overlays and trace artifacts." },
         "next": {
           "type": "string",
           "description": "ID of the next node to execute."
