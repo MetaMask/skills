@@ -671,13 +671,30 @@ async function executeWorkflow(doc, ctx) {
 
 // ── Artifacts ────────────────────────────────────────────────────────
 
+function listArtifactEntries(rootDir, currentDir = rootDir) {
+  const entries = [];
+  for (const name of readdirSync(currentDir, { withFileTypes: true })) {
+    const absolute = join(currentDir, name.name);
+    const relativePath = relative(rootDir, absolute);
+    if (name.isDirectory()) {
+      entries.push(...listArtifactEntries(rootDir, absolute));
+    } else {
+      entries.push({ path: relativePath, bytes: statSync(absolute).size });
+    }
+  }
+  return entries.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+
 function writeArtifacts(artifactsDir, normalized, trace, passed, failed, totalMs, issueReview) {
   mkdirSync(artifactsDir, { recursive: true });
 
   try {
     const mmd = renderWorkflowMermaid(normalized);
     writeFileSync(join(artifactsDir, 'workflow.mmd'), mmd);
-  } catch {}
+  } catch (err) {
+    process.stderr.write(`[artifacts] WARN: could not render workflow.mmd: ${err.message || err}\n`);
+  }
 
   writeFileSync(join(artifactsDir, 'trace.json'), JSON.stringify(trace, null, 2));
 
@@ -719,6 +736,11 @@ function writeArtifacts(artifactsDir, normalized, trace, passed, failed, totalMs
       `${JSON.stringify(captions, null, 2)}\n`,
     );
   }
+
+  writeFileSync(
+    join(artifactsDir, 'artifact-manifest.json'),
+    `${JSON.stringify({ generatedAt: new Date().toISOString(), artifacts: listArtifactEntries(artifactsDir) }, null, 2)}\n`,
+  );
 }
 
 // ── Dry run ─────────────────────────────────────────────────────────

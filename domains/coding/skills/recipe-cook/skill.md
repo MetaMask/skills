@@ -91,6 +91,13 @@ Use this skill for PRs that need runtime proof, reproducible evidence, or a repe
 
 - Start from acceptance criteria or changed behavior, not from available tooling.
 - Each proof target must have an action path, an assertion, and evidence when the result is reviewer-visible.
+- User-visible UI claims need visual evidence. A recipe that only asserts state
+  or passes unit tests is incomplete for a visible banner, modal, button, route,
+  balance, form, or error-message claim unless the visual gap is explicitly
+  marked blocked.
+- Runtime proof is not complete until the run emits `summary.json`,
+  `trace.json`, and an `artifact-manifest.json`/evidence manifest that indexes
+  the screenshots, videos, logs, or state files used as proof.
 - Prefer existing repo actions, fixtures, page objects, selectors, and test helpers.
 - Recipes may use `/recipe-wallet-control` where installed, but must remain understandable without that skill.
 - Do not include SRPs, private keys, bearer tokens, production account dumps, or private user data.
@@ -133,6 +140,9 @@ Use this skill for PRs that need runtime proof, reproducible evidence, or a repe
 6. **Quality loop**
    - Use `/recipe-quality` before calling the recipe done.
    - Fix must-fix critique items, rerun if possible, then summarize remaining gaps honestly.
+   - If the critique says visual evidence is missing for a visible UI claim,
+     improve the recipe/evidence package or mark the proof target as blocked;
+     do not downgrade the claim to unit-test-only proof.
 
 ## Output Format
 
@@ -142,4 +152,5 @@ When cooking, return:
 2. `Recipe` — path plus important graph nodes, or the full JSON if short.
 3. `Run Command` — exact command(s) used or needed.
 4. `Artifacts` — paths and what each proves.
-5. `Gaps / Follow-ups` — only if something remains unrun, manual, flaky, or blocked.
+5. `Quality Loop` — critique verdict, improvement made, and rerun status.
+6. `Gaps / Follow-ups` — only if something remains unrun, manual, flaky, or blocked.

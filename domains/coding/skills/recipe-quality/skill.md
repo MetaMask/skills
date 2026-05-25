@@ -35,6 +35,30 @@ Use when only the recipe and task context are present. Judge whether the graph i
 
 Use when run artifacts are present. Judge whether the artifacts prove the recipe's named claims, whether the run settled before screenshots/assertions, and whether logs/traces match the expected nodes.
 
+## Mandatory Failure Conditions
+
+Return `fail` or `pass-with-gaps` (never clean `pass`) when any of these apply:
+
+- a visible UI acceptance criterion has no screenshot/video or equivalent
+  reviewer-visible artifact;
+- screenshot/video artifacts for visible UI acceptance criteria are blank, black,
+  or otherwise non-reviewable unless an alternate reviewer-visible proof is
+  included and the gap is explicit;
+- DOM-rendered fallback screenshots may satisfy reviewer-visible evidence only
+  when they are labelled as fallback artifacts and derived from the live page in
+  the same recipe run;
+- `summary.json` or `trace.json` is missing for a claimed runtime recipe pass;
+- `artifact-manifest.json`/evidence manifest is missing or references files that
+  do not exist;
+- the agent claims acceptance criteria from unit tests only when the task
+  requested runtime/visual proof;
+- the recipe never ran and the response does not clearly mark the gap;
+- the run depends on hidden Farmslot-only context when the goal is standalone
+  skills validation.
+
+When failing, name the weak layer: product, recipe, fixture/state setup,
+harness/runtime, skill instruction, evidence packaging, or runner steering.
+
 ## Required Output Sections
 
 Always return these sections:

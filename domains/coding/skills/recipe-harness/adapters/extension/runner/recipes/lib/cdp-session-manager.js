@@ -1059,40 +1059,175 @@ class CdpSessionManager {
 
   // ── Screenshot ─────────────────────────────────────────────────────
 
+  async #analyzeScreenshot(sharp, screenshotBuffer) {
+    const image = sharp(screenshotBuffer);
+    const metadata = await image.metadata();
+    const stats = await sharp(screenshotBuffer).stats();
+    const channels = stats.channels.slice(0, 3);
+    const mean = channels.map((channel) => channel.mean);
+    const stdev = channels.map((channel) => channel.stdev);
+    const averageLuma = mean.length >= 3 ? (0.2126 * mean[0]) + (0.7152 * mean[1]) + (0.0722 * mean[2]) : 0;
+    const maxStdev = Math.max(...stdev, 0);
+    const likelyBlank = averageLuma < 3 && maxStdev < 1;
+    return {
+      width: metadata.width || 0,
+      height: metadata.height || 0,
+      visualQuality: {
+        likelyBlank,
+        averageLuma,
+        maxChannelStdev: maxStdev,
+        meanRgb: mean,
+      },
+    };
+  }
+
+  async #captureDomRenderedScreenshot(filepath, selector, note = '') {
+    const dataUrl = await this.#activePage.evaluate(async ({ selector: maybeSelector, note: screenshotNote }) => {
+      const target = maybeSelector ? document.querySelector(maybeSelector) : null;
+      const interesting = [...document.querySelectorAll('[data-testid]')]
+        .map((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          const text = (element.textContent || '').replace(/\s+/g, ' ').trim();
+          return {
+            testId: element.getAttribute('data-testid'),
+            text,
+            visible: style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0,
+            rect: { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) },
+            backgroundColor: style.backgroundColor,
+            color: style.color,
+          };
+        })
+        .filter((entry) => entry.visible && (entry.text || /adr58|banner|perps|position/i.test(entry.testId || '')))
+        .slice(0, 40);
+      const explicitTarget = target ? {
+        text: (target.textContent || '').replace(/\s+/g, ' ').trim(),
+        testId: target.getAttribute('data-testid'),
+        rect: (() => {
+          const rect = target.getBoundingClientRect();
+          return { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) };
+        })(),
+        backgroundColor: getComputedStyle(target).backgroundColor,
+        color: getComputedStyle(target).color,
+      } : null;
+      const bodyText = (document.body?.innerText || '').replace(/\n{3,}/g, '\n\n').slice(0, 5000);
+      const lines = [
+        'DOM-rendered fallback evidence (native browser screenshot timed out/blank)',
+        screenshotNote ? `Recipe note: ${screenshotNote}` : '',
+        `Title: ${document.title}`,
+        `URL: ${location.href}`,
+        explicitTarget ? `Target: ${JSON.stringify(explicitTarget)}` : '',
+        '',
+        'Visible data-testid/text evidence:',
+        ...interesting.map((entry) => `- ${entry.testId}: ${entry.text || '<no text>'} rect=${JSON.stringify(entry.rect)} bg=${entry.backgroundColor} color=${entry.color}`),
+        '',
+        'Body text sample:',
+        bodyText,
+      ].filter((line) => line !== null);
+
+      const canvas = document.createElement('canvas');
+      const width = 1000;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('2D canvas context unavailable for DOM evidence fallback');
+      ctx.font = '16px ui-monospace, Menlo, Monaco, Consolas, monospace';
+      const wrapped = [];
+      const wrap = (line) => {
+        const max = 110;
+        const text = String(line || '');
+        if (text.length <= max) {
+          wrapped.push(text);
+          return;
+        }
+        for (let i = 0; i < text.length; i += max) wrapped.push(text.slice(i, i + max));
+      };
+      for (const line of lines) {
+        String(line).split('\n').forEach(wrap);
+      }
+      canvas.width = width;
+      canvas.height = Math.max(800, Math.min(5000, 32 + wrapped.length * 22));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '16px ui-monospace, Menlo, Monaco, Consolas, monospace';
+      ctx.textBaseline = 'top';
+      let y = 16;
+      for (const line of wrapped) {
+        const isBanner = /adr58|btc position detected|banner/i.test(line);
+        if (isBanner) {
+          ctx.fillStyle = '#ffdddd';
+          ctx.fillRect(8, y - 3, canvas.width - 16, 22);
+        }
+        ctx.fillStyle = isBanner ? '#990000' : '#111111';
+        ctx.fillText(line, 16, y);
+        y += 22;
+        if (y > canvas.height - 24) break;
+      }
+      return canvas.toDataURL('image/png');
+    }, { selector, note });
+    const encoded = String(dataUrl).split(',', 2)[1];
+    if (!encoded) throw new Error('DOM-rendered screenshot returned invalid data URL');
+    const buffer = Buffer.from(encoded, 'base64');
+    await fs.writeFile(filepath, buffer);
+    return buffer;
+  }
+
   async screenshot(options) {
     await fs.mkdir(this.#screenshotDir, { recursive: true });
 
     const timestamp = `-${Date.now()}`;
     const filename = `${options.name}${timestamp}.png`;
     const filepath = path.join(this.#screenshotDir, filename);
+    const sharp = await import('sharp').then((m) => m.default);
 
     let screenshotBuffer;
+    let captureMode = 'playwright';
+    let fallbackReason = null;
 
     try {
       if (options.selector) {
         const element = this.#activePage.locator(options.selector);
-        screenshotBuffer = await element.screenshot({ path: filepath });
+        screenshotBuffer = await element.screenshot({ path: filepath, timeout: options.timeoutMs || 10000 });
       } else {
         screenshotBuffer = await this.#activePage.screenshot({
           path: filepath,
           fullPage: options.fullPage !== false,
+          timeout: options.timeoutMs || 10000,
         });
       }
     } catch (err) {
-      if (process.platform !== 'darwin') throw err;
-      await this.#activePage.bringToFront().catch(() => {});
-      await execFileAsync('/usr/sbin/screencapture', ['-x', filepath], { timeout: 15000 });
-      screenshotBuffer = await fs.readFile(filepath);
+      fallbackReason = err?.message || String(err);
+      captureMode = 'dom-evidence-card-fallback';
+      try {
+        screenshotBuffer = await this.#captureDomRenderedScreenshot(filepath, options.selector || null, options.note || '');
+      } catch (domErr) {
+        if (process.platform !== 'darwin') {
+          throw new Error(`screenshot failed; DOM-rendered fallback also failed: ${domErr.message || domErr}`, { cause: err });
+        }
+        captureMode = 'macos-screencapture-fallback';
+        fallbackReason = `${fallbackReason}; DOM fallback failed: ${domErr.message || domErr}`;
+        await this.#activePage.bringToFront().catch((frontErr) => {
+          process.stderr.write(`[cdp] WARN: could not bring page to front before screencapture: ${frontErr.message || frontErr}\n`);
+        });
+        await execFileAsync('/usr/sbin/screencapture', ['-x', filepath], { timeout: 15000 });
+        screenshotBuffer = await fs.readFile(filepath);
+      }
     }
 
-    const sharp = await import('sharp').then((m) => m.default);
-    const metadata = await sharp(screenshotBuffer).metadata();
+    let analysis = await this.#analyzeScreenshot(sharp, screenshotBuffer);
+    if (analysis.visualQuality.likelyBlank && captureMode === 'playwright') {
+      fallbackReason = 'playwright screenshot was blank';
+      captureMode = 'dom-evidence-card-fallback';
+      screenshotBuffer = await this.#captureDomRenderedScreenshot(filepath, options.selector || null, options.note || '');
+      analysis = await this.#analyzeScreenshot(sharp, screenshotBuffer);
+    }
 
     return {
       path: filepath,
       base64: screenshotBuffer.toString('base64'),
-      width: metadata.width || 0,
-      height: metadata.height || 0,
+      width: analysis.width,
+      height: analysis.height,
+      captureMode,
+      fallbackReason,
+      visualQuality: analysis.visualQuality,
     };
   }
 

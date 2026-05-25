@@ -198,8 +198,14 @@ async function typeTestId(ctx, testId, text = '') {
 async function waitForTestId(ctx, testId, timeoutMs = 10000, visible = true) {
   if (!testId) throw new Error('test_id is required');
   const state = visible ? 'visible' : 'hidden';
-  await getActivePage(ctx).locator(`[data-testid="${testId}"]`).first().waitFor({ state, timeout: timeoutMs });
-  return visible ? { found: true, testId } : { found: true, hidden: true, testId };
+  const locator = getActivePage(ctx).locator(`[data-testid="${testId}"]`).first();
+  await locator.waitFor({ state, timeout: timeoutMs });
+  if (visible) {
+    await locator.evaluate((element) => {
+      element.scrollIntoView({ block: 'center', inline: 'center' });
+    });
+  }
+  return visible ? { found: true, testId, scrolledIntoView: true } : { found: true, hidden: true, testId };
 }
 
 async function captureScreenshot(ctx, options = {}) {
@@ -325,7 +331,7 @@ async function executeNodeAction(node, ctx) {
       return handleAction(
         async () => {
           if (settleMs > 0) await delay(settleMs);
-          return captureScreenshot(ctx, { name: node.filename || node.id });
+          return captureScreenshot(ctx, { name: node.filename || node.id, note: node.note || '' });
         },
         'screenshot',
       );

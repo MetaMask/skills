@@ -31,6 +31,12 @@ Use available files:
 - Keep it brief.
 - Link each artifact to the claim it proves.
 - Separate passed proof from unrun gaps.
+- Include the harness verify artifact path when runtime proof is claimed.
+- Include `summary.json`, `trace.json`, and
+  `artifact-manifest.json`/evidence-manifest paths for every recipe run used as
+  proof.
+- For reviewer-visible UI claims, include screenshot/video paths. If they are
+  missing, the evidence section must say the visual claim is unproven.
 - Do not paste long logs.
 - Redact secrets and private account data.
 - Never claim a recipe passed if the run did not complete.
@@ -55,3 +61,6 @@ Artifacts:
 Gaps:
 - Android not run.
 ```
+
+- Treat blank/black screenshots as missing visual evidence unless the artifact includes an explicit explanation and alternate reviewer-visible proof.
+- DOM-rendered screenshot fallbacks are acceptable when native CDP/Playwright screenshots are blank or time out, but label them as fallbacks and keep the original blank-capture gap visible.
