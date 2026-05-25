@@ -191,6 +191,61 @@ class CdpSessionManager {
     });
   }
 
+  #extensionServiceWorkerTargets(targets) {
+    return targets.filter(
+      (target) =>
+        target.type === 'service_worker' &&
+        typeof target.url === 'string' &&
+        target.url.startsWith(`chrome-extension://${this.#extensionId}/`),
+    );
+  }
+
+  async #wakeExtensionServiceWorker() {
+    const page =
+      this.#activePage && !this.#activePage.isClosed()
+        ? this.#activePage
+        : this.#cdpContext.pages().find(
+            (target) =>
+              !target.isClosed() &&
+              target.url().startsWith(`chrome-extension://${this.#extensionId}/`),
+          );
+    if (!page) return;
+
+    const wakeResult = await page
+      .evaluate(async () => {
+        if (!globalThis.chrome?.runtime?.sendMessage) {
+          return { attempted: false, reason: 'chrome.runtime.sendMessage unavailable' };
+        }
+        try {
+          await globalThis.chrome.runtime.sendMessage({
+            type: 'recipe-harness-wake-service-worker',
+            at: Date.now(),
+          });
+          return { attempted: true, delivered: true };
+        } catch (err) {
+          // MV3 workers still wake for this message even when no listener
+          // handles it. The expected "Receiving end does not exist" rejection
+          // is a wake signal, not a recipe failure.
+          return { attempted: true, delivered: false, error: err?.message || String(err) };
+        }
+      })
+      .catch((err) => ({ attempted: false, reason: err?.message || String(err) }));
+
+    if (!wakeResult.attempted) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  async #getExtensionServiceWorkerTargets({ wake = false } = {}) {
+    let targets = await this.#httpGetJson(`http://127.0.0.1:${this.#cdpPort}/json/list`);
+    let workers = this.#extensionServiceWorkerTargets(targets);
+    if (workers.length === 0 && wake) {
+      await this.#wakeExtensionServiceWorker();
+      targets = await this.#httpGetJson(`http://127.0.0.1:${this.#cdpPort}/json/list`);
+      workers = this.#extensionServiceWorkerTargets(targets);
+    }
+    return workers;
+  }
+
   async #getOrCreatePageCdpSession(page) {
     if (!page || page.isClosed()) {
       throw new Error('CDP: cannot create a CDP session for a closed page');
@@ -229,13 +284,8 @@ class CdpSessionManager {
   }
 
   async #getOrCreateBackgroundCdpClients() {
-    const targets = await this.#httpGetJson(`http://127.0.0.1:${this.#cdpPort}/json/list`);
-    const workers = targets.filter(
-      (target) =>
-        target.type === 'service_worker' &&
-        typeof target.url === 'string' &&
-        target.url.startsWith(`chrome-extension://${this.#extensionId}/`) &&
-        typeof target.webSocketDebuggerUrl === 'string',
+    const workers = (await this.#getExtensionServiceWorkerTargets({ wake: true })).filter(
+      (target) => typeof target.webSocketDebuggerUrl === 'string',
     );
 
     if (workers.length === 0) {
@@ -553,13 +603,7 @@ class CdpSessionManager {
     const browserSession = await this.#getOrCreatePageCdpSession(this.#activePage);
     await browserSession.send('ServiceWorker.enable');
 
-    const targets = await this.#httpGetJson(`http://127.0.0.1:${this.#cdpPort}/json/list`);
-    const workers = targets.filter(
-      (target) =>
-        target.type === 'service_worker' &&
-        typeof target.url === 'string' &&
-        target.url.startsWith(`chrome-extension://${this.#extensionId}/`),
-    );
+    const workers = await this.#getExtensionServiceWorkerTargets({ wake: true });
 
     if (worker === 'eval') {
       const expression = String(options.expression || '').trim();
@@ -624,14 +668,7 @@ class CdpSessionManager {
       url: entry.url,
     }));
 
-    const targets = await this.#httpGetJson(`http://127.0.0.1:${this.#cdpPort}/json/list`);
-    const extensionWorkers = targets
-      .filter(
-        (target) =>
-          target.type === 'service_worker' &&
-          typeof target.url === 'string' &&
-          target.url.startsWith(`chrome-extension://${this.#extensionId}/`),
-      )
+    const extensionWorkers = (await this.#getExtensionServiceWorkerTargets({ wake: true }))
       .map((target) => ({
         role: 'background',
         type: target.type,

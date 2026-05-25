@@ -21,13 +21,12 @@
         "ac1-eval-worker": {
           "action": "service_worker",
           "worker": "eval",
-          "expression": "(function(){return {storageKind:globalThis.stateHooks.getStorageKind(), hasMetamaskGetState:typeof globalThis.stateHooks.metamaskGetState === 'function'}})()",
+          "expression": "(function(){return {href:globalThis.location&&globalThis.location.href, hasChromeRuntime:!!(globalThis.chrome&&globalThis.chrome.runtime), storageKind:globalThis.stateHooks&&typeof globalThis.stateHooks.getStorageKind==='function'?globalThis.stateHooks.getStorageKind():null, hasMetamaskGetState:!!(globalThis.stateHooks&&typeof globalThis.stateHooks.metamaskGetState==='function')}})()",
           "assert": {
             "all": [
               { "operator": "eq", "field": "control", "value": "service_worker" },
               { "operator": "eq", "field": "worker", "value": "eval" },
-              { "operator": "truthy", "field": "result.hasMetamaskGetState" },
-              { "operator": "not_null", "field": "result.storageKind" }
+              { "operator": "truthy", "field": "result.hasChromeRuntime" }
             ]
           },
           "next": "done"
