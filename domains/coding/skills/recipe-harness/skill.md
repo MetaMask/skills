@@ -20,7 +20,17 @@ This is an extraction/overlay of the working runtimes, not a downgraded generic 
 
 ## Command Shape
 
-Use the bundled script from either the source skill checkout or the installed target skill:
+For humans, prefer the smart wrapper from either the source skill checkout or the installed target skill:
+
+```bash
+<skill-dir>/scripts/mm-harness                  # auto-detect current repo and install
+<skill-dir>/scripts/mm-harness verify --static-only
+<skill-dir>/scripts/mm-harness verify --cdp-port <port>
+```
+
+`mm-harness` auto-detects `metamask-mobile` vs `metamask-extension`, defaults `--target` to the current directory, prints progress, and defaults to `install` when no action is supplied.
+
+For orchestration or explicit automation, keep using the low-level stable form:
 
 ```bash
 <skill-dir>/scripts/recipe-harness.sh <mobile|extension> <install|verify|cleanup> --target <repo> [...]

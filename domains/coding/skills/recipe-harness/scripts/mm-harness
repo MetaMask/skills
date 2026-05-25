@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_NAME="mm-harness"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  mm-harness                         # auto-detect repo, install into current dir
+  mm-harness install                 # auto-detect repo, install into current dir
+  mm-harness verify [args]           # auto-detect repo, verify current dir
+  mm-harness cleanup [args]          # auto-detect repo, cleanup current dir
+  mm-harness --target <repo> install
+  mm-harness --adapter <mobile|extension> verify --cdp-port <port>
+
+Explicit low-level form is also supported:
+  mm-harness <mobile|extension> <install|verify|cleanup> [args]
+
+Common examples:
+  mm-harness
+  mm-harness verify --static-only
+  mm-harness verify --cdp-port 6662
+  mm-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
+USAGE
+}
+
+log() { printf '[%s] %s\n' "$SCRIPT_NAME" "$*" >&2; }
+fail() { printf '[%s] ERROR: %s\n' "$SCRIPT_NAME" "$*" >&2; exit 1; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RECIPE_HARNESS="$SCRIPT_DIR/recipe-harness.sh"
+[ -x "$RECIPE_HARNESS" ] || fail "missing recipe-harness.sh next to $0"
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+  usage
+  exit 0
+fi
+
+case "${1:-}" in
+  mobile|extension)
+    # Backwards-compatible explicit form with nicer progress output.
+    ADAPTER="$1"
+    ACTION="${2:-}"
+    [ -n "$ACTION" ] || { usage >&2; exit 2; }
+    shift 2
+    ;;
+  *)
+    ADAPTER=""
+    ACTION="install"
+    TARGET="$PWD"
+    PASSTHRU=()
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        install|verify|cleanup)
+          ACTION="$1"
+          shift
+          ;;
+        --adapter)
+          ADAPTER="$2"
+          shift 2
+          ;;
+        --target|-C)
+          TARGET="$2"
+          shift 2
+          ;;
+        --)
+          shift
+          PASSTHRU+=("$@")
+          break
+          ;;
+        *)
+          PASSTHRU+=("$1")
+          shift
+          ;;
+      esac
+    done
+    TARGET="$(cd "$TARGET" && pwd)"
+
+    detect_adapter() {
+      local target="$1"
+      local remote=""
+      remote="$(git -C "$target" config --get remote.origin.url 2>/dev/null || true)"
+      case "$remote" in
+        *metamask-extension*) printf 'extension\n'; return 0 ;;
+        *metamask-mobile*) printf 'mobile\n'; return 0 ;;
+      esac
+
+      # Repo-shape fallback for worktrees/clones with unusual remote names.
+      if [ -f "$target/development/skills-sync.ts" ] || { [ -d "$target/ui" ] && [ -d "$target/app/scripts" ]; }; then
+        printf 'extension\n'
+        return 0
+      fi
+      if [ -f "$target/scripts/skills-sync.mts" ] || { [ -d "$target/ios" ] && [ -d "$target/android" ] && [ -d "$target/app/core" ]; }; then
+        printf 'mobile\n'
+        return 0
+      fi
+      return 1
+    }
+
+    if [ -z "$ADAPTER" ]; then
+      ADAPTER="$(detect_adapter "$TARGET")" || fail "could not detect MetaMask repo type for $TARGET; pass --adapter mobile or --adapter extension"
+    fi
+
+    set -- "${PASSTHRU[@]}"
+    ;;
+esac
+
+case "$ADAPTER:$ACTION" in
+  mobile:install|mobile:verify|mobile:cleanup|extension:install|extension:verify|extension:cleanup) ;;
+  *) usage >&2; fail "unsupported adapter/action: ${ADAPTER:-?}/${ACTION:-?}" ;;
+esac
+
+# In explicit form, TARGET may not be set. Try to discover it from args for display only.
+if [ -z "${TARGET:-}" ]; then
+  TARGET="$PWD"
+  args=("$@")
+  for ((i=0; i<${#args[@]}; i++)); do
+    if [ "${args[$i]}" = "--target" ] && [ $((i + 1)) -lt ${#args[@]} ]; then
+      TARGET="${args[$((i + 1))]}"
+      break
+    fi
+  done
+  TARGET="$(cd "$TARGET" 2>/dev/null && pwd || printf '%s' "$TARGET")"
+else
+  # Smart form owns --target injection so humans can omit it.
+  set -- --target "$TARGET" "$@"
+fi
+
+case "$ACTION" in
+  install) VERB="Installing" ;;
+  verify) VERB="Verifying" ;;
+  cleanup) VERB="Cleaning" ;;
+esac
+
+log "$VERB $ADAPTER recipe harness"
+log "Target: $TARGET"
+has_arg() {
+  local needle="$1"
+  shift
+  for arg in "$@"; do
+    [ "$arg" = "$needle" ] && return 0
+    case "$arg" in "$needle="*) return 0 ;; esac
+  done
+  return 1
+}
+
+if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
+  if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
+    if [ -n "${CDP_PORT:-}" ]; then
+      log "Using CDP_PORT=$CDP_PORT from environment"
+      set -- --cdp-port "$CDP_PORT" "$@"
+    else
+      log "Tip: extension live verify needs --cdp-port <port>; use --static-only for static verification."
+    fi
+  fi
+fi
+
+start=$SECONDS
+if "$RECIPE_HARNESS" "$ADAPTER" "$ACTION" "$@"; then
+  elapsed=$((SECONDS - start))
+  log "Done: $ADAPTER $ACTION passed in ${elapsed}s"
+else
+  status=$?
+  elapsed=$((SECONDS - start))
+  log "Failed: $ADAPTER $ACTION exited $status after ${elapsed}s"
+  exit "$status"
+fi
