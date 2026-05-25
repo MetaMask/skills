@@ -185,12 +185,14 @@ in a final warning. Run with `--include-user` to install manually.
 
 ### Recipe skills quick use
 
-After `yarn skills`, consumer repos expose these as `mms-` skills. Start high level:
+Recipe skills have two layers: high-level agent workflows and lower-level proof tools. Start high level so the agent does not stop at code diff or unit tests when runtime proof is needed.
 
 - `/mms-recipe-dev <task or ticket>` — build a feature/dev change, run live proof when applicable, package evidence, stop for human review.
 - `/mms-recipe-fix-ticket <Jira/GitHub>` — fix a bug and prove it with recipe evidence.
-- `/mms-recipe-pr-review <PR>` — review code, extract proof targets, and say what runtime evidence is missing.
+- `/mms-recipe-pr-review <PR>` — review code, extract behavioral claims, and decide what must be proven.
 - `/mms-recipe-qa <PR/task>` — run or prepare recipe-backed QA for an existing change.
+
+Rule of thumb: PR review decides what must be proven; QA runs or prepares the proof.
 
 Drop lower only when steering/debugging:
 

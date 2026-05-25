@@ -8,6 +8,8 @@ maturity: stable
 
 `/mms-recipe-dev` is the high-level workflow for feature/dev work that should end near a working fix plus reviewable proof.
 
+It exists to steer the agent through the full loop. Lower-level recipe skills are proof tools; this skill makes the agent use them instead of stopping at a code diff, unit tests, or a confidence summary.
+
 Use it when the task is broader than a bug fix. For pure bugs, prefer `/mms-recipe-fix-ticket`. For PR review/QA only, prefer `/mms-recipe-pr-review` or `/mms-recipe-qa`.
 
 Load only what applies:
