@@ -19,8 +19,14 @@ Explicit low-level form is also supported:
 Common examples:
   mm-harness
   mm-harness verify --static-only
+  mm-harness verify --no-auto-start
   mm-harness verify --cdp-port 6662
   mm-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
+
+Extension runtime configuration:
+  MM_HARNESS_EXTENSION_AUTO_START=0      # never launch a missing browser
+  MM_HARNESS_EXTENSION_PREPARE_CMD='...' # custom command for non-Farmslot repos
+  MM_HARNESS_EXTENSION_PREPARE_WATCH=on  # Farmslot preflight watch mode (default: off)
 USAGE
 }
 
@@ -144,32 +150,21 @@ has_arg() {
   return 1
 }
 
-resolve_extension_cdp_port() {
+cdp_reachable() {
+  local port="$1"
+  command -v curl >/dev/null 2>&1 || return 1
+  curl -fsS --max-time 1 "http://127.0.0.1:${port}/json/version" >/dev/null 2>&1
+}
+
+is_false() {
+  case "${1:-}" in
+    0|false|FALSE|False|no|NO|No|off|OFF|Off) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_extension_farmslot_metadata() {
   local target="$1"
-  if [ -n "${CDP_PORT:-}" ]; then
-    printf '%s\n' "$CDP_PORT"
-    return 0
-  fi
-
-  # Local env files are useful outside farmslot. Keep this generic: accept an
-  # explicit CDP_PORT assignment only, not repo/slot-specific variable names.
-  local env_file line value
-  for env_file in "$target/.js.env" "$target/.env" "$target/.env.local"; do
-    [ -f "$env_file" ] || continue
-    line=$(grep -E '^[[:space:]]*(export[[:space:]]+)?CDP_PORT=' "$env_file" | tail -1 || true)
-    [ -n "$line" ] || continue
-    value="${line#*=}"
-    value="${value%%#*}"
-    value="$(printf '%s' "$value" | tr -d "\"'[:space:]")"
-    if [ -n "$value" ]; then
-      printf '%s\n' "$value"
-      return 0
-    fi
-  done
-
-  # If this repo is managed by farmslot, infer the port from the pool registry.
-  # Prefer the local host pool to avoid collisions with remote nodes whose repo
-  # paths may look identical from their own machine.
   local farmslot_dir="${FARMSLOT_DIR:-}"
   [ -n "$farmslot_dir" ] || farmslot_dir="$HOME/dev/farmslot"
   [ -d "$farmslot_dir/pool" ] || return 1
@@ -207,15 +202,89 @@ for path in preferred:
             same = False
         if not same:
             continue
-        port = ((slot.get('resources') or {}).get('browser') or {}).get('cdp_port')
-        if port:
-            print(port)
+        port = ((slot.get('resources') or {}).get('browser') or {}).get('cdp_port') or ''
+        slot_id = slot.get('id') or ''
+        project = slot.get('project') or ''
+        if port and slot_id:
+            print(f"{root}\t{slot_id}\t{port}\t{project}")
             raise SystemExit(0)
 raise SystemExit(1)
 INNERPY
 }
 
+resolve_extension_cdp_port() {
+  local target="$1"
+  if [ -n "${CDP_PORT:-}" ]; then
+    printf '%s\n' "$CDP_PORT"
+    return 0
+  fi
+
+  # Local env files are useful outside farmslot. Keep this generic: accept an
+  # explicit CDP_PORT assignment only, not repo/slot-specific variable names.
+  local env_file line value
+  for env_file in "$target/.js.env" "$target/.env" "$target/.env.local"; do
+    [ -f "$env_file" ] || continue
+    line=$(grep -E '^[[:space:]]*(export[[:space:]]+)?CDP_PORT=' "$env_file" | tail -1 || true)
+    [ -n "$line" ] || continue
+    value="${line#*=}"
+    value="${value%%#*}"
+    value="$(printf '%s' "$value" | tr -d "\"'[:space:]")"
+    if [ -n "$value" ]; then
+      printf '%s\n' "$value"
+      return 0
+    fi
+  done
+
+  local metadata
+  if metadata="$(resolve_extension_farmslot_metadata "$target")"; then
+    printf '%s\n' "$metadata" | awk -F '\t' '{print $3}'
+    return 0
+  fi
+  return 1
+}
+
+run_extension_prepare() {
+  local target="$1"
+  local cdp_port="$2"
+  local metadata="${3:-}"
+  local custom_cmd="${MM_HARNESS_EXTENSION_PREPARE_CMD:-}"
+  if [ -n "$custom_cmd" ]; then
+    log "CDP port $cdp_port is offline; running MM_HARNESS_EXTENSION_PREPARE_CMD"
+    (
+      cd "$target"
+      TARGET="$target" CDP_PORT="$cdp_port" bash -lc "$custom_cmd"
+    )
+    return
+  fi
+
+  if [ -n "$metadata" ]; then
+    local farmslot_dir slot_id _port project preflight watch_mode
+    IFS=$'\t' read -r farmslot_dir slot_id _port project <<< "$metadata"
+    preflight="$farmslot_dir/projects/$project/setup/preflight.sh"
+    watch_mode="${MM_HARNESS_EXTENSION_PREPARE_WATCH:-off}"
+    if [ -x "$preflight" ]; then
+      log "CDP port $cdp_port is offline; starting extension runtime via Farmslot preflight"
+      bash "$preflight" "$slot_id" --cdp-port "$cdp_port" --mode fullscreen --watch "$watch_mode"
+      return
+    fi
+    log "CDP port $cdp_port is offline and preflight was not found at $preflight"
+    return
+  fi
+
+  log "CDP port $cdp_port is offline; run extension preflight first, set MM_HARNESS_EXTENSION_PREPARE_CMD, or pass --static-only"
+}
+
 if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
+  no_auto_start=false
+  if has_arg --no-auto-start "$@"; then
+    no_auto_start=true
+    stripped_args=()
+    for arg in "$@"; do
+      [ "$arg" = "--no-auto-start" ] && continue
+      stripped_args+=("$arg")
+    done
+    set -- "${stripped_args[@]}"
+  fi
   if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
     if resolved_cdp_port="$(resolve_extension_cdp_port "$TARGET")"; then
       log "Using CDP port $resolved_cdp_port for extension verify"
@@ -223,6 +292,22 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
     else
       log "Tip: extension live verify needs --cdp-port <port>; use --static-only for static verification."
     fi
+  fi
+  if ! has_arg --static-only "$@" && ! $no_auto_start && ! is_false "${MM_HARNESS_EXTENSION_AUTO_START:-1}"; then
+    args=("$@")
+    cdp_arg=""
+    for ((i=0; i<${#args[@]}; i++)); do
+      case "${args[$i]}" in
+        --cdp-port) cdp_arg="${args[$((i + 1))]:-}" ;;
+        --cdp-port=*) cdp_arg="${args[$i]#--cdp-port=}" ;;
+      esac
+    done
+    if [ -n "$cdp_arg" ] && ! cdp_reachable "$cdp_arg"; then
+      metadata="$(resolve_extension_farmslot_metadata "$TARGET" || true)"
+      run_extension_prepare "$TARGET" "$cdp_arg" "$metadata"
+    fi
+  elif ! has_arg --static-only "$@"; then
+    log "Extension auto-start disabled; verify will use the existing CDP runtime only"
   fi
 fi
 
