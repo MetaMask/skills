@@ -1,0 +1,14 @@
+domains/testing/skills/visual-testing/repos/metamask-extension.md
+  h_d6a04d82b61d5e 131-136,265-284,402-441,500-521,534-548
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.1",
+  "base_commit_sha": "a369be01833ea036588eff83e339fbb055ff9889",
+  "prompts": {},
+  "humans": {
+    "h_d6a04d82b61d5e": {
+      "author": "cryptotavares <joao.tavares@consensys.net>"
+    }
+  }
+}
