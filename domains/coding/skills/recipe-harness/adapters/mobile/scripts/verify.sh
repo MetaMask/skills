@@ -4,12 +4,17 @@ set -euo pipefail
 TARGET="$PWD"
 ARTIFACTS=""
 STATIC_ONLY=false
+AUTO_START=true
+PLATFORM="${MM_HARNESS_PLATFORM:-${PLATFORM:-ios}}"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
     --static-only) STATIC_ONLY=true; shift ;;
-    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only]"; exit 0 ;;
+    --platform) PLATFORM="$2"; shift 2 ;;
+    --auto-start) AUTO_START=true; shift ;;
+    --no-auto-start) AUTO_START=false; shift ;;
+    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only] [--platform ios|android] [--no-auto-start]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -69,17 +74,41 @@ else
   checks+=("{\"name\":\"package a:* ergonomic aliases\",\"status\":\"warn\"}")
 fi
 
-if [ "$STATIC_ONLY" = false ]; then
-  if (
+live_status_ok() {
+  local log_path="$1"
+  (
     cd "$TARGET"
     bash scripts/perps/agentic/app-state.sh status
-  ) > "$ARTIFACTS/logs/app-state-status.log" 2>&1 && node - "$ARTIFACTS/logs/app-state-status.log" <<'NODE'
+  ) > "$log_path" 2>&1 && node - "$log_path" <<'NODE'
 const fs = require('fs');
 const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
 const value = JSON.parse(raw);
 if (!value || Array.isArray(value) || !value.route || !value.route.name) process.exit(1);
 NODE
-  then
+}
+
+ensure_live_runtime() {
+  live_status_ok "$ARTIFACTS/logs/app-state-precheck.log" && return 0
+  if [ "$AUTO_START" != true ]; then
+    return 1
+  fi
+
+  echo "Mobile runtime is not reachable; starting ${PLATFORM} app via repo preflight..." >&2
+  (
+    cd "$TARGET"
+    bash scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --wallet-setup
+  ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"
+}
+
+if [ "$STATIC_ONLY" = false ]; then
+  if ensure_live_runtime; then
+    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"pass\"}")
+  else
+    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"fail\",\"detail\":\"see logs/app-state-precheck.log and logs/auto-start.log\"}")
+    status="fail"
+  fi
+
+  if live_status_ok "$ARTIFACTS/logs/app-state-status.log"; then
     checks+=("{\"name\":\"live app-state status\",\"status\":\"pass\"}")
   else
     checks+=("{\"name\":\"live app-state status\",\"status\":\"fail\"}")
