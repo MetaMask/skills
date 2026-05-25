@@ -62,6 +62,13 @@ if [ "$STATIC_ONLY" = false ]; then
     live_mode="missing-cdp"
   else
     live_mode="live"
+    if node "$SCRIPT_DIR/extension-readiness.js" --target "$TARGET" --cdp-port "$CDP_PORT" --json > "$ARTIFACTS/logs/extension-readiness.json" 2>&1; then
+      checks+=("{\"name\":\"live extension readiness\",\"status\":\"pass\"}")
+    else
+      checks+=("{\"name\":\"live extension readiness\",\"status\":\"fail\",\"detail\":\"see logs/extension-readiness.json\"}")
+      status="fail"
+    fi
+
     if (
       cd "$TARGET"
       bash "$OUT/validate-recipe.sh" "$OUT/domains/browser-features/recipes/service-worker-smoke.json" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/non-ui"

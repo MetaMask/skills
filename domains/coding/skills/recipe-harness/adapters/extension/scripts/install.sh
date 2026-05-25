@@ -43,6 +43,9 @@ fi
 mkdir -p "$(dirname "$OUT_ABS")"
 rsync -a --delete "$ADAPTER_DIR/runner/recipes/" "$OUT_ABS/"
 chmod +x "$OUT_ABS/validate-recipe.sh" 2>/dev/null || true
+mkdir -p "$HARNESS_DIR/scripts"
+rsync -a --delete "$ADAPTER_DIR/scripts/" "$HARNESS_DIR/scripts/"
+chmod +x "$HARNESS_DIR/scripts/"*.sh "$HARNESS_DIR/scripts/"*.js 2>/dev/null || true
 
 add_git_exclude() {
   local entry="$1"
@@ -80,8 +83,11 @@ cat > "$HARNESS_DIR/manifest.json" <<EOF
     "runtime": "$ADAPTER_DIR"
   },
   "target": "$TARGET",
-  "installedPaths": ["$OUT"],
+  "installedPaths": ["$OUT", ".agent/recipe-harness/extension/scripts"],
   "patchedFiles": [],
+  "recommendedCommandEnv": {
+    "unset": ["BUNDLED_DEBUGPY_PATH"]
+  },
   "backupDir": "$BACKUP_DIR",
   "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET --out $OUT",
   "productDiffExcludes": [

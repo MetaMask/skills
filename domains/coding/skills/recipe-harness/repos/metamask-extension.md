@@ -40,9 +40,27 @@ Install copies the current Extension recipe runtime under the ignored `temp/agen
 For live runtime proof, verify that:
 
 - CDP connects to the intended browser;
-- the extension service worker is discoverable;
+- the extension build is manifest-complete across historical commits: use
+  `dist/chrome/manifest.json` as the contract, not hardcoded current-build
+  paths such as `scripts/app-init.js` or `service-worker.js`;
+- the extension service worker or MV2 background scripts declared by the
+  manifest are discoverable;
 - one non-UI sample recipe passes;
 - one UI/browser target-inspect sample passes when feasible;
 - product diffs exclude `temp/agentic/**` and harness files.
 
 Use command recipes for reducers, selectors, controllers, migrations, build/config checks, and other non-UI claims. Use browser/UI actions only for visible Extension behavior.
+
+## Prepare Compatibility Notes
+
+When an orchestrator prepares an Extension checkout before running this harness:
+
+- Strip editor-only `BUNDLED_DEBUGPY_PATH` through the orchestrator/project
+  environment layer, not with product code changes. The Extension webpack CLI
+  reads `BUNDLE_*` environment variables and treats that Cursor/VS Code variable
+  as an unknown build option.
+- Treat CDP as ready only after a `chrome-extension://<id>/...` target exists
+  for the intended extension; a listening CDP port alone is not sufficient.
+- Use `adapters/extension/scripts/extension-readiness.js --target <repo>
+--cdp-port <port>` as the source-of-truth readiness probe when wiring
+  Farmslot or other runners.

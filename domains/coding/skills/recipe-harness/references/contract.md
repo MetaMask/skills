@@ -37,6 +37,9 @@ Extension verification should prove:
 
 - runner files are installed.
 - CDP/browser connection works when a browser is available.
+- extension build readiness is derived from `dist/chrome/manifest.json` so
+  historical MV2/MV3 commits are handled without hardcoding current output
+  filenames.
 - one non-UI sample recipe runs.
 - one UI/browser sample recipe runs when feasible.
 - product diff excludes harness files.
