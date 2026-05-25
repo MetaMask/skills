@@ -1,7 +1,6 @@
 ---
 repo: metamask-extension
 parent: visual-testing
-description: Drives the MetaMask Chrome extension via the mm CLI for visual testing in headed Chrome with MetaMask running in sidepanel mode. Use when asked to visually verify UI changes, capture screenshots, click through onboarding, unlock, send, swap, connect, or confirmation flows, test dapp interactions, or debug extension UI state. Trigger phrases include "verify visually", "take a screenshot", "test the flow", "check the UI", and "click through onboarding".
 metadata:
   location: test/e2e/playwright/llm-workflow/
   type: browser-testing
@@ -128,6 +127,12 @@ The `mm` CLI is the primary interface.
 | `mm seed-contracts`           | Deploy multiple test contracts            |
 | `mm get-contract-address`     | Get deployed contract address             |
 | `mm list-contracts`           | List all deployed contracts               |
+
+### Advanced
+
+| Command                                            | Description                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| `mm cdp <method> [params-json] [--timeout <ms>]`   | Send raw Chrome DevTools Protocol command against active page |
 
 ## Launch Modes & Fixtures
 
@@ -257,6 +262,27 @@ This returns the current screen, active tab info, visible testIds, and an access
 
 Use exactly one targeting method per call.
 
+#### Timeouts (deadline-based)
+
+`mm click`, `mm type`, `mm get-text`, and `mm wait-for` all accept `--timeout <ms>` (default 15000). This is a **single deadline budget** covering the entire operation — visibility wait + action combined — not a per-phase timeout.
+
+Phase-specific error codes:
+
+- `MM_WAIT_TIMEOUT` — element never became visible within the budget.
+- `MM_CLICK_TIMEOUT` — element was found but the click action hung. The click may still complete in the background; run `mm describe-screen` to verify before retrying.
+- `MM_TYPE_TIMEOUT` — element was found but `fill()` hung.
+- `MM_GETTEXT_TIMEOUT` — element was found but `textContent()` hung.
+- `MM_PAGE_CLOSED` — page closed during the action (expected for some confirmation flows; `mm click` may instead succeed with `pageClosedAfterClick: true` when the closure was a natural consequence of the click).
+
+Examples:
+
+```bash
+mm click --testid onboarding-complete-done --timeout 60000
+mm type --testid send-amount "0.01" --timeout 10000
+mm get-text --testid balance-display --timeout 5000
+mm wait-for --testid account-menu-icon --timeout 10000
+```
+
 #### By a11yRef
 
 Use refs from `mm describe-screen` or `mm accessibility-snapshot` during discovery.
@@ -373,6 +399,47 @@ mm cleanup
 mm cleanup --shutdown
 ```
 
+## Raw CDP Commands
+
+`mm cdp` sends a raw [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) command against the active page. Reach for this **only when structured commands (`mm click`, `mm type`, `mm navigate`, etc.) cannot express what you need** — for example, evaluating JavaScript, enabling network tracking, or inspecting the DOM tree directly.
+
+```bash
+mm cdp Runtime.evaluate '{"expression":"document.title"}'
+mm cdp Network.enable
+mm cdp DOM.getDocument '{"depth":2}' --timeout 60000
+```
+
+Arguments:
+
+| Argument        | Description                                                                  |
+| --------------- | ---------------------------------------------------------------------------- |
+| `<method>`      | CDP method name (e.g., `Runtime.evaluate`, `DOM.getDocument`, `Network.enable`) |
+| `[params-json]` | Optional JSON object with method-specific parameters                         |
+| `--timeout`     | Per-command timeout in ms. Default: 30000. Min: 1000. Max: 30000             |
+
+**Blocked methods** (would destroy the session — returns `MM_CDP_BLOCKED`):
+
+- `Browser.close`
+- `Target.closeTarget`
+- `Target.disposeBrowserContext`
+- `Browser.crashGpuProcess`
+
+**Behavior:**
+
+- Categorized as **mutating** — state-changing CDP calls bypass session tracking. Run `mm describe-screen` afterward to re-sync the a11y ref map and screen state.
+- CDP failures (invalid method, malformed params, timeout) return `MM_CDP_FAILED`.
+- This is an **escape hatch, not a sandbox**: prefer structured commands whenever they cover your use case.
+
+**When to reach for `mm cdp`:**
+
+| Need                                                  | Suggested CDP method                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------- |
+| Read a JS value / `window` property                   | `Runtime.evaluate` with `{ "expression": "..." }`             |
+| Inspect / traverse DOM                                | `DOM.getDocument`, `DOM.querySelector`                        |
+| Capture network traffic                               | `Network.enable` (then read events via subsequent CDP calls)  |
+| Inject cookies or storage                             | `Network.setCookie`, `Storage.setLocalStorage*`               |
+| Low-level input beyond `mm click` / `mm type`         | `Input.dispatchKeyEvent`, `Input.dispatchMouseEvent`          |
+
 ## Batching with mm run-steps
 
 Use `mm run-steps` for known, deterministic sequences. Use individual commands for discovery, debugging, or when intermediate state changes the next action.
@@ -430,21 +497,28 @@ mm knowledge-last
 
 ### Error Codes
 
-| Code                         | Meaning                                     |
-| ---------------------------- | ------------------------------------------- |
-| `MM_SESSION_ALREADY_RUNNING` | Session exists, call `mm cleanup` first     |
-| `MM_NO_ACTIVE_SESSION`       | No session, call `mm launch` first          |
-| `MM_LAUNCH_FAILED`           | Browser launch failed                       |
-| `MM_INVALID_INPUT`           | Invalid parameters                          |
-| `MM_TARGET_NOT_FOUND`        | Element not found                           |
-| `MM_TAB_NOT_FOUND`           | Tab not found                               |
-| `MM_CLICK_FAILED`            | Click operation failed                      |
-| `MM_TYPE_FAILED`             | Type operation failed                       |
-| `MM_WAIT_TIMEOUT`            | Wait timeout exceeded                       |
-| `MM_SCREENSHOT_FAILED`       | Screenshot capture failed                   |
-| `MM_BATCH_TIMEOUT`           | `batchTimeoutMs` deadline exceeded          |
-| `MM_CONTEXT_SWITCH_BLOCKED`  | Cannot switch context during active session |
-| `MM_SET_CONTEXT_FAILED`      | Context switch failed                       |
+| Code                         | Meaning                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `MM_SESSION_ALREADY_RUNNING` | Session exists, call `mm cleanup` first                                                                          |
+| `MM_NO_ACTIVE_SESSION`       | No session, call `mm launch` first                                                                               |
+| `MM_LAUNCH_FAILED`           | Browser launch failed                                                                                            |
+| `MM_INVALID_INPUT`           | Invalid parameters                                                                                               |
+| `MM_TARGET_NOT_FOUND`        | Element not found                                                                                                |
+| `MM_TAB_NOT_FOUND`           | Tab not found                                                                                                    |
+| `MM_CLICK_FAILED`            | Click operation failed (post-find, not a timeout)                                                                |
+| `MM_CLICK_TIMEOUT`           | Click action timed out (element found, click hung) — may have completed in background; run `mm describe-screen`  |
+| `MM_TYPE_FAILED`             | Type operation failed (post-find, not a timeout)                                                                 |
+| `MM_TYPE_TIMEOUT`            | `fill()` action timed out; run `mm describe-screen` and retry                                                    |
+| `MM_GETTEXT_FAILED`          | `get-text` failed (non-timeout, e.g. element detached) — re-target                                               |
+| `MM_GETTEXT_TIMEOUT`         | `textContent()` action timed out                                                                                 |
+| `MM_WAIT_TIMEOUT`            | Wait timeout exceeded                                                                                            |
+| `MM_PAGE_CLOSED`             | Browser page closed during interaction — normal after some confirmations                                         |
+| `MM_SCREENSHOT_FAILED`       | Screenshot capture failed                                                                                        |
+| `MM_BATCH_TIMEOUT`           | `batchTimeoutMs` deadline exceeded                                                                               |
+| `MM_CONTEXT_SWITCH_BLOCKED`  | Cannot switch context during active session                                                                      |
+| `MM_SET_CONTEXT_FAILED`      | Context switch failed                                                                                            |
+| `MM_CDP_BLOCKED`             | CDP method is in the destructive-blocklist (e.g. `Browser.close`)                                                |
+| `MM_CDP_FAILED`              | CDP command execution failed or timed out                                                                        |
 
 ## Default Credentials
 
@@ -456,14 +530,19 @@ mm knowledge-last
 
 ## Common Failures & Solutions
 
-| Symptom                       | Likely Cause                    | Solution                                                                                                         |
-| ----------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `MM_SESSION_ALREADY_RUNNING`  | Previous session not cleaned    | Call `mm cleanup` first                                                                                          |
-| `MM_NO_ACTIVE_SESSION`        | No browser running              | Call `mm launch` first                                                                                           |
-| Extension not loading         | Extension not built             | Run `yarn build:test:webpack` then retry `mm launch`                                                             |
-| `EADDRINUSE` port error       | Orphan processes                | Check `.mm-server` for the active daemon/sub-service ports, then kill the specific orphaned process on that port |
-| `MM_TARGET_NOT_FOUND`         | Element not visible             | Use `mm describe-screen` to check state                                                                          |
-| `MM_WAIT_TIMEOUT`             | Slow environment or UI delay    | Increase timeout, inspect screenshot                                                                             |
-| `MM_CONTEXT_SWITCH_BLOCKED`   | Switching during active session | Call `mm cleanup` before `mm set-context`                                                                        |
-| Fixtures not available        | Running in prod context         | Switch to e2e: `mm set-context e2e`                                                                              |
-| Stale a11yRefs after navigate | Refs not refreshed              | Call `mm describe-screen` to get fresh refs                                                                      |
+| Symptom                                    | Likely Cause                                  | Solution                                                                                                         |
+| ------------------------------------------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `MM_SESSION_ALREADY_RUNNING`               | Previous session not cleaned                  | Call `mm cleanup` first                                                                                          |
+| `MM_NO_ACTIVE_SESSION`                     | No browser running                            | Call `mm launch` first                                                                                           |
+| Extension not loading                      | Extension not built                           | Run `yarn build:test:webpack` then retry `mm launch`                                                             |
+| `EADDRINUSE` port error                    | Orphan processes                              | Check `.mm-server` for the active daemon/sub-service ports, then kill the specific orphaned process on that port |
+| `MM_TARGET_NOT_FOUND`                      | Element not visible                           | Use `mm describe-screen` to check state                                                                          |
+| `MM_WAIT_TIMEOUT`                          | Slow environment or UI delay                  | Increase `--timeout`, inspect screenshot                                                                         |
+| `MM_CLICK_TIMEOUT` / `MM_TYPE_TIMEOUT`     | Element found but action hung (side effect)   | Run `mm describe-screen` first to verify it didn't already complete; retry with larger `--timeout`               |
+| `MM_GETTEXT_TIMEOUT` / `MM_GETTEXT_FAILED` | Element detached or content not ready         | Run `mm describe-screen` and re-target; bump `--timeout` if the value is async                                   |
+| `MM_PAGE_CLOSED`                           | Confirmation popup auto-closed, dapp tab gone | Expected after some confirmations — run `mm describe-screen` to find the new active page                         |
+| `MM_CDP_BLOCKED`                           | Attempted a destructive CDP method            | Use a non-blocked CDP method; see the blocked list in the Raw CDP Commands section                               |
+| `MM_CDP_FAILED`                            | Invalid CDP method / params, or CDP timed out | Check method name & params shape; retry with a larger `--timeout` (max 30000)                                    |
+| `MM_CONTEXT_SWITCH_BLOCKED`                | Switching during active session               | Call `mm cleanup` before `mm set-context`                                                                        |
+| Fixtures not available                     | Running in prod context                       | Switch to e2e: `mm set-context e2e`                                                                              |
+| Stale a11yRefs after navigate              | Refs not refreshed                            | Call `mm describe-screen` to get fresh refs                                                                      |
