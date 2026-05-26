@@ -28,6 +28,8 @@ REPO=""
 TARGET=""
 DOMAIN_FILTER=""
 MATURITY_FILTER="stable"
+INCLUDE_FILTER=""
+EXCLUDE_FILTER=""
 DRY_RUN=false
 INCLUDE_USER=false
 SOURCES=()
@@ -50,6 +52,11 @@ Optional:
                       e.g., --domain perps,testing
   --maturity <level>  Minimum maturity: experimental, stable, deprecated
                       (default: stable; matches stable+deprecated when set to stable)
+  --include <list>    Comma-separated skill opt-ins. Each item may be
+                      domain/skill or skill; explicit includes bypass domain
+                      and maturity filters. Repeatable. Alias: --skill.
+  --exclude <list>    Comma-separated skill opt-outs. Each item may be
+                      domain/skill or skill; explicit excludes win. Repeatable.
   --include-user      Also install skills with \`scope: user\` (writes to
                       \$HOME/.claude/skills and \$HOME/.codex/skills, outside
                       the target repo). Off by default — warns + lists them.
@@ -72,6 +79,8 @@ while [[ $# -gt 0 ]]; do
     --source)        SOURCES+=("$2"); shift 2 ;;
     --domain)        DOMAIN_FILTER="$2"; shift 2 ;;
     --maturity)      MATURITY_FILTER="$2"; shift 2 ;;
+    --include|--skill) INCLUDE_FILTER="${INCLUDE_FILTER:+$INCLUDE_FILTER,}$2"; shift 2 ;;
+    --exclude)       EXCLUDE_FILTER="${EXCLUDE_FILTER:+$EXCLUDE_FILTER,}$2"; shift 2 ;;
     --include-user)  INCLUDE_USER=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
     -h|--help)       usage 0 ;;
@@ -139,6 +148,28 @@ domain_allowed() {
   for d in "${ds[@]}"; do [[ "$d" == "$domain" ]] && return 0; done
   return 1
 }
+
+skill_list_matches() {
+  local list="$1" domain="$2" skill="$3" item normalized item_domain item_skill
+  [[ -z "$list" ]] && return 1
+  IFS=',' read -ra items <<< "$list"
+  for item in "${items[@]}"; do
+    normalized="${item//[[:space:]]/}"
+    [[ -z "$normalized" ]] && continue
+    normalized="${normalized%%@*}"
+    if [[ "$normalized" == */* ]]; then
+      item_domain="${normalized%%/*}"
+      item_skill="${normalized#*/}"
+      [[ "$item_domain" == "$domain" && "$item_skill" == "$skill" ]] && return 0
+    else
+      [[ "$normalized" == "$skill" ]] && return 0
+    fi
+  done
+  return 1
+}
+
+skill_included() { skill_list_matches "$INCLUDE_FILTER" "$1" "$2"; }
+skill_excluded() { skill_list_matches "$EXCLUDE_FILTER" "$1" "$2"; }
 
 is_truthy() {
   case "${1:-}" in
@@ -305,19 +336,31 @@ process_skill() {
   local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
   local scope;     scope=$(frontmatter_value "$base" "scope")
 
-  if ! maturity_allowed "$maturity"; then
+  if skill_excluded "$domain_name" "$skill_name"; then
+    log "skipped (explicitly excluded by --exclude/SKILLS_EXCLUDE)"
+    return
+  fi
+
+  local explicit_include=false
+  skill_included "$domain_name" "$skill_name" && explicit_include=true
+
+  if ! $explicit_include && ! maturity_allowed "$maturity"; then
     log "skipped (maturity=${maturity:-stable} excluded by --maturity=$MATURITY_FILTER)"
     return
   fi
 
-  # Domain filter — but mandatory skills bypass.
-  if ! domain_allowed "$domain_name"; then
+  # Domain filter — but mandatory skills and explicit skill includes bypass.
+  if ! $explicit_include && ! domain_allowed "$domain_name"; then
     if is_truthy "$mandatory"; then
       log "(mandatory — included despite domain filter)"
     else
       log "skipped (domain=$domain_name excluded by --domain)"
       return
     fi
+  fi
+
+  if $explicit_include; then
+    log "included (explicit skill opt-in)"
   fi
 
   local name;        name=$(frontmatter_value "$base" "name")
@@ -382,11 +425,17 @@ preflight_skill() {
   local maturity;  maturity=$(frontmatter_value "$base" "maturity")
   local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
 
-  if ! maturity_allowed "$maturity"; then
+  local skill_name; skill_name=$(basename "$skill_dir")
+  skill_excluded "$domain_name" "$skill_name" && return 0
+
+  local explicit_include=false
+  skill_included "$domain_name" "$skill_name" && explicit_include=true
+
+  if ! $explicit_include && ! maturity_allowed "$maturity"; then
     return 0
   fi
 
-  if ! domain_allowed "$domain_name"; then
+  if ! $explicit_include && ! domain_allowed "$domain_name"; then
     is_truthy "$mandatory" || return 0
   fi
 
@@ -407,6 +456,8 @@ echo "  target:   $TARGET"
 echo "  sources:  ${SOURCES[*]}"
 echo "  domain:   ${DOMAIN_FILTER:-<all>}"
 echo "  maturity: $MATURITY_FILTER"
+echo "  include:  ${INCLUDE_FILTER:-<none>}"
+echo "  exclude:  ${EXCLUDE_FILTER:-<none>}"
 echo "  dry-run:  $DRY_RUN"
 
 # Two-pass resolution: collect (domain, skill_dir) per name across all sources,

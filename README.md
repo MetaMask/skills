@@ -144,8 +144,12 @@ From inside a consumer repo:
 ```bash
 yarn skills                                          # sync all stable/default saved domains
 yarn skills --select                                 # interactive domain picker
-yarn skills --domain agentic --maturity experimental # opt into experimental recipe skills
+yarn skills --domain agentic --maturity experimental # opt into all experimental recipe skills
+yarn skills --include agentic/recipe-dev             # cherry-pick one experimental skill
+yarn skills --exclude testing/visual-testing         # opt out of one selected/default skill
+yarn skills --include agentic/recipe-dev --save      # persist granular selection to .skills.local
 SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive domain filter
+SKILLS_INCLUDE=agentic/recipe-dev yarn skills        # non-interactive skill opt-in
 SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity filter
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
@@ -178,18 +182,40 @@ tools/install \
 | `--source`       | this repo | Skill source dir (repeatable, ordered; later overrides earlier on name collision) |
 | `--domain`       | all      | Comma-separated domain filter. Default installs **all** domains; pass to opt out. |
 | `--maturity`     | `stable` | Min maturity: `experimental`, `stable`, `deprecated`                             |
+| `--include`, `--skill` | none | Comma-separated skill opt-ins (`domain/skill` or `skill`). Explicit includes bypass domain and maturity filters. Repeatable. |
+| `--exclude`      | none | Comma-separated skill opt-outs (`domain/skill` or `skill`). Explicit excludes win. Repeatable. |
+| `--save`         | off | Persist CLI domain/maturity/include/exclude choices to `.skills.local`. CLI flags are one-off unless this is passed. |
 | `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
 | `--dry-run`      | off      | Preview without writing                                                          |
 
-**Install-all default.** Stable skills install for every domain by default. Engineers
-opt out per-machine by editing `.skills.local` (`SKILLS_DOMAINS=perps,testing`)
-or by running `yarn skills --select` for an interactive picker. New stable domains
-land automatically on the next sync — that's by design so new tooling is
-discoverable. Recipe skills currently live in the experimental `agentic` domain;
-install them with `--domain agentic --maturity experimental`. Engineers who pin
-`SKILLS_DOMAINS` to a subset must include `agentic`, and because recipes are
-experimental they must also opt into `SKILLS_MATURITY=experimental` or pass
-`--maturity experimental`.
+**Install-all default with granular overrides.** Stable skills install for every
+domain by default. Engineers opt out per-machine by editing `.skills.local`
+(`SKILLS_DOMAINS=perps,testing`) or by running `yarn skills --select` for an
+interactive domain picker. New stable domains land automatically on the next
+sync — that's by design so new tooling is discoverable.
+
+When a domain mixes stable and experimental skills, use skill-level selection
+instead of raising the maturity for the whole domain. `SKILLS_INCLUDE` /
+`--include` adds specific skills even when their domain or maturity would
+normally skip them; `SKILLS_EXCLUDE` / `--exclude` removes specific skills even
+when their domain is selected. Items may be `domain/skill` or just `skill`; use
+`domain/skill` when names could collide across public/private sources. CLI
+selection is one-off unless passed with `--save`, which writes `.skills.local`:
+
+```bash
+# Stable defaults plus only one experimental recipe skill for this run:
+yarn skills --include agentic/recipe-dev
+
+# Persist stable defaults plus selected experimental recipe skills:
+yarn skills \
+  --include agentic/recipe-dev,agentic/recipe-harness \
+  --exclude testing/visual-testing \
+  --save
+```
+
+Recipe skills currently live in the experimental `agentic` domain. Install all
+of them with `--domain agentic --maturity experimental`, or cherry-pick only the
+ones you want with `--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
