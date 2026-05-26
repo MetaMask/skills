@@ -7,46 +7,49 @@ parent: recipe-wallet-control
 
 Use the agentic mobile scripts under `scripts/perps/agentic/` to drive a debug MetaMask Mobile app through wallet-semantic primitives. The shell wrappers call `scripts/perps/agentic/cdp-bridge.js` for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs. Reuse `simulator-control` or `agent-device` for generic device inspection when useful, but prefer this overlay for wallet setup, route navigation, screenshots, and controller state.
 
+## Harness Launch Requirement
+
+**Launch via harness only** (`preflight.sh` or `start-metro.sh --launch`). `__AGENTIC__` is in any debug build (patched by `recipe-harness install`), but non-harness launch (manual tap, Xcode, `xcrun simctl launch`) won't have Metro on the correct `WATCHER_PORT` or CDP targets on that port. Fixtures also won't be injected. Kill and relaunch via `preflight.sh` if the app was started outside the harness.
+
+**Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps** — they bypass harness port/CDP wiring.
+
 ## Prerequisites
 
-Before any primitive:
+1. `metamask-mobile` checkout with `scripts/perps/agentic/` present.
+2. Simulator/emulator booted, matching `.js.env` (`IOS_SIMULATOR`, `WATCHER_PORT`).
+3. Fixture files contain only throwaway test wallets.
 
-1. Confirm you are in a `metamask-mobile` checkout with `scripts/perps/agentic/` present.
-2. Confirm a debug iOS simulator or Android emulator is booted and matches `.js.env` (`IOS_SIMULATOR`, `SIM_UDID`, `ANDROID_DEVICE`, `WATCHER_PORT`).
-3. Confirm Metro is running on the intended `WATCHER_PORT`, or let `preflight.sh` start it.
-4. Confirm fixture files contain only throwaway test wallets. Never paste or commit a real SRP/private key.
+If not met, interrupt and ask the user to fix via the recovery table below.
 
-If a required simulator, Metro, or fixture prerequisite is missing, stop and ask the user to prepare it instead of silently falling back to manual tapping.
-
-## Status and Preflight
-
-Start with the non-destructive direct script status check for automation:
+## Status and Recovery
 
 ```bash
 bash scripts/perps/agentic/app-state.sh status
 ```
 
-`yarn a:status` is an optional human convenience alias after the harness has patched `package.json`; recipes and agents should prefer direct scripts so the command does not depend on package aliases.
+**Status succeeds** → proceed. **Status fails** → diagnose and recover:
 
-Expected output includes an `account.address`, `route.name`, `deviceName`, and `platform`. If status proves the app is already live/unlocked, validate non-destructive primitives before running any clean fixture setup.
+| State | Detection | Recovery |
+|---|---|---|
+| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user: `preflight.sh --platform <plat> --mode auto` (builds + installs + Metro + CDP; ~15min first, ~2min cached) |
+| Installed, not launched | Home screen visible, "0 targets" | Ask user: `preflight.sh --platform <plat> --mode auto` or `start-metro.sh --platform <plat> --launch` |
+| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode auto` |
 
-Run preflight when status fails, when the app is not launched, or before the first wallet primitive in a cold session:
+### Preflight modes
 
-```bash
-bash scripts/perps/agentic/preflight.sh --platform ios --mode auto
-```
+| Mode | Behavior |
+|---|---|
+| `--mode auto` | Fingerprint-gated reuse; builds on cache miss. Default. |
+| `--mode fast` | No build — fails if app missing or fingerprint mismatch. CI use. |
+| `--mode clean` | Full: `yarn setup` → `pod install --repo-update` → build → Metro → CDP. Use for corrupted state. |
 
-For setup-wallet validation on a fresh app, use clean setup so `setup-wallet.sh` cannot merely unlock an existing vault:
+Fresh wallet validation (bypasses existing vault):
 
 ```bash
 bash scripts/perps/agentic/preflight.sh \
-  --platform ios \
-  --mode clean \
-  --wallet-setup \
-  --wallet-fixture .agent/wallet-fixture.json
+  --platform ios --mode clean \
+  --wallet-setup --wallet-fixture .agent/wallet-fixture.json
 ```
-
-Expected output ends with preflight success and CDP connectivity. Failure means the app, Metro, simulator, or CDP bridge is not ready; fix that before running primitives.
 
 ## Core Wallet Primitives
 
