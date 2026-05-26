@@ -145,11 +145,11 @@ From inside a consumer repo:
 yarn skills                                          # sync all stable/default saved domains
 yarn skills --select                                 # interactive domain picker
 yarn skills --domain agentic --maturity experimental # opt into all experimental recipe skills
-yarn skills --include agentic/recipe-dev             # cherry-pick one experimental skill
+yarn skills --include agentic/recipe-harness         # cherry-pick one experimental skill
 yarn skills --exclude testing/visual-testing         # opt out of one selected/default skill
-yarn skills --include agentic/recipe-dev --save      # persist granular selection to .skills.local
+yarn skills --include agentic/recipe-harness --save  # persist granular selection to .skills.local
 SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive domain filter
-SKILLS_INCLUDE=agentic/recipe-dev yarn skills        # non-interactive skill opt-in
+SKILLS_INCLUDE=agentic/recipe-harness yarn skills    # non-interactive skill opt-in
 SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity filter
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
@@ -204,18 +204,19 @@ selection is one-off unless passed with `--save`, which writes `.skills.local`:
 
 ```bash
 # Stable defaults plus only one experimental recipe skill for this run:
-yarn skills --include agentic/recipe-dev
+yarn skills --include agentic/recipe-harness
 
 # Persist stable defaults plus selected experimental recipe skills:
 yarn skills \
-  --include agentic/recipe-dev,agentic/recipe-harness \
+  --include agentic/recipe-harness,agentic/recipe-quality \
   --exclude testing/visual-testing \
   --save
 ```
 
 Recipe skills currently live in the experimental `agentic` domain. Install all
-of them with `--domain agentic --maturity experimental`, or cherry-pick only the
-ones you want with `--include agentic/<skill>`.
+lower-level recipe tools in this rollout with `--domain agentic --maturity
+experimental`, or cherry-pick only the ones you want with
+`--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -230,12 +231,9 @@ Recipe skills are experimental. Install them with:
 yarn skills --domain agentic --maturity experimental
 ```
 
-Experimental recipe skills have two layers: high-level agent workflows and lower-level proof tools. Start high level so the agent does not stop at code diff or unit tests when runtime proof is needed.
+Experimental recipe skills in this first rollout are the lower-level proof tools. High-level workflows such as `/mms-recipe-dev` and `/mms-recipe-fix-ticket` are intentionally held for a follow-up PR so their orchestration checklist can be tightened before broad use.
 
-- `/mms-recipe-dev <task or ticket>` — build a feature, investigation, or other dev change from clear acceptance criteria, run live proof when applicable, package evidence, stop for human review. Unlike bug-fix flow, it does not spend time reproducing an existing failure unless the task asks for that.
-- `/mms-recipe-fix-ticket <Jira/GitHub>` — reproduce or understand an existing bug, fix it, and prove the acceptance criteria with recipe evidence.
-
-Drop lower only when steering/debugging:
+Use these directly when steering/debugging:
 
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
@@ -243,7 +241,7 @@ Drop lower only when steering/debugging:
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
 
-Happy path: clear task + acceptance criteria → code/review → live recipe run → screenshots/trace/summary/manifest → evidence block → human validation.
+Happy path for this lower-level rollout: clear task + acceptance criteria → `/mms-recipe-harness` verify → `/mms-recipe-cook` recipe → live recipe run → screenshots/trace/summary/manifest → `/mms-recipe-quality` critique → `/mms-recipe-evidence` block → human validation.
 
 ### Output
 
