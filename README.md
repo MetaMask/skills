@@ -9,7 +9,7 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, etc. carry the conventions
+   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
    and review heuristics for `metamask-extension` and `metamask-mobile`.
    These install into consumer repos via a small CLI.
 
@@ -54,6 +54,9 @@ export METAMASK_SKILLS_DIR=~/dev/metamask/skills
 
 # Then, from inside the consumer repo:
 yarn skills
+
+# To opt into experimental ADR-58 recipe skills:
+yarn skills --domain agentic --maturity experimental
 ```
 
 `yarn skills` runs `tools/sync`, which pulls the latest skills and writes
@@ -66,6 +69,10 @@ No SSH key, no env var — one curl pipe to bash inside the consumer repo:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
   bash -s -- --repo metamask-extension
+
+# To opt into experimental ADR-58 recipe skills:
+curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
+  bash -s -- --repo metamask-extension --domain agentic --maturity experimental
 ```
 
 The bootstrap script clones this repo into a cache dir under
@@ -97,6 +104,7 @@ tools/
 | -------------- | ----------------- | ------------------------------------------- |
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
+| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
@@ -134,9 +142,11 @@ tools/deploy --domain perps --dry-run      # forwarded to install
 From inside a consumer repo:
 
 ```bash
-yarn skills                                          # sync all/default saved domains
+yarn skills                                          # sync all stable/default saved domains
 yarn skills --select                                 # interactive domain picker
-SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive
+yarn skills --domain agentic --maturity experimental # opt into experimental recipe skills
+SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive domain filter
+SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity filter
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
@@ -154,7 +164,8 @@ Both flows ultimately invoke `tools/install`:
 tools/install \
   --repo metamask-mobile \
   --target ~/dev/metamask/metamask-mobile \
-  --domain perps \
+  --domain agentic \
+  --maturity experimental \
   --dry-run
 ```
 
@@ -170,13 +181,15 @@ tools/install \
 | `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
 | `--dry-run`      | off      | Preview without writing                                                          |
 
-**Install-all default.** Skills install for every domain by default. Engineers
+**Install-all default.** Stable skills install for every domain by default. Engineers
 opt out per-machine by editing `.skills.local` (`SKILLS_DOMAINS=perps,testing`)
-or by running `yarn skills --select` for an interactive picker. New domains
+or by running `yarn skills --select` for an interactive picker. New stable domains
 land automatically on the next sync — that's by design so new tooling is
-discoverable. Recipe skills live in the `coding` domain; engineers who pin
-`SKILLS_DOMAINS` to a subset must include `coding` or reset to the default all
-domains if they want recipe authoring, harness, QA, and evidence skills.
+discoverable. Recipe skills currently live in the experimental `agentic` domain;
+install them with `--domain agentic --maturity experimental`. Engineers who pin
+`SKILLS_DOMAINS` to a subset must include `agentic`, and because recipes are
+experimental they must also opt into `SKILLS_MATURITY=experimental` or pass
+`--maturity experimental`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -185,14 +198,16 @@ in a final warning. Run with `--include-user` to install manually.
 
 ### Recipe skills quick use
 
-Recipe skills have two layers: high-level agent workflows and lower-level proof tools. Start high level so the agent does not stop at code diff or unit tests when runtime proof is needed.
+Recipe skills are experimental. Install them with:
 
-- `/mms-recipe-dev <task or ticket>` — build a feature/dev change, run live proof when applicable, package evidence, stop for human review.
-- `/mms-recipe-fix-ticket <Jira/GitHub>` — fix a bug and prove it with recipe evidence.
-- `/mms-recipe-pr-review <PR>` — review code, extract behavioral claims, and decide what must be proven.
-- `/mms-recipe-qa <PR/task>` — run or prepare recipe-backed QA for an existing change.
+```bash
+yarn skills --domain agentic --maturity experimental
+```
 
-Rule of thumb: PR review decides what must be proven; QA runs or prepares the proof.
+Experimental recipe skills have two layers: high-level agent workflows and lower-level proof tools. Start high level so the agent does not stop at code diff or unit tests when runtime proof is needed.
+
+- `/mms-recipe-dev <task or ticket>` — build a feature, investigation, or other dev change from clear acceptance criteria, run live proof when applicable, package evidence, stop for human review. Unlike bug-fix flow, it does not spend time reproducing an existing failure unless the task asks for that.
+- `/mms-recipe-fix-ticket <Jira/GitHub>` — reproduce or understand an existing bug, fix it, and prove the acceptance criteria with recipe evidence.
 
 Drop lower only when steering/debugging:
 
@@ -202,7 +217,7 @@ Drop lower only when steering/debugging:
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
 
-Happy path: task → code/review → live recipe run → screenshots/trace/summary/manifest → evidence block → human validation.
+Happy path: clear task + acceptance criteria → code/review → live recipe run → screenshots/trace/summary/manifest → evidence block → human validation.
 
 ### Output
 
