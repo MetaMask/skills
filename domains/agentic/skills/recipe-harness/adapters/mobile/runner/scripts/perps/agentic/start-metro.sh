@@ -88,8 +88,20 @@ suppress_expo_dev_menu_android() {
   $ADB_CMD shell "mkdir -p $PREFS_DIR && echo '<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?><map><boolean name=\"isOnboardingFinished\" value=\"true\" /></map>' > $PREFS_DIR/$PREFS_FILE" 2>/dev/null || true
 }
 
+prewarm_ios_bundle() {
+  [ "${AGENTIC_PREWARM_BUNDLE:-1}" = "1" ] || return 0
+  local bundle_url="http://localhost:${PORT}/index.bundle?platform=ios&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.bytecode=1&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  echo "Prewarming iOS bundle cache..."
+  if curl -fsS --max-time "${AGENTIC_BUNDLE_PREWARM_TIMEOUT:-600}" "$bundle_url" >/dev/null; then
+    echo "iOS bundle cache ready."
+  else
+    echo "WARN: iOS bundle prewarm failed or timed out; launching app anyway."
+  fi
+}
+
 launch_app_ios() {
   suppress_expo_dev_menu_ios
+  prewarm_ios_bundle
   xcrun simctl terminate "$SIM_TARGET" "$BUNDLE_ID" 2>/dev/null || true
   sleep 1
 
