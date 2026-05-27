@@ -255,7 +255,7 @@ run_extension_prepare() {
   local custom_cmd="${MM_HARNESS_EXTENSION_PREPARE_CMD:-}"
   if [ -n "$custom_cmd" ]; then
     log "CDP port $cdp_port is offline; running MM_HARNESS_EXTENSION_PREPARE_CMD"
-    log "Build-pressure guard: prefer a cached/watch-only prepare command; do not run a full rebuild unless the human approved it."
+    log "Build/reuse guard: prefer a cached/watch-only prepare command; do not run a full rebuild unless the caller/human approved it."
     (
       cd "$target"
       TARGET="$target" CDP_PORT="$cdp_port" bash -lc "$custom_cmd"
@@ -270,7 +270,7 @@ run_extension_prepare() {
     watch_mode="${MM_HARNESS_EXTENSION_PREPARE_WATCH:-off}"
     if [ -x "$preflight" ]; then
       log "CDP port $cdp_port is offline; starting extension runtime via Farmslot preflight"
-      log "Build-pressure guard: using Farmslot preflight with --watch $watch_mode; if this would rebuild, set MM_HARNESS_EXTENSION_PREPARE_CMD to a cached/watch-only command or disable auto-start."
+      log "Build/reuse guard: using Farmslot preflight with --watch $watch_mode; if this would rebuild, set MM_HARNESS_EXTENSION_PREPARE_CMD to a cached/watch-only command or disable auto-start."
       bash "$preflight" "$slot_id" --cdp-port "$cdp_port" --mode fullscreen --watch "$watch_mode"
       return
     fi

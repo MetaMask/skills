@@ -18,7 +18,7 @@ This is an extraction/overlay of the working runtimes, not a downgraded generic 
 - Record the harness manifest path, source version when available, adapter, verification status, and artifacts in PR evidence. If installed from a copied skill, `source.revision` may be `unknown`; record the installed skill path and PR/branch instead.
 - Call direct injected scripts for automation. `yarn a:*` aliases are developer convenience only.
 - Treat "app/browser is open" as insufficient. Verification must prove the ADR58 observability layer is present: CDP target, recipe bridge, log capture, screenshot capture, fixture/profile status, and cleanup ownership.
-- Avoid full rebuilds by default. Reuse an already-compatible harness runtime, installed app, shared build cache, Expo/native build artifacts, or Extension watch output before starting expensive builds. Mobile verify defaults to `--preflight-mode fast`; only use `auto`, `rebuild-native`, or `clean` after the human accepts the system-pressure cost.
+- Avoid full rebuilds by default. Reuse an already-compatible harness runtime, installed app, shared build cache, Expo/native build artifacts, or Extension watch output before starting expensive builds. Mobile verify defaults to `--preflight-mode fast`; only use `auto`, `rebuild-native`, or `clean` after the caller/human explicitly opts into a rebuild.
 - Report fixture status before long runtime debugging. If fixtures are missing, tell the human the run may spend time repairing wallet/perps state manually and give the exact fixture setup path.
 
 ## Command Shape
@@ -34,7 +34,7 @@ For humans, prefer the smart wrapper from either the source skill checkout or th
 
 `mm-harness` auto-detects `metamask-mobile` vs `metamask-extension`, defaults `--target` to the current directory, prints progress, and defaults to `install` when no action is supplied.
 
-For Mobile live verification, `--preflight-mode fast` is the default pressure-safe mode: it can reuse an installed matching app or a shared cache artifact, but it fails instead of launching a native rebuild. If a rebuild is genuinely needed, rerun explicitly with `--preflight-mode auto` after checking system pressure and explaining the cost to the human.
+For Mobile live verification, `--preflight-mode fast` is the default cache-first mode: it can reuse an installed matching app or a shared cache artifact, but it fails instead of launching a native rebuild. If a rebuild is genuinely needed, the caller should rerun explicitly with `--preflight-mode auto` after the human accepts the rebuild cost.
 
 For orchestration or explicit automation, keep using the low-level stable form:
 

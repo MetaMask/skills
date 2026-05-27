@@ -30,7 +30,7 @@ Every live verification must classify the runtime before trusting evidence:
 - fixture/profile status (`READY`, `MISSING_FIXTURES`, or `STALE_OR_INVALID`);
 - cleanup ownership, so agents know what they can safely stop at the end.
 
-Pressure rule: verification must not silently kick off an expensive native/full build when a runtime is missing or incompatible. Prefer reuse, installed-app fingerprint checks, shared build-cache artifacts, Expo/native prebuild artifacts, and Extension watch output. Mobile live verify defaults to a pressure-safe `fast` preflight mode that fails before native rebuild; modes that can rebuild (`auto`, `rebuild-native`, `clean`) require an explicit agent/human decision and should be recorded in the evidence.
+Build/reuse rule: verification must not silently kick off an expensive native/full build when a runtime is missing or incompatible. Prefer reuse, installed-app fingerprint checks, shared build-cache artifacts, Expo/native prebuild artifacts, and Extension watch output. Mobile live verify defaults to `fast` preflight mode, which fails before native rebuild; modes that can rebuild (`auto`, `rebuild-native`, `clean`) require an explicit caller/human decision and should be recorded in the evidence.
 
 Mobile verification should prove, when a live app is available:
 

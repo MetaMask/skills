@@ -65,9 +65,9 @@ bash scripts/perps/agentic/app-state.sh status
 bash scripts/perps/agentic/validate-recipe.sh <recipe> --artifacts-dir <dir>
 ```
 
-Pressure rule: start with `--mode fast`. It reuses an installed matching app or
+Build rule: start with `--mode fast`. It reuses an installed matching app or
 shared cache artifact and fails before a native rebuild. Escalate to
-`--mode auto`, `--rebuild`, or `--clean` only after checking system pressure and
-recording that the human accepted the rebuild cost.
+`--mode auto`, `--rebuild`, or `--clean` only after the caller/human explicitly
+opts into a rebuild.
 
 Use `yarn a:*` only after install, and only as a human convenience.
