@@ -48,13 +48,19 @@ fi
 
 echo "Launching Mobile harness runtime: platform=$PLATFORM mode=$PREFLIGHT_MODE target=$TARGET" | tee "$ARTIFACTS/logs/launch.log"
 echo "Fixture status: $fixture_status ($WALLET_FIXTURE)" | tee -a "$ARTIFACTS/logs/launch.log"
+set +e
 (
   cd "$TARGET"
   bash "${preflight_args[@]}"
 ) 2>&1 | tee -a "$ARTIFACTS/logs/launch.log"
+preflight_status=${PIPESTATUS[0]}
+set -e
 
 status="pass"
-if (
+if [ "$preflight_status" -ne 0 ]; then
+  status="fail"
+  app_state_status="skipped"
+elif (
   cd "$TARGET"
   bash scripts/perps/agentic/app-state.sh status
 ) > "$ARTIFACTS/logs/app-state.json" 2> "$ARTIFACTS/logs/app-state.err"; then
@@ -64,7 +70,7 @@ else
   status="fail"
 fi
 
-TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" STATUS_FOR_SUMMARY="$status" APP_STATE_STATUS="$app_state_status" PLATFORM_FOR_SUMMARY="$PLATFORM" MODE_FOR_SUMMARY="$PREFLIGHT_MODE" FIXTURE_STATUS="$fixture_status" node <<'NODE'
+TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" STATUS_FOR_SUMMARY="$status" PREFLIGHT_STATUS="$preflight_status" APP_STATE_STATUS="$app_state_status" PLATFORM_FOR_SUMMARY="$PLATFORM" MODE_FOR_SUMMARY="$PREFLIGHT_MODE" FIXTURE_STATUS="$fixture_status" node <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
@@ -76,13 +82,23 @@ function run(cmd) {
 }
 let appState = null;
 try { appState = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/app-state.json'), 'utf8')); } catch {}
-const watcherPort = run(`bash -lc '. scripts/perps/agentic/lib/safe-env-parser.sh 2>/dev/null; load_js_env 2>/dev/null; printf "%s" "${WATCHER_PORT:-8081}"'`) || '8081';
+const watcherPort = run("bash -lc '. scripts/perps/agentic/lib/safe-env-parser.sh 2>/dev/null; load_js_env 2>/dev/null; printf \"%s\" \"${WATCHER_PORT:-8081}\"'") || '8081';
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'mobile',
   action: 'launch',
   status: process.env.STATUS_FOR_SUMMARY,
   platform: process.env.PLATFORM_FOR_SUMMARY,
   preflightMode: process.env.MODE_FOR_SUMMARY,
+  preflight: {
+    status: Number(process.env.PREFLIGHT_STATUS) === 0 ? 'pass' : 'fail',
+    exitCode: Number(process.env.PREFLIGHT_STATUS),
+    logPath: path.join(artifacts, 'logs/launch.log'),
+  },
+  runtimePolicy: {
+    nativeBuildPolicy: process.env.MODE_FOR_SUMMARY === 'fast'
+      ? 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval'
+      : 'this mode may run native build/setup work; caller must have recorded explicit approval before using it',
+  },
   target,
   watcherPort,
   fixtureStatus: process.env.FIXTURE_STATUS,

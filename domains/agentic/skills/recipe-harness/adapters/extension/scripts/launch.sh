@@ -28,16 +28,22 @@ fi
 
 if [ -n "$PREPARE_CMD" ]; then
   echo "Launching Extension harness runtime with caller-supplied prepare command" | tee "$ARTIFACTS/logs/launch.log"
+  set +e
   (
     cd "$TARGET"
     bash -lc "$PREPARE_CMD"
   ) 2>&1 | tee -a "$ARTIFACTS/logs/launch.log"
+  prepare_status=${PIPESTATUS[0]}
+  set -e
 else
   echo "No Extension prepare command supplied; reusing existing CDP runtime if reachable." | tee "$ARTIFACTS/logs/launch.log"
+  prepare_status=0
 fi
 
 status="pass"
-if [ -z "$CDP_PORT" ]; then
+if [ "$prepare_status" -ne 0 ]; then
+  status="fail"
+elif [ -z "$CDP_PORT" ]; then
   echo "Missing --cdp-port; cannot confirm Extension app-control runtime." | tee -a "$ARTIFACTS/logs/launch.log"
   status="fail"
 elif node "$(dirname "$0")/extension-readiness.js" --target "$TARGET" --cdp-port "$CDP_PORT" --json > "$ARTIFACTS/logs/extension-readiness.json" 2>&1; then
@@ -46,7 +52,7 @@ else
   status="fail"
 fi
 
-TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" STATUS_FOR_SUMMARY="$status" CDP_PORT_FOR_SUMMARY="$CDP_PORT" PREPARE_SUPPLIED="$([ -n "$PREPARE_CMD" ] && echo true || echo false)" node <<'NODE'
+TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" STATUS_FOR_SUMMARY="$status" CDP_PORT_FOR_SUMMARY="$CDP_PORT" PREPARE_SUPPLIED="$([ -n "$PREPARE_CMD" ] && echo true || echo false)" PREPARE_STATUS="$prepare_status" node <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const target = process.env.TARGET_FOR_SUMMARY;
@@ -59,7 +65,15 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   status: process.env.STATUS_FOR_SUMMARY,
   target,
   cdpPort: process.env.CDP_PORT_FOR_SUMMARY || null,
-  prepareCommandSupplied: process.env.PREPARE_SUPPLIED === 'true',
+  prepare: {
+    commandSupplied: process.env.PREPARE_SUPPLIED === 'true',
+    status: Number(process.env.PREPARE_STATUS) === 0 ? 'pass' : 'fail',
+    exitCode: Number(process.env.PREPARE_STATUS),
+    logPath: path.join(artifacts, 'logs/launch.log'),
+  },
+  runtimePolicy: {
+    runtimeReusePolicy: 'reuse a running harness-compatible CDP target when possible; caller-supplied startup commands must use cached/watch-only paths unless the human explicitly permits a rebuild',
+  },
   appControl: {
     status: readiness ? 'pass' : 'fail',
     readiness,
