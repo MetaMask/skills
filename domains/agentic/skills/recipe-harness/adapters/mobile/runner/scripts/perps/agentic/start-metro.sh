@@ -96,14 +96,21 @@ launch_app_ios() {
   ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('http://localhost:${PORT}?disableOnboarding=1', safe=''))")
   DEV_CLIENT_URL="expo-metamask://expo-development-client/?url=${ENCODED_URL}"
   xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null || \
-    echo "WARN: Could not launch app — is it installed on this simulator?"
+    echo "WARN: Could not open dev-client URL — will try direct app launch"
 
   # First launch after a rebuild sometimes crashes — retry once
   sleep 5
   if ! xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"; then
     echo "App exited after launch — retrying..."
     sleep 2
+    xcrun simctl launch "$SIM_TARGET" "$BUNDLE_ID" >/dev/null 2>&1 || true
+    sleep 1
     xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null || true
+  fi
+
+  if ! xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"; then
+    echo "ERROR: App did not stay running after launch; cannot wait for CDP targets."
+    return 1
   fi
 }
 
