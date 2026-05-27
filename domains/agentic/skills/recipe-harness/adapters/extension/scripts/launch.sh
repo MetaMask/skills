@@ -59,6 +59,8 @@ const target = process.env.TARGET_FOR_SUMMARY;
 const artifacts = process.env.ARTIFACTS_FOR_SUMMARY;
 let readiness = null;
 try { readiness = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/extension-readiness.json'), 'utf8')); } catch {}
+const appControlStatus =
+  process.env.STATUS_FOR_SUMMARY === 'pass' && readiness && readiness.status !== 'fail' ? 'pass' : 'fail';
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'extension',
   action: 'launch',
@@ -75,7 +77,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
     runtimeReusePolicy: 'reuse a running harness-compatible CDP target when possible; caller-supplied startup commands must use cached/watch-only paths unless the human explicitly permits a rebuild',
   },
   appControl: {
-    status: readiness ? 'pass' : 'fail',
+    status: appControlStatus,
     readiness,
   },
   cleanupCommand: `recipe-harness extension cleanup --target ${target}`,

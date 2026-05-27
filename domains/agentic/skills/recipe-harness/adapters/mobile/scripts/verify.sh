@@ -197,8 +197,12 @@ ensure_live_runtime() {
   fi
 
   echo "Mobile runtime is not recipe-controllable; starting ${PLATFORM} app via harness preflight (--mode ${PREFLIGHT_MODE})..." >&2
-  echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
-  echo "  To permit a rebuild, rerun with --preflight-mode auto or RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
+  if [ "$PREFLIGHT_MODE" = "fast" ]; then
+    echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
+    echo "  To permit a rebuild, rerun with --preflight-mode auto or RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
+  else
+    echo "  Build policy: ${PREFLIGHT_MODE} may run native build/setup work; use only after explicit caller/human approval." >&2
+  fi
   preflight_args=(scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --mode "$PREFLIGHT_MODE")
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     preflight_args+=(--wallet-setup --wallet-fixture .agent/wallet-fixture.json)
@@ -381,7 +385,9 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   gitStatus,
   runtimePolicy: {
     preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
-    nativeBuildPolicy: 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval',
+    nativeBuildPolicy: (process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast') === 'fast'
+      ? 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval'
+      : 'this mode may run native build/setup work; caller must have recorded explicit approval before using it',
   },
   fixtureStatus,
   portHolder,

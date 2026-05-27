@@ -8,6 +8,7 @@ usage() {
 Usage:
   recipe-harness                    # auto-detect repo, install into current dir
   recipe-harness install            # auto-detect repo, install into current dir
+  recipe-harness live [args]        # launch then verify live CDP/app control
   recipe-harness verify [args]      # auto-detect repo, verify current dir
   recipe-harness cleanup [args]     # auto-detect repo, cleanup current dir
   recipe-harness --target <repo> install
@@ -19,7 +20,10 @@ Explicit low-level form is also supported:
 Common examples:
   recipe-harness
   recipe-harness launch --platform ios --preflight-mode fast
+  recipe-harness live --platform ios --preflight-mode fast
   recipe-harness launch --platform android --preflight-mode fast
+  recipe-harness live --cdp-port 6665 --launch-existing-dist
+  recipe-harness live --cdp-port 6665 --start-test-watch
   recipe-harness verify --static-only
   recipe-harness verify --no-auto-start
   recipe-harness verify --cdp-port 6662
@@ -63,7 +67,7 @@ case "${1:-}" in
     PASSTHRU=()
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        install|launch|verify|cleanup)
+        install|launch|live|verify|cleanup)
           ACTION="$1"
           shift
           ;;
@@ -118,7 +122,7 @@ case "${1:-}" in
 esac
 
 case "$ADAPTER:$ACTION" in
-  mobile:install|mobile:launch|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:verify|extension:cleanup) ;;
+  mobile:install|mobile:launch|mobile:live|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:live|extension:verify|extension:cleanup) ;;
   *) usage >&2; fail "unsupported adapter/action: ${ADAPTER:-?}/${ACTION:-?}" ;;
 esac
 
@@ -141,6 +145,7 @@ fi
 case "$ACTION" in
   install) VERB="Installing" ;;
   launch) VERB="Launching" ;;
+  live) VERB="Running live validation for" ;;
   verify) VERB="Verifying" ;;
   cleanup) VERB="Cleaning" ;;
 esac
@@ -213,7 +218,7 @@ run_extension_prepare() {
   log "CDP port $cdp_port is offline; start the extension with a caller-owned command, set RECIPE_HARNESS_EXTENSION_LAUNCH_CMD, or pass --static-only"
 }
 
-if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "launch" ]; }; then
+if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "launch" ] || [ "$ACTION" = "live" ]; }; then
   no_auto_start=false
   if [ "$ACTION" = "verify" ] && has_arg --no-auto-start "$@"; then
     no_auto_start=true

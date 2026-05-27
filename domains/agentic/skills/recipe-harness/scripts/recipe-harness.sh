@@ -3,14 +3,16 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: recipe-harness.sh <mobile|extension> <install|launch|verify|cleanup> [args]
+Usage: recipe-harness.sh <mobile|extension> <install|launch|live|verify|cleanup> [args]
 
 Examples:
   recipe-harness.sh mobile install --target /path/to/metamask-mobile
   recipe-harness.sh mobile launch --target /path/to/metamask-mobile --platform ios --preflight-mode fast
+  recipe-harness.sh mobile live --target /path/to/metamask-mobile --platform ios --preflight-mode fast
   recipe-harness.sh mobile verify --target /path/to/metamask-mobile
   recipe-harness.sh extension install --target /path/to/metamask-extension
   recipe-harness.sh extension launch --target /path/to/metamask-extension --cdp-port 9222
+  recipe-harness.sh extension live --target /path/to/metamask-extension --cdp-port 9222 --launch-existing-dist
   recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port 9222
   recipe-harness.sh extension verify --target /path/to/metamask-extension --static-only
 EOF
@@ -30,7 +32,7 @@ SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ADAPTER_SCRIPT="${SKILL_DIR}/adapters/${ADAPTER}/scripts/${ACTION}.sh"
 
 case "${ADAPTER}:${ACTION}" in
-  mobile:install|mobile:launch|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:verify|extension:cleanup) ;;
+  mobile:install|mobile:launch|mobile:live|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:live|extension:verify|extension:cleanup) ;;
   *)
     usage >&2
     exit 2
