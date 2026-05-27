@@ -54,6 +54,7 @@ fi
 
 DETOX_SIMULATOR="${DETOX_SIMULATOR:-detox-benchmark}"
 SHARED_PORT="${WATCHER_PORT:-8062}"
+[[ "$SHARED_PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $SHARED_PORT)" >&2; exit 1; }
 DETOX_PORT="$SHARED_PORT"
 
 AGENTIC_SIMULATOR="${AGENTIC_SIMULATOR:-${IOS_SIMULATOR:-mm-2}}"

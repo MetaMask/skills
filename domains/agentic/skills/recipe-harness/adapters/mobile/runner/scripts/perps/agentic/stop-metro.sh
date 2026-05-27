@@ -30,6 +30,7 @@ if [ -f .js.env ]; then
 fi
 
 PORT="${WATCHER_PORT:-8081}"
+[[ "$PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $PORT)" >&2; exit 1; }
 PIDFILE=".agent/metro.pid"
 
 stopped=false

@@ -65,6 +65,7 @@ resolve_path() {
 }
 
 PORT="${WATCHER_PORT:-8081}"
+[[ "$PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $PORT)" >&2; exit 1; }
 SCRIPTS="scripts/perps/agentic"
 LOGFILE="$(resolve_path '.agent/metro.log')"
 LOG_DIR="$(resolve_path "${PREP_LOG_DIR:-.agent/preflight-logs}")"

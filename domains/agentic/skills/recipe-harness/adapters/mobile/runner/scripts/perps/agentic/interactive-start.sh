@@ -47,6 +47,7 @@ fi
 
 # Parse --port flag
 PORT="${WATCHER_PORT:-8081}"
+[[ "$PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $PORT)" >&2; exit 1; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --port) PORT="$2"; shift 2 ;;
