@@ -88,6 +88,30 @@ function httpJson(url, timeoutMs = 3000) {
   });
 }
 
+function httpJsonRequest(method, url, timeoutMs = 3000) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, { method }, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (err) {
+          reject(new Error(`invalid JSON from ${method} ${url}: ${err.message}`));
+        }
+      });
+    });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`timeout from ${method} ${url}`));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
 function resolveWebSocket(target) {
   try {
     return require(require.resolve('ws', { paths: [target, process.cwd()] }));
@@ -144,23 +168,55 @@ async function cdpEvaluate(target, webSocketDebuggerUrl, expression, timeoutMs =
   });
 }
 
-async function inspectCdp(target, cdpPort, expectedExtensionId) {
-  const version = await httpJson(`http://127.0.0.1:${cdpPort}/json/version`);
-  const targets = await httpJson(`http://127.0.0.1:${cdpPort}/json/list`);
-  if (!Array.isArray(targets)) throw new Error('/json/list did not return an array');
-  const ids = new Set();
+function extensionIdFromTarget(target) {
+  const url = String(target.url || '');
+  const match = url.match(/^chrome-extension:\/\/([a-z]{32})\//u);
+  return match ? match[1] : '';
+}
+
+function chooseExtensionId(targets, expectedExtensionId, expectedServiceWorker) {
+  const byId = new Map();
   for (const target of targets) {
+    const id = extensionIdFromTarget(target);
+    if (!id) continue;
+    const entries = byId.get(id) || [];
+    entries.push(target);
+    byId.set(id, entries);
+  }
+  const ids = [...byId.keys()];
+  if (ids.length === 0) return { extensionIds: [], selectedExtensionId: '' };
+
+  const hasExpectedWorker = (id) => byId.get(id).some((target) => {
     const url = String(target.url || '');
-    const match = url.match(/^chrome-extension:\/\/([a-z]{32})\//u);
-    if (match) ids.add(match[1]);
-  }
-  if (ids.size === 0) {
-    throw new Error('CDP is reachable but no chrome-extension:// targets are present');
-  }
-  const extensionIds = [...ids];
+    return target.type === 'service_worker' && expectedServiceWorker && url.endsWith(`/${expectedServiceWorker}`);
+  });
+  const hasAnyWorker = (id) => byId.get(id).some((target) => target.type === 'service_worker');
+
   const selectedExtensionId =
-    expectedExtensionId && ids.has(expectedExtensionId) ? expectedExtensionId : extensionIds[0];
-  const pageTarget = targets.find((target) => {
+    ids.find((id) => id === expectedExtensionId && hasExpectedWorker(id)) ||
+    ids.find((id) => hasExpectedWorker(id)) ||
+    ids.find((id) => id === expectedExtensionId && hasAnyWorker(id)) ||
+    ids.find((id) => hasAnyWorker(id)) ||
+    (expectedExtensionId && ids.includes(expectedExtensionId) ? expectedExtensionId : ids[0]);
+
+  return { extensionIds: ids, selectedExtensionId };
+}
+
+async function openExtensionHome(cdpPort, extensionId) {
+  const url = `chrome-extension://${extensionId}/home.html`;
+  try {
+    await httpJsonRequest('PUT', `http://127.0.0.1:${cdpPort}/json/new?${encodeURIComponent(url)}`, 3000);
+    return true;
+  } catch (err) {
+    // Some CDP implementations disable /json/new. Readiness can still pass
+    // when the caller already opened an extension page, so report this as a
+    // best-effort page-open miss instead of hiding a required check failure.
+    return false;
+  }
+}
+
+function findPageTarget(targets, selectedExtensionId) {
+  return targets.find((target) => {
     const url = String(target.url || '');
     return (
       target.type === 'page' &&
@@ -168,6 +224,25 @@ async function inspectCdp(target, cdpPort, expectedExtensionId) {
       typeof target.webSocketDebuggerUrl === 'string'
     );
   });
+}
+
+async function inspectCdp(target, cdpPort, expectedExtensionId, expectedServiceWorker) {
+  const version = await httpJson(`http://127.0.0.1:${cdpPort}/json/version`);
+  let targets = await httpJson(`http://127.0.0.1:${cdpPort}/json/list`);
+  if (!Array.isArray(targets)) throw new Error('/json/list did not return an array');
+  let { extensionIds, selectedExtensionId } = chooseExtensionId(targets, expectedExtensionId, expectedServiceWorker);
+  if (!selectedExtensionId) {
+    throw new Error('CDP is reachable but no chrome-extension:// targets are present');
+  }
+  let pageTarget = findPageTarget(targets, selectedExtensionId);
+  let openedHome = false;
+  if (!pageTarget) {
+    openedHome = await openExtensionHome(cdpPort, selectedExtensionId);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    targets = await httpJson(`http://127.0.0.1:${cdpPort}/json/list`);
+    ({ extensionIds, selectedExtensionId } = chooseExtensionId(targets, expectedExtensionId, expectedServiceWorker));
+    pageTarget = findPageTarget(targets, selectedExtensionId);
+  }
   let ui = null;
   if (pageTarget) {
     ui = await cdpEvaluate(
@@ -188,13 +263,19 @@ async function inspectCdp(target, cdpPort, expectedExtensionId) {
         report: { cdp: { browser: version.Browser || 'unknown', selectedExtensionId, ui } },
       });
     }
+    if (ui && !ui.skipped && String(ui.url || '').startsWith('chrome-error://')) {
+      throw Object.assign(new Error('MetaMask extension page loaded Chrome error UI'), {
+        report: { cdp: { browser: version.Browser || 'unknown', selectedExtensionId, ui } },
+      });
+    }
   }
   return {
     browser: version.Browser || 'unknown',
     extensionIds,
     selectedExtensionId,
-    markerMatched: Boolean(expectedExtensionId && ids.has(expectedExtensionId)),
+    markerMatched: Boolean(expectedExtensionId && selectedExtensionId === expectedExtensionId),
     targetCount: targets.length,
+    openedHome,
     ui,
   };
 }
@@ -228,7 +309,7 @@ async function main() {
 
   if (args.cdpPort) {
     const expectedExtensionId = readExpectedExtensionId(target);
-    report.cdp = await inspectCdp(target, args.cdpPort, expectedExtensionId);
+    report.cdp = await inspectCdp(target, args.cdpPort, expectedExtensionId, manifest.background?.service_worker || '');
     report.cdp.markerRepaired = writeExtensionId(target, report.cdp.selectedExtensionId);
     checks.push({ name: `CDP ${args.cdpPort} extension targets`, status: 'pass' });
   }
