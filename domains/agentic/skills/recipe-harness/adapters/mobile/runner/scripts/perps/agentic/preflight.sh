@@ -442,7 +442,7 @@ sweep_port() {
   [ -z "$holder_pid" ] && return 0
 
   # Probe /status first — if Metro responds, it's alive and reusable regardless of process name
-  if curl -sf "http://localhost:$port/status" >/dev/null 2>&1; then
+  if curl -sf --max-time 2 "http://localhost:$port/status" >/dev/null 2>&1; then
     ok "Port $port ($label) — Metro already running (PID $holder_pid), reusing"
     # start-metro.sh will detect running Metro and only launch the app
     return 0

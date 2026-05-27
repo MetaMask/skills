@@ -99,6 +99,10 @@ prewarm_ios_bundle() {
   fi
 }
 
+app_running_ios() {
+  xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"
+}
+
 launch_app_ios() {
   suppress_expo_dev_menu_ios
   prewarm_ios_bundle
@@ -112,7 +116,7 @@ launch_app_ios() {
 
   # First launch after a rebuild sometimes crashes — retry once
   sleep 5
-  if ! xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"; then
+  if ! app_running_ios; then
     echo "App exited after launch — retrying..."
     sleep 2
     xcrun simctl launch "$SIM_TARGET" "$BUNDLE_ID" >/dev/null 2>&1 || true
@@ -120,7 +124,17 @@ launch_app_ios() {
     xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null || true
   fi
 
-  if ! xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"; then
+  # The simulator launch service can report before SpringBoard has registered
+  # the process. Poll briefly so we do not fail a healthy launch that exposes
+  # CDP a few seconds later.
+  local launch_wait=0
+  while [ "$launch_wait" -lt "${AGENTIC_IOS_LAUNCH_CONFIRM_TIMEOUT:-20}" ]; do
+    app_running_ios && return 0
+    sleep 1
+    launch_wait=$((launch_wait + 1))
+  done
+
+  if ! app_running_ios; then
     echo "ERROR: App did not stay running after launch; cannot wait for CDP targets."
     return 1
   fi
@@ -156,7 +170,7 @@ launch_app() {
 mkdir -p .agent
 
 # --- Detect a running Metro via HTTP probe ---
-if curl -sf "http://localhost:${PORT}/status" >/dev/null 2>&1; then
+if curl -sf --max-time 2 "http://localhost:${PORT}/status" >/dev/null 2>&1; then
   echo "Metro already running on port $PORT."
   echo ""
   echo "To follow live logs:  tail -f $LOGFILE"
@@ -181,7 +195,14 @@ fi
 
 echo "Starting Metro on port $PORT..."
 METRO_TMUX_SESSION=""
-if [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
+# Keep Metro detached from the harness command by default. Earlier versions
+# started a nested tmux session whenever the developer ran the easy command from
+# tmux; on large first bundles that nested session could disappear mid-transform
+# and kill the foreground prewarm before the app ever reached CDP. The nohup
+# path is stable for both tmux and non-tmux callers because it disowns the Expo
+# process before this helper returns. Keep an opt-in tmux path for local
+# debugging only.
+if [ "${AGENTIC_USE_METRO_TMUX:-0}" = "1" ] && [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
   METRO_TMUX_SESSION="mms-metro-${PORT}-$(basename "$PWD" | tr -cd '[:alnum:]_-')"
   tmux kill-session -t "$METRO_TMUX_SESSION" 2>/dev/null || true
   tmux new-session -d -s "$METRO_TMUX_SESSION" -c "$PWD" \
@@ -203,9 +224,34 @@ else
   # parent shell exits, leaving a "ready" log line but no listening server by
   # the time CDP/app-state validation starts. nohup keeps the skill-owned easy
   # command alive after this wrapper returns.
-  nohup env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
+  python3 - "$PORT" "$LOGFILE" <<'PY' &
+import os
+import sys
+
+port, log_path = sys.argv[1], sys.argv[2]
+devnull = os.open("/dev/null", os.O_RDONLY)
+log = os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+try:
+    os.setsid()
+except OSError:
+    # Best effort: exec still happens with stdio detached below.
+    pass
+os.dup2(devnull, 0)
+os.dup2(log, 1)
+os.dup2(log, 2)
+for fd in (devnull, log):
+    try:
+        os.close(fd)
+    except OSError:
+        pass
+env = os.environ.copy()
+env["EXPO_NO_TYPESCRIPT_SETUP"] = "1"
+os.execvpe("yarn", ["yarn", "expo", "start", "--port", port], env)
+PY
   METRO_PID=$!
   # Ensure parent shell exit does not propagate job-control cleanup to Metro.
+  # The Python shim above calls setsid() before exec so this works even when
+  # the easy command itself is killed or exits from a tmux-launched shell.
   disown "$METRO_PID" 2>/dev/null || true
   echo "$METRO_PID" > "$PIDFILE"
   rm -f .agent/metro.tmux-session
@@ -223,7 +269,7 @@ metro_alive() {
 # Wait for ready signal
 ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
-  if curl -sf "http://localhost:${PORT}/status" >/dev/null 2>&1 || grep -q "Waiting on http://localhost:${PORT}" "$LOGFILE" 2>/dev/null; then
+  if curl -sf --max-time 2 "http://localhost:${PORT}/status" >/dev/null 2>&1 || grep -q "Waiting on http://localhost:${PORT}" "$LOGFILE" 2>/dev/null; then
     echo "Metro ready after ${ELAPSED}s."
     echo ""
     echo "To follow live logs:  tail -f $LOGFILE"
