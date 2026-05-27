@@ -308,17 +308,35 @@ run_with_live_log() {
   return $rc
 }
 
+js_deps_fingerprint() {
+  { [ -f package.json ] && shasum package.json; [ -f yarn.lock ] && shasum yarn.lock; } | shasum | awk '{print $1}'
+}
+
 js_dependencies_need_install() {
-  # Worktrees often survive branch switches. If package.json / yarn.lock are
-  # newer than Yarn's node_modules state, or if a required workspace binary is
-  # missing, reconcile node_modules before invoking Expo. This preserves the
-  # normal `yarn expo ...` path while fixing stale installs at the source.
+  # Worktrees often survive branch switches. Use content fingerprinting instead
+  # of package.json mtime alone because harness install refreshes package.json
+  # overlays without changing dependency contents. This keeps live validation
+  # idempotent and avoids invalidating Metro caches before every launch.
+  local stamp=".agent/build-cache/js-deps.fingerprint"
+  local fp
   [ ! -d node_modules ] && return 0
   [ ! -f node_modules/.yarn-state.yml ] && return 0
+  yarn bin expo >/dev/null 2>&1 || return 0
+  fp="$(js_deps_fingerprint)"
+  if [ -f "$stamp" ] && [ "$(cat "$stamp" 2>/dev/null || true)" = "$fp" ]; then
+    return 1
+  fi
   [ -f package.json ] && [ package.json -nt node_modules/.yarn-state.yml ] && return 0
   [ -f yarn.lock ] && [ yarn.lock -nt node_modules/.yarn-state.yml ] && return 0
-  yarn bin expo >/dev/null 2>&1 || return 0
+  mkdir -p "$(dirname "$stamp")"
+  printf '%s\n' "$fp" > "$stamp"
   return 1
+}
+
+mark_js_dependencies_reconciled() {
+  local stamp=".agent/build-cache/js-deps.fingerprint"
+  mkdir -p "$(dirname "$stamp")"
+  js_deps_fingerprint > "$stamp"
 }
 
 # ── Early fixture validation (fail fast before long pipeline) ────────
@@ -465,6 +483,7 @@ if $JS_DEPS_STALE; then
     tail -20 "$DEPS_LOG" | sed 's/^/    /'
     fail "yarn install --immutable failed"
   fi
+  mark_js_dependencies_reconciled
   ok "node_modules reconciled"
 fi
 
