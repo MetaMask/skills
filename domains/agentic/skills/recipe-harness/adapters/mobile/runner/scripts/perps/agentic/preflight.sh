@@ -1071,7 +1071,7 @@ step "Connecting CDP" "Waiting for app to expose debug target"
 stage_log "$CDP_LOG"
 printf '$ node %s/cdp-bridge.js status\n' "$SCRIPTS" > "$CDP_LOG"
 while [ $CDP_RETRY -lt $CDP_WAIT_TIMEOUT ]; do
-  CDP_STATUS_OUTPUT=$(node "$SCRIPTS/cdp-bridge.js" status 2>&1 || true)
+  CDP_STATUS_OUTPUT=$(CDP_TIMEOUT="${CDP_TIMEOUT:-2000}" CDP_DISCOVERY_RETRIES="${CDP_DISCOVERY_RETRIES:-1}" node "$SCRIPTS/cdp-bridge.js" status 2>&1 || true)
   printf '[attempt %s]\n%s\n' "$((CDP_RETRY + 1))" "$CDP_STATUS_OUTPUT" >>"$CDP_LOG"
   if echo "$CDP_STATUS_OUTPUT" | grep -q '"route"' 2>/dev/null; then
     ok "CDP connected"
