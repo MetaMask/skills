@@ -165,8 +165,11 @@ if [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
   METRO_TMUX_SESSION="mms-metro-${PORT}-$(basename "$PWD" | tr -cd '[:alnum:]_-')"
   tmux kill-session -t "$METRO_TMUX_SESSION" 2>/dev/null || true
   tmux new-session -d -s "$METRO_TMUX_SESSION" -c "$PWD" \
-    "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT' >> '$LOGFILE' 2>&1"
-  METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_SESSION:0.0" '#{pane_pid}' 2>/dev/null || echo "")
+    "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT'"
+  tmux pipe-pane -o -t "$METRO_TMUX_SESSION:0.0" "cat >> '$LOGFILE'" 2>/dev/null || \
+    tmux pipe-pane -o -t "$METRO_TMUX_SESSION" "cat >> '$LOGFILE'" 2>/dev/null || true
+  METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_SESSION:0.0" '#{pane_pid}' 2>/dev/null || \
+    tmux display-message -p -t "$METRO_TMUX_SESSION" '#{pane_pid}' 2>/dev/null || echo "")
   echo "$METRO_TMUX_SESSION" > .agent/metro.tmux-session
   echo "${METRO_PID:-tmux:$METRO_TMUX_SESSION}" > "$PIDFILE"
   echo "Metro tmux session: $METRO_TMUX_SESSION, logging to $LOGFILE"

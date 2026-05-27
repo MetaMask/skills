@@ -59,7 +59,7 @@ DEPS_LOG="${LOG_DIR}/deps.log"
 POD_INSTALL_LOG="${LOG_DIR}/pod-install.log"
 CDP_LOG="${LOG_DIR}/cdp.log"
 WALLET_LOG="${LOG_DIR}/wallet-setup.log"
-CDP_WAIT_TIMEOUT=90
+CDP_WAIT_TIMEOUT="${CDP_WAIT_TIMEOUT:-420}"
 CDP_RETRY=0
 
 # Flags
