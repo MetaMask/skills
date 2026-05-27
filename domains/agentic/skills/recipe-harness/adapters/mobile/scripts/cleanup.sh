@@ -32,8 +32,17 @@ if [ ! -f "$STATE_FILE" ]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-. "$STATE_FILE"
+while IFS= read -r _line || [ -n "$_line" ]; do
+  [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+  _key="${_line%%=*}"
+  _val="${_line#*=}"
+  case "$_key" in
+    SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|PACKAGE_JSON_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
+    *) continue ;;
+  esac
+  export "$_key=$_val"
+done < "$STATE_FILE"
+unset _line _key _val
 
 HASH_FILE="$BACKUP_DIR/managed-hashes.tsv"
 

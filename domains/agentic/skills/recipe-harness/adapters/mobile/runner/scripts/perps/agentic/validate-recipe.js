@@ -1243,7 +1243,7 @@ function handleToggleTestnet(node, appRoot) {
 function handleSwitchProvider(node, appRoot) {
   return spawnBridge(appRoot, [
     'eval-async',
-    `Engine.context.PerpsController.switchProvider('${node.provider}').then(function(r){return JSON.stringify(r)})`,
+    `Engine.context.PerpsController.switchProvider(${JSON.stringify(node.provider)}).then(function(r){return JSON.stringify(r)})`,
   ]);
 }
 

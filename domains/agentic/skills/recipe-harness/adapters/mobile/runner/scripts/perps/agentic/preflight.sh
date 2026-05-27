@@ -216,7 +216,7 @@ fail() { echo -e "  ${RED}✗${NC} $*"; exit 1; }
 stage_log() { echo -e "  ${DIM}Log: $1${NC}"; }
 
 # Kill a process and all its descendants.
-# We need this because `$!` after `eval "$EXPO_CMD" &` points at the yarn
+# We need this because `$!` after backgrounding the expo command points at the yarn
 # corepack wrapper, not the deep child (yarn → corepack → yarn.cjs → node
 # expo/cli) that actually binds $PORT. Killing just the wrapper leaves the
 # child alive and still holding the port. Scoped strictly to descendants of
@@ -674,8 +674,8 @@ if [ "$PLAT" = "ios" ]; then
     # binds the hardcoded default 8081, which collides with other worktrees and
     # causes the installed app to register its Hermes inspector on 8081 instead of
     # the worktree's $PORT — breaking CDP discovery.
-    EXPO_CMD="yarn expo run:ios --no-install --port $PORT --configuration Debug --scheme MetaMask"
-    [ -n "${IOS_SIMULATOR:-}" ] && EXPO_CMD="$EXPO_CMD --device $IOS_SIMULATOR"
+    EXPO_ARGS=(yarn expo run:ios --no-install --port "$PORT" --configuration Debug --scheme MetaMask)
+    [ -n "${IOS_SIMULATOR:-}" ] && EXPO_ARGS+=(--device "$IOS_SIMULATOR")
 
     # expo run:ios does not exit after a successful build — it keeps Metro running
     # and streams simulator logs indefinitely. We only need the .app artifact here:
@@ -691,7 +691,7 @@ if [ "$PLAT" = "ios" ]; then
     BUILD_START=$(date +%s)
 
     set +e
-    eval "$EXPO_CMD" >"$BUILD_LOG" 2>&1 &
+    "${EXPO_ARGS[@]}" >"$BUILD_LOG" 2>&1 &
     EXPO_PID=$!
     # Drop the bg job from bash's jobs table so kill_tree's SIGTERM doesn't print "Terminated: 15".
     disown "$EXPO_PID" 2>/dev/null || true

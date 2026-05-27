@@ -46,8 +46,17 @@ if [ ! -f "$STATE_FILE" ]; then
   exit 1
 fi
 
-# shellcheck disable=SC1090
-. "$STATE_FILE"
+while IFS= read -r _line || [ -n "$_line" ]; do
+  [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+  _key="${_line%%=*}"
+  _val="${_line#*=}"
+  case "$_key" in
+    OUT_EXISTED) ;;
+    *) continue ;;
+  esac
+  export "$_key=$_val"
+done < "$STATE_FILE"
+unset _line _key _val
 
 rm -rf "$OUT_ABS"
 if [ "${OUT_EXISTED:-0}" = "1" ]; then

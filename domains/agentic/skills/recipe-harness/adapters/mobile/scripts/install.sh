@@ -192,8 +192,16 @@ rollback_failed_install() {
   set +e
   echo "Mobile recipe harness install failed; restoring backed-up product files." >&2
   if [ -f "$ROLLBACK_STATE_FILE" ]; then
-    # shellcheck disable=SC1090
-    . "$ROLLBACK_STATE_FILE"
+    while IFS= read -r _line || [ -n "$_line" ]; do
+      [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+      _key="${_line%%=*}"; _val="${_line#*=}"
+      case "$_key" in
+        SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|PACKAGE_JSON_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
+        *) continue ;;
+      esac
+      export "$_key=$_val"
+    done < "$ROLLBACK_STATE_FILE"
+    unset _line _key _val
     rollback_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
     rollback_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
     rollback_path "package.json" "${PACKAGE_JSON_EXISTED:-0}"

@@ -948,7 +948,7 @@ class CdpSessionManager {
     this.#activeTraces.delete(label);
     const tracesDir = path.join(process.cwd(), 'test-artifacts', 'traces');
     await fs.mkdir(tracesDir, { recursive: true });
-    const filename = options.filename || `${label}-${Date.now()}.json`;
+    const filename = path.basename(options.filename || `${label}-${Date.now()}.json`);
     const filePath = path.join(tracesDir, filename);
 
     const traceEvents = [];
