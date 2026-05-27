@@ -40,13 +40,20 @@ git_tracks_path() {
   git -C "$TARGET" ls-files --error-unmatch "$1" >/dev/null 2>&1
 }
 
+git_tracks_any_under() {
+  git -C "$TARGET" ls-files -- "$1" 2>/dev/null | grep -q .
+}
+
 has_product_owned_mobile_harness() {
-  git_tracks_path "app/core/AgenticService/AgenticService.ts" \
-    && git_tracks_path "scripts/perps/agentic/preflight.sh" \
-    && git_tracks_path "scripts/perps/agentic/setup-wallet.sh" \
-    && git_tracks_path "scripts/perps/agentic/cdp-bridge.js" \
-    && git_tracks_path "scripts/perps/agentic/app-state.sh" \
-    && grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null \
+  # If the product repo tracks any first-party harness subtree, installing the
+  # skill overlay must be metadata-only by default. Requiring every marker to be
+  # present is unsafe for older/partial Mobile commits: falling through would
+  # rsync --delete tracked product-owned files without --force-overlay.
+  git_tracks_any_under "scripts/perps/agentic" && return 0
+  git_tracks_any_under "app/core/AgenticService" && return 0
+
+  # Marker fallback for checkouts where the harness was patched but not tracked.
+  grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null \
     && grep -q "AgentStepHud" "$TARGET/app/components/Nav/App/App.tsx" 2>/dev/null
 }
 

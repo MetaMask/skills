@@ -73,7 +73,9 @@ function recomputeHash(sources, projectRoot) {
     .sort((a, b) => {
       const left = a.type === 'contents' ? a.id : a.filePath;
       const right = b.type === 'contents' ? b.id : b.filePath;
-      return String(left).localeCompare(String(right));
+      const leftKey = String(left);
+      const rightKey = String(right);
+      return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
     });
   for (const source of normalizedSources) {
     if (source.id === 'packageJson:scripts') {

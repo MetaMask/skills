@@ -65,12 +65,13 @@ if (!fixture) {
   }));
   process.exit(0);
 }
+const fixtureRaw = fs.readFileSync(fixture);
 let parsed = null;
 let valid = false;
 let accountCount = null;
 let hasPassword = false;
 try {
-  parsed = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+  parsed = JSON.parse(fixtureRaw.toString('utf8'));
   valid = true;
   accountCount = Array.isArray(parsed.accounts) ? parsed.accounts.length : 0;
   hasPassword = typeof parsed.password === 'string' && parsed.password.length > 0;
@@ -81,7 +82,7 @@ const stat = fs.statSync(fixture);
 console.log(JSON.stringify({
   status: valid && hasPassword && accountCount > 0 ? 'READY' : 'STALE_OR_INVALID',
   path: path.relative(target, fixture),
-  sha256: crypto.createHash('sha256').update(fs.readFileSync(fixture)).digest('hex'),
+  sha256: crypto.createHash('sha256').update(fixtureRaw).digest('hex'),
   modifiedAt: stat.mtime.toISOString(),
   accountCount,
   hasPassword,
@@ -258,81 +259,81 @@ NODE
   fi
 
   if $RUNTIME_AVAILABLE; then
-  if live_status_ok "$ARTIFACTS/logs/app-state-status.log"; then
-    checks+=("{\"name\":\"live app-state status\",\"status\":\"pass\"}")
-  else
-    checks+=("{\"name\":\"live app-state status\",\"status\":\"fail\"}")
-    status="fail"
-  fi
+    if live_status_ok "$ARTIFACTS/logs/app-state-status.log"; then
+      checks+=("{\"name\":\"live app-state status\",\"status\":\"pass\"}")
+    else
+      checks+=("{\"name\":\"live app-state status\",\"status\":\"fail\"}")
+      status="fail"
+    fi
 
-  if (
-    cd "$TARGET"
-    bash scripts/perps/agentic/app-state.sh eval "JSON.stringify({hasAgentic: !!globalThis.__AGENTIC__})"
-  ) > "$ARTIFACTS/logs/agentic-bridge.log" 2>&1 && node - "$ARTIFACTS/logs/agentic-bridge.log" <<'NODE'
+    if (
+      cd "$TARGET"
+      bash scripts/perps/agentic/app-state.sh eval "JSON.stringify({hasAgentic: !!globalThis.__AGENTIC__})"
+    ) > "$ARTIFACTS/logs/agentic-bridge.log" 2>&1 && node - "$ARTIFACTS/logs/agentic-bridge.log" <<'NODE'
 const fs = require('fs');
 const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
 let value = JSON.parse(raw);
 if (typeof value === 'string') value = JSON.parse(value);
 if (!value.hasAgentic) process.exit(1);
 NODE
-  then
-    checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"pass\"}")
-  else
-    checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"fail\"}")
-    status="fail"
-  fi
+    then
+      checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"pass\"}")
+    else
+      checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"fail\"}")
+      status="fail"
+    fi
 
-  if (
-    cd "$TARGET"
-    bash scripts/perps/agentic/app-state.sh route
-  ) > "$ARTIFACTS/logs/route.log" 2>&1 && node - "$ARTIFACTS/logs/route.log" <<'NODE'
+    if (
+      cd "$TARGET"
+      bash scripts/perps/agentic/app-state.sh route
+    ) > "$ARTIFACTS/logs/route.log" 2>&1 && node - "$ARTIFACTS/logs/route.log" <<'NODE'
 const fs = require('fs');
 const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
 const value = JSON.parse(raw);
 if (!value || !value.name) process.exit(1);
 NODE
-  then
-    checks+=("{\"name\":\"live route read\",\"status\":\"pass\"}")
-  else
-    checks+=("{\"name\":\"live route read\",\"status\":\"fail\"}")
-    status="fail"
-  fi
-
-  if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
-    if (
-      cd "$TARGET"
-      bash scripts/perps/agentic/setup-wallet.sh
-    ) > "$ARTIFACTS/logs/wallet-setup-unlock.log" 2>&1; then
-      checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"pass\"}")
+    then
+      checks+=("{\"name\":\"live route read\",\"status\":\"pass\"}")
     else
-      checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"fail\"}")
+      checks+=("{\"name\":\"live route read\",\"status\":\"fail\"}")
       status="fail"
     fi
-  fi
 
-  if (
-    cd "$TARGET"
-    shot="$(bash scripts/perps/agentic/screenshot.sh recipe-harness-live)"
-    cp "$shot" "$ARTIFACTS/screenshot.png"
-    echo "$shot"
-  ) > "$ARTIFACTS/logs/screenshot.log" 2>&1; then
-    checks+=("{\"name\":\"live screenshot capture\",\"status\":\"pass\"}")
-  else
-    checks+=("{\"name\":\"live screenshot capture\",\"status\":\"fail\"}")
-    status="fail"
-  fi
+    if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
+      if (
+        cd "$TARGET"
+        bash scripts/perps/agentic/setup-wallet.sh
+      ) > "$ARTIFACTS/logs/wallet-setup-unlock.log" 2>&1; then
+        checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"pass\"}")
+      else
+        checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"fail\"}")
+        status="fail"
+      fi
+    fi
 
-  if [ -f "$TARGET/scripts/perps/agentic/teams/perps/recipes/provider-smoke.json" ]; then
     if (
       cd "$TARGET"
-      bash scripts/perps/agentic/validate-recipe.sh scripts/perps/agentic/teams/perps/recipes/provider-smoke.json --artifacts-dir "$ARTIFACTS/recipe"
-    ) > "$ARTIFACTS/logs/tiny-recipe.log" 2>&1; then
-      checks+=("{\"name\":\"live tiny recipe\",\"status\":\"pass\"}")
+      shot="$(bash scripts/perps/agentic/screenshot.sh recipe-harness-live)"
+      cp "$shot" "$ARTIFACTS/screenshot.png"
+      echo "$shot"
+    ) > "$ARTIFACTS/logs/screenshot.log" 2>&1; then
+      checks+=("{\"name\":\"live screenshot capture\",\"status\":\"pass\"}")
     else
-      checks+=("{\"name\":\"live tiny recipe\",\"status\":\"fail\"}")
+      checks+=("{\"name\":\"live screenshot capture\",\"status\":\"fail\"}")
       status="fail"
     fi
-  fi
+
+    if [ -f "$TARGET/scripts/perps/agentic/teams/perps/recipes/provider-smoke.json" ]; then
+      if (
+        cd "$TARGET"
+        bash scripts/perps/agentic/validate-recipe.sh scripts/perps/agentic/teams/perps/recipes/provider-smoke.json --artifacts-dir "$ARTIFACTS/recipe"
+      ) > "$ARTIFACTS/logs/tiny-recipe.log" 2>&1; then
+        checks+=("{\"name\":\"live tiny recipe\",\"status\":\"pass\"}")
+      else
+        checks+=("{\"name\":\"live tiny recipe\",\"status\":\"fail\"}")
+        status="fail"
+      fi
+    fi
   else
     checks+=("{\"name\":\"live observability checks\",\"status\":\"skip\",\"detail\":\"runtime was not recipe-controllable after startup check\"}")
   fi

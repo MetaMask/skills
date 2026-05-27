@@ -15,7 +15,7 @@ Usage:
   recipe-harness --adapter <mobile|extension> <launch|verify> --cdp-port <port>
 
 Explicit low-level form is also supported:
-  recipe-harness <mobile|extension> <install|launch|verify|cleanup> [args]
+  recipe-harness <mobile|extension> <install|launch|live|verify|cleanup> [args]
 
 Common examples:
   recipe-harness

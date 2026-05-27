@@ -52,7 +52,34 @@ if (!between.includes('if $CHECK_ONLY; then') || !between.includes('exit 0')) {
 NODE
 }
 
+assert_partial_product_harness_install_is_metadata_only() {
+  local target="$tmpdir/partial-product-mobile"
+  mkdir -p "$target/scripts/perps/agentic"
+  (
+    cd "$target"
+    git init -q
+    printf 'product-owned\n' > scripts/perps/agentic/preflight.sh
+    git add scripts/perps/agentic/preflight.sh
+  )
+
+  "$SKILL_DIR/adapters/mobile/scripts/install.sh" --target "$target" >/tmp/recipe-harness-mobile-partial-product.log 2>&1
+
+  grep -qxF 'product-owned' "$target/scripts/perps/agentic/preflight.sh" \
+    || fail "partial tracked product harness was overwritten without --force-overlay"
+  node - "$target/.agent/recipe-harness/mobile/manifest.json" <<'NODE'
+const fs = require('fs');
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (manifest.installMode !== 'product-owned') {
+  throw new Error(`expected product-owned installMode, got ${manifest.installMode || '<missing>'}`);
+}
+if ((manifest.installedPaths || []).length !== 0 || (manifest.patchedFiles || []).length !== 0) {
+  throw new Error('metadata-only install must not report installed or patched product files');
+}
+NODE
+}
+
 assert_extension_verify_does_not_autostart_by_default
 assert_mobile_check_only_exits_before_wallet_reset
+assert_partial_product_harness_install_is_metadata_only
 
 echo "recipe-harness safety contracts OK"
