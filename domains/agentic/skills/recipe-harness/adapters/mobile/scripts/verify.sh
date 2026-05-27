@@ -327,10 +327,11 @@ NODE
   fi
 fi
 
-RECIPE_HARNESS_PREFLIGHT_MODE="$PREFLIGHT_MODE" node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_PREFLIGHT_MODE="$PREFLIGHT_MODE" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
-const [artifacts, status, ...checks] = process.argv.slice(2);
+const cp = require('child_process');
+const [artifacts, target, status, ...checks] = process.argv.slice(2);
 const parsedChecks = checks.map((entry) => JSON.parse(entry));
 let fixtureStatus = null;
 let portHolder = null;
@@ -339,6 +340,21 @@ const startedRuntime = fs.existsSync(path.join(artifacts, 'logs/harness-started-
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { portHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/port-holder.json'), 'utf8')); } catch {}
 try { runtimeNotes = fs.readFileSync(path.join(artifacts, 'logs/runtime-notes.txt'), 'utf8').trim().split('\n').filter(Boolean); } catch {}
+function runGit(args) {
+  try {
+    return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  } catch (error) {
+    // Git metadata is diagnostic-only; non-git targets still produce a usable verify summary.
+    return null;
+  }
+}
+const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness']);
+const gitStatus = {
+  branch: runGit(['branch', '--show-current']),
+  head: runGit(['rev-parse', '--short', 'HEAD']),
+  dirtyCount: statusShort ? statusShort.split('\n').filter(Boolean).length : 0,
+  dirtyPreview: statusShort ? statusShort.split('\n').filter(Boolean).slice(0, 25) : [],
+};
 const liveRuntimeCheck = parsedChecks.find((check) => check.name === 'live runtime auto-start');
 const runtimeOwner = !portHolder
   ? 'static-only'
@@ -362,6 +378,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
       ? 'verify launched the runtime through harness preflight'
       : 'verify did not launch this runtime; do not stop human-owned or pre-existing processes automatically',
   },
+  gitStatus,
   runtimePolicy: {
     preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
     nativeBuildPolicy: 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval',

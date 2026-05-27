@@ -197,16 +197,32 @@ if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
   git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude).skills-cache" ":(exclude)$OUT" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
-RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
-const [artifacts, status, ...checks] = process.argv.slice(2);
+const cp = require('child_process');
+const [artifacts, target, status, ...checks] = process.argv.slice(2);
 const parsedChecks = checks.map((entry) => JSON.parse(entry));
 const liveMode = process.env.RECIPE_HARNESS_LIVE_MODE || 'unknown';
 let fixtureStatus = null;
 let cdpHolder = null;
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { cdpHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/cdp-holder.json'), 'utf8')); } catch {}
+function runGit(args) {
+  try {
+    return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  } catch (error) {
+    // Git metadata is diagnostic-only; non-git targets still produce a usable verify summary.
+    return null;
+  }
+}
+const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness', ':(exclude).skills-cache']);
+const gitStatus = {
+  branch: runGit(['branch', '--show-current']),
+  head: runGit(['rev-parse', '--short', 'HEAD']),
+  dirtyCount: statusShort ? statusShort.split('\n').filter(Boolean).length : 0,
+  dirtyPreview: statusShort ? statusShort.split('\n').filter(Boolean).slice(0, 25) : [],
+};
 const readiness = parsedChecks.find((check) => check.name === 'live extension readiness');
 const runtimeOwner = liveMode === 'static-only'
   ? 'static-only'
@@ -228,6 +244,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
     mayStop: false,
     reason: 'extension verify inspects the supplied CDP runtime; wrapper/preflight ownership must be recorded by the caller before stopping processes',
   },
+  gitStatus,
   runtimePolicy: {
     runtimeReusePolicy: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
   },
