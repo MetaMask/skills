@@ -1163,7 +1163,8 @@ if $DO_WALLET_SETUP; then
       tail -12 "$WALLET_LOG" | sed 's/^/  /'
       ok "Wallet configured"
     else
-      warn "Wallet setup failed — see $WALLET_LOG"
+      tail -40 "$WALLET_LOG" | sed 's/^/  /' >&2 || true
+      fail "Wallet setup failed — see $WALLET_LOG"
     fi
   else
     warn "No fixture at $WALLET_FIXTURE"
