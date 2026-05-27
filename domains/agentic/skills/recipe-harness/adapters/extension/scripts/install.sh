@@ -59,6 +59,10 @@ if [ -e "$OUT_ABS" ] && [ -f "$INSTALLED_HASH_FILE" ] && ! $FORCE; then
 fi
 
 mkdir -p "$(dirname "$OUT_ABS")"
+if [ -L "$OUT_ABS" ]; then
+  echo "Refusing extension harness install: $OUT is a symlink (potential traversal)." >&2
+  exit 1
+fi
 rsync -a --delete "$ADAPTER_DIR/runner/recipes/" "$OUT_ABS/"
 chmod +x "$OUT_ABS/validate-recipe.sh" 2>/dev/null || true
 dir_content_hash "$OUT_ABS" > "$INSTALLED_HASH_FILE"

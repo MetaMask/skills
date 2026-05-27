@@ -76,6 +76,10 @@ if [ -e "$OUT_ABS" ] && [ -f "$INSTALLED_HASH_FILE" ] && ! $FORCE; then
   fi
 fi
 
+if [ -L "$OUT_ABS" ]; then
+  echo "Refusing extension harness cleanup: output path is a symlink." >&2
+  exit 1
+fi
 rm -rf "$OUT_ABS"
 if [ "${OUT_EXISTED:-0}" = "1" ]; then
   mkdir -p "$(dirname "$OUT_ABS")"

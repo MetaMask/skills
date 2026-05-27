@@ -864,6 +864,11 @@ async function handleCall(node, ctx) {
   const mergedParams = { ...Object.fromEntries(
     Object.entries(flowInputs).filter(([, v]) => v.default != null).map(([k, v]) => [k, renderTemplateString(String(v.default), {})])
   ), ...callerParams };
+  for (const [k, v] of Object.entries(mergedParams)) {
+    if (typeof v === 'string' && /['"`\\]/.test(v)) {
+      throw new Error(`Input "${k}" in call "${ref}" contains characters unsafe for expression templates (got: ${v}).`);
+    }
+  }
   const substituted = renderTemplate(flowJson, mergedParams);
 
   const refTeamDir = dirname(dirname(flowPath));

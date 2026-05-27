@@ -31,6 +31,7 @@ const {
   listEvalRefs,
   loadPreConditionRegistry,
   parsePreConditionSpec,
+  renderExpressionTemplate,
   renderTemplate,
   renderTemplateString,
   resolveEvalRef,
@@ -199,6 +200,11 @@ function renderDocument(recipePath, inputParams = {}) {
   const defaults = collectDefaultInputs(parsed);
   const params = { ...defaults, ...inputParams };
 
+  for (const [k, v] of Object.entries(params)) {
+    if (typeof v === 'string' && /['"`\\]/.test(v)) {
+      throw new Error(`Input "${k}" contains characters unsafe for expression templates (got: ${v}). Use only simple values.`);
+    }
+  }
   let rendered = renderTemplateString(source, params);
   rendered = rendered.replace(/\{\{[^|}]+\|([^}]+)\}\}/g, '$1');
 
@@ -600,7 +606,7 @@ function evaluatePreConditions(document, appRoot) {
     const expression =
       typeof entry.expression === 'function'
         ? entry.expression(params)
-        : renderTemplate(entry.expression, params);
+        : renderExpressionTemplate(entry.expression, params);
     const assertSpec = renderTemplate(entry.assert, params);
 
     try {

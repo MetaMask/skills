@@ -846,6 +846,11 @@ async function main() {
   const mergedParams = { ...Object.fromEntries(
     Object.entries(inputs).filter(([, v]) => v.default != null).map(([k, v]) => [k, renderTemplateString(String(v.default), {})])
   ), ...cli.params };
+  for (const [k, v] of Object.entries(mergedParams)) {
+    if (typeof v === 'string' && /['"`\\]/.test(v)) {
+      throw new Error(`Input "${k}" contains characters unsafe for expression templates (got: ${v}). Use only simple values.`);
+    }
+  }
   const recipe = renderTemplate(rawRecipe, mergedParams);
 
   // Dry run

@@ -44,6 +44,24 @@ function renderTemplateString(value, params = {}) {
   );
 }
 
+function jsStringEscape(s) {
+  return String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/`/g, '\\`')
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+}
+
+function renderExpressionTemplate(value, params = {}) {
+  const escaped = {};
+  for (const [k, v] of Object.entries(params)) {
+    escaped[k] = v != null ? jsStringEscape(v) : v;
+  }
+  return renderTemplate(value, escaped);
+}
+
 function renderTemplate(value, params = {}) {
   if (typeof value === 'string') {
     return renderTemplateString(value, params);
@@ -294,6 +312,7 @@ module.exports = {
   loadPreConditionRegistry,
   parsePreConditionSpec,
   readJsonFile,
+  renderExpressionTemplate,
   renderTemplate,
   renderTemplateString,
   resolveEvalRef,
