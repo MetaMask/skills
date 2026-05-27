@@ -115,6 +115,37 @@ console.log(JSON.stringify({
 NODE
 }
 
+fixture_check_json() {
+  local fixture_status_path="$1"
+  node - "$fixture_status_path" <<'NODE'
+const fs = require('fs');
+const v = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+console.log(JSON.stringify({
+  name: 'fixture status',
+  status: v.status === 'READY' ? 'pass' : 'warn',
+  detail: v.path || v.status || '',
+  message: v.message || v.status,
+}));
+NODE
+}
+
+watcher_port() {
+  TARGET_FOR_WATCHER_PORT="$TARGET" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const target = process.env.TARGET_FOR_WATCHER_PORT;
+let port = process.env.WATCHER_PORT || '8081';
+for (const file of ['.js.env', '.env', '.env.local']) {
+  const full = path.join(target, file);
+  if (!fs.existsSync(full)) continue;
+  const text = fs.readFileSync(full, 'utf8');
+  const match = text.match(/^\s*(?:export\s+)?WATCHER_PORT=(["']?)([0-9]+)\1/m);
+  if (match) { port = match[2]; break; }
+}
+console.log(port);
+NODE
+}
+
 check_file() {
   local rel="$1"
   if [ -e "$TARGET/$rel" ]; then
@@ -234,36 +265,13 @@ ensure_live_runtime() {
 if [ "$STATIC_ONLY" = false ]; then
   fixture_json="$(fixture_status_json)"
   printf '%s\n' "$fixture_json" > "$ARTIFACTS/logs/fixture-status.json"
-  fixture_check_json="$(node - "$ARTIFACTS/logs/fixture-status.json" <<'NODE'
-const fs = require('fs');
-const v = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-console.log(JSON.stringify({
-  name: 'fixture status',
-  status: v.status === 'READY' ? 'pass' : 'warn',
-  detail: v.path || v.status || '',
-  message: v.message || v.status,
-}));
-NODE
-  )"
+  fixture_check_json="$(fixture_check_json "$ARTIFACTS/logs/fixture-status.json")"
   fixture_message="$(node -e 'const v=JSON.parse(process.argv[1]); console.log(v.message || v.detail);' "$fixture_check_json")"
   echo "$fixture_message" >&2
   add_note "$fixture_message"
   checks+=("$fixture_check_json")
 
-  port="$(node - "$TARGET" <<'NODE'
-const fs = require('fs');
-const path = require('path');
-let port = process.env.WATCHER_PORT || '8081';
-for (const file of ['.js.env', '.env', '.env.local']) {
-  const full = path.join(process.argv[2], file);
-  if (!fs.existsSync(full)) continue;
-  const text = fs.readFileSync(full, 'utf8');
-  const match = text.match(/^\s*(?:export\s+)?WATCHER_PORT=(["']?)([0-9]+)\1/m);
-  if (match) { port = match[2]; break; }
-}
-console.log(port);
-NODE
-)"
+  port="$(watcher_port)"
   port_holder_json "$port" > "$ARTIFACTS/logs/port-holder.json"
 
   RUNTIME_AVAILABLE=false

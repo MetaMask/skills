@@ -109,9 +109,23 @@ NODE
     || fail "metadata-only cleanup left exclude entry behind"
 }
 
+assert_mobile_adapter_scripts_parse_with_macos_bash() {
+  local bash_bin="${BASH_SYNTAX_BIN:-/bin/bash}"
+  if [ ! -x "$bash_bin" ]; then
+    bash_bin="bash"
+  fi
+
+  local script
+  for script in "$SKILL_DIR"/adapters/mobile/scripts/*.sh; do
+    [ -f "$script" ] || continue
+    "$bash_bin" -n "$script" || fail "mobile adapter script is not parseable by $bash_bin: $script"
+  done
+}
+
 assert_extension_verify_does_not_autostart_by_default
 assert_mobile_check_only_exits_before_wallet_reset
 assert_verify_marks_harness_owned_only_after_preflight_success
 assert_partial_product_harness_install_is_metadata_only
+assert_mobile_adapter_scripts_parse_with_macos_bash
 
 echo "recipe-harness safety contracts OK"
