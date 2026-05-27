@@ -6,18 +6,24 @@ ARTIFACTS=""
 STATIC_ONLY=false
 AUTO_START=true
 PLATFORM="${MM_HARNESS_PLATFORM:-${PLATFORM:-ios}}"
+PREFLIGHT_MODE="${MM_HARNESS_MOBILE_PREFLIGHT_MODE:-fast}"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
     --static-only) STATIC_ONLY=true; shift ;;
     --platform) PLATFORM="$2"; shift 2 ;;
+    --preflight-mode) PREFLIGHT_MODE="$2"; shift 2 ;;
     --auto-start) AUTO_START=true; shift ;;
     --no-auto-start) AUTO_START=false; shift ;;
-    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only] [--platform ios|android] [--no-auto-start]"; exit 0 ;;
+    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only] [--platform ios|android] [--preflight-mode fast|auto|default|rebuild-native|clean] [--no-auto-start]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
+case "$PREFLIGHT_MODE" in
+  fast|auto|default|rebuild-native|clean) ;;
+  *) echo "Unknown --preflight-mode: $PREFLIGHT_MODE" >&2; exit 2 ;;
+esac
 
 TARGET="$(cd "$TARGET" && pwd)"
 HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
@@ -26,6 +32,81 @@ mkdir -p "$ARTIFACTS/logs"
 
 status="pass"
 checks=()
+
+add_note() {
+  printf '%s\n' "$1" >> "$ARTIFACTS/logs/runtime-notes.txt"
+}
+
+fixture_status_json() {
+  TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
+const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const target = process.env.TARGET_FOR_FIXTURE;
+const candidates = [
+  '.agent/wallet-fixture.json',
+  'scripts/perps/agentic/wallet-fixture.json',
+].map((rel) => path.join(target, rel));
+const fixture = candidates.find((file) => fs.existsSync(file));
+if (!fixture) {
+  const example = path.join(target, 'scripts/perps/agentic/wallet-fixture.example.json');
+  console.log(JSON.stringify({
+    status: 'MISSING_FIXTURES',
+    message: 'No wallet fixture found. This run may spend time repairing wallet/perps state manually. For a clean isolated sandbox, create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json.',
+    setupCommand: fs.existsSync(example)
+      ? 'cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json'
+      : null,
+  }));
+  process.exit(0);
+}
+let parsed = null;
+let valid = false;
+let accountCount = null;
+let hasPassword = false;
+try {
+  parsed = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+  valid = true;
+  accountCount = Array.isArray(parsed.accounts) ? parsed.accounts.length : 0;
+  hasPassword = typeof parsed.password === 'string' && parsed.password.length > 0;
+} catch {
+  valid = false;
+}
+const stat = fs.statSync(fixture);
+console.log(JSON.stringify({
+  status: valid && hasPassword && accountCount > 0 ? 'READY' : 'STALE_OR_INVALID',
+  path: path.relative(target, fixture),
+  sha256: crypto.createHash('sha256').update(fs.readFileSync(fixture)).digest('hex'),
+  modifiedAt: stat.mtime.toISOString(),
+  accountCount,
+  hasPassword,
+  message: valid && hasPassword && accountCount > 0
+    ? `Fixture status: READY (${path.relative(target, fixture)}, accounts=${accountCount}).`
+    : `Fixture status: STALE_OR_INVALID (${path.relative(target, fixture)}). Validate password/accounts before relying on a clean sandbox.`,
+}));
+NODE
+}
+
+port_holder_json() {
+  local port="$1"
+  PORT_FOR_STATUS="$port" node <<'NODE'
+const cp = require('child_process');
+const port = process.env.PORT_FOR_STATUS;
+function run(cmd) {
+  try { return cp.execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  catch { return ''; }
+}
+const pid = run(`lsof -iTCP:${port} -sTCP:LISTEN -t | head -1`);
+let command = '';
+if (pid) command = run(`ps -p ${pid} -o command=`);
+console.log(JSON.stringify({
+  port,
+  listening: Boolean(pid),
+  pid: pid || null,
+  command: command || null,
+  metroStatusReachable: Boolean(run(`curl -sf --max-time 1 http://127.0.0.1:${port}/status`)),
+}));
+NODE
+}
 
 check_file() {
   local rel="$1"
@@ -74,12 +155,31 @@ else
   checks+=("{\"name\":\"package a:* ergonomic aliases\",\"status\":\"warn\"}")
 fi
 
+run_with_timeout() {
+  local log_path="$1"
+  local timeout_s="$2"
+  shift 2
+  "$@" > "$log_path" 2>&1 &
+  local pid=$!
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge "$timeout_s" ]; then
+      echo "Timed out after ${timeout_s}s: $*" >> "$log_path"
+      kill "$pid" 2>/dev/null || true
+      sleep 1
+      kill -9 "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+      return 124
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$pid"
+}
+
 live_status_ok() {
   local log_path="$1"
-  (
-    cd "$TARGET"
-    bash scripts/perps/agentic/app-state.sh status
-  ) > "$log_path" 2>&1 && node - "$log_path" <<'NODE'
+  run_with_timeout "$log_path" 20 bash -lc 'cd "$1" && bash scripts/perps/agentic/app-state.sh status' bash "$TARGET" && node - "$log_path" <<'NODE'
 const fs = require('fs');
 const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
 const value = JSON.parse(raw);
@@ -93,21 +193,56 @@ ensure_live_runtime() {
     return 1
   fi
 
-  echo "Mobile runtime is not reachable; starting ${PLATFORM} app via repo preflight..." >&2
+  echo "Mobile runtime is not recipe-controllable; starting ${PLATFORM} app via harness preflight (--mode ${PREFLIGHT_MODE})..." >&2
+  echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
+  echo "  To permit a rebuild after reviewing system pressure, rerun with --preflight-mode auto or MM_HARNESS_MOBILE_PREFLIGHT_MODE=auto." >&2
+  preflight_args=(scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --mode "$PREFLIGHT_MODE")
+  if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
+    preflight_args+=(--wallet-setup --wallet-fixture .agent/wallet-fixture.json)
+  else
+    echo "  Fixture status: MISSING_FIXTURES. Starting without wallet setup; state repair may be slower/flakier." >&2
+  fi
   (
     cd "$TARGET"
-    bash scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --wallet-setup
+    bash "${preflight_args[@]}"
   ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"
 }
 
 if [ "$STATIC_ONLY" = false ]; then
+  fixture_json="$(fixture_status_json)"
+  printf '%s\n' "$fixture_json" > "$ARTIFACTS/logs/fixture-status.json"
+  fixture_message="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(v.message || v.status);' "$ARTIFACTS/logs/fixture-status.json")"
+  echo "$fixture_message" >&2
+  add_note "$fixture_message"
+  checks+=("{\"name\":\"fixture status\",\"status\":\"$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(v.status === "READY" ? "pass" : "warn");' "$ARTIFACTS/logs/fixture-status.json")\",\"detail\":\"$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log((v.path || v.status || "").replace(/\"/g, "\\\\\""));' "$ARTIFACTS/logs/fixture-status.json")\"}")
+
+  port="$(node - "$TARGET" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+let port = process.env.WATCHER_PORT || '8081';
+for (const file of ['.js.env', '.env', '.env.local']) {
+  const full = path.join(process.argv[2], file);
+  if (!fs.existsSync(full)) continue;
+  const text = fs.readFileSync(full, 'utf8');
+  const match = text.match(/^\s*(?:export\s+)?WATCHER_PORT=(["']?)([0-9]+)\1/m);
+  if (match) { port = match[2]; break; }
+}
+console.log(port);
+NODE
+)"
+  port_holder_json "$port" > "$ARTIFACTS/logs/port-holder.json"
+
+  RUNTIME_AVAILABLE=false
   if ensure_live_runtime; then
+    RUNTIME_AVAILABLE=true
     checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"pass\"}")
   else
-    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"fail\",\"detail\":\"see logs/app-state-precheck.log and logs/auto-start.log\"}")
+    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"fail\",\"detail\":\"see logs/app-state-precheck.log, logs/port-holder.json, and logs/auto-start.log\"}")
+    add_note "Runtime found/missing state was not recipe-controllable. Harness did not proceed to avoid weak evidence; inspect logs/port-holder.json and rerun with an explicit build policy if needed."
     status="fail"
   fi
 
+  if $RUNTIME_AVAILABLE; then
   if live_status_ok "$ARTIFACTS/logs/app-state-status.log"; then
     checks+=("{\"name\":\"live app-state status\",\"status\":\"pass\"}")
   else
@@ -183,16 +318,32 @@ NODE
       status="fail"
     fi
   fi
+  else
+    checks+=("{\"name\":\"live observability checks\",\"status\":\"skip\",\"detail\":\"runtime was not recipe-controllable after pressure-safe startup check\"}")
+  fi
 fi
 
-node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_PREFLIGHT_MODE="$PREFLIGHT_MODE" node - "$ARTIFACTS" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const [artifacts, status, ...checks] = process.argv.slice(2);
 const parsedChecks = checks.map((entry) => JSON.parse(entry));
+let fixtureStatus = null;
+let portHolder = null;
+let runtimeNotes = [];
+try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
+try { portHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/port-holder.json'), 'utf8')); } catch {}
+try { runtimeNotes = fs.readFileSync(path.join(artifacts, 'logs/runtime-notes.txt'), 'utf8').trim().split('\n').filter(Boolean); } catch {}
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'mobile',
   status,
+  runtimePolicy: {
+    preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
+    buildPressureGuard: 'fast mode does not perform a native rebuild; use --preflight-mode auto/default only after explicit approval',
+  },
+  fixtureStatus,
+  portHolder,
+  runtimeNotes,
   checks: parsedChecks,
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);

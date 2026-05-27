@@ -48,6 +48,9 @@ For live runtime proof, verify that:
 - one non-UI sample recipe passes;
 - one UI/browser target-inspect sample passes when feasible;
 - product diffs exclude `temp/agentic/**` and harness files.
+- fixture/profile status is printed before long debugging (`READY`,
+  `MISSING_FIXTURES`, or `STALE_OR_INVALID`).
+- CDP/profile/watch reuse decisions are recorded in the verification summary.
 
 Use command recipes for reducers, selectors, controllers, migrations, build/config checks, and other non-UI claims. Use browser/UI actions only for visible Extension behavior.
 
@@ -64,3 +67,7 @@ When an orchestrator prepares an Extension checkout before running this harness:
 - Use `adapters/extension/scripts/extension-readiness.js --target <repo>
 --cdp-port <port>` as the source-of-truth readiness probe when wiring
   Farmslot or other runners.
+- Prefer reusing a compatible harness-owned Chrome/CDP profile and existing
+  watch output. If a prepare command would trigger a full rebuild, say that
+  before starting it and either set a cached/watch-only
+  `MM_HARNESS_EXTENSION_PREPARE_CMD` or ask the human to approve the rebuild.

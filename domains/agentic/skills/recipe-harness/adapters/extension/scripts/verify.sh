@@ -38,6 +38,103 @@ fi
 status="pass"
 checks=()
 
+fixture_status_json() {
+  TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
+const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const target = process.env.TARGET_FOR_FIXTURE;
+const candidates = [
+  'temp/runtime/wallet-fixture.json',
+  '.agent/wallet-fixture.json',
+  'test/e2e/seeder/withFixtures.js',
+  'test/e2e/fixtures',
+  'fixtures',
+].map((rel) => path.join(target, rel));
+const found = candidates.find((file) => fs.existsSync(file));
+const extensionId = path.join(target, 'temp/runtime/extension.id');
+const profileHints = [];
+if (fs.existsSync(extensionId)) profileHints.push({ path: 'temp/runtime/extension.id', type: 'extension-id' });
+if (!found) {
+  console.log(JSON.stringify({
+    status: 'MISSING_FIXTURES',
+    message: 'Fixture status: MISSING_FIXTURES. This run may depend on an inherited browser/profile state. Prefer a prepared debug profile or fixture seed before spending time repairing state manually.',
+    profileHints,
+  }));
+  process.exit(0);
+}
+const stat = fs.statSync(found);
+const isFile = stat.isFile();
+let sha256 = null;
+let validJson = null;
+if (isFile) {
+  const bytes = fs.readFileSync(found);
+  sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+  if (found.endsWith('.json')) {
+    try { JSON.parse(bytes.toString('utf8')); validJson = true; }
+    catch { validJson = false; }
+  }
+}
+const rel = path.relative(target, found);
+console.log(JSON.stringify({
+  status: validJson === false ? 'STALE_OR_INVALID' : 'READY',
+  path: rel,
+  type: isFile ? 'file' : 'directory',
+  sha256,
+  modifiedAt: stat.mtime.toISOString(),
+  profileHints,
+  message: validJson === false
+    ? `Fixture status: STALE_OR_INVALID (${rel}). Fix before relying on a clean sandbox.`
+    : `Fixture status: READY (${rel}).`,
+}));
+NODE
+}
+
+cdp_holder_json() {
+  local port="$1"
+  PORT_FOR_STATUS="$port" node <<'NODE'
+const cp = require('child_process');
+const http = require('http');
+const port = process.env.PORT_FOR_STATUS;
+function run(cmd) {
+  try { return cp.execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  catch { return ''; }
+}
+function getJson(path) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${port}${path}`, { timeout: 1000 }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { resolve(null); }
+      });
+    });
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on('error', () => resolve(null));
+  });
+}
+(async () => {
+  const pid = run(`lsof -iTCP:${port} -sTCP:LISTEN -t | head -1`);
+  const command = pid ? run(`ps -p ${pid} -o command=`) : '';
+  const version = await getJson('/json/version');
+  const targets = await getJson('/json/list');
+  const extensionTargets = Array.isArray(targets)
+    ? targets.filter((target) => String(target.url || '').startsWith('chrome-extension://')).length
+    : 0;
+  console.log(JSON.stringify({
+    port,
+    listening: Boolean(pid),
+    pid: pid || null,
+    command: command || null,
+    cdpReachable: Boolean(version),
+    browser: version?.Browser || null,
+    targetCount: Array.isArray(targets) ? targets.length : null,
+    extensionTargets,
+  }));
+})();
+NODE
+}
+
 check_file() {
   local rel="$1"
   if [ -e "$TARGET/$rel" ]; then
@@ -55,6 +152,10 @@ check_file "$OUT/lib/workflow.js"
 
 live_mode="static-only"
 if [ "$STATIC_ONLY" = false ]; then
+  fixture_status_json > "$ARTIFACTS/logs/fixture-status.json"
+  node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.error(v.message || v.status);' "$ARTIFACTS/logs/fixture-status.json"
+  checks+=("{\"name\":\"fixture/profile status\",\"status\":\"$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(v.status === "READY" ? "pass" : "warn");' "$ARTIFACTS/logs/fixture-status.json")\"}")
+
   if [ -z "$CDP_PORT" ]; then
     echo "Live extension verify requires --cdp-port. Static checks may pass, but runtime proof is missing." > "$ARTIFACTS/logs/live-missing-cdp.log"
     checks+=("{\"name\":\"live runtime CDP port\",\"status\":\"fail\",\"detail\":\"missing --cdp-port\"}")
@@ -62,6 +163,7 @@ if [ "$STATIC_ONLY" = false ]; then
     live_mode="missing-cdp"
   else
     live_mode="live"
+    cdp_holder_json "$CDP_PORT" > "$ARTIFACTS/logs/cdp-holder.json"
     if node "$SCRIPT_DIR/extension-readiness.js" --target "$TARGET" --cdp-port "$CDP_PORT" --json > "$ARTIFACTS/logs/extension-readiness.json" 2>&1; then
       checks+=("{\"name\":\"live extension readiness\",\"status\":\"pass\"}")
     else
@@ -101,10 +203,19 @@ const path = require('path');
 const [artifacts, status, ...checks] = process.argv.slice(2);
 const parsedChecks = checks.map((entry) => JSON.parse(entry));
 const liveMode = process.env.RECIPE_HARNESS_LIVE_MODE || 'unknown';
+let fixtureStatus = null;
+let cdpHolder = null;
+try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
+try { cdpHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/cdp-holder.json'), 'utf8')); } catch {}
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'extension',
   status,
   liveMode,
+  runtimePolicy: {
+    buildPressureGuard: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
+  },
+  fixtureStatus,
+  cdpHolder,
   checks: parsedChecks,
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);

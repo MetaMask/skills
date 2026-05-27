@@ -21,7 +21,12 @@ Common examples:
   mm-harness verify --static-only
   mm-harness verify --no-auto-start
   mm-harness verify --cdp-port 6662
+  mm-harness verify --preflight-mode fast
   mm-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
+
+Mobile runtime configuration:
+  MM_HARNESS_MOBILE_PREFLIGHT_MODE=fast # default; reuse installed/cache, fail before native rebuild
+  MM_HARNESS_MOBILE_PREFLIGHT_MODE=auto # allow fingerprint-gated native build on cache miss
 
 Extension runtime configuration:
   MM_HARNESS_EXTENSION_AUTO_START=0      # never launch a missing browser
@@ -250,6 +255,7 @@ run_extension_prepare() {
   local custom_cmd="${MM_HARNESS_EXTENSION_PREPARE_CMD:-}"
   if [ -n "$custom_cmd" ]; then
     log "CDP port $cdp_port is offline; running MM_HARNESS_EXTENSION_PREPARE_CMD"
+    log "Build-pressure guard: prefer a cached/watch-only prepare command; do not run a full rebuild unless the human approved it."
     (
       cd "$target"
       TARGET="$target" CDP_PORT="$cdp_port" bash -lc "$custom_cmd"
@@ -264,6 +270,7 @@ run_extension_prepare() {
     watch_mode="${MM_HARNESS_EXTENSION_PREPARE_WATCH:-off}"
     if [ -x "$preflight" ]; then
       log "CDP port $cdp_port is offline; starting extension runtime via Farmslot preflight"
+      log "Build-pressure guard: using Farmslot preflight with --watch $watch_mode; if this would rebuild, set MM_HARNESS_EXTENSION_PREPARE_CMD to a cached/watch-only command or disable auto-start."
       bash "$preflight" "$slot_id" --cdp-port "$cdp_port" --mode fullscreen --watch "$watch_mode"
       return
     fi

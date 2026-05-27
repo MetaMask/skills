@@ -20,6 +20,18 @@ Required fields:
 
 Verification writes artifacts under `.agent/recipe-harness/<adapter>/verify/`.
 
+Every live verification must classify the runtime before trusting evidence:
+
+- `runtimeOwner`: harness-owned, compatible external, incompatible external, or unknown when derivable from ports/processes/manifest/profile;
+- CDP reachability and selected target metadata;
+- recipe bridge reachability;
+- native screenshot capability or the reason fallback evidence would be used;
+- Metro/webpack log locations;
+- fixture/profile status (`READY`, `MISSING_FIXTURES`, or `STALE_OR_INVALID`);
+- cleanup ownership, so agents know what they can safely stop at the end.
+
+Pressure rule: verification must not silently kick off an expensive native/full build when a runtime is missing or incompatible. Prefer reuse, installed-app fingerprint checks, shared build-cache artifacts, Expo/native prebuild artifacts, and Extension watch output. Mobile live verify defaults to a pressure-safe `fast` preflight mode that fails before native rebuild; modes that can rebuild (`auto`, `rebuild-native`, `clean`) require an explicit agent/human decision and should be recorded in the evidence.
+
 Mobile verification should prove, when a live app is available:
 
 - `scripts/perps/agentic/**` backing scripts are installed.
@@ -32,6 +44,7 @@ Mobile verification should prove, when a live app is available:
 - wallet fixture setup/unlock works when fixture data exists.
 - screenshot capture works.
 - a tiny recipe can emit summary, trace, and artifact manifest.
+- externally-started Metro/app states are detected as compatible only if the recipe bridge and screenshot capture work; otherwise verification must relaunch/reconnect through the harness path or fail with actionable diagnostics.
 
 Extension verification should prove:
 
@@ -43,6 +56,7 @@ Extension verification should prove:
 - one non-UI sample recipe runs.
 - one UI/browser sample recipe runs when feasible.
 - product diff excludes harness files.
+- externally-started webpack/Chrome/CDP states are detected as compatible only if the loaded extension target is recipe-controllable and screenshot/evidence capture works; otherwise verification must relaunch/reconnect through the harness path or fail with actionable diagnostics.
 
 Static verification is useful for install/idempotency checks but does not prove runtime behavior.
 

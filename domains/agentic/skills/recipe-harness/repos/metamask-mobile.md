@@ -12,6 +12,7 @@ Use the Mobile adapter for `metamask-mobile` checkouts, especially historical co
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
+.agents/skills/mms-recipe-harness/scripts/mm-harness verify --preflight-mode fast
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target . --static-only
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile cleanup --target .
 ```
@@ -44,6 +45,12 @@ For live runtime proof, verify that:
 - wallet fixture setup/unlock works when fixture data exists;
 - screenshot capture works;
 - a tiny recipe emits `summary.json`, `trace.json`, and `artifact-manifest.json`.
+- if Metro/app was started by Expo, direct `yarn watch`, or another shell, it is
+  reused only when the ADR58 bridge and screenshots work; otherwise the harness
+  explains the missing observability and reconnects through preflight.
+- fixture status is printed before long debugging (`READY`,
+  `MISSING_FIXTURES`, or `STALE_OR_INVALID`).
+- cache/build policy is recorded in `summary.json`.
 
 Use `--static-only` only for install/idempotency checks when the simulator,
 Metro, or CDP is unavailable. Static verification is intentionally not runtime
@@ -52,9 +59,15 @@ proof.
 Harness automation should call direct scripts, for example:
 
 ```bash
-bash scripts/perps/agentic/preflight.sh --platform ios --wallet-setup --mode fast
+bash scripts/perps/agentic/preflight.sh --platform ios --mode fast
+bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup --wallet-fixture .agent/wallet-fixture.json
 bash scripts/perps/agentic/app-state.sh status
 bash scripts/perps/agentic/validate-recipe.sh <recipe> --artifacts-dir <dir>
 ```
+
+Pressure rule: start with `--mode fast`. It reuses an installed matching app or
+shared cache artifact and fails before a native rebuild. Escalate to
+`--mode auto`, `--rebuild`, or `--clean` only after checking system pressure and
+recording that the human accepted the rebuild cost.
 
 Use `yarn a:*` only after install, and only as a human convenience.
