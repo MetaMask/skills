@@ -106,6 +106,27 @@ acknowledgement. If Jira/MCP cannot fetch the ticket, ask for the missing ticket
 text once; after the user pastes it, resume at checklist step 1 and continue to
 the recipe/evidence gates.
 
+
+## Runtime Startup Approval Gate
+
+Before any command that can start or restart a live runtime, write the exact
+command and approval state in `CHECKLIST.md`. This includes Mobile Metro,
+simulator/app launch, bundle prewarm/cache-warming helpers, `recipe-harness
+live`, Extension webpack/watch, Chrome/CDP launch, and any wrapper that would
+prepare/build runtime artifacts.
+
+Respect the caller/orchestrator policy for the lane. If the current goal,
+checklist, or human says runtime startup needs explicit approval, do **not**
+work around that by creating `manual-prewarm`, `nohup`, background tmux,
+`sleep`/detached shell, or ad-hoc cache-warming helpers. Instead record
+`BLOCKED: pending runtime-start approval` with the exact command you would run
+and continue only after approval is provided.
+
+When approval exists, prefer the installed harness delegate and cache/watch-first
+commands. Do not run Mobile `auto`, `default`, `clean`, `rebuild-native`,
+manual bundle prewarm/cache warming, Extension `--start-test-watch`, or
+Extension prepare/build unless that heavier mode was explicitly approved.
+
 ## Ticket Source-of-Truth Gate
 
 The ticket text or pasted task details are the source of truth. If Jira, MCP,

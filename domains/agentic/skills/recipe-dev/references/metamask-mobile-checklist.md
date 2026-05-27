@@ -27,6 +27,7 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 
 Mobile-specific gates:
 
+- Before starting or restarting any runtime command, record the exact command and approval state in this checklist. If the caller/orchestrator requires explicit runtime-start approval, do not create `manual-prewarm`, `nohup`, background tmux, detached `sleep`, or ad-hoc cache-warming helpers to bypass it; mark `BLOCKED: pending runtime-start approval` with the exact command instead. Prefer installed harness cache/watch-first commands after approval, and do not use Mobile `auto`/`default`/`clean`/`rebuild-native`, manual bundle prewarm/cache warming, Extension `--start-test-watch`, or Extension prepare/build unless that heavier mode was explicitly approved.
 - Runner command form: Claude/Cursor use `/mms-recipe-*`; Codex/OpenAI agents use `$mms-recipe-*`. When this checklist names `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, `/mms-recipe-evidence`, or `/mms-recipe-wallet-control`, use the runner-appropriate command form or the installed delegate file path for the current runner.
 
 - Prefer after evidence for new/additive UI; use before/after when there is a meaningful previous state.
