@@ -117,7 +117,11 @@ case "${1:-}" in
       ADAPTER="$(detect_adapter "$TARGET")" || fail "could not detect MetaMask repo type for $TARGET; pass --adapter mobile or --adapter extension"
     fi
 
-    set -- "${PASSTHRU[@]}"
+    if [ "${#PASSTHRU[@]}" -gt 0 ]; then
+      set -- "${PASSTHRU[@]}"
+    else
+      set --
+    fi
     ;;
 esac
 
