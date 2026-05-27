@@ -9,7 +9,7 @@ Examples:
   recipe-harness.sh mobile install --target /path/to/metamask-mobile
   recipe-harness.sh mobile launch --target /path/to/metamask-mobile --platform ios --preflight-mode fast
   recipe-harness.sh mobile live --target /path/to/metamask-mobile --platform ios --preflight-mode fast
-  recipe-harness.sh mobile verify --target /path/to/metamask-mobile
+  recipe-harness.sh mobile verify --target /path/to/metamask-mobile --no-auto-start
   recipe-harness.sh extension install --target /path/to/metamask-extension
   recipe-harness.sh extension launch --target /path/to/metamask-extension --cdp-port 9222
   recipe-harness.sh extension live --target /path/to/metamask-extension --cdp-port 9222 --launch-existing-dist

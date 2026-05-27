@@ -4,7 +4,7 @@ set -euo pipefail
 TARGET="$PWD"
 ARTIFACTS=""
 STATIC_ONLY=false
-AUTO_START=true
+AUTO_START="${RECIPE_HARNESS_MOBILE_AUTO_START:-false}"
 PLATFORM="${RECIPE_HARNESS_PLATFORM:-${PLATFORM:-ios}}"
 PREFLIGHT_MODE="${RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE:-fast}"
 while [ "$#" -gt 0 ]; do
@@ -16,13 +16,19 @@ while [ "$#" -gt 0 ]; do
     --preflight-mode) PREFLIGHT_MODE="$2"; shift 2 ;;
     --auto-start) AUTO_START=true; shift ;;
     --no-auto-start) AUTO_START=false; shift ;;
-    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only] [--platform ios|android] [--preflight-mode fast|auto|default|rebuild-native|clean] [--no-auto-start]"; exit 0 ;;
+    -h|--help) echo "Usage: verify.sh [--target <metamask-mobile>] [--artifacts-dir <dir>] [--static-only] [--platform ios|android] [--preflight-mode fast|auto|default|rebuild-native|clean] [--auto-start|--no-auto-start]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 case "$PREFLIGHT_MODE" in
   fast|auto|default|rebuild-native|clean) ;;
   *) echo "Unknown --preflight-mode: $PREFLIGHT_MODE" >&2; exit 2 ;;
+esac
+
+case "$AUTO_START" in
+  1|true|TRUE|True|yes|YES|Yes|on|ON|On) AUTO_START=true ;;
+  0|false|FALSE|False|no|NO|No|off|OFF|Off|"") AUTO_START=false ;;
+  *) echo "Unknown RECIPE_HARNESS_MOBILE_AUTO_START value: $AUTO_START" >&2; exit 2 ;;
 esac
 
 TARGET="$(cd "$TARGET" && pwd)"
@@ -193,6 +199,7 @@ NODE
 ensure_live_runtime() {
   live_status_ok "$ARTIFACTS/logs/app-state-precheck.log" && return 0
   if [ "$AUTO_START" != true ]; then
+    echo "Mobile runtime is not recipe-controllable and auto-start is disabled; use recipe-harness live/launch, pass --auto-start, or set RECIPE_HARNESS_MOBILE_AUTO_START=1 after explicit runtime-start approval." >&2
     return 1
   fi
 

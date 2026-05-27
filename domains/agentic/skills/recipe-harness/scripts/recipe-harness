@@ -26,13 +26,14 @@ Common examples:
   recipe-harness live --cdp-port 6665 --start-test-watch
   recipe-harness verify --static-only
   recipe-harness verify --no-auto-start
+  recipe-harness verify --auto-start --preflight-mode fast
   recipe-harness verify --cdp-port 6662
-  recipe-harness verify --preflight-mode fast
   recipe-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
 
 Mobile runtime configuration:
   RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=fast # default; reuse installed/cache, fail before native rebuild
   RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto # allow fingerprint-gated native build on cache miss
+  RECIPE_HARNESS_MOBILE_AUTO_START=0       # default; verify does not start Metro/app unless --auto-start is passed
 
 Extension runtime configuration:
   RECIPE_HARNESS_EXTENSION_AUTO_START=0      # never launch a missing browser
