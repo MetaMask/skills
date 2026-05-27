@@ -82,6 +82,13 @@ echo "Fixture OK: password + ${ACCOUNT_COUNT} account(s)"
 $CDP eval "JSON.stringify({ok:true})" >/dev/null 2>&1 || { echo "ERROR: CDP not reachable"; exit 1; }
 echo "CDP bridge connected."
 
+# Avoid simulator-native react-native-keychain backup crashes while the harness
+# creates/unlocks fixture wallets. This only affects agentic dev setup. Some
+# early boot states do not expose Engine yet, so warn and continue in that case.
+if ! cdp_eval "(function(){ var engine = typeof Engine !== 'undefined' ? Engine : null; if (engine) { engine.disableAutomaticVaultBackup = true; } return JSON.stringify({ok:true, disableAutomaticVaultBackup: !!(engine && engine.disableAutomaticVaultBackup)}); })()" >/dev/null; then
+  echo "WARN: could not set Engine.disableAutomaticVaultBackup before wallet setup"
+fi
+
 # -- Wait for Engine to be ready (KeyringController must exist) --
 ENGINE_WAIT=0
 ENGINE_MAX=30

@@ -881,6 +881,9 @@ const AgenticService = {
           } = Engine.context;
           const store = ReduxService.store;
           const settings = fixture.settings ?? {};
+          (
+            Engine as unknown as { disableAutomaticVaultBackup?: boolean }
+          ).disableAutomaticVaultBackup = true;
 
           // 1. Create wallet from the first mnemonic (same path as onboarding UI)
           setupStep = 'create-wallet';
