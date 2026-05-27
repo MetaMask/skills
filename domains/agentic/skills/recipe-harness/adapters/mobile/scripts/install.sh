@@ -302,8 +302,6 @@ function patchPackageJson() {
     'a:navigate': 'scripts/perps/agentic/app-navigate.sh',
     'a:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup',
     'a:android': 'scripts/perps/agentic/preflight.sh --platform android --mode fast --wallet-setup',
-    'a:build:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode auto --wallet-setup',
-    'a:build:android': 'scripts/perps/agentic/preflight.sh --platform android --mode auto --wallet-setup',
     'a:setup:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode clean --wallet-setup',
     'a:setup:android': 'scripts/perps/agentic/preflight.sh --platform android --mode clean --wallet-setup',
   };

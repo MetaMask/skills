@@ -86,7 +86,7 @@ After a successful run, `xcrun simctl list devices | grep Booted` shows both sim
 |---|---|
 | `yarn a:setup:ios` / `:android` | Full clean: deps + build + install + Metro + CDP + wallet (this doc, step 3) |
 | `yarn a:ios` / `:android` | Cache-safe launch: reuse an installed matching app or shared cache, then start Metro/CDP/wallet; fails before native rebuild on cache miss |
-| `yarn a:build:ios` / `:android` | Explicit rebuild-permitted launch: fingerprint-gated reuse first, native build only on cache miss |
+| `<skill-dir>/scripts/recipe-harness launch --platform ios --preflight-mode auto` | Explicit rebuild-permitted launch: fingerprint-gated reuse first, native build only on cache miss |
 | `yarn a:start` / `a:stop` | Metro lifecycle on `$WATCHER_PORT` |
 | `yarn a:reload` | Reload the JS bundle without restarting Metro |
 | `yarn a:status` | Health probe (Metro + CDP + route) |

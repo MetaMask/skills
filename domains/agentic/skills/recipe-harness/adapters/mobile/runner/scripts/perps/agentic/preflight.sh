@@ -587,7 +587,7 @@ if [ "$PLAT" = "ios" ]; then
             fi
           elif [ "$MODE" = "fast" ]; then
             bc_lock_release; BC_LOCK_HELD=false; trap - EXIT
-            fail "Mode 'fast' but no cached iOS build for fp ${FP:0:12} and app not installed at this fingerprint on $SIM_TARGET. Use a:build:ios / --mode auto only when you want to create the shared cache."
+            fail "Mode 'fast' but no cached iOS build for fp ${FP:0:12} and app not installed at this fingerprint on $SIM_TARGET. Use the skill-owned recipe-harness launch --preflight-mode auto, or call this preflight with --mode auto, only when you want to create the shared cache."
           else
             warn "Cache miss: no shared iOS artifact for fp ${FP:0:12}; ${MODE} mode will build once and store it for matching worktrees."
             # Cache miss in auto/default mode. Whatever is installed (if anything)
@@ -915,7 +915,7 @@ else
             fi
           elif [ "$MODE" = "fast" ]; then
             bc_lock_release; BC_LOCK_HELD=false; trap - EXIT
-            fail "Mode 'fast' but no cached Android build for fp ${FP:0:12} and app not installed at this fingerprint on $ADB_DEVICE_ID. Use a:build:android / --mode auto only when you want to create the shared cache."
+            fail "Mode 'fast' but no cached Android build for fp ${FP:0:12} and app not installed at this fingerprint on $ADB_DEVICE_ID. Use the skill-owned recipe-harness launch --preflight-mode auto, or call this preflight with --mode auto, only when you want to create the shared cache."
           else
             warn "Cache miss: no shared Android artifact for fp ${FP:0:12}; ${MODE} mode will build once and store it for matching worktrees."
             # Cache miss in auto/default mode. Stale app must not pass the build
