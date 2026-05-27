@@ -9,9 +9,9 @@ Use the agentic mobile scripts under `scripts/perps/agentic/` to drive a debug M
 
 ## Harness Launch Requirement
 
-**Launch via harness only** (`preflight.sh` or `start-metro.sh --launch`). `__AGENTIC__` is in any debug build (patched by `recipe-harness install`), but non-harness launch (manual tap, Xcode, `xcrun simctl launch`) won't have Metro on the correct `WATCHER_PORT` or CDP targets on that port. Fixtures also won't be injected. Kill and relaunch via `preflight.sh` if the app was started outside the harness.
+**Launch via harness only** (`recipe-harness launch`, `preflight.sh --mode fast`, or `start-metro.sh --launch` after approval). `__AGENTIC__` is in any debug build (patched by `recipe-harness install`), but non-harness launch (manual tap, Xcode, `xcrun simctl launch`) won't have Metro on the correct `WATCHER_PORT` or CDP targets on that port. Fixtures also won't be injected. If the app was started outside the harness, record the exact recovery command and approval state before relaunching.
 
-**Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps** — they bypass harness port/CDP wiring.
+**Never use `yarn start:ios`, `xcrun simctl launch`, manual taps, or direct `preflight.sh --mode auto` as an agent workaround** — they bypass either harness port/CDP wiring or the caller's runtime/rebuild approval gate. Prefer cache-first `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
 
 ## Prerequisites
 
@@ -31,24 +31,25 @@ bash scripts/perps/agentic/app-state.sh status
 
 | State | Detection | Recovery |
 |---|---|---|
-| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user: `preflight.sh --platform <plat> --mode auto` (builds + installs + Metro + CDP; ~15min first, ~2min cached) |
-| Installed, not launched | Home screen visible, "0 targets" | Ask user: `preflight.sh --platform <plat> --mode auto` or `start-metro.sh --platform <plat> --launch` |
-| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode auto` |
+| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user to approve the exact cache-first command: `preflight.sh --platform <plat> --mode fast`. If it fails for a cache miss, stop and ask before escalating to `--mode auto` (native build/cache warming). |
+| Installed, not launched | Home screen visible, "0 targets" | Ask user to approve the exact relaunch command: `preflight.sh --platform <plat> --mode fast` or `start-metro.sh --platform <plat> --launch`. Do not switch to `auto` unless rebuild/cache-warm approval exists. |
+| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user before killing/relaunching: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode fast`; escalate to `auto` only after explicit rebuild/cache-warm approval. |
 
 ### Preflight modes
 
 | Mode | Behavior |
 |---|---|
-| `--mode auto` | Fingerprint-gated reuse; builds on cache miss. Default. |
-| `--mode fast` | No build — fails if app missing or fingerprint mismatch. CI use. |
-| `--mode clean` | Full: `yarn setup` → `pod install --repo-update` → build → Metro → CDP. Use for corrupted state. |
+| `--mode fast` | No build — reuses an installed matching app or shared cache, and fails loudly on cache/fingerprint miss. Default for agent/human validation lanes. |
+| `--mode auto` | Fingerprint-gated reuse; builds on cache miss. Use only after explicit runtime/rebuild approval or in a dedicated cache-warming lane. |
+| `--mode clean` | Full: `yarn setup` → `pod install --repo-update` → build → Metro → CDP. Use only after explicit clean-rebuild approval for corrupted state. |
 
 Fresh wallet validation (bypasses existing vault):
 
 ```bash
 bash scripts/perps/agentic/preflight.sh \
-  --platform ios --mode clean \
+  --platform ios --mode fast \
   --wallet-setup --wallet-fixture .agent/wallet-fixture.json
+# If fast reports a missing/stale cache, stop and ask before rerunning with auto/clean.
 ```
 
 ## Core Wallet Primitives

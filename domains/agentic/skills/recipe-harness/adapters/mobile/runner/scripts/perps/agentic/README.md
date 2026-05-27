@@ -229,12 +229,12 @@ Cache lives in `$MM_BUILD_CACHE_DIR` (default `~/Library/Caches/mm-mobile-builds
 Invoke directly:
 
 ```bash
-bash scripts/perps/agentic/preflight.sh --platform ios --mode auto --wallet-setup   # fingerprint-gated reuse, build only on miss
 bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup   # fail loud if no cached/installed build
-bash scripts/perps/agentic/preflight.sh --platform ios --clean --wallet-setup       # legacy clean rebuild (unchanged)
+bash scripts/perps/agentic/preflight.sh --platform ios --mode auto --wallet-setup   # explicit approval only: fingerprint-gated reuse, build on miss
+bash scripts/perps/agentic/preflight.sh --platform ios --clean --wallet-setup       # explicit approval only: legacy clean rebuild
 ```
 
-Project dispatch: prefer `--mode fast` for human/agent launch paths so cache misses fail before native rebuild. Use `--mode auto` only for an explicit cache-warming/build lane. Keep `--mode clean` as the burn-it-down escape.
+Project dispatch: prefer `--mode fast` for human/agent launch paths so cache misses fail before native rebuild. Use `--mode auto` only for an explicit cache-warming/build lane after the caller/human approves that a native build may start. Keep `--mode clean` as the explicitly approved burn-it-down escape.
 
 ## CLI
 
