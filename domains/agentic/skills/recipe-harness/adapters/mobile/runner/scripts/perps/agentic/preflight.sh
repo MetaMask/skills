@@ -330,6 +330,10 @@ js_dependencies_need_install() {
   fi
   [ -f package.json ] && [ package.json -nt node_modules/.yarn-state.yml ] && return 0
   [ -f yarn.lock ] && [ yarn.lock -nt node_modules/.yarn-state.yml ] && return 0
+  # Missing/stale agentic fingerprint metadata is not enough to mutate during
+  # --check-only. The next non-check preflight will write the stamp via
+  # mark_js_dependencies_reconciled after a real dependency reconciliation.
+  $CHECK_ONLY && return 1
   mkdir -p "$(dirname "$stamp")"
   printf '%s\n' "$fp" > "$stamp"
   return 1

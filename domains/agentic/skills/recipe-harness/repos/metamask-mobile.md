@@ -10,12 +10,12 @@ Use the Mobile adapter for `metamask-mobile` checkouts, especially historical co
 ## Commands
 
 ```bash
-.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
-.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness install
+.agents/skills/mms-recipe-harness/scripts/recipe-harness verify
 .agents/skills/mms-recipe-harness/scripts/recipe-harness launch --platform ios --preflight-mode fast
 .agents/skills/mms-recipe-harness/scripts/recipe-harness live --platform ios --preflight-mode fast
-.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target . --static-only
-.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile cleanup --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness verify --static-only
+.agents/skills/mms-recipe-harness/scripts/recipe-harness cleanup
 ```
 
 The same `scripts/recipe-harness.sh` path is also mirrored under `.claude/skills/mms-recipe-harness/` and `.cursor/rules/mms-recipe-harness/` for Claude/Cursor operators; examples use `.agents/skills` because Codex reads that tree.
@@ -30,7 +30,11 @@ domains/agentic/skills/recipe-harness/scripts/recipe-harness mobile live --targe
 
 ## Adapter Behavior
 
-Install overlays the current Mobile recipe runtime and idempotently patches:
+Install is conservative by default. On Mobile commits that already track the
+first-party agentic harness, it writes metadata only and does not overwrite
+tracked product files unless `--force-overlay` is explicit. On older commits
+without a product-owned harness, install overlays the recipe runtime and
+idempotently patches:
 
 - `scripts/perps/agentic/**`, including start/preflight, CDP, wallet, screenshot, and recipe scripts.
 - `package.json` with optional `a:*` aliases pointing at injected scripts.

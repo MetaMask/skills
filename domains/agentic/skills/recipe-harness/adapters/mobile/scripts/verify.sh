@@ -169,6 +169,10 @@ run_with_timeout() {
   local log_path="$1"
   local timeout_s="$2"
   shift 2
+  [[ "$timeout_s" =~ ^[0-9]+$ ]] || {
+    echo "Invalid timeout seconds: $timeout_s" >&2
+    return 2
+  }
   "$@" > "$log_path" 2>&1 &
   local pid=$!
   local waited=0
@@ -217,11 +221,14 @@ ensure_live_runtime() {
   else
     echo "  Fixture status: MISSING_FIXTURES. Starting without wallet setup; state repair may be slower/flakier." >&2
   fi
-  : > "$ARTIFACTS/logs/harness-started-runtime"
-  (
+  if (
     cd "$TARGET"
     bash "${preflight_args[@]}"
-  ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"
+  ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"; then
+    : > "$ARTIFACTS/logs/harness-started-runtime"
+  else
+    return 1
+  fi
 }
 
 if [ "$STATIC_ONLY" = false ]; then

@@ -882,6 +882,10 @@ const AgenticService = {
           } = Engine.context;
           const store = ReduxService.store;
           const settings = fixture.settings ?? {};
+          // Deliberately one-way for the dev harness process: fixture setup
+          // rewrites vault/account state, so automatic backup must stay disabled
+          // for the rest of this simulator session to avoid native keychain
+          // export paths racing the synthetic setup flow.
           EngineClass.disableAutomaticVaultBackup = true;
 
           // 1. Create wallet from the first mnemonic (same path as onboarding UI)

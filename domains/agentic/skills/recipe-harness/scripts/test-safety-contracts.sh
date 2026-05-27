@@ -49,6 +49,29 @@ const between = src.slice(guard, reset);
 if (!between.includes('if $CHECK_ONLY; then') || !between.includes('exit 0')) {
   throw new Error('check-only guard must exit before reset block');
 }
+const fnStart = src.indexOf('js_dependencies_need_install() {');
+const fnEnd = src.indexOf('mark_js_dependencies_reconciled() {', fnStart);
+const depsFn = src.slice(fnStart, fnEnd);
+if (!depsFn.includes('$CHECK_ONLY && return 1')) {
+  throw new Error('check-only dependency probe must not write js-deps fingerprint metadata');
+}
+NODE
+}
+
+assert_verify_marks_harness_owned_only_after_preflight_success() {
+  local verify="$SKILL_DIR/adapters/mobile/scripts/verify.sh"
+  node - "$verify" <<'NODE'
+const fs = require('fs');
+const src = fs.readFileSync(process.argv[2], 'utf8');
+const preflightCall = src.indexOf('bash "${preflight_args[@]}"');
+const marker = src.indexOf(': > "$ARTIFACTS/logs/harness-started-runtime"');
+const failure = src.indexOf('return 1', preflightCall);
+if (preflightCall === -1 || marker === -1 || marker < preflightCall) {
+  throw new Error('verify must write harness-started-runtime only after preflight succeeds');
+}
+if (failure === -1 || failure < marker) {
+  throw new Error('verify must return failure when preflight does not start a runtime');
+}
 NODE
 }
 
@@ -80,6 +103,7 @@ NODE
 
 assert_extension_verify_does_not_autostart_by_default
 assert_mobile_check_only_exits_before_wallet_reset
+assert_verify_marks_harness_owned_only_after_preflight_success
 assert_partial_product_harness_install_is_metadata_only
 
 echo "recipe-harness safety contracts OK"

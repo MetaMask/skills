@@ -38,10 +38,6 @@ STATE_FILE="$BACKUP_DIR/state.env"
 
 mkdir -p "$HARNESS_DIR"
 
-git_tracks_path() {
-  git -C "$TARGET" ls-files --error-unmatch "$1" >/dev/null 2>&1
-}
-
 git_tracks_any_under() {
   git -C "$TARGET" ls-files -- "$1" 2>/dev/null | grep -q .
 }
