@@ -386,10 +386,13 @@ until the recipe artifacts exist.
 
 Do not ask the human whether to proceed with recipe/harness validation. The
 answer is already yes. If the app, simulator, Metro, browser, or CDP is not
-currently running, that is normal runtime-preparation work, not a reason to stop
-or ask permission. Invoke `/mms-recipe-harness` and let its verify/preflight
-path start or recover the runtime. Only declare `BLOCKED` after the harness or
-recipe command was actually attempted and produced a concrete external failure.
+currently running, check the Runtime Startup Approval Gate above. If
+runtime-start approval exists, invoke `/mms-recipe-harness` and let its
+verify/preflight path start or recover the runtime. If approval is required and
+absent, run static/no-start harness checks, record `BLOCKED: pending
+runtime-start approval` with the exact command, and wait. Only declare
+`BLOCKED` for a concrete external failure after the harness or recipe command
+was actually attempted with approval.
 
 Honor runtime environment variables first. If `CDP_PORT`, `FARMSLOT_SLOT_ID`,
 `ADB_SERIAL`, simulator, or equivalent slot variables are present, use those

@@ -16,7 +16,9 @@ installed portable `scripts/recipe-harness verify` wrapper, then run the recipe
 with `--cdp-port <port>` and save artifacts under an ignored task directory.
 Do not require personal shell aliases. Return the recipe path,
 `summary.json`, `trace.json`, screenshots, evidence manifest, and any fixture
-gap. If CDP is offline, try the harness auto-prepare path before declaring a
-runtime blocker.
+gap. If CDP is offline and runtime-start approval exists, try the harness
+auto-prepare path. If approval is required and absent, run static/no-start
+harness checks and record `BLOCKED: pending runtime-start approval` with the
+exact command.
 
 Load `references/metamask-extension-checklist.md` and execute it as the ordered checklist for Extension bug fixes. Name the target context: popup, sidepanel, fullscreen, dapp tab, or service-worker/controller.
