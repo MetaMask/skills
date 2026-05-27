@@ -43,7 +43,7 @@ Extension-specific gates:
 - If visual proof is needed, screenshot after a `wait_for` with `visibility: "viewport"` and `claims.must_show`.
 - DOM query or controller eval success is not enough for UI claims; inspect the PNG.
 - For visual/mixed ACs, never mark an AC `code-proven`. If no runtime PNG/video exists because CDP/browser is unavailable, the visual AC is `BLOCKED: no runtime visual evidence`.
-- If CDP/browser state cannot be prepared, run harness recovery once before declaring `BLOCKED`.
+- If CDP/browser state cannot be prepared and runtime-start approval exists, run harness recovery once before declaring `BLOCKED`. If runtime-start approval has not been granted, do not run prepare/watch/Chrome-launch or any command that starts a runtime process; record `BLOCKED: pending runtime-start approval` with the needed command and wait.
 - Fix schema warnings before packaging visual proof. Screenshot nodes need
   `note` and `claims`; warning-only schema output is not a clean final state.
 - If the runner/harness does not emit `artifact-manifest.json`, create an

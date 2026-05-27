@@ -310,12 +310,18 @@ A recipe that fails before the first workflow node because preconditions are not
 ready is not a final package yet. If `summary.json`/`failure.json` reports
 `wallet.unlocked`, `Login`, `perps.ready_to_trade`,
 `perps.sufficient_balance`, `CLIENT_NOT_INITIALIZED`, no CDP target, or a
-stopped simulator/browser, run the platform recovery path once before the final
-verdict:
+stopped simulator/browser, check runtime-start approval before attempting
+recovery:
 
-- invoke/follow `/mms-recipe-harness` verify/preflight for the platform, using
-  the provided `FARMSLOT_SLOT_ID`, `IOS_SIMULATOR`, `SIMULATOR`, `ADB_SERIAL`,
-  `WATCHER_PORT`, `METRO_PORT`, `CDP_PORT`, or equivalent env vars first;
+- **If runtime-start approval has not been granted**, do not run
+  prepare/watch/launch/simulator-boot or any command that starts or restarts a
+  runtime process. Run static/no-start harness checks if useful, record
+  `BLOCKED: pending runtime-start approval` with the exact command that would be
+  needed, and wait for explicit approval.
+- **If runtime-start approval exists**, invoke/follow `/mms-recipe-harness`
+  verify/preflight for the platform, using the provided `FARMSLOT_SLOT_ID`,
+  `IOS_SIMULATOR`, `SIMULATOR`, `ADB_SERIAL`, `WATCHER_PORT`, `METRO_PORT`,
+  `CDP_PORT`, or equivalent env vars first;
 - for wallet/login readiness, invoke/follow `/mms-recipe-wallet-control` or the
   repo harness wallet setup/unlock command rather than asking the human to run a
   private alias;

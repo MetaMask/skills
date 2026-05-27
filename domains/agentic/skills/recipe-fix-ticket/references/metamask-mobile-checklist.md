@@ -89,10 +89,14 @@ Mobile-specific gates:
 - A failed precondition node is also not final after one attempt. If the live
   run stops on `Login`, `wallet.unlocked`, `perps.ready_to_trade`,
   `perps.sufficient_balance`, `CLIENT_NOT_INITIALIZED`, no CDP target, or a
-  stopped simulator, run `/mms-recipe-harness` verify/preflight and
-  `/mms-recipe-wallet-control`/wallet setup using the provided
-  `FARMSLOT_SLOT_ID`, `IOS_SIMULATOR`, `SIMULATOR`, `WATCHER_PORT`,
-  `METRO_PORT`, and `ADB_SERIAL` env first. Record the recovery command,
+  stopped simulator, check runtime-start approval first. If approval has not
+  been granted, do not run prepare/launch/simulator-boot or any recovery command
+  that starts a runtime process; run static/no-start harness checks if useful,
+  record `BLOCKED: pending runtime-start approval` with the needed command, and
+  wait. If runtime-start approval exists, run `/mms-recipe-harness`
+  verify/preflight and `/mms-recipe-wallet-control`/wallet setup using the
+  provided `FARMSLOT_SLOT_ID`, `IOS_SIMULATOR`, `SIMULATOR`, `WATCHER_PORT`,
+  `METRO_PORT`, and `ADB_SERIAL` env. Record the recovery command,
   app-state/status output, and rerun command. Static-only verify plus a failed
   live precondition is `PASS-WITH-GAPS`/`BLOCKED_PRECONDITIONS`, not a complete
   visual proof package.
