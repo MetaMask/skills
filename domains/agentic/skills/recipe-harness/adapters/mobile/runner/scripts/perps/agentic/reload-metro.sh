@@ -4,7 +4,19 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../../.."
-[ -f .js.env ] && source .js.env
+if [ -f .js.env ]; then
+  while IFS= read -r _line || [ -n "$_line" ]; do
+    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+    _line="${_line#export }"
+    _key="${_line%%=*}"
+    _key="${_key//[[:space:]]/}"
+    _val="${_line#*=}"
+    _val="${_val#\"}" ; _val="${_val%\"}"
+    _val="${_val#\'}" ; _val="${_val%\'}"
+    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
+  done < .js.env
+  unset _line _key _val
+fi
 
 PORT="${WATCHER_PORT:-8081}"
 

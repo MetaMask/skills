@@ -14,9 +14,12 @@ if [ -f "$RUNNER_ENV" ]; then
     _line="${_line#export }"
     _key="${_line%%=*}"
     _key="${_key//[[:space:]]/}"
-    [[ -n "$_key" && -z "${!_key+x}" ]] && eval "export $_line" 2>/dev/null || true
+    _val="${_line#*=}"
+    _val="${_val#\"}" ; _val="${_val%\"}"
+    _val="${_val#\'}" ; _val="${_val%\'}"
+    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
   done < "$RUNNER_ENV"
-  unset _line _key
+  unset _line _key _val
 fi
 
 # Make wallet-fixture.json fields available as env tokens (e.g.

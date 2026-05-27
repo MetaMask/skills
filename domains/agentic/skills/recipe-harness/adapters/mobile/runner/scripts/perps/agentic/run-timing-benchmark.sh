@@ -36,9 +36,12 @@ if [[ -f "$PROJECT_ROOT/.js.env" ]]; then
     _line="${_line#export }"
     _key="${_line%%=*}"
     _key="${_key//[[:space:]]/}"
-    [[ -n "$_key" && -z "${!_key+x}" ]] && eval "export $_line" 2>/dev/null || true
+    _val="${_line#*=}"
+    _val="${_val#\"}" ; _val="${_val%\"}"
+    _val="${_val#\'}" ; _val="${_val%\'}"
+    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
   done < "$PROJECT_ROOT/.js.env"
-  unset _line _key
+  unset _line _key _val
 fi
 
 # ---------------------------------------------------------------------------
