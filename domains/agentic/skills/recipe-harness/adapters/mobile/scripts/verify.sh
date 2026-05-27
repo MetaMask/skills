@@ -202,6 +202,7 @@ ensure_live_runtime() {
   else
     echo "  Fixture status: MISSING_FIXTURES. Starting without wallet setup; state repair may be slower/flakier." >&2
   fi
+  : > "$ARTIFACTS/logs/harness-started-runtime"
   (
     cd "$TARGET"
     bash "${preflight_args[@]}"
@@ -331,12 +332,33 @@ const parsedChecks = checks.map((entry) => JSON.parse(entry));
 let fixtureStatus = null;
 let portHolder = null;
 let runtimeNotes = [];
+const startedRuntime = fs.existsSync(path.join(artifacts, 'logs/harness-started-runtime'));
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { portHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/port-holder.json'), 'utf8')); } catch {}
 try { runtimeNotes = fs.readFileSync(path.join(artifacts, 'logs/runtime-notes.txt'), 'utf8').trim().split('\n').filter(Boolean); } catch {}
+const liveRuntimeCheck = parsedChecks.find((check) => check.name === 'live runtime auto-start');
+const runtimeOwner = !portHolder
+  ? 'static-only'
+  : startedRuntime
+    ? 'harness-owned'
+    : portHolder.listening
+      ? (liveRuntimeCheck?.status === 'pass' ? 'compatible-external-or-harness' : 'incompatible-external-or-stale')
+      : 'none';
+const recipeControllable = liveRuntimeCheck?.status === 'pass';
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'mobile',
   status,
+  runtimeClassification: {
+    runtimeOwner,
+    recipeControllable,
+    startedByVerify: startedRuntime,
+  },
+  cleanupOwnership: {
+    mayStop: startedRuntime,
+    reason: startedRuntime
+      ? 'verify launched the runtime through harness preflight'
+      : 'verify did not launch this runtime; do not stop human-owned or pre-existing processes automatically',
+  },
   runtimePolicy: {
     preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
     buildPressureGuard: 'fast mode does not perform a native rebuild; use --preflight-mode auto/default only after explicit approval',

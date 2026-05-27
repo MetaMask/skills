@@ -207,10 +207,27 @@ let fixtureStatus = null;
 let cdpHolder = null;
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { cdpHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/cdp-holder.json'), 'utf8')); } catch {}
+const readiness = parsedChecks.find((check) => check.name === 'live extension readiness');
+const runtimeOwner = liveMode === 'static-only'
+  ? 'static-only'
+  : liveMode === 'missing-cdp'
+    ? 'none'
+    : cdpHolder?.cdpReachable
+      ? (readiness?.status === 'pass' ? 'compatible-external-or-harness' : 'incompatible-external-or-stale')
+      : 'none';
 fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   adapter: 'extension',
   status,
   liveMode,
+  runtimeClassification: {
+    runtimeOwner,
+    recipeControllable: readiness?.status === 'pass',
+    startedByVerify: false,
+  },
+  cleanupOwnership: {
+    mayStop: false,
+    reason: 'extension verify inspects the supplied CDP runtime; wrapper/preflight ownership must be recorded by the caller before stopping processes',
+  },
   runtimePolicy: {
     buildPressureGuard: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
   },
