@@ -300,10 +300,12 @@ function patchPackageJson() {
     'a:status': 'scripts/perps/agentic/app-state.sh status',
     'a:reload': 'scripts/perps/agentic/reload-metro.sh',
     'a:navigate': 'scripts/perps/agentic/app-navigate.sh',
-    'a:ios': 'scripts/perps/agentic/preflight.sh --platform ios --wallet-setup',
-    'a:android': 'scripts/perps/agentic/preflight.sh --platform android --wallet-setup',
-    'a:setup:ios': 'scripts/perps/agentic/preflight.sh --platform ios --clean --wallet-setup',
-    'a:setup:android': 'scripts/perps/agentic/preflight.sh --platform android --clean --wallet-setup',
+    'a:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup',
+    'a:android': 'scripts/perps/agentic/preflight.sh --platform android --mode fast --wallet-setup',
+    'a:build:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode auto --wallet-setup',
+    'a:build:android': 'scripts/perps/agentic/preflight.sh --platform android --mode auto --wallet-setup',
+    'a:setup:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode clean --wallet-setup',
+    'a:setup:android': 'scripts/perps/agentic/preflight.sh --platform android --mode clean --wallet-setup',
   };
   let changed = false;
   for (const [key, value] of Object.entries(desired)) {

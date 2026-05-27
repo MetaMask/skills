@@ -547,7 +547,7 @@ if [ "$PLAT" = "ios" ]; then
   # which intentionally bypass the cache. This is a deliberate behaviour
   # change vs origin/main: default mode now opts into fingerprint-gated reuse.
   if $BUILD_CACHE_ENABLED && [ "$MODE" != "clean" ] && [ "$MODE" != "rebuild-native" ]; then
-    FP=$(bc_fingerprint 2>/dev/null || true)
+    FP=$(bc_fingerprint ios 2>/dev/null || true)
     if [ -n "$FP" ]; then
       INSTALLED_FP=$(bc_installed_fp ios)
       INSTALLED_TGT=$(bc_installed_target ios)
@@ -587,8 +587,9 @@ if [ "$PLAT" = "ios" ]; then
             fi
           elif [ "$MODE" = "fast" ]; then
             bc_lock_release; BC_LOCK_HELD=false; trap - EXIT
-            fail "Mode 'fast' but no cached build for fp ${FP:0:12} and app not installed at this fingerprint on $SIM_TARGET"
+            fail "Mode 'fast' but no cached iOS build for fp ${FP:0:12} and app not installed at this fingerprint on $SIM_TARGET. Use a:build:ios / --mode auto only when you want to create the shared cache."
           else
+            warn "Cache miss: no shared iOS artifact for fp ${FP:0:12}; ${MODE} mode will build once and store it for matching worktrees."
             # Cache miss in auto/default mode. Whatever is installed (if anything)
             # is at the wrong fingerprint; force the build gate to fire so we
             # produce + install a fresh artifact instead of running a stale app.
@@ -792,7 +793,7 @@ if [ "$PLAT" = "ios" ]; then
     # Publish to shared cache. If we hold the lock from the cache-decision
     # phase, store + release directly; else (clean/rebuild-native) bc_with_lock.
     if $BUILD_CACHE_ENABLED && [ -n "${APP_PATH:-}" ]; then
-      FP=$(bc_fingerprint 2>/dev/null || true)
+      FP=$(bc_fingerprint ios 2>/dev/null || true)
       if [ -n "$FP" ]; then
         if $BC_LOCK_HELD; then
           if bc_store_artifact ios "$FP" "$APP_PATH"; then
@@ -876,7 +877,7 @@ else
 
   # ── Build-cache lookup (auto/fast/default modes only) ────────────
   if $BUILD_CACHE_ENABLED && [ "$MODE" != "clean" ] && [ "$MODE" != "rebuild-native" ]; then
-    FP=$(bc_fingerprint 2>/dev/null || true)
+    FP=$(bc_fingerprint "$PLAT" 2>/dev/null || true)
     if [ -n "$FP" ]; then
       INSTALLED_FP=$(bc_installed_fp android)
       INSTALLED_TGT=$(bc_installed_target android)
@@ -914,8 +915,9 @@ else
             fi
           elif [ "$MODE" = "fast" ]; then
             bc_lock_release; BC_LOCK_HELD=false; trap - EXIT
-            fail "Mode 'fast' but no cached build for fp ${FP:0:12} and app not installed at this fingerprint on $ADB_DEVICE_ID"
+            fail "Mode 'fast' but no cached Android build for fp ${FP:0:12} and app not installed at this fingerprint on $ADB_DEVICE_ID. Use a:build:android / --mode auto only when you want to create the shared cache."
           else
+            warn "Cache miss: no shared Android artifact for fp ${FP:0:12}; ${MODE} mode will build once and store it for matching worktrees."
             # Cache miss in auto/default mode. Stale app must not pass the build
             # gate untouched; force a fresh build + install.
             APP_INSTALLED=0
@@ -992,7 +994,7 @@ else
     # from the cache-decision phase, store directly; otherwise (clean/rebuild-native)
     # acquire-and-release inline via bc_with_lock.
     if $BUILD_CACHE_ENABLED && [ -n "${APK_PATH:-}" ]; then
-      FP=$(bc_fingerprint 2>/dev/null || true)
+      FP=$(bc_fingerprint "$PLAT" 2>/dev/null || true)
       if [ -n "$FP" ]; then
         if $BC_LOCK_HELD; then
           if bc_store_artifact android "$FP" "$APK_PATH"; then

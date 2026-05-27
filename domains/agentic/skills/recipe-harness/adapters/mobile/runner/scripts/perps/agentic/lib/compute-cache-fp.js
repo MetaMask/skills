@@ -21,11 +21,27 @@
 // added ignorePaths cover per-worktree dev/build artifacts that don't
 // affect binary semantics (compile outputs, IDE state, NDK cache,
 // per-machine `.xcode.env.local`).
-// Binary-affecting inputs — env-populated xcconfig, `google-services.json`,
-// the bridge source — stay hashed. The cache only converges across
-// worktrees when those inputs match, which is the correct behaviour.
+// Binary-affecting inputs stay hashed for the platform they can affect.
+// Platform-specific native dirs are separated so an Android-only generated
+// file (for example android/app/google-services.json) does not invalidate
+// an iOS simulator build cache, and iOS-only generated state does not
+// invalidate Android. Shared native inputs (package/yarn lock, config
+// plugins, autolinked native modules, build/setup scripts) still converge
+// only when they match.
 
 const fp = require('@expo/fingerprint');
+
+function parsePlatform(argv) {
+  const index = argv.indexOf('--platform');
+  const value = index >= 0 ? argv[index + 1] : process.env.RECIPE_HARNESS_PLATFORM;
+  if (!value) return null;
+  if (value !== 'ios' && value !== 'android') {
+    throw new Error(`unknown --platform '${value}' (expected ios|android)`);
+  }
+  return value;
+}
+
+const platform = parsePlatform(process.argv.slice(2));
 // Import the project's config so future additions to its extraSources
 // automatically flow into the agentic fingerprint. Using require here
 // (vs. literally copying the list) means a new entry in
@@ -74,8 +90,25 @@ const options = {
     // built app does not invalidate itself on the next preflight.
     'ios/Podfile.lock',
     'ios/Pods/**',
+    // Agent/local state never affects native binaries.
+    '.agent/**',
+    '.agents/**',
+    '.claude/**',
+    '.cursor/**',
+    'temp/**',
   ],
 };
+
+if (platform === 'ios') {
+  // iOS simulator builds must not miss cache because Android-only generated
+  // files differ between worktrees (for example android/app/google-services.json).
+  options.ignorePaths.push('android/**');
+}
+if (platform === 'android') {
+  // Android builds must not miss cache because iOS-only generated Pods,
+  // workspaces, or entitlements differ between worktrees.
+  options.ignorePaths.push('ios/**');
+}
 
 fp.createFingerprintAsync(process.cwd(), options)
   .then(({ hash }) => {

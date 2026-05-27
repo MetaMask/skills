@@ -147,12 +147,15 @@ const file = process.argv[2];
 const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
 const scripts = pkg.scripts || {};
 const required = ['a:start', 'a:status', 'a:ios', 'a:android'];
-process.exit(required.every((name) => scripts[name]) ? 0 : 1);
+const hasRequired = required.every((name) => scripts[name]);
+const safeLaunch = String(scripts['a:ios'] || '').includes('--mode fast')
+  && String(scripts['a:android'] || '').includes('--mode fast');
+process.exit(hasRequired && safeLaunch ? 0 : 1);
 NODE
 then
-  checks+=("{\"name\":\"package a:* ergonomic aliases\",\"status\":\"pass\"}")
+  checks+=("{\"name\":\"package a:* ergonomic aliases use fast mode\",\"status\":\"pass\"}")
 else
-  checks+=("{\"name\":\"package a:* ergonomic aliases\",\"status\":\"warn\"}")
+  checks+=("{\"name\":\"package a:* ergonomic aliases use fast mode\",\"status\":\"warn\"}")
 fi
 
 run_with_timeout() {

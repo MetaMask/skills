@@ -67,9 +67,12 @@ bc_init_dirs() {
 # command-substitution callers (`FP=$(bc_fingerprint)`) survive subshell exit.
 # Falls back to per-call compute if BC_MEMO_DIR isn't initialized.
 bc_fingerprint() {
+  local plat="${1:-${PLAT:-${PLATFORM:-}}}"
   local memo=""
   if [ -n "${BC_MEMO_DIR:-}" ] && [ -d "$BC_MEMO_DIR" ] && [ -w "$BC_MEMO_DIR" ]; then
-    memo="$BC_MEMO_DIR/fp"
+    local memo_name="fp"
+    [ -n "$plat" ] && memo_name="fp-$plat"
+    memo="$BC_MEMO_DIR/$memo_name"
     # Trust the file only if it is a regular file (not a symlink/dir) inside
     # our private dir; mktemp -d guarantees 0700 + exclusive ownership.
     if [ -f "$memo" ] && [ ! -L "$memo" ] && [ -s "$memo" ]; then
@@ -81,7 +84,11 @@ bc_fingerprint() {
   # Use the agentic fingerprint. It extends the project's fingerprint.config.js
   # (so EAS/OTA inputs still participate) with additional ignorePaths for
   # per-worktree build outputs. See compute-cache-fp.js for the rationale.
-  fp=$(node scripts/perps/agentic/lib/compute-cache-fp.js 2>/dev/null || true)
+  if [ -n "$plat" ]; then
+    fp=$(node scripts/perps/agentic/lib/compute-cache-fp.js --platform "$plat" 2>/dev/null || true)
+  else
+    fp=$(node scripts/perps/agentic/lib/compute-cache-fp.js 2>/dev/null || true)
+  fi
   if [ -z "$fp" ]; then
     return 1
   fi
