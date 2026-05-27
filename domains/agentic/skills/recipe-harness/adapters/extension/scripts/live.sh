@@ -104,7 +104,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   startTestWatch: process.env.START_TEST_WATCH === 'true',
   launch: { exitCode: launchStatus, summaryPath: fs.existsSync(launchSummary) ? launchSummary : null },
   verify: { exitCode: verifyStatus, summaryPath: fs.existsSync(verifySummary) ? verifySummary : null },
-  easyCommand: `bash .agents/skills/mms-recipe-harness/scripts/recipe-harness live --cdp-port ${process.env.CDP_PORT_FOR_SUMMARY} --launch-existing-dist`,
+  easyCommand: `<skill-dir>/scripts/recipe-harness live --cdp-port ${process.env.CDP_PORT_FOR_SUMMARY} --launch-existing-dist`,
   note: 'Runs launch then live verify so a developer can validate browser startup, CDP readiness, recipe bridge, screenshots/fallback classification, and sample recipes from one skill-owned command.',
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);

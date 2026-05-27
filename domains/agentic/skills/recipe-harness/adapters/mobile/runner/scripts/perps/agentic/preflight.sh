@@ -1057,7 +1057,20 @@ fi
 # ── Shared steps (both platforms) ────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════
 
-# --check-only is read-only: probes above fail loud on mismatch; here we
+# --check-only is read-only: probes above fail loud on mismatch; it must
+# exit before any app-data reset, Metro launch, CDP call, or wallet mutation.
+if $CHECK_ONLY; then
+  TOTAL_ELAPSED=$(elapsed_since $PREFLIGHT_START)
+  echo ""
+  echo -e "${GREEN}${BOLD}=== Preflight check-only passed ===${NC} ${DIM}(${TOTAL_ELAPSED}s)${NC}"
+  if ${CHECK_ONLY_FP_VERIFIED:-false}; then
+    echo -e "  Platform ${DIM}$PLAT${NC} | App installed and verified at fingerprint ${DIM}${CHECK_ONLY_FP_VALUE:0:12}${NC}"
+  else
+    echo -e "  Platform ${DIM}$PLAT${NC} | App installed (fingerprint not verified — cache disabled or fingerprint compute failed)"
+  fi
+  exit 0
+fi
+
 # Reset app data for deterministic fixture wallet setup while preserving the
 # installed binary/cache. This avoids the fragile existing-vault unlock path and
 # makes `--wallet-setup` idempotent without forcing a native rebuild.
@@ -1078,19 +1091,6 @@ if $DO_WALLET_SETUP; then
     $ADB_CMD shell pm clear "$PACKAGE_ID" >/dev/null 2>&1 || fail "adb pm clear failed for $PACKAGE_ID"
     ok "App data cleared for $PACKAGE_ID"
   fi
-fi
-
-# must not run Metro / CDP / wallet (all state-changing).
-if $CHECK_ONLY; then
-  TOTAL_ELAPSED=$(elapsed_since $PREFLIGHT_START)
-  echo ""
-  echo -e "${GREEN}${BOLD}=== Preflight check-only passed ===${NC} ${DIM}(${TOTAL_ELAPSED}s)${NC}"
-  if ${CHECK_ONLY_FP_VERIFIED:-false}; then
-    echo -e "  Platform ${DIM}$PLAT${NC} | App installed and verified at fingerprint ${DIM}${CHECK_ONLY_FP_VALUE:0:12}${NC}"
-  else
-    echo -e "  Platform ${DIM}$PLAT${NC} | App installed (fingerprint not verified — cache disabled or fingerprint compute failed)"
-  fi
-  exit 0
 fi
 
 # ── Step: Metro ─────────────────────────────────────────────────────

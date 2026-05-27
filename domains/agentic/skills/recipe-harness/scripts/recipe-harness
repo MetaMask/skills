@@ -28,7 +28,7 @@ Common examples:
   recipe-harness verify --no-auto-start
   recipe-harness verify --auto-start --preflight-mode fast
   recipe-harness verify --cdp-port 6662
-  recipe-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
+  recipe-harness --target <path-to-metamask-extension> verify --cdp-port 6662
 
 Mobile runtime configuration:
   RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=fast # default; reuse installed/cache, fail before native rebuild
@@ -232,6 +232,7 @@ if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "
       [ "$arg" = "--no-auto-start" ] && continue
       stripped_args+=("$arg")
     done
+    # Preserve remaining args after removing the smart-wrapper-only flag.
     set -- "${stripped_args[@]}"
   fi
   if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
@@ -242,7 +243,7 @@ if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "
       log "Tip: extension live verify needs --cdp-port <port>; use --static-only for static verification."
     fi
   fi
-  if [ "$ACTION" = "verify" ] && ! has_arg --static-only "$@" && ! $no_auto_start && ! is_false "${RECIPE_HARNESS_EXTENSION_AUTO_START:-1}"; then
+  if [ "$ACTION" = "verify" ] && ! has_arg --static-only "$@" && ! $no_auto_start && ! is_false "${RECIPE_HARNESS_EXTENSION_AUTO_START:-0}"; then
     args=("$@")
     cdp_arg=""
     for ((i=0; i<${#args[@]}; i++)); do

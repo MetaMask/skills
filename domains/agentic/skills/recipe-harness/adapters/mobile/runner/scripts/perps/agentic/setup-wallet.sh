@@ -100,7 +100,10 @@ fi
 # Avoid simulator-native react-native-keychain backup crashes while the harness
 # creates/unlocks fixture wallets. Set it only after Engine exists; setting it
 # earlier is a no-op and lets KeyringController state changes hit BackupVault.
-DISABLE_BACKUP=$(cdp_eval "(function(){ globalThis.__AGENTIC_DISABLE_VAULT_BACKUP = true; if (typeof Engine === 'object' && Engine) { Engine.disableAutomaticVaultBackup = true; } return JSON.stringify({agenticDisableVaultBackup: globalThis.__AGENTIC_DISABLE_VAULT_BACKUP === true, facadeDisableAutomaticVaultBackup: !!(Engine && Engine.disableAutomaticVaultBackup)}); })()" || echo '{}')
+if ! DISABLE_BACKUP=$(cdp_eval "(function(){ globalThis.__AGENTIC_DISABLE_VAULT_BACKUP = true; if (typeof Engine === 'object' && Engine) { Engine.disableAutomaticVaultBackup = true; } return JSON.stringify({agenticDisableVaultBackup: globalThis.__AGENTIC_DISABLE_VAULT_BACKUP === true, facadeDisableAutomaticVaultBackup: !!(Engine && Engine.disableAutomaticVaultBackup)}); })()"); then
+  echo "WARN: could not set vault backup guard before wallet setup"
+  DISABLE_BACKUP='{}'
+fi
 echo "Vault backup guard: $DISABLE_BACKUP"
 
 # -- Check vault state --
