@@ -5,8 +5,8 @@ TARGET="$PWD"
 ARTIFACTS=""
 STATIC_ONLY=false
 AUTO_START=true
-PLATFORM="${MM_HARNESS_PLATFORM:-${PLATFORM:-ios}}"
-PREFLIGHT_MODE="${MM_HARNESS_MOBILE_PREFLIGHT_MODE:-fast}"
+PLATFORM="${RECIPE_HARNESS_PLATFORM:-${PLATFORM:-ios}}"
+PREFLIGHT_MODE="${RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE:-fast}"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
@@ -195,7 +195,7 @@ ensure_live_runtime() {
 
   echo "Mobile runtime is not recipe-controllable; starting ${PLATFORM} app via harness preflight (--mode ${PREFLIGHT_MODE})..." >&2
   echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
-  echo "  To permit a rebuild, rerun with --preflight-mode auto or MM_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
+  echo "  To permit a rebuild, rerun with --preflight-mode auto or RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
   preflight_args=(scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --mode "$PREFLIGHT_MODE")
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     preflight_args+=(--wallet-setup --wallet-fixture .agent/wallet-fixture.json)

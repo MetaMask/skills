@@ -23,23 +23,27 @@ This is an extraction/overlay of the working runtimes, not a downgraded generic 
 
 ## Command Shape
 
-For humans, prefer the smart wrapper from either the source skill checkout or the installed target skill:
+For humans, prefer the portable smart wrapper from either the source skill checkout or the installed target skill. Do not require personal shell aliases; call the skill-owned script by path:
 
 ```bash
-<skill-dir>/scripts/mm-harness                  # auto-detect current repo and install
-<skill-dir>/scripts/mm-harness verify --static-only
-<skill-dir>/scripts/mm-harness verify --cdp-port <port>
-<skill-dir>/scripts/mm-harness verify --preflight-mode fast
+<skill-dir>/scripts/recipe-harness                  # auto-detect current repo and install
+<skill-dir>/scripts/recipe-harness launch --platform ios --preflight-mode fast
+<skill-dir>/scripts/recipe-harness launch --platform android --preflight-mode fast
+<skill-dir>/scripts/recipe-harness verify --static-only
+<skill-dir>/scripts/recipe-harness verify --cdp-port <port>
+<skill-dir>/scripts/recipe-harness verify --preflight-mode fast
 ```
 
-`mm-harness` auto-detects `metamask-mobile` vs `metamask-extension`, defaults `--target` to the current directory, prints progress, and defaults to `install` when no action is supplied.
+`recipe-harness` auto-detects `metamask-mobile` vs `metamask-extension`, defaults `--target` to the current directory, prints progress, and defaults to `install` when no action is supplied. `launch` starts or reuses the app/browser runtime and waits for app-control readiness; it does not run a recipe or claim validation evidence.
 
-For Mobile live verification, `--preflight-mode fast` is the default cache-first mode: it can reuse an installed matching app or a shared cache artifact, but it fails instead of launching a native rebuild. If a rebuild is genuinely needed, the caller should rerun explicitly with `--preflight-mode auto` after the human accepts the rebuild cost.
+For Mobile launch/live verification, `--preflight-mode fast` is the default cache-first mode: it can reuse an installed matching app or a shared cache artifact, but it fails instead of launching a native rebuild. If a rebuild is genuinely needed, the caller should rerun explicitly with `--preflight-mode auto` after the human accepts the rebuild cost.
+
+For Extension launch, the skill does not encode local farm aliases. Reuse an already-open CDP runtime with `--cdp-port`, or pass a caller-owned startup command through `--prepare-cmd` / `RECIPE_HARNESS_EXTENSION_LAUNCH_CMD`.
 
 For orchestration or explicit automation, keep using the low-level stable form:
 
 ```bash
-<skill-dir>/scripts/recipe-harness.sh <mobile|extension> <install|verify|cleanup> --target <repo> [...]
+<skill-dir>/scripts/recipe-harness.sh <mobile|extension> <install|launch|verify|cleanup> --target <repo> [...]
 ```
 
 See `references/contract.md` for the manifest and validation contract.

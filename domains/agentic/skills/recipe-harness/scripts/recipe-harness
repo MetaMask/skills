@@ -1,37 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_NAME="mm-harness"
+SCRIPT_NAME="recipe-harness"
 
 usage() {
   cat <<'USAGE'
 Usage:
-  mm-harness                         # auto-detect repo, install into current dir
-  mm-harness install                 # auto-detect repo, install into current dir
-  mm-harness verify [args]           # auto-detect repo, verify current dir
-  mm-harness cleanup [args]          # auto-detect repo, cleanup current dir
-  mm-harness --target <repo> install
-  mm-harness --adapter <mobile|extension> verify --cdp-port <port>
+  recipe-harness                    # auto-detect repo, install into current dir
+  recipe-harness install            # auto-detect repo, install into current dir
+  recipe-harness verify [args]      # auto-detect repo, verify current dir
+  recipe-harness cleanup [args]     # auto-detect repo, cleanup current dir
+  recipe-harness --target <repo> install
+  recipe-harness --adapter <mobile|extension> <launch|verify> --cdp-port <port>
 
 Explicit low-level form is also supported:
-  mm-harness <mobile|extension> <install|verify|cleanup> [args]
+  recipe-harness <mobile|extension> <install|launch|verify|cleanup> [args]
 
 Common examples:
-  mm-harness
-  mm-harness verify --static-only
-  mm-harness verify --no-auto-start
-  mm-harness verify --cdp-port 6662
-  mm-harness verify --preflight-mode fast
-  mm-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
+  recipe-harness
+  recipe-harness launch --platform ios --preflight-mode fast
+  recipe-harness launch --platform android --preflight-mode fast
+  recipe-harness verify --static-only
+  recipe-harness verify --no-auto-start
+  recipe-harness verify --cdp-port 6662
+  recipe-harness verify --preflight-mode fast
+  recipe-harness --target ~/dev/metamask/metamask-extension-2 verify --cdp-port 6662
 
 Mobile runtime configuration:
-  MM_HARNESS_MOBILE_PREFLIGHT_MODE=fast # default; reuse installed/cache, fail before native rebuild
-  MM_HARNESS_MOBILE_PREFLIGHT_MODE=auto # allow fingerprint-gated native build on cache miss
+  RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=fast # default; reuse installed/cache, fail before native rebuild
+  RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto # allow fingerprint-gated native build on cache miss
 
 Extension runtime configuration:
-  MM_HARNESS_EXTENSION_AUTO_START=0      # never launch a missing browser
-  MM_HARNESS_EXTENSION_PREPARE_CMD='...' # custom command for non-Farmslot repos
-  MM_HARNESS_EXTENSION_PREPARE_WATCH=on  # Farmslot preflight watch mode (default: off)
+  RECIPE_HARNESS_EXTENSION_AUTO_START=0      # never launch a missing browser
+  RECIPE_HARNESS_EXTENSION_LAUNCH_CMD='...' # caller-owned startup command
 USAGE
 }
 
@@ -62,7 +63,7 @@ case "${1:-}" in
     PASSTHRU=()
     while [ "$#" -gt 0 ]; do
       case "$1" in
-        install|verify|cleanup)
+        install|launch|verify|cleanup)
           ACTION="$1"
           shift
           ;;
@@ -117,7 +118,7 @@ case "${1:-}" in
 esac
 
 case "$ADAPTER:$ACTION" in
-  mobile:install|mobile:verify|mobile:cleanup|extension:install|extension:verify|extension:cleanup) ;;
+  mobile:install|mobile:launch|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:verify|extension:cleanup) ;;
   *) usage >&2; fail "unsupported adapter/action: ${ADAPTER:-?}/${ACTION:-?}" ;;
 esac
 
@@ -139,6 +140,7 @@ fi
 
 case "$ACTION" in
   install) VERB="Installing" ;;
+  launch) VERB="Launching" ;;
   verify) VERB="Verifying" ;;
   cleanup) VERB="Cleaning" ;;
 esac
@@ -168,55 +170,6 @@ is_false() {
   esac
 }
 
-resolve_extension_farmslot_metadata() {
-  local target="$1"
-  local farmslot_dir="${FARMSLOT_DIR:-}"
-  [ -n "$farmslot_dir" ] || farmslot_dir="$HOME/dev/farmslot"
-  [ -d "$farmslot_dir/pool" ] || return 1
-
-  TARGET_FOR_CDP="$target" FARMSLOT_FOR_CDP="$farmslot_dir" python3 - <<'INNERPY'
-import json, os, socket, subprocess
-from pathlib import Path
-
-target = Path(os.environ['TARGET_FOR_CDP']).expanduser().resolve()
-root = Path(os.environ['FARMSLOT_FOR_CDP']).expanduser()
-pool = root / 'pool'
-host = socket.gethostname().split('.')[0]
-try:
-    local = subprocess.check_output(['scutil', '--get', 'LocalHostName'], stderr=subprocess.DEVNULL, text=True).strip()
-except Exception:
-    local = ''
-preferred = []
-for name in dict.fromkeys([host, local]):
-    if name:
-        preferred.append(pool / f'{name}.json')
-preferred.extend(sorted(p for p in pool.glob('*.json') if p not in preferred))
-
-for path in preferred:
-    try:
-        data = json.loads(path.read_text())
-    except Exception:
-        continue
-    for slot in data.get('slots', []):
-        repo = slot.get('repo')
-        if not repo:
-            continue
-        try:
-            same = Path(repo).expanduser().resolve() == target
-        except Exception:
-            same = False
-        if not same:
-            continue
-        port = ((slot.get('resources') or {}).get('browser') or {}).get('cdp_port') or ''
-        slot_id = slot.get('id') or ''
-        project = slot.get('project') or ''
-        if port and slot_id:
-            print(f"{root}\t{slot_id}\t{port}\t{project}")
-            raise SystemExit(0)
-raise SystemExit(1)
-INNERPY
-}
-
 resolve_extension_cdp_port() {
   local target="$1"
   if [ -n "${CDP_PORT:-}" ]; then
@@ -224,7 +177,7 @@ resolve_extension_cdp_port() {
     return 0
   fi
 
-  # Local env files are useful outside farmslot. Keep this generic: accept an
+  # Local env files are useful outside a managed launcher. Keep this generic: accept an
   # explicit CDP_PORT assignment only, not repo/slot-specific variable names.
   local env_file line value
   for env_file in "$target/.js.env" "$target/.env" "$target/.env.local"; do
@@ -240,22 +193,16 @@ resolve_extension_cdp_port() {
     fi
   done
 
-  local metadata
-  if metadata="$(resolve_extension_farmslot_metadata "$target")"; then
-    printf '%s\n' "$metadata" | awk -F '\t' '{print $3}'
-    return 0
-  fi
   return 1
 }
 
 run_extension_prepare() {
   local target="$1"
   local cdp_port="$2"
-  local metadata="${3:-}"
-  local custom_cmd="${MM_HARNESS_EXTENSION_PREPARE_CMD:-}"
+  local custom_cmd="${RECIPE_HARNESS_EXTENSION_LAUNCH_CMD:-}"
   if [ -n "$custom_cmd" ]; then
-    log "CDP port $cdp_port is offline; running MM_HARNESS_EXTENSION_PREPARE_CMD"
-    log "Build/reuse guard: prefer a cached/watch-only prepare command; do not run a full rebuild unless the caller/human approved it."
+    log "CDP port $cdp_port is offline; running RECIPE_HARNESS_EXTENSION_LAUNCH_CMD"
+    log "Runtime startup is caller-owned; use a cached/watch-only command unless the human approved heavier work."
     (
       cd "$target"
       TARGET="$target" CDP_PORT="$cdp_port" bash -lc "$custom_cmd"
@@ -263,27 +210,12 @@ run_extension_prepare() {
     return
   fi
 
-  if [ -n "$metadata" ]; then
-    local farmslot_dir slot_id _port project preflight watch_mode
-    IFS=$'\t' read -r farmslot_dir slot_id _port project <<< "$metadata"
-    preflight="$farmslot_dir/projects/$project/setup/preflight.sh"
-    watch_mode="${MM_HARNESS_EXTENSION_PREPARE_WATCH:-off}"
-    if [ -x "$preflight" ]; then
-      log "CDP port $cdp_port is offline; starting extension runtime via Farmslot preflight"
-      log "Build/reuse guard: using Farmslot preflight with --watch $watch_mode; if this would rebuild, set MM_HARNESS_EXTENSION_PREPARE_CMD to a cached/watch-only command or disable auto-start."
-      bash "$preflight" "$slot_id" --cdp-port "$cdp_port" --mode fullscreen --watch "$watch_mode"
-      return
-    fi
-    log "CDP port $cdp_port is offline and preflight was not found at $preflight"
-    return
-  fi
-
-  log "CDP port $cdp_port is offline; run extension preflight first, set MM_HARNESS_EXTENSION_PREPARE_CMD, or pass --static-only"
+  log "CDP port $cdp_port is offline; start the extension with a caller-owned command, set RECIPE_HARNESS_EXTENSION_LAUNCH_CMD, or pass --static-only"
 }
 
-if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
+if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "launch" ]; }; then
   no_auto_start=false
-  if has_arg --no-auto-start "$@"; then
+  if [ "$ACTION" = "verify" ] && has_arg --no-auto-start "$@"; then
     no_auto_start=true
     stripped_args=()
     for arg in "$@"; do
@@ -294,13 +226,13 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
   fi
   if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
     if resolved_cdp_port="$(resolve_extension_cdp_port "$TARGET")"; then
-      log "Using CDP port $resolved_cdp_port for extension verify"
+      log "Using CDP port $resolved_cdp_port for extension $ACTION"
       set -- --cdp-port "$resolved_cdp_port" "$@"
-    else
+    elif [ "$ACTION" = "verify" ]; then
       log "Tip: extension live verify needs --cdp-port <port>; use --static-only for static verification."
     fi
   fi
-  if ! has_arg --static-only "$@" && ! $no_auto_start && ! is_false "${MM_HARNESS_EXTENSION_AUTO_START:-1}"; then
+  if [ "$ACTION" = "verify" ] && ! has_arg --static-only "$@" && ! $no_auto_start && ! is_false "${RECIPE_HARNESS_EXTENSION_AUTO_START:-1}"; then
     args=("$@")
     cdp_arg=""
     for ((i=0; i<${#args[@]}; i++)); do
@@ -310,10 +242,9 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" = "verify" ]; then
       esac
     done
     if [ -n "$cdp_arg" ] && ! cdp_reachable "$cdp_arg"; then
-      metadata="$(resolve_extension_farmslot_metadata "$TARGET" || true)"
-      run_extension_prepare "$TARGET" "$cdp_arg" "$metadata"
+      run_extension_prepare "$TARGET" "$cdp_arg"
     fi
-  elif ! has_arg --static-only "$@"; then
+  elif [ "$ACTION" = "verify" ] && ! has_arg --static-only "$@"; then
     log "Extension auto-start disabled; verify will use the existing CDP runtime only"
   fi
 fi

@@ -11,6 +11,7 @@ Use the Extension adapter for `metamask-extension` checkouts, especially histori
 
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install --target .
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension launch --target . --cdp-port <port>
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension verify --target . --cdp-port <port>
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension verify --target . --static-only
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension cleanup --target .
@@ -22,6 +23,7 @@ If running from the source skills checkout instead, use:
 
 ```bash
 domains/agentic/skills/recipe-harness/scripts/recipe-harness.sh extension install --target /path/to/metamask-extension
+domains/agentic/skills/recipe-harness/scripts/recipe-harness.sh extension launch --target /path/to/metamask-extension --cdp-port 9222
 domains/agentic/skills/recipe-harness/scripts/recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port 9222
 ```
 
@@ -66,8 +68,8 @@ When an orchestrator prepares an Extension checkout before running this harness:
   for the intended extension; a listening CDP port alone is not sufficient.
 - Use `adapters/extension/scripts/extension-readiness.js --target <repo>
 --cdp-port <port>` as the source-of-truth readiness probe when wiring
-  Farmslot or other runners.
+  caller-owned runners.
 - Prefer reusing a compatible harness-owned Chrome/CDP profile and existing
   watch output. If a prepare command would trigger a full rebuild, say that
   before starting it and either set a cached/watch-only
-  `MM_HARNESS_EXTENSION_PREPARE_CMD` or ask the human to approve the rebuild.
+  `RECIPE_HARNESS_EXTENSION_LAUNCH_CMD` or ask the human to approve the rebuild.

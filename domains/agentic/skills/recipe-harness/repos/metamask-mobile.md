@@ -12,7 +12,7 @@ Use the Mobile adapter for `metamask-mobile` checkouts, especially historical co
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
-.agents/skills/mms-recipe-harness/scripts/mm-harness verify --preflight-mode fast
+.agents/skills/mms-recipe-harness/scripts/recipe-harness launch --platform ios --preflight-mode fast
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target . --static-only
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile cleanup --target .
 ```
@@ -22,7 +22,8 @@ The same `scripts/recipe-harness.sh` path is also mirrored under `.claude/skills
 If running from the source skills checkout instead, use:
 
 ```bash
-domains/agentic/skills/recipe-harness/scripts/recipe-harness.sh mobile install --target /path/to/metamask-mobile
+domains/agentic/skills/recipe-harness/scripts/recipe-harness mobile install --target /path/to/metamask-mobile
+domains/agentic/skills/recipe-harness/scripts/recipe-harness mobile launch --target /path/to/metamask-mobile --platform ios --preflight-mode fast
 ```
 
 ## Adapter Behavior
