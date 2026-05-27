@@ -166,10 +166,14 @@ if [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
   tmux kill-session -t "$METRO_TMUX_SESSION" 2>/dev/null || true
   tmux new-session -d -s "$METRO_TMUX_SESSION" -c "$PWD" \
     "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT'"
-  tmux pipe-pane -o -t "$METRO_TMUX_SESSION:0.0" "cat >> '$LOGFILE'" 2>/dev/null || \
+  METRO_TMUX_PANE=$(tmux display-message -p -t "$METRO_TMUX_SESSION" '#{pane_id}' 2>/dev/null || echo "")
+  if [ -n "$METRO_TMUX_PANE" ]; then
+    tmux pipe-pane -o -t "$METRO_TMUX_PANE" "cat >> '$LOGFILE'" 2>/dev/null || true
+    METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_PANE" '#{pane_pid}' 2>/dev/null || echo "")
+  else
     tmux pipe-pane -o -t "$METRO_TMUX_SESSION" "cat >> '$LOGFILE'" 2>/dev/null || true
-  METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_SESSION:0.0" '#{pane_pid}' 2>/dev/null || \
-    tmux display-message -p -t "$METRO_TMUX_SESSION" '#{pane_pid}' 2>/dev/null || echo "")
+    METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_SESSION" '#{pane_pid}' 2>/dev/null || echo "")
+  fi
   echo "$METRO_TMUX_SESSION" > .agent/metro.tmux-session
   echo "${METRO_PID:-tmux:$METRO_TMUX_SESSION}" > "$PIDFILE"
   echo "Metro tmux session: $METRO_TMUX_SESSION, logging to $LOGFILE"
@@ -199,7 +203,7 @@ metro_alive() {
 # Wait for ready signal
 ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
-  if grep -q "Waiting on http://localhost:${PORT}" "$LOGFILE" 2>/dev/null; then
+  if curl -sf "http://localhost:${PORT}/status" >/dev/null 2>&1 || grep -q "Waiting on http://localhost:${PORT}" "$LOGFILE" 2>/dev/null; then
     echo "Metro ready after ${ELAPSED}s."
     echo ""
     echo "To follow live logs:  tail -f $LOGFILE"
