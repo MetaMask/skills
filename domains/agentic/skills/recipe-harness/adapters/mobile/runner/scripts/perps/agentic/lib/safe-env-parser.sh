@@ -23,4 +23,5 @@ load_js_env() {
     esac
     [[ -z "${!_key+x}" ]] && export "$_key=$_val"
   done < "$envfile"
+  return 0
 }
