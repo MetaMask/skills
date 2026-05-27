@@ -118,9 +118,11 @@ prepare/build runtime artifacts.
 Respect the caller/orchestrator policy for the lane. If the current goal,
 checklist, or human says runtime startup needs explicit approval, do **not**
 work around that by creating `manual-prewarm`, `nohup`, background tmux,
-`sleep`/detached shell, or ad-hoc cache-warming helpers. Instead record
-`BLOCKED: pending runtime-start approval` with the exact command you would run
-and continue only after approval is provided.
+`sleep`/detached shell, ad-hoc cache-warming helpers, repo aliases such as
+`yarn a:ios` / `yarn a:android`, or direct preflight/start scripts such as
+`scripts/perps/agentic/start-metro.sh --launch`. Instead record `BLOCKED:
+pending runtime-start approval` with the exact command you would run and
+continue only after approval is provided.
 
 When approval exists, prefer the installed harness delegate and cache/watch-first
 commands. Do not run Mobile `auto`, `default`, `clean`, `rebuild-native`,
