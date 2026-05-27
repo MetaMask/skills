@@ -679,7 +679,7 @@ if [ "$PLAT" = "ios" ]; then
     BUILD_START=$(date +%s)
 
     set +e
-    "${EXPO_ARGS[@]}" >"$BUILD_LOG" 2>&1 &
+    env EXPO_NO_TYPESCRIPT_SETUP=1 "${EXPO_ARGS[@]}" >"$BUILD_LOG" 2>&1 &
     EXPO_PID=$!
     # Drop the bg job from bash's jobs table so kill_tree's SIGTERM doesn't print "Terminated: 15".
     disown "$EXPO_PID" 2>/dev/null || true

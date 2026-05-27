@@ -160,7 +160,12 @@ fi
 rm -rf "${TMPDIR:-/tmp}/metro-cache" "${TMPDIR:-/tmp}/haste-map-"* 2>/dev/null || true
 
 echo "Starting Metro on port $PORT..."
-EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
+# Detach Metro from this helper. When start-metro.sh is run from a one-shot
+# harness/preflight script, a plain background job can receive SIGHUP as the
+# parent shell exits, leaving a "ready" log line but no listening server by
+# the time CDP/app-state validation starts. nohup keeps the skill-owned easy
+# command alive after this wrapper returns.
+nohup env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
 METRO_PID=$!
 echo "$METRO_PID" > "$PIDFILE"
 echo "Metro PID: $METRO_PID, logging to $LOGFILE"
