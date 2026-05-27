@@ -29,6 +29,8 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 
 Extension-specific gates:
 
+- Runner command form: Claude/Cursor use `/mms-recipe-*`; Codex/OpenAI agents use `$mms-recipe-*`. When this checklist names `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, `/mms-recipe-evidence`, or `/mms-recipe-wallet-control`, use the runner-appropriate command form or the installed delegate file path for the current runner.
+
 - Because `/mms-recipe-fix-ticket` was invoked, do not switch to the dev protocol or mark baseline/repro `N/A` merely because the Jira says POC/debug. Attempt a before/no-state recipe or record the concrete `/mms-recipe-cook` blocker.
 - Name the browser context and UI target (`popup`, `sidepanel`, `fullscreen`, dapp tab, or service worker/controller).
 - Do not ask whether to proceed with harness/recipe validation after typecheck or Jest. Proceed automatically.

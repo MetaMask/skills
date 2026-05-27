@@ -27,6 +27,8 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 
 Mobile-specific gates:
 
+- Runner command form: Claude/Cursor use `/mms-recipe-*`; Codex/OpenAI agents use `$mms-recipe-*`. When this checklist names `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, `/mms-recipe-evidence`, or `/mms-recipe-wallet-control`, use the runner-appropriate command form or the installed delegate file path for the current runner.
+
 - Prefer after evidence for new/additive UI; use before/after when there is a meaningful previous state.
 - Do not ask whether to proceed with harness/recipe validation after implementation checks. Proceed automatically.
 - A stopped app/simulator/Metro is not a user blocker. Run `/mms-recipe-harness` verify/preflight and record the artifact path.
