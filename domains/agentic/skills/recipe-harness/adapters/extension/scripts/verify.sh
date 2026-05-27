@@ -30,10 +30,15 @@ fi
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 EXTENSION_ID_FILE="$TARGET/temp/runtime/extension.id"
-if [ -f "$EXTENSION_ID_FILE" ]; then
-  RECIPE_HARNESS_EXTENSION_ID="$(tr -d '[:space:]' < "$EXTENSION_ID_FILE")"
-  export RECIPE_HARNESS_EXTENSION_ID
-fi
+refresh_extension_id() {
+  if [ -f "$EXTENSION_ID_FILE" ]; then
+    RECIPE_HARNESS_EXTENSION_ID="$(tr -d '[:space:]' < "$EXTENSION_ID_FILE")"
+    export RECIPE_HARNESS_EXTENSION_ID
+  else
+    unset RECIPE_HARNESS_EXTENSION_ID || true
+  fi
+}
+refresh_extension_id
 
 status="pass"
 checks=()
@@ -166,6 +171,11 @@ if [ "$STATIC_ONLY" = false ]; then
     cdp_holder_json "$CDP_PORT" > "$ARTIFACTS/logs/cdp-holder.json"
     if node "$SCRIPT_DIR/extension-readiness.js" --target "$TARGET" --cdp-port "$CDP_PORT" --json > "$ARTIFACTS/logs/extension-readiness.json" 2>&1; then
       checks+=("{\"name\":\"live extension readiness\",\"status\":\"pass\"}")
+      # extension-readiness.js may repair temp/runtime/extension.id when the
+      # supplied Chrome profile loads a fresh extension ID. Reload it before
+      # running recipe smoke checks so the recipe bridge targets the live
+      # extension instead of a stale marker from a previous browser profile.
+      refresh_extension_id
     else
       checks+=("{\"name\":\"live extension readiness\",\"status\":\"fail\",\"detail\":\"see logs/extension-readiness.json\"}")
       status="fail"
@@ -206,8 +216,10 @@ const parsedChecks = checks.map((entry) => JSON.parse(entry));
 const liveMode = process.env.RECIPE_HARNESS_LIVE_MODE || 'unknown';
 let fixtureStatus = null;
 let cdpHolder = null;
+let readinessReport = null;
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { cdpHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/cdp-holder.json'), 'utf8')); } catch {}
+try { readinessReport = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/extension-readiness.json'), 'utf8')); } catch {}
 function runGit(args) {
   try {
     return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -224,6 +236,21 @@ const gitStatus = {
   dirtyPreview: statusShort ? statusShort.split('\n').filter(Boolean).slice(0, 25) : [],
 };
 const readiness = parsedChecks.find((check) => check.name === 'live extension readiness');
+const extensionIdPath = path.join(target, 'temp/runtime/extension.id');
+let markerExtensionId = null;
+try {
+  const value = fs.readFileSync(extensionIdPath, 'utf8').trim();
+  if (/^[a-z]{32}$/.test(value)) markerExtensionId = value;
+} catch {}
+const cdpTarget = readinessReport?.cdp ? {
+  selectedExtensionId: readinessReport.cdp.selectedExtensionId || null,
+  markerExtensionId,
+  markerMatched: readinessReport.cdp.markerMatched ?? null,
+  markerRepaired: readinessReport.cdp.markerRepaired ?? null,
+  extensionIds: readinessReport.cdp.extensionIds || [],
+  targetCount: readinessReport.cdp.targetCount ?? null,
+  browser: readinessReport.cdp.browser || cdpHolder?.browser || null,
+} : null;
 const runtimeOwner = liveMode === 'static-only'
   ? 'static-only'
   : liveMode === 'missing-cdp'
@@ -250,6 +277,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   },
   fixtureStatus,
   cdpHolder,
+  cdpTarget,
   checks: parsedChecks,
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);
