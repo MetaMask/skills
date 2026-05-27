@@ -39,7 +39,11 @@ if [[ -f "$PROJECT_ROOT/.js.env" ]]; then
     _val="${_line#*=}"
     _val="${_val#\"}" ; _val="${_val%\"}"
     _val="${_val#\'}" ; _val="${_val%\'}"
-    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
+    case "$_key" in
+      WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|METAMASK_ENVIRONMENT|MM_PASSWORD|MM_WALLET_PASSWORD|CDP_TIMEOUT|CDP_DISCOVERY_RETRIES|DETOX_SIMULATOR|AGENTIC_SIMULATOR|MM_BUILD_CACHE_DIR|WALLET_FIXTURE|BUILD_TYPE|METAMASK_DEBUG) ;;
+      *) continue ;;
+    esac
+    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
   done < "$PROJECT_ROOT/.js.env"
   unset _line _key _val
 fi
@@ -164,9 +168,25 @@ if [[ -z "$METRO_PID" ]] || ! curl -sf "http://localhost:$SHARED_PORT/status" >/
     bash "$SCRIPT_DIR/start-metro.sh"
 fi
 
-# Source .e2e.env for Detox
+# Load .e2e.env for Detox (safe parser — no source/eval)
 E2E_ENV="$PROJECT_ROOT/.e2e.env"
-[[ -f "$E2E_ENV" ]] && source "$E2E_ENV"
+if [[ -f "$E2E_ENV" ]]; then
+  while IFS= read -r _line || [[ -n "$_line" ]]; do
+    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
+    _line="${_line#export }"
+    _key="${_line%%=*}"
+    _key="${_key//[[:space:]]/}"
+    _val="${_line#*=}"
+    _val="${_val#\"}" ; _val="${_val%\"}"
+    _val="${_val#\'}" ; _val="${_val%\'}"
+    case "$_key" in
+      METAMASK_ENVIRONMENT|IS_TEST|METAMASK_BUILD_TYPE|WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|DETOX_SIMULATOR|MM_PASSWORD) ;;
+      *) continue ;;
+    esac
+    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
+  done < "$E2E_ENV"
+  unset _line _key _val
+fi
 
 # Boot detox simulator if needed
 if ! xcrun simctl list devices | grep "$DETOX_SIMULATOR" | grep -q "Booted"; then

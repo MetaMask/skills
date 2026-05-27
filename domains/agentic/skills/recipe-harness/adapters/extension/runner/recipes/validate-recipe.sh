@@ -17,7 +17,11 @@ if [ -f "$RUNNER_ENV" ]; then
     _val="${_line#*=}"
     _val="${_val#\"}" ; _val="${_val%\"}"
     _val="${_val#\'}" ; _val="${_val%\'}"
-    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
+    case "$_key" in
+      WALLET_PASSWORD|WALLET_FIXTURE|BROWSER|CHROME_BIN|FIREFOX_BIN|EXTENSION_PATH|EXTENSION_ID) ;;
+      *) continue ;;
+    esac
+    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
   done < "$RUNNER_ENV"
   unset _line _key _val
 fi

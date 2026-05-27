@@ -20,7 +20,11 @@ if [ -f .js.env ]; then
     _val="${_line#*=}"
     _val="${_val#\"}" ; _val="${_val%\"}"
     _val="${_val#\'}" ; _val="${_val%\'}"
-    [[ -n "$_key" && -z "${!_key+x}" ]] && export "$_key=$_val"
+    case "$_key" in
+      WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|METAMASK_ENVIRONMENT|MM_PASSWORD|MM_WALLET_PASSWORD|CDP_TIMEOUT|CDP_DISCOVERY_RETRIES|DETOX_SIMULATOR|AGENTIC_SIMULATOR|MM_BUILD_CACHE_DIR|WALLET_FIXTURE|BUILD_TYPE|METAMASK_DEBUG) ;;
+      *) continue ;;
+    esac
+    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
   done < .js.env
   unset _line _key _val
 fi
