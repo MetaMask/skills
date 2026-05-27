@@ -652,6 +652,9 @@ const COMMANDS = {
 
     // Parse "team/name" (2-part) or "team/subfile/name" (3-part)
     const parts = arg.split('/');
+    if (parts.some(seg => seg.includes('..'))) {
+      throw new Error('Eval ref path segments must not contain ".."');
+    }
     if (parts.length < 2 || parts.length > 3) {
       throw new Error('Eval ref must be "team/name" or "team/subfile/name" (e.g. perps/positions or perps/core/pump-market)');
     }

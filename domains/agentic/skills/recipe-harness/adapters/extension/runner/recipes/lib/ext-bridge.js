@@ -149,9 +149,16 @@ function resolveArtifactPath(ctx, artifactPath) {
   if (!artifactPath) {
     return '';
   }
-  return isAbsolute(artifactPath)
-    ? artifactPath
-    : join(ctx.artifactsDir || process.cwd(), artifactPath);
+  const base = ctx.artifactsDir || process.cwd();
+  const resolved = isAbsolute(artifactPath)
+    ? resolve(artifactPath)
+    : resolve(base, artifactPath);
+  if (!resolved.startsWith(resolve(base) + '/') && resolved !== resolve(base)) {
+    throw new Error(
+      `Artifact path "${artifactPath}" resolves outside the artifacts directory`,
+    );
+  }
+  return resolved;
 }
 
 function getByPath(value, fieldPath) {
@@ -865,7 +872,7 @@ async function handleCall(node, ctx) {
     Object.entries(flowInputs).filter(([, v]) => v.default != null).map(([k, v]) => [k, renderTemplateString(String(v.default), {})])
   ), ...callerParams };
   for (const [k, v] of Object.entries(mergedParams)) {
-    if (typeof v === 'string' && /['"`\\]/.test(v)) {
+    if (typeof v === 'string' && /['"`\\;|&$(){}><]/.test(v)) {
       throw new Error(`Input "${k}" in call "${ref}" contains characters unsafe for expression templates (got: ${v}).`);
     }
   }

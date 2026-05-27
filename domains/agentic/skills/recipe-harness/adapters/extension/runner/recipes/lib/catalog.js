@@ -52,6 +52,10 @@ function renderTemplateString(value, params = {}) {
       const trimmed = key.trim();
       if (trimmed.startsWith('env.')) {
         const envKey = trimmed.slice(4);
+        const allowedEnvKeys = new Set(['WALLET_PASSWORD', 'WALLET_FIXTURE', 'BROWSER', 'CHROME_BIN', 'FIREFOX_BIN', 'EXTENSION_PATH', 'EXTENSION_ID', 'NODE_ENV', 'METAMASK_ENVIRONMENT']);
+        if (!allowedEnvKeys.has(envKey)) {
+          return fallback != null ? String(fallback) : `{{${key}}}`;
+        }
         if (process.env[envKey] != null && process.env[envKey] !== '') {
           return process.env[envKey];
         }

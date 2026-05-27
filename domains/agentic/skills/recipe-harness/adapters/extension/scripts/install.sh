@@ -97,29 +97,21 @@ add_git_exclude "temp/agentic/recipes/"
 add_git_exclude "temp/recipes/"
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
-cat > "$HARNESS_DIR/manifest.json" <<EOF
-{
-  "adapter": "extension",
-  "installedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "source": {
-    "skillDir": "$SKILL_DIR",
-    "revision": "$SOURCE_REV",
-    "runtime": "$ADAPTER_DIR"
-  },
-  "target": "$TARGET",
-  "installedPaths": ["$OUT", ".agent/recipe-harness/extension/scripts"],
-  "patchedFiles": [],
-  "recommendedCommandEnv": {
-    "unset": ["BUNDLED_DEBUGPY_PATH"]
-  },
-  "backupDir": "$BACKUP_DIR",
-  "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET --out $OUT",
-  "productDiffExcludes": [
-    ":(exclude).agent/recipe-harness",
-    ":(exclude).skills-cache",
-    ":(exclude)$OUT"
-  ]
-}
-EOF
+node -e '
+  const fs = require("fs");
+  const m = {
+    adapter: "extension",
+    installedAt: new Date().toISOString(),
+    source: { skillDir: process.argv[1], revision: process.argv[2], runtime: process.argv[3] },
+    target: process.argv[4],
+    installedPaths: [process.argv[5], ".agent/recipe-harness/extension/scripts"],
+    patchedFiles: [],
+    recommendedCommandEnv: { unset: ["BUNDLED_DEBUGPY_PATH"] },
+    backupDir: process.argv[6],
+    cleanupCommand: process.argv[7] + "/cleanup.sh --target " + process.argv[4] + " --out " + process.argv[5],
+    productDiffExcludes: [":(exclude).agent/recipe-harness", ":(exclude).skills-cache", ":(exclude)" + process.argv[5]]
+  };
+  fs.writeFileSync(process.argv[8], JSON.stringify(m, null, 2) + "\n");
+' "$SKILL_DIR" "$SOURCE_REV" "$ADAPTER_DIR" "$TARGET" "$OUT" "$BACKUP_DIR" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
 
 echo "Installed extension recipe harness: $HARNESS_DIR/manifest.json"

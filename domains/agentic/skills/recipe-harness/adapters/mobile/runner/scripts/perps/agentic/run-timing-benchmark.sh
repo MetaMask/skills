@@ -30,23 +30,9 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # Source .js.env (non-destructive: only sets vars not already in env)
 # Same approach as preflight.sh — caller env takes precedence.
 # ---------------------------------------------------------------------------
-if [[ -f "$PROJECT_ROOT/.js.env" ]]; then
-  while IFS= read -r _line || [[ -n "$_line" ]]; do
-    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
-    _line="${_line#export }"
-    _key="${_line%%=*}"
-    _key="${_key//[[:space:]]/}"
-    _val="${_line#*=}"
-    _val="${_val#\"}" ; _val="${_val%\"}"
-    _val="${_val#\'}" ; _val="${_val%\'}"
-    case "$_key" in
-      WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|METAMASK_ENVIRONMENT|MM_PASSWORD|MM_WALLET_PASSWORD|CDP_TIMEOUT|CDP_DISCOVERY_RETRIES|DETOX_SIMULATOR|AGENTIC_SIMULATOR|MM_BUILD_CACHE_DIR|WALLET_FIXTURE|BUILD_TYPE|METAMASK_DEBUG) ;;
-      *) continue ;;
-    esac
-    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
-  done < "$PROJECT_ROOT/.js.env"
-  unset _line _key _val
-fi
+# shellcheck source=lib/safe-env-parser.sh
+. "$SCRIPT_DIR/lib/safe-env-parser.sh"
+load_js_env "$PROJECT_ROOT/.js.env"
 
 # ---------------------------------------------------------------------------
 # Config — two simulators, shared port (Metro restarts between phases)
@@ -61,23 +47,30 @@ AGENTIC_SIMULATOR="${AGENTIC_SIMULATOR:-${IOS_SIMULATOR:-mm-2}}"
 AGENTIC_PORT="$SHARED_PORT"
 
 # Matched pairs: Detox spec path -> agentic recipe path
+# Uses parallel indexed arrays for Bash 3.2 compatibility (no associative arrays).
 SPEC_NAMES=("perps-position" "perps-position-stop-loss" "perps-limit-long-fill")
 
-declare -A DETOX_SPECS
-DETOX_SPECS[perps-position]="tests/smoke/perps/perps-position.spec.ts"
-DETOX_SPECS[perps-position-stop-loss]="tests/smoke/perps/perps-position-stop-loss.spec.ts"
-DETOX_SPECS[perps-limit-long-fill]="tests/smoke/perps/perps-limit-long-fill.spec.ts"
+# Lookup helpers — return path for a given spec name
+detox_spec_for() {
+  case "$1" in
+    perps-position)            echo "tests/smoke/perps/perps-position.spec.ts" ;;
+    perps-position-stop-loss)  echo "tests/smoke/perps/perps-position-stop-loss.spec.ts" ;;
+    perps-limit-long-fill)     echo "tests/smoke/perps/perps-limit-long-fill.spec.ts" ;;
+  esac
+}
+agentic_recipe_for() {
+  case "$1" in
+    perps-position)            echo "scripts/perps/agentic/teams/perps/recipes/benchmark/perps-position.json" ;;
+    perps-position-stop-loss)  echo "scripts/perps/agentic/teams/perps/recipes/benchmark/perps-position-stop-loss.json" ;;
+    perps-limit-long-fill)     echo "scripts/perps/agentic/teams/perps/recipes/benchmark/perps-limit-long-fill.json" ;;
+  esac
+}
 
-declare -A AGENTIC_RECIPES
-AGENTIC_RECIPES[perps-position]="scripts/perps/agentic/teams/perps/recipes/benchmark/perps-position.json"
-AGENTIC_RECIPES[perps-position-stop-loss]="scripts/perps/agentic/teams/perps/recipes/benchmark/perps-position-stop-loss.json"
-AGENTIC_RECIPES[perps-limit-long-fill]="scripts/perps/agentic/teams/perps/recipes/benchmark/perps-limit-long-fill.json"
-
-# Results arrays
-declare -A DETOX_TIMES
-declare -A AGENTIC_TIMES
-declare -A DETOX_STATUS
-declare -A AGENTIC_STATUS
+# Results — parallel indexed arrays (same order as SPEC_NAMES)
+DETOX_TIMES=()
+AGENTIC_TIMES=()
+DETOX_STATUSES=()
+AGENTIC_STATUSES=()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -171,23 +164,7 @@ fi
 
 # Load .e2e.env for Detox (safe parser — no source/eval)
 E2E_ENV="$PROJECT_ROOT/.e2e.env"
-if [[ -f "$E2E_ENV" ]]; then
-  while IFS= read -r _line || [[ -n "$_line" ]]; do
-    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
-    _line="${_line#export }"
-    _key="${_line%%=*}"
-    _key="${_key//[[:space:]]/}"
-    _val="${_line#*=}"
-    _val="${_val#\"}" ; _val="${_val%\"}"
-    _val="${_val#\'}" ; _val="${_val%\'}"
-    case "$_key" in
-      METAMASK_ENVIRONMENT|IS_TEST|METAMASK_BUILD_TYPE|WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|DETOX_SIMULATOR|MM_PASSWORD) ;;
-      *) continue ;;
-    esac
-    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
-  done < "$E2E_ENV"
-  unset _line _key _val
-fi
+load_js_env "$E2E_ENV"
 
 # Boot detox simulator if needed
 if ! xcrun simctl list devices | grep "$DETOX_SIMULATOR" | grep -q "Booted"; then
@@ -197,17 +174,17 @@ if ! xcrun simctl list devices | grep "$DETOX_SIMULATOR" | grep -q "Booted"; the
 fi
 
 for name in "${SPEC_NAMES[@]}"; do
-  spec="${DETOX_SPECS[$name]}"
+  spec="$(detox_spec_for "$name")"
 
   run_timed "detox:$name" \
     env IOS_SIMULATOR="$DETOX_SIMULATOR" WATCHER_PORT="$DETOX_PORT" \
     yarn test:e2e:ios:debug:run "$spec"
 
-  DETOX_TIMES[$name]=$_TIMED_ELAPSED
+  DETOX_TIMES+=("$_TIMED_ELAPSED")
   if [[ $_TIMED_EXIT -eq 0 ]]; then
-    DETOX_STATUS[$name]="PASS"
+    DETOX_STATUSES+=("PASS")
   else
-    DETOX_STATUS[$name]="FAIL"
+    DETOX_STATUSES+=("FAIL")
   fi
 done
 
@@ -277,17 +254,17 @@ echo "  $BALANCE_CHECK"
 echo ""
 
 for name in "${SPEC_NAMES[@]}"; do
-  recipe="${AGENTIC_RECIPES[$name]}"
+  recipe="$(agentic_recipe_for "$name")"
 
   run_timed "agentic:$name" \
     env IOS_SIMULATOR="$AGENTIC_SIMULATOR" WATCHER_PORT="$AGENTIC_PORT" \
     node scripts/perps/agentic/validate-recipe.js "$recipe"
 
-  AGENTIC_TIMES[$name]=$_TIMED_ELAPSED
+  AGENTIC_TIMES+=("$_TIMED_ELAPSED")
   if [[ $_TIMED_EXIT -eq 0 ]]; then
-    AGENTIC_STATUS[$name]="PASS"
+    AGENTIC_STATUSES+=("PASS")
   else
-    AGENTIC_STATUS[$name]="FAIL"
+    AGENTIC_STATUSES+=("FAIL")
   fi
 done
 
@@ -309,11 +286,12 @@ TABLE="| Spec | Detox (s) | Detox Status | Agentic (s) | Agentic Status | Delta 
 TOTAL_DETOX=0
 TOTAL_AGENTIC=0
 
-for name in "${SPEC_NAMES[@]}"; do
-  dt=${DETOX_TIMES[$name]}
-  at=${AGENTIC_TIMES[$name]}
-  ds=${DETOX_STATUS[$name]}
-  as=${AGENTIC_STATUS[$name]}
+for i in "${!SPEC_NAMES[@]}"; do
+  name=${SPEC_NAMES[$i]}
+  dt=${DETOX_TIMES[$i]}
+  at=${AGENTIC_TIMES[$i]}
+  ds=${DETOX_STATUSES[$i]}
+  as=${AGENTIC_STATUSES[$i]}
   delta=$(( dt - at ))
   if [[ $at -gt 0 ]]; then
     speedup_100=$(( dt * 100 / at ))

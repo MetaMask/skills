@@ -201,7 +201,7 @@ function renderDocument(recipePath, inputParams = {}) {
   const params = { ...defaults, ...inputParams };
 
   for (const [k, v] of Object.entries(params)) {
-    if (typeof v === 'string' && /['"`\\]/.test(v)) {
+    if (typeof v === 'string' && /['"`\\;|&$(){}><]/.test(v)) {
       throw new Error(`Input "${k}" contains characters unsafe for expression templates (got: ${v}). Use only simple values.`);
     }
   }
@@ -694,12 +694,17 @@ function resolveArtifactPath(runOptions, recipePath, artifactPath) {
     return '';
   }
 
-  if (path.isAbsolute(artifactPath)) {
-    return artifactPath;
-  }
-
   const artifacts = ensureRunArtifacts(runOptions, recipePath);
-  return path.join(artifacts.rootDir, artifactPath);
+  const base = artifacts.rootDir;
+  const resolved = path.isAbsolute(artifactPath)
+    ? path.resolve(artifactPath)
+    : path.resolve(base, artifactPath);
+  if (!resolved.startsWith(path.resolve(base) + '/') && resolved !== path.resolve(base)) {
+    throw new Error(
+      `Artifact path "${artifactPath}" resolves outside the artifacts directory`,
+    );
+  }
+  return resolved;
 }
 
 function readJsonArtifact(runOptions, recipePath, artifactPath) {

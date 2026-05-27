@@ -388,35 +388,24 @@ trap - ERR
 [ -n "$REFRESH_BACKUP_DIR" ] && rm -rf "$REFRESH_BACKUP_DIR"
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
-cat > "$HARNESS_DIR/manifest.json" <<EOF
-{
-  "adapter": "mobile",
-  "installedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "source": {
-    "skillDir": "$SKILL_DIR",
-    "revision": "$SOURCE_REV",
-    "runtime": "$ADAPTER_DIR"
-  },
-  "target": "$TARGET",
-  "installedPaths": [
-    "scripts/perps/agentic",
-    "app/core/AgenticService"
-  ],
-  "patchedFiles": [
-    "package.json",
-    "app/core/NavigationService/NavigationService.ts",
-    "app/components/Nav/App/App.tsx"
-  ],
-  "backupDir": "$BACKUP_DIR",
-  "managedHashes": "$BACKUP_DIR/managed-hashes.tsv",
-  "cleanupCommand": "$SCRIPT_DIR/cleanup.sh --target $TARGET",
-  "productDiffExcludes": [
-    ":(exclude).agent/recipe-harness",
-    ":(exclude).skills-cache",
-    ":(exclude)scripts/perps/agentic",
-    ":(exclude)app/core/AgenticService"
-  ]
-}
-EOF
+node -e '
+  const fs = require("fs");
+  const m = {
+    adapter: "mobile",
+    installedAt: new Date().toISOString(),
+    source: { skillDir: process.argv[1], revision: process.argv[2], runtime: process.argv[3] },
+    target: process.argv[4],
+    installedPaths: ["scripts/perps/agentic", "app/core/AgenticService"],
+    patchedFiles: ["package.json", "app/core/NavigationService/NavigationService.ts", "app/components/Nav/App/App.tsx"],
+    backupDir: process.argv[5],
+    managedHashes: process.argv[5] + "/managed-hashes.tsv",
+    cleanupCommand: process.argv[6] + "/cleanup.sh --target " + process.argv[4],
+    productDiffExcludes: [
+      ":(exclude).agent/recipe-harness", ":(exclude).skills-cache",
+      ":(exclude)scripts/perps/agentic", ":(exclude)app/core/AgenticService"
+    ]
+  };
+  fs.writeFileSync(process.argv[7], JSON.stringify(m, null, 2) + "\n");
+' "$SKILL_DIR" "$SOURCE_REV" "$ADAPTER_DIR" "$TARGET" "$BACKUP_DIR" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
 
 echo "Installed mobile recipe harness: $HARNESS_DIR/manifest.json"

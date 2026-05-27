@@ -27,23 +27,9 @@ cd "$(dirname "$0")/../../.."
 # Source .js.env but only for vars not already set in the environment,
 # so that the caller's env vars (e.g. WATCHER_PORT=8083 ./interactive-start.sh)
 # take precedence over the file.
-if [ -f .js.env ]; then
-  while IFS= read -r _line || [ -n "$_line" ]; do
-    [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
-    _line="${_line#export }"
-    _key="${_line%%=*}"
-    _key="${_key//[[:space:]]/}"
-    _val="${_line#*=}"
-    _val="${_val#\"}" ; _val="${_val%\"}"
-    _val="${_val#\'}" ; _val="${_val%\'}"
-    case "$_key" in
-      WATCHER_PORT|SIM_UDID|IOS_SIMULATOR|ANDROID_DEVICE|ADB_SERIAL|PLATFORM|METAMASK_ENVIRONMENT|MM_PASSWORD|MM_WALLET_PASSWORD|CDP_TIMEOUT|CDP_DISCOVERY_RETRIES|DETOX_SIMULATOR|AGENTIC_SIMULATOR|MM_BUILD_CACHE_DIR|WALLET_FIXTURE|BUILD_TYPE|METAMASK_DEBUG) ;;
-      *) continue ;;
-    esac
-    [[ -z "${!_key+x}" ]] && export "$_key=$_val"
-  done < .js.env
-  unset _line _key _val
-fi
+# shellcheck source=lib/safe-env-parser.sh
+. "$(dirname "$0")/lib/safe-env-parser.sh"
+load_js_env
 
 # Parse --port flag
 PORT="${WATCHER_PORT:-8081}"
