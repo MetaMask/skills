@@ -1,0 +1,84 @@
+# Extension fix-ticket checklist
+
+Use this target-specific checklist for `metamask-extension` bug tickets. Execute in order; mark every row in the copied `CHECKLIST.md` with `[x]`, `BLOCKED`, or `N/A: <reason>`.
+
+## Live checklist template
+
+Copy this file to the task artifact folder as `CHECKLIST.md` before product edits. Execute top-to-bottom. Every gate is mandatory unless marked `N/A: <reason>` in the copied file. After each gate, edit the copied file from `[ ]` to `[x]` and add the artifact/path/result below that line. Do not mark final complete with unchecked required gates.
+
+- [ ] **0. Coffee handoff + progress file** — Human-facing handoff names the copied `CHECKLIST.md` path to monitor.
+- [ ] **1. Ticket captured** — URL or pasted text, summary, requirements, ACs.
+- [ ] **2. AC matrix written** — Verbatim numbered ACs; proof mode: `state`, `visual`, or `mixed`; primary evidence.
+- [ ] **3. Target runtime selected** — Mobile/Extension + platform/env + rationale.
+- [ ] **3a. Clean per-run branch prepared** — Worktree clean or previous loop stashed; model-specific branch created; base SHA recorded for later diff comparison.
+- [ ] **4. Baseline/repro plan written before behavior edits** — Route, fixture/state setup, selectors/testIDs, expected before evidence.
+- [ ] **5. `mms-recipe-harness` delegate completed install/verify** — Manifest + verify artifact path.
+- [ ] **6. Baseline/no-state recipe authored by `mms-recipe-cook`** — Recipe path + exact command, or `BLOCKED: <reason>`.
+- [ ] **7. Baseline/no-state recipe run** — `summary.json`, `trace.json`, screenshot/manifest paths, or blocked reason.
+- [ ] **8. Minimal fix implemented** — Product diff summary; no harness/generated files counted as product diff.
+- [ ] **8a. Surgical diff audit** — Every changed product line maps to an AC; no duplicate implementation surfaces; no unrelated cleanup/refactor.
+- [ ] **9. Focused checks run** — Changed-file typecheck/Jest/lint results. This is not a stop gate.
+- [ ] **10. After/with-state recipe updated by `mms-recipe-cook`** — Recipe path + exact command proving each AC.
+- [ ] **11. Runtime recipe run** — `summary.json`, `trace.json`, artifact manifest, logs.
+- [ ] **12. Visual evidence gate** — Read every PNG; for visual/mixed ACs, claimed UI is visible in viewport.
+- [ ] **13. `mms-recipe-quality` delegate/subagent critique** — Verdict table; gaps assigned to product/recipe/fixture/harness/evidence.
+- [ ] **14. Improvement/rerun loop** — One fix + rerun, or explicit “no rerun needed” from quality verdict.
+- [ ] **15. `mms-recipe-evidence` package** — PR-ready evidence block/file with artifact paths and blocked gaps.
+- [ ] **16. Resource cleanup prompt** — Ask whether to stop webpack/dev server/browser/CDP or keep runtime alive for review; record the answer.
+- [ ] **17. Final response** — Fix, tests, recipe evidence, quality loop, remaining risk.
+
+Extension-specific gates:
+
+- Because `/mms-recipe-fix-ticket` was invoked, do not switch to the dev protocol or mark baseline/repro `N/A` merely because the Jira says POC/debug. Attempt a before/no-state recipe or record the concrete `/mms-recipe-cook` blocker.
+- Name the browser context and UI target (`popup`, `sidepanel`, `fullscreen`, dapp tab, or service worker/controller).
+- Do not ask whether to proceed with harness/recipe validation after typecheck or Jest. Proceed automatically.
+- A stopped browser/dev server/CDP endpoint is not a user blocker. Run `/mms-recipe-harness` verify/preflight and record the artifact path.
+- Only mark runtime proof `BLOCKED` after a concrete harness or recipe command has been attempted and failed for an external reason.
+- Direct app/browser scripts, DOM evals, or screenshots are supporting evidence only. They do not satisfy gates 5–15 unless `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, and `/mms-recipe-evidence` were explicitly invoked/followed and produced the recipe package artifacts.
+- Do not claim recipe infrastructure is absent just because a repo-root `validate-recipe.js` is missing. Check installed skill delegate paths first (`.claude/skills/mms-recipe-harness`, `.agents/skills/mms-recipe-harness`, `.cursor/rules/mms-recipe-harness`) and follow their scripts/adapters. If no executable `recipe.json` plus harness-produced `summary.json` and `trace.json` exists, classify runtime/visual proof as `FAIL`/`BLOCKED: no recipe protocol`; ad-hoc CDP probes, manual evidence markdown, black screenshots, or human-to-confirm notes do not satisfy the recipe gates.
+- Do not manufacture proof by mutating app state: no `window.stateHooks`, `stateHooks.submitRequestToBackground`, Redux/store writes, React/fiber mutation, DOM injection, controller/provider mutation, or helper that directly creates, closes, clears, seeds, or inserts the target position/value/banner. Use a real user flow or harness-owned pre-start fixture; otherwise mark the affected AC as a fixture/runtime gap.
+- If visual proof is needed, screenshot after a `wait_for` with `visibility: "viewport"` and `claims.must_show`.
+- DOM query or controller eval success is not enough for UI claims; inspect the PNG.
+- For visual/mixed ACs, never mark an AC `code-proven`. If no runtime PNG/video exists because CDP/browser is unavailable, the visual AC is `BLOCKED: no runtime visual evidence`.
+- If CDP/browser state cannot be prepared, run harness recovery once before declaring `BLOCKED`.
+- Fix schema warnings before packaging visual proof. Screenshot nodes need
+  `note` and `claims`; warning-only schema output is not a clean final state.
+- If the runner/harness does not emit `artifact-manifest.json`, create an
+  explicit evidence manifest that lists recipe path, exact command,
+  `summary.json`, `trace.json`, logs, screenshots/videos, quality verdict, and
+  remaining gaps.
+- `/mms-recipe-evidence` packaging must produce a PR-ready evidence block/file (for example `PR-READY-EVIDENCE.md`) in addition to any JSON manifest. A manifest-only package is still `PASS-WITH-GAPS` for the workflow packaging gate.
+- Do not stop at an idle prompt after recipe PASS. Continue through gates 13-16
+  (`/mms-recipe-quality`, improvement/rerun or no-rerun verdict,
+  `/mms-recipe-evidence`, final summary).
+- A failed recipe/action node is not a final blocker after one attempt. Inspect
+  `summary.json`/`trace.json`, the failure screenshot/last-screen artifact, and
+  the actual target screen. If the failure is plausibly caused by route, wait,
+  hydration, scroll, obscured target, unstable click/press, or selector quality,
+  patch the recipe/flow and rerun the smallest meaningful segment before final
+  packaging. Only report `BLOCKED` after concrete retry attempts still fail, and
+  name the exact failed node plus artifacts. Unit tests or manual screenshot
+  suggestions do not replace the missing live recipe proof for visual/mixed ACs.
+- Fallback screenshot metadata controls verdict strength. If a screenshot PNG says
+  `DOM-rendered fallback evidence`, `native browser screenshot timed out/blank`,
+  or `trace.json` records `fallbackReason` for that screenshot, read and package
+  it but keep visual/mixed ACs at `PASS-WITH-GAPS` unless native screenshot/video
+  or an explicitly accepted non-fallback artifact also proves the claim. A recipe
+  `summary.json` pass, DOM/viewport wait, or unit test does not upgrade fallback
+  screenshots to clean visual proof.
+- Before writing `recipe-quality` or final evidence, perform and record an explicit fallback audit: count `trace.json` `fallbackReason`/`captureMode: dom-evidence-card-fallback` entries and read PNG headers/body for `DOM-rendered fallback evidence`. If fallback metadata exists, do not write `native screenshot`, `no fallback`, or clean visual `PASS` for affected ACs.
+- At the cleanup prompt, name the Extension resources that are still running
+  (webpack/dev server, browser/CDP port, service worker target, tmux pane). Do
+  not stop them until the human confirms, unless the user already asked for
+  cleanup. If kept alive, record why in `CHECKLIST.md`.
+- Stateful ACs require explicit setup. If an AC depends on app state such as
+  no-position vs open-position, the recipe must create/clear that state through
+  a real UI/harness flow or documented pre-start fixture before asserting the
+  UI. Do not rely on inherited browser/wallet state or prior validation runs. A
+  read-only observation recipe is only `PASS-WITH-GAPS`/`BLOCKED` for the
+  affected AC unless the required state setup is explicitly proven. Direct
+  background/controller cleanup or seeding, including
+  `stateHooks.submitRequestToBackground('perpsClosePositions', ...)`,
+  `perpsGetPositions`-driven proof, provider/controller mutation, or an ad-hoc
+  state helper, can be diagnostic/supporting evidence but cannot make the
+  no-position/open-position AC cleanly `met` by itself.
