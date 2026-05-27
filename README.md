@@ -9,7 +9,7 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, etc. carry the conventions
+   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
    and review heuristics for `metamask-extension` and `metamask-mobile`.
    These install into consumer repos via a small CLI.
 
@@ -54,6 +54,9 @@ export METAMASK_SKILLS_DIR=~/dev/metamask/skills
 
 # Then, from inside the consumer repo:
 yarn skills
+
+# To opt into experimental ADR-58 recipe skills:
+yarn skills --domain agentic --maturity experimental
 ```
 
 `yarn skills` runs `tools/sync`, which pulls the latest skills and writes
@@ -66,6 +69,10 @@ No SSH key, no env var — one curl pipe to bash inside the consumer repo:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
   bash -s -- --repo metamask-extension
+
+# To opt into experimental ADR-58 recipe skills:
+curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
+  bash -s -- --repo metamask-extension --domain agentic --maturity experimental
 ```
 
 The bootstrap script clones this repo into a cache dir under
@@ -80,6 +87,7 @@ domains/<area>/
     skill.md                    # base skill
     references/                 # optional supporting docs
     scripts/                    # optional helper scripts
+    adapters/                   # optional runtime payloads used by scripts
     repos/<consuming-repo>.md   # optional repo-specific overlay
   knowledge/                    # optional shared domain reference
 tools/
@@ -96,6 +104,7 @@ tools/
 | -------------- | ----------------- | ------------------------------------------- |
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
+| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
@@ -133,8 +142,15 @@ tools/deploy --domain perps --dry-run      # forwarded to install
 From inside a consumer repo:
 
 ```bash
-yarn skills                                          # interactive prompt
-SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive
+yarn skills                                          # sync all stable/default saved domains
+yarn skills --select                                 # interactive domain picker
+yarn skills --domain agentic --maturity experimental # opt into all experimental recipe skills
+yarn skills --include agentic/recipe-harness         # cherry-pick one experimental skill
+yarn skills --exclude testing/visual-testing         # opt out of one selected/default skill
+yarn skills --include agentic/recipe-harness --save  # persist granular selection to .skills.local
+SKILLS_DOMAINS=perps,testing yarn skills             # non-interactive domain filter
+SKILLS_INCLUDE=agentic/recipe-harness yarn skills    # non-interactive skill opt-in
+SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity filter
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
@@ -152,7 +168,8 @@ Both flows ultimately invoke `tools/install`:
 tools/install \
   --repo metamask-mobile \
   --target ~/dev/metamask/metamask-mobile \
-  --domain perps \
+  --domain agentic \
+  --maturity experimental \
   --dry-run
 ```
 
@@ -165,19 +182,66 @@ tools/install \
 | `--source`       | this repo | Skill source dir (repeatable, ordered; later overrides earlier on name collision) |
 | `--domain`       | all      | Comma-separated domain filter. Default installs **all** domains; pass to opt out. |
 | `--maturity`     | `stable` | Min maturity: `experimental`, `stable`, `deprecated`                             |
+| `--include`, `--skill` | none | Comma-separated skill opt-ins (`domain/skill` or `skill`). Explicit includes bypass domain and maturity filters. Repeatable. |
+| `--exclude`      | none | Comma-separated skill opt-outs (`domain/skill` or `skill`). Explicit excludes win. Repeatable. |
+| `--save`         | off | Persist CLI domain/maturity/include/exclude choices to `.skills.local`. CLI flags are one-off unless this is passed. |
 | `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
 | `--dry-run`      | off      | Preview without writing                                                          |
 
-**Install-all default.** Skills install for every domain by default. Engineers
-opt out per-machine by editing `.skills.local` (`SKILLS_DOMAINS=perps,testing`)
-or by running `yarn skills --select` for an interactive picker. New domains
-land automatically on the next sync — that's by design so new tooling is
-discoverable.
+**Install-all default with granular overrides.** Stable skills install for every
+domain by default. Engineers opt out per-machine by editing `.skills.local`
+(`SKILLS_DOMAINS=perps,testing`) or by running `yarn skills --select` for an
+interactive domain picker. New stable domains land automatically on the next
+sync — that's by design so new tooling is discoverable.
+
+When a domain mixes stable and experimental skills, use skill-level selection
+instead of raising the maturity for the whole domain. `SKILLS_INCLUDE` /
+`--include` adds specific skills even when their domain or maturity would
+normally skip them; `SKILLS_EXCLUDE` / `--exclude` removes specific skills even
+when their domain is selected. Items may be `domain/skill` or just `skill`; use
+`domain/skill` when names could collide across public/private sources. CLI
+selection is one-off unless passed with `--save`, which writes `.skills.local`:
+
+```bash
+# Stable defaults plus only one experimental recipe skill for this run:
+yarn skills --include agentic/recipe-harness
+
+# Persist stable defaults plus selected experimental recipe skills:
+yarn skills \
+  --include agentic/recipe-harness,agentic/recipe-quality \
+  --exclude testing/visual-testing \
+  --save
+```
+
+Recipe skills currently live in the experimental `agentic` domain. Install all
+lower-level recipe tools in this rollout with `--domain agentic --maturity
+experimental`, or cherry-pick only the ones you want with
+`--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
 of the target repo. They are **never auto-installed** — installer lists them
 in a final warning. Run with `--include-user` to install manually.
+
+### Recipe skills quick use
+
+Recipe skills are experimental. Install them with:
+
+```bash
+yarn skills --domain agentic --maturity experimental
+```
+
+Experimental recipe skills in this first rollout are the lower-level proof tools. High-level workflows such as `/mms-recipe-dev` and `/mms-recipe-fix-ticket` are intentionally held for a follow-up PR so their orchestration checklist can be tightened before broad use.
+
+Use these directly when steering/debugging:
+
+- `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
+- `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
+- `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
+- `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
+
+Happy path for this lower-level rollout: clear task + acceptance criteria → `/mms-recipe-harness` verify → `/mms-recipe-cook` recipe → live recipe run → screenshots/trace/summary/manifest → `/mms-recipe-quality` critique → `/mms-recipe-evidence` block → human validation.
 
 ### Output
 
@@ -186,6 +250,17 @@ Per consuming repo, the CLI writes:
 - `.claude/skills/mms-<name>/SKILL.md` — Claude Code, OpenCode
 - `.cursor/rules/mms-<name>/RULE.md` — Cursor
 - `.agents/skills/mms-<name>/SKILL.md` + `agents/openai.yaml` — Codex, OpenCode
+
+When a source skill includes bundled resources, `references/`, `scripts/`,
+`assets/`, and `adapters/` are mirrored into each output skill directory.
+Large runtime skills such as recipe harnesses can therefore add sizeable
+ignored payloads under `.claude/skills/`, `.cursor/rules/`, and
+`.agents/skills/`; this is intentional so installed skills remain
+self-contained. Sync removes stale managed bundle directories when the source
+skill removes them. "Self-contained" means the skill payload is present; live
+runtime proof still depends on the target repo dependencies, device/browser,
+and CDP state described by each repo overlay. Repo overlays still decide which
+adapter an agent should use.
 
 All output names are prefixed `mms-` (managed metamask skill). Source
 frontmatter `name:` stays unprefixed; the prefix is applied at install time.
@@ -216,6 +291,7 @@ domains/<area>/
     skill.md
     references/                   # optional supporting docs
     scripts/                      # optional helper scripts
+    adapters/                     # optional runtime payloads used by scripts
     repos/metamask-extension.md   # optional repo overlay
     repos/metamask-mobile.md      # optional repo overlay
 ```

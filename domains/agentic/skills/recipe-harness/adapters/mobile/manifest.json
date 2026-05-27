@@ -1,0 +1,14 @@
+{
+  "adapter": "mobile",
+  "runtime": "MetaMask Mobile recipe runtime",
+  "version": 1,
+  "installs": [
+    "scripts/perps/agentic/**",
+    "app/core/AgenticService/**"
+  ],
+  "patches": [
+    "package.json",
+    "app/core/NavigationService/NavigationService.ts",
+    "app/components/Nav/App/App.tsx"
+  ]
+}

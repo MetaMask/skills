@@ -28,6 +28,8 @@ REPO=""
 TARGET=""
 DOMAIN_FILTER=""
 MATURITY_FILTER="stable"
+INCLUDE_FILTER=""
+EXCLUDE_FILTER=""
 DRY_RUN=false
 INCLUDE_USER=false
 SOURCES=()
@@ -50,7 +52,12 @@ Optional:
                       e.g., --domain perps,testing
   --maturity <level>  Minimum maturity: experimental, stable, deprecated
                       (default: stable; matches stable+deprecated when set to stable)
-  --include-user      Also install skills with `scope: user` (writes to
+  --include <list>    Comma-separated skill opt-ins. Each item may be
+                      domain/skill or skill; explicit includes bypass domain
+                      and maturity filters. Repeatable. Alias: --skill.
+  --exclude <list>    Comma-separated skill opt-outs. Each item may be
+                      domain/skill or skill; explicit excludes win. Repeatable.
+  --include-user      Also install skills with \`scope: user\` (writes to
                       \$HOME/.claude/skills and \$HOME/.codex/skills, outside
                       the target repo). Off by default — warns + lists them.
   --dry-run           Preview without writing files
@@ -72,6 +79,8 @@ while [[ $# -gt 0 ]]; do
     --source)        SOURCES+=("$2"); shift 2 ;;
     --domain)        DOMAIN_FILTER="$2"; shift 2 ;;
     --maturity)      MATURITY_FILTER="$2"; shift 2 ;;
+    --include|--skill) INCLUDE_FILTER="${INCLUDE_FILTER:+$INCLUDE_FILTER,}$2"; shift 2 ;;
+    --exclude)       EXCLUDE_FILTER="${EXCLUDE_FILTER:+$EXCLUDE_FILTER,}$2"; shift 2 ;;
     --include-user)  INCLUDE_USER=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
     -h|--help)       usage 0 ;;
@@ -139,6 +148,28 @@ domain_allowed() {
   for d in "${ds[@]}"; do [[ "$d" == "$domain" ]] && return 0; done
   return 1
 }
+
+skill_list_matches() {
+  local list="$1" domain="$2" skill="$3" item normalized item_domain item_skill
+  [[ -z "$list" ]] && return 1
+  IFS=',' read -ra items <<< "$list"
+  for item in "${items[@]}"; do
+    normalized="${item//[[:space:]]/}"
+    [[ -z "$normalized" ]] && continue
+    normalized="${normalized%%@*}"
+    if [[ "$normalized" == */* ]]; then
+      item_domain="${normalized%%/*}"
+      item_skill="${normalized#*/}"
+      [[ "$item_domain" == "$domain" && "$item_skill" == "$skill" ]] && return 0
+    else
+      [[ "$normalized" == "$skill" ]] && return 0
+    fi
+  done
+  return 1
+}
+
+skill_included() { skill_list_matches "$INCLUDE_FILTER" "$1" "$2"; }
+skill_excluded() { skill_list_matches "$EXCLUDE_FILTER" "$1" "$2"; }
 
 is_truthy() {
   case "${1:-}" in
@@ -259,6 +290,40 @@ ${content}
 HEREDOC
 }
 
+copy_bundle_dirs() {
+  local skill_dir="$1" dest_dir="$2" label="$3"
+  local bundle
+  for bundle in references scripts assets adapters; do
+    if [[ -d "$skill_dir/$bundle" ]]; then
+      action "$label/$bundle/"
+      $DRY_RUN && continue
+      mkdir -p "$dest_dir"
+      rm -rf "$dest_dir/$bundle"
+      cp -R "$skill_dir/$bundle" "$dest_dir/$bundle"
+    else
+      if $DRY_RUN; then
+        [[ -e "$dest_dir/$bundle" ]] && action "$label/$bundle/ (remove stale)"
+        continue
+      fi
+      # Remove stale bundles left by older versions of this skill.
+      rm -rf "$dest_dir/$bundle"
+    fi
+  done
+}
+
+copy_project_bundles() {
+  local skill_dir="$1" out_name="$2"
+  copy_bundle_dirs "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
+  copy_bundle_dirs "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
+  copy_bundle_dirs "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
+}
+
+copy_user_bundles() {
+  local skill_dir="$1" out_name="$2"
+  [[ -d "$HOME/.claude" ]] && copy_bundle_dirs "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
+  [[ -d "$HOME/.codex" ]] && copy_bundle_dirs "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+}
+
 process_skill() {
   local skill_dir="$1" domain_name="$2"
   local skill_name; skill_name=$(basename "$skill_dir")
@@ -271,13 +336,21 @@ process_skill() {
   local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
   local scope;     scope=$(frontmatter_value "$base" "scope")
 
-  if ! maturity_allowed "$maturity"; then
+  if skill_excluded "$domain_name" "$skill_name"; then
+    log "skipped (explicitly excluded by --exclude/SKILLS_EXCLUDE)"
+    return
+  fi
+
+  local explicit_include=false
+  skill_included "$domain_name" "$skill_name" && explicit_include=true
+
+  if ! $explicit_include && ! maturity_allowed "$maturity"; then
     log "skipped (maturity=${maturity:-stable} excluded by --maturity=$MATURITY_FILTER)"
     return
   fi
 
-  # Domain filter — but mandatory skills bypass.
-  if ! domain_allowed "$domain_name"; then
+  # Domain filter — but mandatory skills and explicit skill includes bypass.
+  if ! $explicit_include && ! domain_allowed "$domain_name"; then
     if is_truthy "$mandatory"; then
       log "(mandatory — included despite domain filter)"
     else
@@ -286,11 +359,23 @@ process_skill() {
     fi
   fi
 
+  if $explicit_include; then
+    log "included (explicit skill opt-in)"
+  fi
+
   local name;        name=$(frontmatter_value "$base" "name")
   local description; description=$(frontmatter_value "$base" "description")
 
-  [[ -z "$name" ]]        && { echo "Error: $base missing 'name' frontmatter" >&2; return; }
-  [[ -z "$description" ]] && { echo "Error: $base missing 'description' frontmatter" >&2; return; }
+  if [[ -z "$name" ]]; then
+    echo "Error: $base missing 'name' frontmatter" >&2
+    FAILED_SKILLS+=("$base missing name")
+    return
+  fi
+  if [[ -z "$description" ]]; then
+    echo "Error: $base missing 'description' frontmatter" >&2
+    FAILED_SKILLS+=("$base missing description")
+    return
+  fi
 
   local out_name="${PREFIX}${name}"
 
@@ -306,6 +391,7 @@ process_skill() {
     local body; body=$(body_after_frontmatter "$base")
     write_user_claude "$out_name" "$out_name" "$description" "$body"
     write_user_codex  "$out_name" "$out_name" "$description" "$body"
+    copy_user_bundles "$skill_dir" "$out_name"
     return
   fi
 
@@ -327,6 +413,41 @@ ${overlay_content}"
   write_claude "$out_name" "$out_name" "$description" "$merged"
   write_cursor "$out_name" "$description" "$merged"
   write_agents "$out_name" "$out_name" "$description" "$merged"
+  copy_project_bundles "$skill_dir" "$out_name"
+}
+
+preflight_skill() {
+  local skill_dir="$1" domain_name="$2"
+  local base="$skill_dir/skill.md"
+
+  [[ -f "$base" ]] || return 0
+
+  local maturity;  maturity=$(frontmatter_value "$base" "maturity")
+  local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
+
+  local skill_name; skill_name=$(basename "$skill_dir")
+  skill_excluded "$domain_name" "$skill_name" && return 0
+
+  local explicit_include=false
+  skill_included "$domain_name" "$skill_name" && explicit_include=true
+
+  if ! $explicit_include && ! maturity_allowed "$maturity"; then
+    return 0
+  fi
+
+  if ! $explicit_include && ! domain_allowed "$domain_name"; then
+    is_truthy "$mandatory" || return 0
+  fi
+
+  local name;        name=$(frontmatter_value "$base" "name")
+  local description; description=$(frontmatter_value "$base" "description")
+
+  if [[ -z "$name" ]]; then
+    FAILED_SKILLS+=("$base missing name")
+  fi
+  if [[ -z "$description" ]]; then
+    FAILED_SKILLS+=("$base missing description")
+  fi
 }
 
 echo "MetaMask skills install"
@@ -335,14 +456,31 @@ echo "  target:   $TARGET"
 echo "  sources:  ${SOURCES[*]}"
 echo "  domain:   ${DOMAIN_FILTER:-<all>}"
 echo "  maturity: $MATURITY_FILTER"
+echo "  include:  ${INCLUDE_FILTER:-<none>}"
+echo "  exclude:  ${EXCLUDE_FILTER:-<none>}"
 echo "  dry-run:  $DRY_RUN"
 
 # Two-pass resolution: collect (domain, skill_dir) per name across all sources,
 # letting later sources overwrite earlier ones. Then process the resolved set.
-declare -A RESOLVED_DIR
-declare -A RESOLVED_DOMAIN
-declare -a RESOLVED_NAMES
+# Keep this Bash 3-compatible: macOS /bin/bash is still 3.2, so avoid
+# associative arrays here.
+RESOLVED_KEYS=()
+RESOLVED_DIRS=()
+RESOLVED_DOMAINS=()
 SKIPPED_USER_SKILLS=()
+FAILED_SKILLS=()
+
+find_resolved_index() {
+  local needle="$1"
+  local i
+  for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+    if [[ "${RESOLVED_KEYS[$i]}" == "$needle" ]]; then
+      echo "$i"
+      return 0
+    fi
+  done
+  echo "-1"
+}
 
 for src in "${SOURCES[@]}"; do
   for domain_dir in "$src"/domains/*/; do
@@ -352,25 +490,44 @@ for src in "${SOURCES[@]}"; do
       [[ -d "$skill_dir" ]] || continue
       skill_name=$(basename "$skill_dir")
       key="${domain_name}/${skill_name}"
-      if [[ -z "${RESOLVED_DIR[$key]:-}" ]]; then
-        RESOLVED_NAMES+=("$key")
+      resolved_index=$(find_resolved_index "$key")
+      if [[ "$resolved_index" == "-1" ]]; then
+        RESOLVED_KEYS+=("$key")
+        RESOLVED_DIRS+=("$skill_dir")
+        RESOLVED_DOMAINS+=("$domain_name")
+      else
+        RESOLVED_DIRS[$resolved_index]="$skill_dir"
+        RESOLVED_DOMAINS[$resolved_index]="$domain_name"
       fi
-      RESOLVED_DIR[$key]="$skill_dir"
-      RESOLVED_DOMAIN[$key]="$domain_name"
     done
   done
 done
 
+for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+  preflight_skill "${RESOLVED_DIRS[$i]}" "${RESOLVED_DOMAINS[$i]}"
+done
+
+set +u
+FAILED_SKILL_COUNT=${#FAILED_SKILLS[@]}
+set -u
+if (( FAILED_SKILL_COUNT > 0 )); then
+  echo
+  echo "Error: $FAILED_SKILL_COUNT malformed skill(s) encountered before install:" >&2
+  for s in "${FAILED_SKILLS[@]}"; do echo "  - $s" >&2; done
+  echo "No target files were written." >&2
+  exit 1
+fi
+
 current_domain=""
-for key in "${RESOLVED_NAMES[@]}"; do
-  domain_name="${RESOLVED_DOMAIN[$key]}"
+for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
+  domain_name="${RESOLVED_DOMAINS[$i]}"
   if [[ "$domain_name" != "$current_domain" ]]; then
     echo
     echo "Domain: $domain_name"
     current_domain="$domain_name"
   fi
-  log "skill: $(basename "${RESOLVED_DIR[$key]}")"
-  process_skill "${RESOLVED_DIR[$key]}" "$domain_name"
+  log "skill: $(basename "${RESOLVED_DIRS[$i]}")"
+  process_skill "${RESOLVED_DIRS[$i]}" "$domain_name"
 done
 
 echo

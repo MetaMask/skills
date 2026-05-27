@@ -21,6 +21,9 @@
 #   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills checkout (private overlay).
 #                         When both set, private overrides public on name conflict.
 #   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
+#   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
+#   SKILLS_INCLUDE        Comma-separated skill opt-ins (domain/skill or skill).
+#   SKILLS_EXCLUDE        Comma-separated skill opt-outs (domain/skill or skill).
 #
 # Usage (via `yarn skills`):
 #   tools/sync --repo metamask-extension --target /path/to/repo
@@ -32,9 +35,16 @@ set -euo pipefail
 REPO_NAME=""
 TARGET="$(pwd)"
 DOMAIN_OVERRIDE=""
+MATURITY_FILTER=""
+MATURITY_SOURCE=""
+INCLUDE_FILTER=""
+INCLUDE_SOURCE=""
+EXCLUDE_FILTER=""
+EXCLUDE_SOURCE=""
 DRY_RUN=false
 RESET=false
 SAVE=true
+SAVE_REQUESTED=false
 SELECT=false
 INCLUDE_USER=false
 
@@ -48,8 +58,15 @@ Required:
 Options:
   --repo <name>        Consumer repo (auto-detected from <target>/package.json)
   --domain <list>      Comma-separated domain opt-in filter (overrides default-all)
-  --select             Interactively pick which domains to install. Default
-                       behavior is install all — use this to opt out of some.
+  --maturity <level>    Minimum maturity: experimental, stable, deprecated
+  --include <list>      Comma-separated skill opt-ins (domain/skill or skill).
+                       Repeatable. Alias: --skill.
+  --exclude <list>      Comma-separated skill opt-outs (domain/skill or skill).
+                       Repeatable.
+  --save               Persist CLI domain/maturity/include/exclude to .skills.local
+  --select             Interactively pick which domains to install (requires
+                       a TTY). Default behavior is install all — use this to
+                       opt out of some.
   --include-user       Also install skills with \`scope: user\` (writes to
                        \$HOME — outside this repo). Off by default.
   --dry-run            Preview without writing
@@ -61,6 +78,9 @@ Env:
   METAMASK_SKILLS_DIR  Path to local MetaMask/skills checkout (public, no auth)
   CONSENSYS_SKILLS_DIR Path to local Consensys/skills checkout (private overlay)
   SKILLS_DOMAINS       Domain filter (overrides saved selection; blank = all)
+  SKILLS_MATURITY      Minimum maturity filter (default: stable)
+  SKILLS_INCLUDE       Skill opt-ins; explicit includes bypass domain/maturity
+  SKILLS_EXCLUDE       Skill opt-outs; explicit excludes win
 EOF
   exit "${1:-1}"
 }
@@ -70,6 +90,10 @@ while [[ $# -gt 0 ]]; do
     --repo)          REPO_NAME="$2"; shift 2 ;;
     --target)        TARGET="$2"; shift 2 ;;
     --domain)        DOMAIN_OVERRIDE="$2"; shift 2 ;;
+    --maturity)      MATURITY_FILTER="$2"; shift 2 ;;
+    --include|--skill) INCLUDE_FILTER="${INCLUDE_FILTER:+$INCLUDE_FILTER,}$2"; INCLUDE_SOURCE="--include flag"; shift 2 ;;
+    --exclude)       EXCLUDE_FILTER="${EXCLUDE_FILTER:+$EXCLUDE_FILTER,}$2"; EXCLUDE_SOURCE="--exclude flag"; shift 2 ;;
+    --save)          SAVE_REQUESTED=true; shift ;;
     --select)        SELECT=true; shift ;;
     --include-user)  INCLUDE_USER=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
@@ -81,7 +105,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ ! -d "$TARGET" ]] && { echo "Error: target not found: $TARGET" >&2; exit 1; }
-
 SOURCES=()
 PRIMARY_SKILLS_DIR=""
 
@@ -147,9 +170,25 @@ if $RESET; then
   exit 0
 fi
 
+if $SELECT && [[ ! -t 0 ]]; then
+  cat >&2 <<EOF
+Error: --select requires an interactive TTY.
+Use --domain <list> or SKILLS_DOMAINS=<list> for non-interactive sync.
+EOF
+  exit 1
+fi
+
 for src in "${SOURCES[@]}"; do
   echo "Updating $src"
-  git -C "$src" pull --ff-only 2>&1 | sed 's/^/  /' || echo "  (pull skipped — local changes or offline)"
+  if ! pull_output=$(git -C "$src" pull --ff-only 2>&1); then
+    printf '%s\n' "$pull_output" | sed 's/^/  /' >&2
+    cat >&2 <<EOF
+Error: failed to update configured skill source: $src
+Refusing to install potentially stale skills. Fix the checkout (commit/stash/rebase, restore connectivity, or point the env var at an up-to-date source) and rerun.
+EOF
+    exit 1
+  fi
+  printf '%s\n' "$pull_output" | sed 's/^/  /'
 done
 
 # ---- domain resolution ----
@@ -158,6 +197,68 @@ load_saved() {
   [[ -f "$CONFIG_FILE" ]] || return 0
   awk -F= '/^SKILLS_DOMAINS=/{sub(/^SKILLS_DOMAINS=/,""); print; exit}' "$CONFIG_FILE"
 }
+
+load_saved_maturity() {
+  [[ -f "$CONFIG_FILE" ]] || return 0
+  awk -F= '/^SKILLS_MATURITY=/{sub(/^SKILLS_MATURITY=/,""); print; exit}' "$CONFIG_FILE"
+}
+
+load_saved_include() {
+  [[ -f "$CONFIG_FILE" ]] || return 0
+  awk -F= '/^SKILLS_INCLUDE=/{sub(/^SKILLS_INCLUDE=/,""); print; exit}' "$CONFIG_FILE"
+}
+
+load_saved_exclude() {
+  [[ -f "$CONFIG_FILE" ]] || return 0
+  awk -F= '/^SKILLS_EXCLUDE=/{sub(/^SKILLS_EXCLUDE=/,""); print; exit}' "$CONFIG_FILE"
+}
+
+if [[ -n "$MATURITY_FILTER" ]]; then
+  MATURITY_SOURCE="--maturity flag"
+elif [[ -n "${SKILLS_MATURITY:-}" ]]; then
+  MATURITY_FILTER="$SKILLS_MATURITY"
+  MATURITY_SOURCE="SKILLS_MATURITY env"
+else
+  saved_maturity=$(load_saved_maturity || true)
+  if [[ -n "$saved_maturity" ]]; then
+    MATURITY_FILTER="$saved_maturity"
+    MATURITY_SOURCE="saved (.skills.local)"
+  else
+    MATURITY_FILTER="stable"
+    MATURITY_SOURCE="default"
+  fi
+fi
+case "$MATURITY_FILTER" in
+  experimental|stable|deprecated) ;;
+  *) echo "Error: --maturity must be experimental|stable|deprecated" >&2; exit 1 ;;
+esac
+
+if [[ -n "$INCLUDE_FILTER" ]]; then
+  : "${INCLUDE_SOURCE:=--include flag}"
+elif [[ -n "${SKILLS_INCLUDE:-}" ]]; then
+  INCLUDE_FILTER="$SKILLS_INCLUDE"
+  INCLUDE_SOURCE="SKILLS_INCLUDE env"
+else
+  saved_include=$(load_saved_include || true)
+  if [[ -n "$saved_include" ]]; then
+    INCLUDE_FILTER="$saved_include"
+    INCLUDE_SOURCE="saved (.skills.local)"
+  fi
+fi
+
+if [[ -n "$EXCLUDE_FILTER" ]]; then
+  : "${EXCLUDE_SOURCE:=--exclude flag}"
+elif [[ -n "${SKILLS_EXCLUDE:-}" ]]; then
+  EXCLUDE_FILTER="$SKILLS_EXCLUDE"
+  EXCLUDE_SOURCE="SKILLS_EXCLUDE env"
+else
+  saved_exclude=$(load_saved_exclude || true)
+  if [[ -n "$saved_exclude" ]]; then
+    EXCLUDE_FILTER="$saved_exclude"
+    EXCLUDE_SOURCE="saved (.skills.local)"
+  fi
+fi
+
 
 domain_has_mandatory() {
   local domain_dir="$1"
@@ -239,20 +340,31 @@ else
 fi
 
 echo
+echo "Maturity: $MATURITY_FILTER  (source: $MATURITY_SOURCE)"
 if [[ -n "$DOMAINS" ]]; then
   echo "Domains: $DOMAINS  (source: $SOURCE)"
 else
   echo "Domains: <all>  (source: $SOURCE)"
 fi
+if [[ -n "$INCLUDE_FILTER" ]]; then
+  echo "Include skills: $INCLUDE_FILTER  (source: $INCLUDE_SOURCE)"
+fi
+if [[ -n "$EXCLUDE_FILTER" ]]; then
+  echo "Exclude skills: $EXCLUDE_FILTER  (source: $EXCLUDE_SOURCE)"
+fi
 
-# Persist if interactive selection produced something new and --no-save not set
-if $SAVE && [[ "$SOURCE" == "interactive (--select)" ]]; then
+# Persist if interactive selection produced something new, or if CLI config was
+# explicitly marked --save. Plain CLI flags remain one-off by default.
+if $SAVE && { [[ "$SOURCE" == "interactive (--select)" ]] || $SAVE_REQUESTED; }; then
   cat > "$CONFIG_FILE" <<EOF
 # Auto-generated by MetaMask/skills tools/sync.
-# Edit to change which domains \`yarn skills\` installs by default.
-# Use \`--reset\` to wipe, \`--domain <list>\` for one-off override,
-# or set SKILLS_DOMAINS env to override globally.
+# Edit to change what \`yarn skills\` installs by default.
+# Use \`--reset\` to wipe; CLI flags are one-off unless passed with \`--save\`.
+# SKILLS_INCLUDE and SKILLS_EXCLUDE accept comma-separated domain/skill or skill names.
 SKILLS_DOMAINS=$DOMAINS
+SKILLS_MATURITY=$MATURITY_FILTER
+SKILLS_INCLUDE=$INCLUDE_FILTER
+SKILLS_EXCLUDE=$EXCLUDE_FILTER
 EOF
   echo "Saved to $CONFIG_FILE"
 fi
@@ -265,6 +377,9 @@ for src in "${SOURCES[@]}"; do
   INSTALL_ARGS+=(--source "$src")
 done
 [[ -n "$DOMAINS" ]] && INSTALL_ARGS+=(--domain "$DOMAINS")
+INSTALL_ARGS+=(--maturity "$MATURITY_FILTER")
+[[ -n "$INCLUDE_FILTER" ]] && INSTALL_ARGS+=(--include "$INCLUDE_FILTER")
+[[ -n "$EXCLUDE_FILTER" ]] && INSTALL_ARGS+=(--exclude "$EXCLUDE_FILTER")
 $INCLUDE_USER && INSTALL_ARGS+=(--include-user)
 $DRY_RUN && INSTALL_ARGS+=(--dry-run)
 

@@ -1,0 +1,3 @@
+# GitHub code ownership for MetaMask skills.
+# ADR-58/recipe skills are experimental but owned by Perps during rollout.
+/domains/agentic/ @MetaMask/perps
