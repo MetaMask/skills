@@ -10,9 +10,11 @@ For Mobile tickets, first classify whether the bug is navigation, rendering, wal
 Use existing fixtures and page objects before adding new helpers. Runtime proof should avoid inherited simulator state.
 
 For visible Mobile UI tickets, the pass bar is a live recipe run on the intended
-simulator/device, not only Jest/type/lint. Use `mm-harness verify`, then run the
-recipe through the installed Mobile recipe runner and save artifacts under an
-ignored task directory. Return the recipe path, `summary.json`, `trace.json`,
+simulator/device, not only Jest/type/lint. Use the runner-appropriate
+`mms-recipe-harness` delegate (Codex: `$mms-recipe-harness`; Claude/Cursor:
+`/mms-recipe-harness`) or its installed portable `scripts/recipe-harness verify`
+wrapper, then run the recipe through the installed Mobile recipe runner and save
+artifacts under an ignored task directory. Do not require personal shell aliases. Return the recipe path, `summary.json`, `trace.json`,
 screenshots/video when available, evidence manifest, and any fixture/device gap.
 If the app or simulator is not reachable, let the harness preflight attempt to
 prepare it before declaring a runtime blocker.
