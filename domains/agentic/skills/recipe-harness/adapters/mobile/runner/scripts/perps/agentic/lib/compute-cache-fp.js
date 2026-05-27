@@ -29,6 +29,9 @@
 // plugins, autolinked native modules, build/setup scripts) still converge
 // only when they match.
 
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const fp = require('@expo/fingerprint');
 
 function parsePlatform(argv) {
@@ -42,6 +45,51 @@ function parsePlatform(argv) {
 }
 
 const platform = parsePlatform(process.argv.slice(2));
+
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function normalizedPackageHash(projectRoot) {
+  const file = path.join(projectRoot, 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
+  // Yarn scripts are developer ergonomics and do not affect the native binary.
+  // In particular, installing/upgrading the harness changes a:* scripts; that
+  // must not invalidate a native cache shared by otherwise-identical worktrees.
+  delete pkg.scripts;
+  const stable = stableStringify(pkg);
+  return crypto.createHash('sha1').update(stable).digest('hex');
+}
+
+function recomputeHash(sources, projectRoot) {
+  const hasher = crypto.createHash('sha1');
+  const normalizedPkgHash = normalizedPackageHash(projectRoot);
+  const normalizedSources = sources
+    .map((source) => ({ ...source }))
+    .sort((a, b) => {
+      const left = a.type === 'contents' ? a.id : a.filePath;
+      const right = b.type === 'contents' ? b.id : b.filePath;
+      return String(left).localeCompare(String(right));
+    });
+  for (const source of normalizedSources) {
+    if (source.id === 'packageJson:scripts') {
+      continue;
+    }
+    if (source.filePath === 'package.json') {
+      source.hash = normalizedPkgHash;
+      source.reasons = [...(source.reasons || []), 'normalized package.json without scripts'];
+    }
+    if (source.hash != null) {
+      hasher.update(source.type === 'contents' ? source.id : source.filePath);
+      hasher.update(source.hash);
+    }
+  }
+  return hasher.digest('hex');
+}
 // Import the project's config so future additions to its extraSources
 // automatically flow into the agentic fingerprint. Using require here
 // (vs. literally copying the list) means a new entry in
@@ -111,8 +159,8 @@ if (platform === 'android') {
 }
 
 fp.createFingerprintAsync(process.cwd(), options)
-  .then(({ hash }) => {
-    process.stdout.write(hash);
+  .then((fingerprint) => {
+    process.stdout.write(recomputeHash(fingerprint.sources, process.cwd()));
   })
   .catch((err) => {
     process.stderr.write(`compute-cache-fp: ${err.message}\n`);
