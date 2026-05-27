@@ -16,6 +16,7 @@ import Logger from '../../util/Logger';
 import ReduxService from '../redux';
 import { persistor } from '../../store';
 import Engine from '../Engine';
+import { Engine as EngineClass } from '../Engine/Engine';
 import {
   passwordSet,
   setExistingUser,
@@ -881,9 +882,7 @@ const AgenticService = {
           } = Engine.context;
           const store = ReduxService.store;
           const settings = fixture.settings ?? {};
-          (
-            Engine as unknown as { disableAutomaticVaultBackup?: boolean }
-          ).disableAutomaticVaultBackup = true;
+          EngineClass.disableAutomaticVaultBackup = true;
 
           // 1. Create wallet from the first mnemonic (same path as onboarding UI)
           setupStep = 'create-wallet';
@@ -973,8 +972,8 @@ const AgenticService = {
                 [privateKey],
               );
             } catch (e) {
-              Logger.log(
-                `[AgenticService] Failed to import key: ${(e as Error).message}`,
+              throw new Error(
+                `[AgenticService] Failed to import fixture private key: ${(e as Error).message}`,
               );
             }
           }
@@ -1022,13 +1021,17 @@ const AgenticService = {
             ReduxService.store.dispatch(setLockTime(-1));
           }
 
-          // 8. Enable device authentication (biometrics/passcode bypass)
+          // 8. Enable device authentication only on Android fixture runs.
+          // On iOS simulator, toggling OS auth during synthetic setup can drive
+          // react-native-keychain/quick-crypto secret export on the JS runtime
+          // and crash the app after setupWallet returns. Android is the only
+          // harness path that stores the fixture password for auto-unlock here.
           setupStep = 'dispatch-device-auth';
-          if (settings.deviceAuthEnabled === true) {
+          if (settings.deviceAuthEnabled === true && Platform.OS === 'android') {
             ReduxService.store.dispatch(setOsAuthEnabled(true));
           }
 
-          // 8b. Store password in SecureKeychain for device-auth auto-unlock on reload (Android only — iOS already handles this)
+          // 8b. Store password in SecureKeychain for device-auth auto-unlock on reload (Android only)
           if (
             settings.deviceAuthEnabled === true &&
             Platform.OS === 'android'

@@ -25,6 +25,10 @@ cd "$(dirname "$0")/../../.."
 load_js_env
 
 PORT="${WATCHER_PORT:-8081}"
+# Bound Metro transform worker fanout. MetaMask Mobile bundles can retain GBs
+# per worker after first transform; uncapped Expo defaults to CPU count and can
+# consume tens of GB across mm-* slots. Override when intentionally benchmarking.
+METRO_MAX_WORKERS="${METRO_MAX_WORKERS:-2}"
 [[ "$PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $PORT)" >&2; exit 1; }
 LOGFILE=".agent/metro.log"
 PIDFILE=".agent/metro.pid"
@@ -99,7 +103,23 @@ prewarm_ios_bundle() {
   fi
 }
 
+ios_sim_udid() {
+  if [[ "$SIM_TARGET" =~ ^[0-9A-Fa-f-]{36}$ ]]; then
+    echo "$SIM_TARGET"
+    return 0
+  fi
+  xcrun simctl list devices 2>/dev/null \
+    | awk -v name="$SIM_TARGET" 'index($0, "    " name " (") == 1 { gsub(/[()]/, "", $2); print $2; exit }'
+}
+
 app_running_ios() {
+  # `simctl spawn <sim> launchctl list` is not reliable on recent simulator
+  # runtimes while Expo dev-client is downloading/loading the bundle. The host
+  # process path always includes the simulator UDID, so use that as authority.
+  local udid
+  udid="$(ios_sim_udid)"
+  [ -n "$udid" ] || return 1
+  pgrep -f "CoreSimulator/Devices/${udid}/.*MetaMask\.app/MetaMask" >/dev/null 2>&1 && return 0
   xcrun simctl spawn "$SIM_TARGET" launchctl list 2>/dev/null | grep -q "$BUNDLE_ID"
 }
 
@@ -111,33 +131,24 @@ launch_app_ios() {
 
   ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('http://localhost:${PORT}?disableOnboarding=1', safe=''))")
   DEV_CLIENT_URL="expo-metamask://expo-development-client/?url=${ENCODED_URL}"
-  xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null || \
-    echo "WARN: Could not open dev-client URL — will try direct app launch"
-
-  # First launch after a rebuild sometimes crashes — retry once
-  sleep 5
-  if ! app_running_ios; then
-    echo "App exited after launch — retrying..."
-    sleep 2
-    xcrun simctl launch "$SIM_TARGET" "$BUNDLE_ID" >/dev/null 2>&1 || true
-    sleep 1
-    xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null || true
+  if ! xcrun simctl openurl "$SIM_TARGET" "$DEV_CLIENT_URL" 2>/dev/null; then
+    echo "ERROR: Could not open dev-client URL; is the app installed on this simulator?"
+    return 1
   fi
 
-  # The simulator launch service can report before SpringBoard has registered
-  # the process. Poll briefly so we do not fail a healthy launch that exposes
-  # CDP a few seconds later.
+  # Do not relaunch after a fixed 5s sleep. On a cold bundle the app can spend
+  # longer than that downloading/initializing JS; relaunching during that window
+  # creates overlapping RN runtimes and crashes in native module installation
+  # (observed in REAModule installTurboModule). Wait for the actual process.
   local launch_wait=0
-  while [ "$launch_wait" -lt "${AGENTIC_IOS_LAUNCH_CONFIRM_TIMEOUT:-20}" ]; do
+  while [ "$launch_wait" -lt "${AGENTIC_IOS_LAUNCH_CONFIRM_TIMEOUT:-45}" ]; do
     app_running_ios && return 0
     sleep 1
     launch_wait=$((launch_wait + 1))
   done
 
-  if ! app_running_ios; then
-    echo "ERROR: App did not stay running after launch; cannot wait for CDP targets."
-    return 1
-  fi
+  echo "ERROR: App did not stay running after dev-client launch; cannot wait for CDP targets."
+  return 1
 }
 
 launch_app_android() {
@@ -206,7 +217,7 @@ if [ "${AGENTIC_USE_METRO_TMUX:-0}" = "1" ] && [ -n "${TMUX:-}" ] && command -v 
   METRO_TMUX_SESSION="mms-metro-${PORT}-$(basename "$PWD" | tr -cd '[:alnum:]_-')"
   tmux kill-session -t "$METRO_TMUX_SESSION" 2>/dev/null || true
   tmux new-session -d -s "$METRO_TMUX_SESSION" -c "$PWD" \
-    "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT'"
+    "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT' --max-workers '$METRO_MAX_WORKERS'"
   METRO_TMUX_PANE=$(tmux display-message -p -t "$METRO_TMUX_SESSION" '#{pane_id}' 2>/dev/null || echo "")
   if [ -n "$METRO_TMUX_PANE" ]; then
     tmux pipe-pane -o -t "$METRO_TMUX_PANE" "cat >> '$LOGFILE'" 2>/dev/null || true
@@ -246,7 +257,8 @@ for fd in (devnull, log):
         pass
 env = os.environ.copy()
 env["EXPO_NO_TYPESCRIPT_SETUP"] = "1"
-os.execvpe("yarn", ["yarn", "expo", "start", "--port", port], env)
+max_workers = os.environ.get("METRO_MAX_WORKERS", "2")
+os.execvpe("yarn", ["yarn", "expo", "start", "--port", port, "--max-workers", max_workers], env)
 PY
   METRO_PID=$!
   # Ensure parent shell exit does not propagate job-control cleanup to Metro.

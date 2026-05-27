@@ -102,26 +102,37 @@ async function discoverTarget(port) {
         /bridgeless|hermes/i.test(t.description || '')),
   );
 
-  // Filter by device name if IOS_SIMULATOR is set
+  // Filter by device name if IOS_SIMULATOR is set. This must be strict:
+  // falling back to another simulator on the same Metro silently drives the
+  // wrong slot and breaks parallel mm-5/mm-6 validation.
   const simName = loadSimulatorName();
-  if (simName && candidates.length > 1) {
+  if (simName) {
     const deviceFiltered = candidates.filter(
       (t) => t.deviceName === simName,
     );
-    if (deviceFiltered.length > 0) {
-      candidates = deviceFiltered;
+    if (deviceFiltered.length === 0) {
+      const devices = [...new Set(candidates.map((t) => t.deviceName || '<unknown>'))].join(', ') || '<none>';
+      throw new Error(
+        `No debug target for IOS_SIMULATOR=${simName} at ${listUrl}; found devices: ${devices}`,
+      );
     }
+    candidates = deviceFiltered;
   }
 
-  // Filter by device name if ANDROID_DEVICE is set
+  // Filter by device name if ANDROID_DEVICE is set. Keep this strict for the
+  // same reason: never let one slot's harness drive another slot's runtime.
   const androidDevice = loadAndroidDevice();
-  if (androidDevice && candidates.length > 1) {
+  if (androidDevice) {
     const deviceFiltered = candidates.filter(
       (t) => t.deviceName === androidDevice,
     );
-    if (deviceFiltered.length > 0) {
-      candidates = deviceFiltered;
+    if (deviceFiltered.length === 0) {
+      const devices = [...new Set(candidates.map((t) => t.deviceName || '<unknown>'))].join(', ') || '<none>';
+      throw new Error(
+        `No debug target for ANDROID_DEVICE=${androidDevice} at ${listUrl}; found devices: ${devices}`,
+      );
     }
+    candidates = deviceFiltered;
   }
 
   if (candidates.length === 0) {

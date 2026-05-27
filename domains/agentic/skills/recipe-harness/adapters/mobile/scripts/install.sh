@@ -3,11 +3,13 @@ set -euo pipefail
 
 TARGET="$PWD"
 ALLOW_DIRTY=false
+FORCE_OVERLAY=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --allow-dirty-harness-paths) ALLOW_DIRTY=true; shift ;;
-    -h|--help) echo "Usage: install.sh [--target <metamask-mobile>] [--allow-dirty-harness-paths]"; exit 0 ;;
+    --force-overlay) FORCE_OVERLAY=true; shift ;;
+    -h|--help) echo "Usage: install.sh [--target <metamask-mobile>] [--allow-dirty-harness-paths] [--force-overlay]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -33,6 +35,68 @@ fi
 STATE_FILE="$BACKUP_DIR/state.env"
 
 mkdir -p "$HARNESS_DIR"
+
+git_tracks_path() {
+  git -C "$TARGET" ls-files --error-unmatch "$1" >/dev/null 2>&1
+}
+
+has_product_owned_mobile_harness() {
+  git_tracks_path "app/core/AgenticService/AgenticService.ts" \
+    && git_tracks_path "scripts/perps/agentic/preflight.sh" \
+    && git_tracks_path "scripts/perps/agentic/setup-wallet.sh" \
+    && git_tracks_path "scripts/perps/agentic/cdp-bridge.js" \
+    && git_tracks_path "scripts/perps/agentic/app-state.sh" \
+    && grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null \
+    && grep -q "AgentStepHud" "$TARGET/app/components/Nav/App/App.tsx" 2>/dev/null
+}
+
+add_git_exclude_entry() {
+  local entry="$1"
+  local git_dir
+  local exclude_file
+  if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
+    return 0
+  fi
+  case "$git_dir" in
+    /*) ;;
+    *) git_dir="$TARGET/$git_dir" ;;
+  esac
+  exclude_file="$git_dir/info/exclude"
+  mkdir -p "$(dirname "$exclude_file")"
+  touch "$exclude_file"
+  grep -qxF "$entry" "$exclude_file" || echo "$entry" >> "$exclude_file"
+}
+
+if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
+  SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+  add_git_exclude_entry ".agent/recipe-harness/"
+  add_git_exclude_entry ".skills-cache/"
+  add_git_exclude_entry "temp/agentic/recipe-harness/"
+  node -e '
+    const fs = require("fs");
+    const m = {
+      adapter: "mobile",
+      installMode: "product-owned",
+      installedAt: new Date().toISOString(),
+      source: { skillDir: process.argv[1], revision: process.argv[2], runtime: process.argv[3] },
+      target: process.argv[4],
+      installedPaths: [],
+      patchedFiles: [],
+      productOwnedPaths: [
+        "scripts/perps/agentic",
+        "app/core/AgenticService",
+        "package.json",
+        "app/core/NavigationService/NavigationService.ts",
+        "app/components/Nav/App/App.tsx"
+      ],
+      cleanupCommand: process.argv[5] + "/cleanup.sh --target " + process.argv[4],
+      note: "This checkout already contains the first-party Mobile agentic harness. Skill install only writes recipe-harness metadata and must not overwrite tracked product harness files."
+    };
+    fs.writeFileSync(process.argv[6], JSON.stringify(m, null, 2) + "\n");
+  ' "$SKILL_DIR" "$SOURCE_REV" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
+  echo "Installed mobile recipe harness metadata only (product-owned harness detected): $HARNESS_DIR/manifest.json"
+  exit 0
+fi
 
 INSTALLED=false
 INSTALL_MUTATING=false

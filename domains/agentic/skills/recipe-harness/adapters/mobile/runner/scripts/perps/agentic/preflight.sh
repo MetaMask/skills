@@ -51,6 +51,8 @@ resolve_path() {
 }
 
 PORT="${WATCHER_PORT:-8081}"
+# Cap Expo/Metro transform workers to avoid per-slot RSS explosions.
+METRO_MAX_WORKERS="${METRO_MAX_WORKERS:-2}"
 [[ "$PORT" =~ ^[0-9]+$ ]] || { echo "ERROR: WATCHER_PORT must be numeric (got: $PORT)" >&2; exit 1; }
 SCRIPTS="scripts/perps/agentic"
 LOGFILE="$(resolve_path '.agent/metro.log')"
@@ -681,7 +683,7 @@ if [ "$PLAT" = "ios" ]; then
     # binds the hardcoded default 8081, which collides with other worktrees and
     # causes the installed app to register its Hermes inspector on 8081 instead of
     # the worktree's $PORT — breaking CDP discovery.
-    EXPO_ARGS=(yarn expo run:ios --no-install --port "$PORT" --configuration Debug --scheme MetaMask)
+    EXPO_ARGS=(yarn expo run:ios --no-install --port "$PORT" --max-workers "$METRO_MAX_WORKERS" --configuration Debug --scheme MetaMask)
     [ -n "${IOS_SIMULATOR:-}" ] && EXPO_ARGS+=(--device "$IOS_SIMULATOR")
 
     # expo run:ios does not exit after a successful build — it keeps Metro running
@@ -1056,6 +1058,28 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 
 # --check-only is read-only: probes above fail loud on mismatch; here we
+# Reset app data for deterministic fixture wallet setup while preserving the
+# installed binary/cache. This avoids the fragile existing-vault unlock path and
+# makes `--wallet-setup` idempotent without forcing a native rebuild.
+if $DO_WALLET_SETUP; then
+  if [ "$PLAT" = "ios" ]; then
+    echo ""
+    echo "  Resetting app data for wallet fixture (preserve installed app/cache)..."
+    xcrun simctl terminate "$SIM_TARGET" "$BUNDLE_ID" 2>/dev/null || true
+    DATA_DIR=$(xcrun simctl get_app_container "$SIM_TARGET" "$BUNDLE_ID" data 2>/dev/null || true)
+    if [ -z "$DATA_DIR" ] || [ ! -d "$DATA_DIR" ]; then
+      fail "Could not resolve iOS app data container for $BUNDLE_ID on $SIM_TARGET"
+    fi
+    find "$DATA_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+    ok "App data cleared: $DATA_DIR"
+  else
+    echo ""
+    echo "  Resetting app data for wallet fixture (adb pm clear)..."
+    $ADB_CMD shell pm clear "$PACKAGE_ID" >/dev/null 2>&1 || fail "adb pm clear failed for $PACKAGE_ID"
+    ok "App data cleared for $PACKAGE_ID"
+  fi
+fi
+
 # must not run Metro / CDP / wallet (all state-changing).
 if $CHECK_ONLY; then
   TOTAL_ELAPSED=$(elapsed_since $PREFLIGHT_START)

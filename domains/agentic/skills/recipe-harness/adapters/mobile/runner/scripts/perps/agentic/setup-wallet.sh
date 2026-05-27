@@ -82,13 +82,6 @@ echo "Fixture OK: password + ${ACCOUNT_COUNT} account(s)"
 $CDP eval "JSON.stringify({ok:true})" >/dev/null 2>&1 || { echo "ERROR: CDP not reachable"; exit 1; }
 echo "CDP bridge connected."
 
-# Avoid simulator-native react-native-keychain backup crashes while the harness
-# creates/unlocks fixture wallets. This only affects agentic dev setup. Some
-# early boot states do not expose Engine yet, so warn and continue in that case.
-if ! cdp_eval "(function(){ var engine = typeof Engine !== 'undefined' ? Engine : null; if (engine) { engine.disableAutomaticVaultBackup = true; } return JSON.stringify({ok:true, disableAutomaticVaultBackup: !!(engine && engine.disableAutomaticVaultBackup)}); })()" >/dev/null; then
-  echo "WARN: could not set Engine.disableAutomaticVaultBackup before wallet setup"
-fi
-
 # -- Wait for Engine to be ready (KeyringController must exist) --
 ENGINE_WAIT=0
 ENGINE_MAX=30
@@ -103,6 +96,12 @@ if [ "$ENGINE_OK" != "ready" ]; then
   echo "ERROR: Engine.context.KeyringController not available after ${ENGINE_MAX}s"
   exit 1
 fi
+
+# Avoid simulator-native react-native-keychain backup crashes while the harness
+# creates/unlocks fixture wallets. Set it only after Engine exists; setting it
+# earlier is a no-op and lets KeyringController state changes hit BackupVault.
+DISABLE_BACKUP=$(cdp_eval "(function(){ globalThis.__AGENTIC_DISABLE_VAULT_BACKUP = true; if (typeof Engine === 'object' && Engine) { Engine.disableAutomaticVaultBackup = true; } return JSON.stringify({agenticDisableVaultBackup: globalThis.__AGENTIC_DISABLE_VAULT_BACKUP === true, facadeDisableAutomaticVaultBackup: !!(Engine && Engine.disableAutomaticVaultBackup)}); })()" || echo '{}')
+echo "Vault backup guard: $DISABLE_BACKUP"
 
 # -- Check vault state --
 VAULT_STATE=$(cdp_eval "(function(){ var v = Engine.context.KeyringController.state; return JSON.stringify({hasVault: v.vault !== undefined && v.vault !== null, isUnlocked: Engine.context.KeyringController.isUnlocked()}); })()")
@@ -147,6 +146,15 @@ else
   echo "$SETUP_RESULT" | jq -r '.accounts[]? | "  \(.name): \(.address)"'
   sleep 2
 fi
+
+# -- Ask the app to leave auth/onboarding after unlock.
+# HomeNav matches the product auth reset path, but some warm/onboarding states
+# land on intermediate post-onboarding screens. Follow with WalletView so the
+# harness proves the user-visible unlocked wallet, not just a populated vault.
+$CDP navigate HomeNav >/dev/null 2>&1 || true
+sleep 1
+$CDP navigate WalletView >/dev/null 2>&1 || true
+sleep 1
 
 # -- Summary + hard validation --
 ACCOUNTS=$(cdp_eval "(function(){ try { var ctx = Engine && Engine.context ? Engine.context : {}; var accountsController = ctx.AccountsController || {}; var keyringController = ctx.KeyringController || {}; var state = accountsController.state || {}; var internalAccounts = state.internalAccounts || {}; var accountsById = internalAccounts.accounts || {}; var accs = Object.values(accountsById); var eth = accs.filter(function(a){ return String(a && a.address || '').indexOf('0x') === 0; }); var route = globalThis.__AGENTIC__ && globalThis.__AGENTIC__.getRoute ? globalThis.__AGENTIC__.getRoute() : null; var selected = null; if (typeof accountsController.getSelectedAccount === 'function') { selected = accountsController.getSelectedAccount(); } else if (internalAccounts.selectedAccount && accountsById[internalAccounts.selectedAccount]) { selected = accountsById[internalAccounts.selectedAccount]; } return JSON.stringify({ok:true, unlocked: typeof keyringController.isUnlocked === 'function' ? keyringController.isUnlocked() : null, routeName: route && route.name, selected: selected ? {name: selected.metadata && selected.metadata.name, address: selected.address} : null, total: accs.length, ethAccounts: eth.length, first3: eth.slice(0,3).map(function(a){ return {name: a && a.metadata && a.metadata.name, address: a && a.address}; })}); } catch (e) { return JSON.stringify({ok:false, error: e && (e.stack || e.message) || String(e)}); } })()")
@@ -202,9 +210,13 @@ if [ "$(echo "$MISSING_ADDRESSES" | jq 'length')" != "0" ]; then
   echo "$ACCOUNTS" | jq .
   exit 1
 fi
-if [ "$ROUTE_NAME" = "Onboarding" ]; then
-  echo "WARN: Wallet route still reports Onboarding; continuing because vault/account validation passed"
-fi
+case "$ROUTE_NAME" in
+  Login|Onboarding|ExperienceEnhancer|FoxLoader|"")
+    echo "ERROR: Wallet setup did not reach the unlocked wallet UI (route=${ROUTE_NAME:-empty})"
+    echo "$ACCOUNTS" | jq .
+    exit 1
+    ;;
+esac
 echo ""
 echo "=== Wallet Ready ==="
 echo "Route: ${ROUTE_NAME:-unknown}"

@@ -28,6 +28,16 @@ fi
 STATE_FILE="$BACKUP_DIR/state.env"
 
 if [ ! -f "$STATE_FILE" ]; then
+  if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
+    const fs = require("fs");
+    const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    process.exit(manifest.installMode === "product-owned" ? 0 : 1);
+  ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
+    rm -rf "$HARNESS_DIR"
+    rm -rf "$TARGET/.skills-cache"
+    echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
+    exit 0
+  fi
   echo "No mobile harness backup found at $STATE_FILE" >&2
   exit 1
 fi
