@@ -46,6 +46,7 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   prepare_parts=()
   if $START_TEST_WATCH; then
     prepare_parts+=("mkdir -p temp/runtime")
+    # Drop inherited debugger env that can poison child Node/Yarn processes in editor-launched shells.
     prepare_parts+=("if ! pgrep -f 'yarn start:test' >/dev/null 2>&1; then nohup env -u BUNDLED_DEBUGPY_PATH yarn start:test > temp/runtime/recipe-harness-webpack.log 2>&1 & echo \$! > temp/runtime/recipe-harness-webpack.pid; fi")
     prepare_parts+=("for i in {1..240}; do grep -E 'MetaMask.*compiled|compiled with' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1 && break; sleep 2; done")
   fi

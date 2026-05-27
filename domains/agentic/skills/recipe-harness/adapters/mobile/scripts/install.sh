@@ -57,6 +57,7 @@ has_product_owned_mobile_harness() {
 
 add_git_exclude_entry() {
   local entry="$1"
+  local tracking_file="${2:-}"
   local git_dir
   local exclude_file
   if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
@@ -69,7 +70,12 @@ add_git_exclude_entry() {
   exclude_file="$git_dir/info/exclude"
   mkdir -p "$(dirname "$exclude_file")"
   touch "$exclude_file"
-  grep -qxF "$entry" "$exclude_file" || echo "$entry" >> "$exclude_file"
+  if ! grep -qxF "$entry" "$exclude_file"; then
+    echo "$entry" >> "$exclude_file"
+    if [ -n "$tracking_file" ]; then
+      echo "$entry" >> "$tracking_file"
+    fi
+  fi
 }
 
 if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
@@ -401,31 +407,11 @@ console.log(JSON.stringify({
 }));
 NODE
 
-add_git_exclude() {
-  local entry="$1"
-  local git_dir
-  local exclude_file
-  if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
-    return 0
-  fi
-  case "$git_dir" in
-    /*) ;;
-    *) git_dir="$TARGET/$git_dir" ;;
-  esac
-  exclude_file="$git_dir/info/exclude"
-  mkdir -p "$(dirname "$exclude_file")"
-  touch "$exclude_file"
-  if ! grep -qxF "$entry" "$exclude_file"; then
-    echo "$entry" >> "$exclude_file"
-    echo "$entry" >> "$BACKUP_DIR/added-git-exclude"
-  fi
-}
-
-add_git_exclude ".agent/recipe-harness/"
-add_git_exclude ".skills-cache/"
-add_git_exclude "temp/agentic/recipe-harness/"
-add_git_exclude "scripts/perps/agentic/"
-add_git_exclude "app/core/AgenticService/"
+add_git_exclude_entry ".agent/recipe-harness/" "$BACKUP_DIR/added-git-exclude"
+add_git_exclude_entry ".skills-cache/" "$BACKUP_DIR/added-git-exclude"
+add_git_exclude_entry "temp/agentic/recipe-harness/" "$BACKUP_DIR/added-git-exclude"
+add_git_exclude_entry "scripts/perps/agentic/" "$BACKUP_DIR/added-git-exclude"
+add_git_exclude_entry "app/core/AgenticService/" "$BACKUP_DIR/added-git-exclude"
 
 write_managed_hashes() {
   local hash_file="$BACKUP_DIR/managed-hashes.tsv"

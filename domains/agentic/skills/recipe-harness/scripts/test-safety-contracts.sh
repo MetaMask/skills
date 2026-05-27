@@ -89,6 +89,8 @@ assert_partial_product_harness_install_is_metadata_only() {
 
   grep -qxF 'product-owned' "$target/scripts/perps/agentic/preflight.sh" \
     || fail "partial tracked product harness was overwritten without --force-overlay"
+  grep -qxF '.agent/recipe-harness/' "$target/.git/info/exclude" \
+    || fail "metadata-only install did not add expected exclude entry"
   node - "$target/.agent/recipe-harness/mobile/manifest.json" <<'NODE'
 const fs = require('fs');
 const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
@@ -99,6 +101,12 @@ if ((manifest.installedPaths || []).length !== 0 || (manifest.patchedFiles || []
   throw new Error('metadata-only install must not report installed or patched product files');
 }
 NODE
+
+  "$SKILL_DIR/adapters/mobile/scripts/cleanup.sh" --target "$target" >/tmp/recipe-harness-mobile-partial-product-cleanup.log 2>&1
+  [ ! -e "$target/.agent/recipe-harness/mobile" ] \
+    || fail "metadata-only cleanup did not remove harness metadata"
+  ! grep -qxF '.agent/recipe-harness/' "$target/.git/info/exclude" \
+    || fail "metadata-only cleanup left exclude entry behind"
 }
 
 assert_extension_verify_does_not_autostart_by_default

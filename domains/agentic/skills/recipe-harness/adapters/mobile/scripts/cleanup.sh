@@ -30,12 +30,32 @@ if [ ! -f "$BACKUP_DIR/state.env" ] && [ -f "$HARNESS_DIR/backup/state.env" ]; t
 fi
 STATE_FILE="$BACKUP_DIR/state.env"
 
+remove_git_exclude_entry() {
+  local entry="$1"
+  local git_dir
+  local exclude_file
+  if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
+    return 0
+  fi
+  case "$git_dir" in
+    /*) ;;
+    *) git_dir="$TARGET/$git_dir" ;;
+  esac
+  exclude_file="$git_dir/info/exclude"
+  [ -f "$exclude_file" ] || return 0
+  awk -v entry="$entry" '$0 != entry { print }' "$exclude_file" > "$exclude_file.tmp"
+  mv "$exclude_file.tmp" "$exclude_file"
+}
+
 if [ ! -f "$STATE_FILE" ]; then
   if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
     const fs = require("fs");
     const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
     process.exit(manifest.installMode === "product-owned" ? 0 : 1);
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
+    remove_git_exclude_entry ".agent/recipe-harness/"
+    remove_git_exclude_entry ".skills-cache/"
+    remove_git_exclude_entry "temp/agentic/recipe-harness/"
     rm -rf "$HARNESS_DIR"
     rm -rf "$TARGET/.skills-cache"
     echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"

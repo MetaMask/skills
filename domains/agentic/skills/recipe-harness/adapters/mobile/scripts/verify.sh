@@ -234,10 +234,21 @@ ensure_live_runtime() {
 if [ "$STATIC_ONLY" = false ]; then
   fixture_json="$(fixture_status_json)"
   printf '%s\n' "$fixture_json" > "$ARTIFACTS/logs/fixture-status.json"
-  fixture_message="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(v.message || v.status);' "$ARTIFACTS/logs/fixture-status.json")"
+  fixture_check_json="$(node - "$ARTIFACTS/logs/fixture-status.json" <<'NODE'
+const fs = require('fs');
+const v = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+console.log(JSON.stringify({
+  name: 'fixture status',
+  status: v.status === 'READY' ? 'pass' : 'warn',
+  detail: v.path || v.status || '',
+  message: v.message || v.status,
+}));
+NODE
+  )"
+  fixture_message="$(node -e 'const v=JSON.parse(process.argv[1]); console.log(v.message || v.detail);' "$fixture_check_json")"
   echo "$fixture_message" >&2
   add_note "$fixture_message"
-  checks+=("{\"name\":\"fixture status\",\"status\":\"$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(v.status === "READY" ? "pass" : "warn");' "$ARTIFACTS/logs/fixture-status.json")\",\"detail\":\"$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log((v.path || v.status || "").replace(/\"/g, "\\\\\""));' "$ARTIFACTS/logs/fixture-status.json")\"}")
+  checks+=("$fixture_check_json")
 
   port="$(node - "$TARGET" <<'NODE'
 const fs = require('fs');
