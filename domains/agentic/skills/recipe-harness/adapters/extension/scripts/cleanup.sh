@@ -3,14 +3,20 @@ set -euo pipefail
 
 TARGET="$PWD"
 OUT=""
+FORCE=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --out) OUT="$2"; shift 2 ;;
-    -h|--help) echo "Usage: cleanup.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>]"; exit 0 ;;
+    --force) FORCE=true; shift ;;
+    -h|--help) echo "Usage: cleanup.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] [--force]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
+
+dir_content_hash() {
+  find "$1" -type f -print0 2>/dev/null | sort -z | xargs -0 shasum -a 256 2>/dev/null | shasum -a 256 | awk '{print $1}'
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
@@ -57,6 +63,18 @@ while IFS= read -r _line || [ -n "$_line" ]; do
   export "$_key=$_val"
 done < "$STATE_FILE"
 unset _line _key _val
+
+INSTALLED_HASH_FILE="$HARNESS_DIR/installed-content.sha256"
+if [ -e "$OUT_ABS" ] && [ -f "$INSTALLED_HASH_FILE" ] && ! $FORCE; then
+  prev_hash="$(cat "$INSTALLED_HASH_FILE")"
+  curr_hash="$(dir_content_hash "$OUT_ABS")"
+  if [ "$prev_hash" != "$curr_hash" ]; then
+    echo "Extension harness output has local modifications." >&2
+    echo "Cleanup would discard user edits in: $OUT" >&2
+    echo "Use --force to proceed anyway." >&2
+    exit 1
+  fi
+fi
 
 rm -rf "$OUT_ABS"
 if [ "${OUT_EXISTED:-0}" = "1" ]; then

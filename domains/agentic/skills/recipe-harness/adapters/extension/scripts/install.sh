@@ -3,14 +3,20 @@ set -euo pipefail
 
 TARGET="$PWD"
 OUT=""
+FORCE=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --out) OUT="$2"; shift 2 ;;
-    -h|--help) echo "Usage: install.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>]"; exit 0 ;;
+    --force) FORCE=true; shift ;;
+    -h|--help) echo "Usage: install.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] [--force]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
+
+dir_content_hash() {
+  find "$1" -type f -print0 2>/dev/null | sort -z | xargs -0 shasum -a 256 2>/dev/null | shasum -a 256 | awk '{print $1}'
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADAPTER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -40,12 +46,26 @@ if [ ! -f "$STATE_FILE" ]; then
   mv "$TMP_BACKUP_DIR" "$BACKUP_DIR"
 fi
 
+INSTALLED_HASH_FILE="$HARNESS_DIR/installed-content.sha256"
+if [ -e "$OUT_ABS" ] && [ -f "$INSTALLED_HASH_FILE" ] && ! $FORCE; then
+  prev_hash="$(cat "$INSTALLED_HASH_FILE")"
+  curr_hash="$(dir_content_hash "$OUT_ABS")"
+  if [ "$prev_hash" != "$curr_hash" ]; then
+    echo "Extension harness output has local modifications." >&2
+    echo "Re-install would overwrite user edits in: $OUT" >&2
+    echo "Use --force to proceed anyway." >&2
+    exit 1
+  fi
+fi
+
 mkdir -p "$(dirname "$OUT_ABS")"
 rsync -a --delete "$ADAPTER_DIR/runner/recipes/" "$OUT_ABS/"
 chmod +x "$OUT_ABS/validate-recipe.sh" 2>/dev/null || true
+dir_content_hash "$OUT_ABS" > "$INSTALLED_HASH_FILE"
 mkdir -p "$HARNESS_DIR/scripts"
 rsync -a --delete "$ADAPTER_DIR/scripts/" "$HARNESS_DIR/scripts/"
 chmod +x "$HARNESS_DIR/scripts/"*.sh "$HARNESS_DIR/scripts/"*.js 2>/dev/null || true
+dir_content_hash "$HARNESS_DIR/scripts" > "$HARNESS_DIR/installed-scripts.sha256"
 
 add_git_exclude() {
   local entry="$1"
