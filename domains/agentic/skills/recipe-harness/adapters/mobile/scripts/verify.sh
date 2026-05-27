@@ -361,7 +361,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   },
   runtimePolicy: {
     preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
-    buildPressureGuard: 'fast mode does not perform a native rebuild; use --preflight-mode auto/default only after explicit approval',
+    nativeBuildPolicy: 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval',
   },
   fixtureStatus,
   portHolder,

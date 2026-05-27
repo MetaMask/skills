@@ -229,7 +229,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
     reason: 'extension verify inspects the supplied CDP runtime; wrapper/preflight ownership must be recorded by the caller before stopping processes',
   },
   runtimePolicy: {
-    buildPressureGuard: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
+    runtimeReusePolicy: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
   },
   fixtureStatus,
   cdpHolder,
