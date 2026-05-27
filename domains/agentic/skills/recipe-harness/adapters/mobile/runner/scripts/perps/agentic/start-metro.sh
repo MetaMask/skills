@@ -160,11 +160,12 @@ fi
 # --- No Metro detected — start fresh ---
 > "$LOGFILE"
 
-# Clear Metro + Babel transpilation caches to ensure env vars are freshly inlined.
-# babel-plugin-transform-inline-environment-variables caches compiled values in
-# $TMPDIR/metro-cache. Without clearing, switching METAMASK_ENVIRONMENT between
-# 'e2e' and 'dev' may serve bundles with stale inlined values.
-rm -rf "${TMPDIR:-/tmp}/metro-cache" "${TMPDIR:-/tmp}/haste-map-"* 2>/dev/null || true
+# Keep Metro/Babel caches by default so the skill-owned live command is
+# idempotent and does not force a full JS rebundle on every validation run.
+# Callers that intentionally changed inline env values can request a reset.
+if [ "${AGENTIC_RESET_METRO_CACHE:-0}" = "1" ]; then
+  rm -rf "${TMPDIR:-/tmp}/metro-cache" "${TMPDIR:-/tmp}/haste-map-"* 2>/dev/null || true
+fi
 
 echo "Starting Metro on port $PORT..."
 METRO_TMUX_SESSION=""
