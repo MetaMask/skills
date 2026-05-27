@@ -167,6 +167,8 @@ echo "Starting Metro on port $PORT..."
 # command alive after this wrapper returns.
 nohup env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
 METRO_PID=$!
+# Ensure parent shell exit does not propagate job-control cleanup to Metro.
+disown "$METRO_PID" 2>/dev/null || true
 echo "$METRO_PID" > "$PIDFILE"
 echo "Metro PID: $METRO_PID, logging to $LOGFILE"
 
