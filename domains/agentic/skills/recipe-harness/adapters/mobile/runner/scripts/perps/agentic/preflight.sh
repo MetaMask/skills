@@ -688,18 +688,26 @@ if [ "$PLAT" = "ios" ]; then
     WATCH_PID=$!
 
     APP_PATH=""
-    BUILD_TIMEOUT=900
+    BUILD_IDLE_TIMEOUT="${MMS_IOS_BUILD_IDLE_TIMEOUT:-900}"
+    LAST_LOG_MTIME="$BUILD_START"
+    LAST_PROGRESS="$BUILD_START"
     while :; do
       NOW=$(date +%s)
       ELAPSED=$((NOW - BUILD_START))
-      if [ $ELAPSED -ge $BUILD_TIMEOUT ]; then
+      LOG_MTIME=$(stat -f %m "$BUILD_LOG" 2>/dev/null || echo "$BUILD_START")
+      if [ "$LOG_MTIME" -gt "$LAST_LOG_MTIME" ]; then
+        LAST_LOG_MTIME="$LOG_MTIME"
+        LAST_PROGRESS="$NOW"
+      fi
+      IDLE=$((NOW - LAST_PROGRESS))
+      if [ "$IDLE" -ge "$BUILD_IDLE_TIMEOUT" ]; then
         kill "$WATCH_PID" 2>/dev/null || true; wait "$WATCH_PID" 2>/dev/null || true
         kill_tree "$EXPO_PID"
         wait $EXPO_PID 2>/dev/null || true
         echo ""
         echo -e "  ${RED}Build log tail:${NC}"
         tail -30 "$BUILD_LOG" | sed 's/^/    /'
-        fail "Build timed out after ${BUILD_TIMEOUT}s — see $BUILD_LOG"
+        fail "Build produced no log progress for ${BUILD_IDLE_TIMEOUT}s after ${ELAPSED}s elapsed — see $BUILD_LOG"
       fi
 
       # Look for a freshly-built .app (mtime >= build start) once xcodebuild reports success.
