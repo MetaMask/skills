@@ -1055,7 +1055,11 @@ step "Starting Metro" "Bundler on port $PORT → logs at $LOGFILE"
 stage_log "$LOGFILE"
 # start-metro.sh detects running Metro and skips start. With --launch it
 # opens the app via expo deeplink for the target platform regardless.
-bash "$SCRIPTS/start-metro.sh" --platform "$PLAT" $($DO_LAUNCH && echo "--launch" || echo "")
+metro_args=("$SCRIPTS/start-metro.sh" --platform "$PLAT")
+if $DO_LAUNCH; then
+  metro_args+=(--launch)
+fi
+bash "${metro_args[@]}"
 ok "Metro running on port $PORT"
 
 # NOTE: App launch is handled by start-metro.sh --launch (via expo deeplink).
