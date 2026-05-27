@@ -160,17 +160,38 @@ fi
 rm -rf "${TMPDIR:-/tmp}/metro-cache" "${TMPDIR:-/tmp}/haste-map-"* 2>/dev/null || true
 
 echo "Starting Metro on port $PORT..."
-# Detach Metro from this helper. When start-metro.sh is run from a one-shot
-# harness/preflight script, a plain background job can receive SIGHUP as the
-# parent shell exits, leaving a "ready" log line but no listening server by
-# the time CDP/app-state validation starts. nohup keeps the skill-owned easy
-# command alive after this wrapper returns.
-nohup env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
-METRO_PID=$!
-# Ensure parent shell exit does not propagate job-control cleanup to Metro.
-disown "$METRO_PID" 2>/dev/null || true
-echo "$METRO_PID" > "$PIDFILE"
-echo "Metro PID: $METRO_PID, logging to $LOGFILE"
+METRO_TMUX_SESSION=""
+if [ -n "${TMUX:-}" ] && command -v tmux >/dev/null 2>&1; then
+  METRO_TMUX_SESSION="mms-metro-${PORT}-$(basename "$PWD" | tr -cd '[:alnum:]_-')"
+  tmux kill-session -t "$METRO_TMUX_SESSION" 2>/dev/null || true
+  tmux new-session -d -s "$METRO_TMUX_SESSION" -c "$PWD" \
+    "env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port '$PORT' >> '$LOGFILE' 2>&1"
+  METRO_PID=$(tmux display-message -p -t "$METRO_TMUX_SESSION:0.0" '#{pane_pid}' 2>/dev/null || echo "")
+  echo "$METRO_TMUX_SESSION" > .agent/metro.tmux-session
+  echo "${METRO_PID:-tmux:$METRO_TMUX_SESSION}" > "$PIDFILE"
+  echo "Metro tmux session: $METRO_TMUX_SESSION, logging to $LOGFILE"
+else
+  # Detach Metro from this helper. When start-metro.sh is run from a one-shot
+  # harness/preflight script, a plain background job can receive SIGHUP as the
+  # parent shell exits, leaving a "ready" log line but no listening server by
+  # the time CDP/app-state validation starts. nohup keeps the skill-owned easy
+  # command alive after this wrapper returns.
+  nohup env EXPO_NO_TYPESCRIPT_SETUP=1 yarn expo start --port "$PORT" >> "$LOGFILE" 2>&1 &
+  METRO_PID=$!
+  # Ensure parent shell exit does not propagate job-control cleanup to Metro.
+  disown "$METRO_PID" 2>/dev/null || true
+  echo "$METRO_PID" > "$PIDFILE"
+  rm -f .agent/metro.tmux-session
+  echo "Metro PID: $METRO_PID, logging to $LOGFILE"
+fi
+
+metro_alive() {
+  if [ -n "$METRO_TMUX_SESSION" ]; then
+    tmux has-session -t "$METRO_TMUX_SESSION" 2>/dev/null
+  else
+    kill -0 "$METRO_PID" 2>/dev/null
+  fi
+}
 
 # Wait for ready signal
 ELAPSED=0
@@ -187,7 +208,7 @@ while [ $ELAPSED -lt $TIMEOUT ]; do
     fi
     exit 0
   fi
-  if ! kill -0 "$METRO_PID" 2>/dev/null; then
+  if ! metro_alive; then
     echo "ERROR: Metro exited unexpectedly. Last 10 lines:"
     tail -10 "$LOGFILE"
     rm -f "$PIDFILE"
