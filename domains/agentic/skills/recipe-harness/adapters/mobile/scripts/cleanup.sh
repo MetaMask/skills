@@ -12,7 +12,10 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="$(cd "$TARGET" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/hash-helpers.sh"
 HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
 if GIT_BACKUP_PATH="$(git -C "$TARGET" rev-parse --git-path recipe-harness/mobile/backup 2>/dev/null)"; then
   case "$GIT_BACKUP_PATH" in
@@ -55,49 +58,6 @@ done < "$STATE_FILE"
 unset _line _key _val
 
 HASH_FILE="$BACKUP_DIR/managed-hashes.tsv"
-
-digest_file() {
-  local file="$1"
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$file" | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$file" | awk '{print $1}'
-  elif command -v openssl >/dev/null 2>&1; then
-    openssl dgst -sha256 "$file" | awk '{print $NF}'
-  else
-    echo "Error: need shasum, sha256sum, or openssl for mobile harness hashing." >&2
-    exit 1
-  fi
-}
-
-digest_stdin() {
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum | awk '{print $1}'
-  elif command -v openssl >/dev/null 2>&1; then
-    openssl dgst -sha256 | awk '{print $NF}'
-  else
-    echo "Error: need shasum, sha256sum, or openssl for mobile harness hashing." >&2
-    exit 1
-  fi
-}
-
-hash_path() {
-  local rel="$1"
-  if [ ! -e "$TARGET/$rel" ]; then
-    printf 'MISSING'
-  elif [ -d "$TARGET/$rel" ]; then
-    (
-      cd "$TARGET"
-      find "$rel" -type f | LC_ALL=C sort | while IFS= read -r file; do
-        printf '%s  %s\n' "$(digest_file "$file")" "$file"
-      done | digest_stdin
-    )
-  else
-    (cd "$TARGET" && digest_file "$rel")
-  fi
-}
 
 verify_managed_paths_unchanged() {
   if [ ! -f "$HASH_FILE" ]; then

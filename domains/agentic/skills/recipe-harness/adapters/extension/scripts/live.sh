@@ -53,7 +53,13 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   prepare_parts+=("test -f ${quoted_dist}/manifest.json")
   prepare_parts+=("rm -rf ${quoted_runtime_dist} && mkdir -p ${quoted_runtime_dist} && rsync -a --delete --exclude _metadata ${quoted_dist}/ ${quoted_runtime_dist}/")
   prepare_parts+=("node -e 'const fs=require(\"fs\"); const p=process.argv[1]; const m=JSON.parse(fs.readFileSync(p,\"utf8\")); delete m.key; fs.writeFileSync(p, JSON.stringify(m, null, 2)+\"\\\\n\")' ${quoted_runtime_dist}/manifest.json")
-  prepare_parts+=("nohup ${quoted_chrome} --user-data-dir=${quoted_profile} --remote-debugging-address=127.0.0.1 --remote-debugging-port=${CDP_PORT} --no-first-run --disable-first-run-ui --disable-default-apps --disable-popup-blocking --disable-extensions-file-access-check --disable-features=ExtensionContentVerification --load-extension=${quoted_runtime_dist} chrome://extensions/ > ${quoted_chrome_log} 2>&1 & echo \$! > ${quoted_chrome_pid}")
+  chrome_launch_cmd="nohup ${quoted_chrome} --user-data-dir=${quoted_profile}"
+  chrome_launch_cmd+=" --remote-debugging-address=127.0.0.1 --remote-debugging-port=${CDP_PORT}"
+  chrome_launch_cmd+=" --no-first-run --disable-first-run-ui --disable-default-apps --disable-popup-blocking"
+  chrome_launch_cmd+=" --disable-extensions-file-access-check --disable-features=ExtensionContentVerification"
+  chrome_launch_cmd+=" --load-extension=${quoted_runtime_dist} chrome://extensions/"
+  chrome_launch_cmd+=" > ${quoted_chrome_log} 2>&1 & echo \$! > ${quoted_chrome_pid}"
+  prepare_parts+=("$chrome_launch_cmd")
   prepare_parts+=("for i in {1..60}; do curl -fsS --max-time 1 http://127.0.0.1:${CDP_PORT}/json/version >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1")
   PREPARE_CMD="$(IFS='; '; printf '%s' "${prepare_parts[*]}")"
 fi

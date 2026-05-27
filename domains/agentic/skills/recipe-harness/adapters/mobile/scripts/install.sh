@@ -17,6 +17,8 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADAPTER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILL_DIR="$(cd "${ADAPTER_DIR}/../.." && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/hash-helpers.sh"
 TARGET="$(cd "$TARGET" && pwd)"
 HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
 if GIT_BACKUP_PATH="$(git -C "$TARGET" rev-parse --git-path recipe-harness/mobile/backup 2>/dev/null)"; then
@@ -96,7 +98,13 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
         "app/core/NavigationService/NavigationService.ts",
         "app/components/Nav/App/App.tsx"
       ],
+      backupDir: null,
       cleanupCommand: process.argv[5] + "/cleanup.sh --target " + process.argv[4],
+      productDiffExcludes: [
+        ":(exclude).agent/recipe-harness",
+        ":(exclude).skills-cache",
+        ":(exclude)temp/agentic/recipe-harness"
+      ],
       note: "This checkout already contains the first-party Mobile agentic harness. Skill install only writes recipe-harness metadata and must not overwrite tracked product harness files."
     };
     fs.writeFileSync(process.argv[6], JSON.stringify(m, null, 2) + "\n");
@@ -111,49 +119,6 @@ ROLLBACK_BACKUP_DIR="$BACKUP_DIR"
 ROLLBACK_STATE_FILE="$STATE_FILE"
 REFRESH_BACKUP_DIR=""
 REBASE_BACKUP=false
-
-digest_file() {
-  local file="$1"
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$file" | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$file" | awk '{print $1}'
-  elif command -v openssl >/dev/null 2>&1; then
-    openssl dgst -sha256 "$file" | awk '{print $NF}'
-  else
-    echo "Error: need shasum, sha256sum, or openssl for mobile harness hashing." >&2
-    exit 1
-  fi
-}
-
-digest_stdin() {
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 | awk '{print $1}'
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum | awk '{print $1}'
-  elif command -v openssl >/dev/null 2>&1; then
-    openssl dgst -sha256 | awk '{print $NF}'
-  else
-    echo "Error: need shasum, sha256sum, or openssl for mobile harness hashing." >&2
-    exit 1
-  fi
-}
-
-hash_path() {
-  local item="$1"
-  if [ ! -e "$TARGET/$item" ]; then
-    printf 'MISSING'
-  elif [ -d "$TARGET/$item" ]; then
-    (
-      cd "$TARGET"
-      find "$item" -type f | LC_ALL=C sort | while IFS= read -r file; do
-        printf '%s  %s\n' "$(digest_file "$file")" "$file"
-      done | digest_stdin
-    )
-  else
-    (cd "$TARGET" && digest_file "$item")
-  fi
-}
 
 verify_installed_paths_unchanged() {
   local hash_file="$BACKUP_DIR/managed-hashes.tsv"
