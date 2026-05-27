@@ -39,6 +39,7 @@ INSTALL_MUTATING=false
 ROLLBACK_BACKUP_DIR="$BACKUP_DIR"
 ROLLBACK_STATE_FILE="$STATE_FILE"
 REFRESH_BACKUP_DIR=""
+REBASE_BACKUP=false
 
 digest_file() {
   local file="$1"
@@ -88,15 +89,23 @@ verify_installed_paths_unchanged() {
   if [ ! -f "$hash_file" ]; then
     return 0
   fi
-  local rel expected actual conflicts=0
+  local rel expected actual conflicts=0 stale_clean=0
   while IFS=$'\t' read -r rel expected; do
     [ -n "$rel" ] || continue
     actual="$(hash_path "$rel")"
     if [ "$actual" != "$expected" ]; then
-      echo "Refusing to refresh mobile recipe harness: managed path changed after install: $rel" >&2
-      echo "  expected: $expected" >&2
-      echo "  actual:   $actual" >&2
-      conflicts=1
+      if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1 \
+        && [ -z "$(git -C "$TARGET" status --porcelain -- "$rel")" ]; then
+        echo "Mobile recipe harness managed path changed after install but is clean in git: $rel" >&2
+        echo "  expected: $expected" >&2
+        echo "  actual:   $actual" >&2
+        stale_clean=1
+      else
+        echo "Refusing to refresh mobile recipe harness: managed path changed after install: $rel" >&2
+        echo "  expected: $expected" >&2
+        echo "  actual:   $actual" >&2
+        conflicts=1
+      fi
     fi
   done < "$hash_file"
   if [ "$conflicts" != "0" ]; then
@@ -105,6 +114,14 @@ Reinstall would bless local edits as harness-managed and make cleanup unsafe.
 Save/stash product changes or rerun with --allow-dirty-harness-paths if you intentionally want to overwrite and refresh harness-managed state.
 EOF
     exit 1
+  fi
+  if [ "$stale_clean" != "0" ]; then
+    cat >&2 <<EOF
+Managed hashes are stale, but all changed harness-managed paths are clean in git.
+This usually means the checkout was reset/rebased after a previous harness install.
+Rebaselining the harness backup to the current clean checkout before refreshing.
+EOF
+    REBASE_BACKUP=true
   fi
 }
 
@@ -222,7 +239,7 @@ rollback_failed_install() {
 
 trap 'rollback_failed_install $?' ERR
 
-if [ ! -f "$STATE_FILE" ]; then
+if [ ! -f "$STATE_FILE" ] || [ "$REBASE_BACKUP" = true ]; then
   TMP_BACKUP_DIR="$(mktemp -d "$HARNESS_DIR/backup.tmp.XXXXXX")"
   ACTIVE_BACKUP_DIR="$TMP_BACKUP_DIR"
   ACTIVE_STATE_FILE="$TMP_BACKUP_DIR/state.env"
@@ -232,9 +249,19 @@ if [ ! -f "$STATE_FILE" ]; then
   backup_path "package.json" "PACKAGE_JSON_EXISTED"
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
-  rm -rf "$BACKUP_DIR"
+  if [ "$REBASE_BACKUP" = true ] && [ -e "$BACKUP_DIR" ]; then
+    ARCHIVE_DIR="$HARNESS_DIR/backup-stale.$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$(dirname "$ARCHIVE_DIR")"
+    mv "$BACKUP_DIR" "$ARCHIVE_DIR"
+    echo "Archived stale mobile harness backup: $ARCHIVE_DIR" >&2
+  else
+    rm -rf "$BACKUP_DIR"
+  fi
   mkdir -p "$(dirname "$BACKUP_DIR")"
   mv "$TMP_BACKUP_DIR" "$BACKUP_DIR"
+  STATE_FILE="$BACKUP_DIR/state.env"
+  ROLLBACK_BACKUP_DIR="$BACKUP_DIR"
+  ROLLBACK_STATE_FILE="$STATE_FILE"
 else
   REFRESH_BACKUP_DIR="$(mktemp -d "$HARNESS_DIR/refresh-backup.tmp.XXXXXX")"
   ACTIVE_BACKUP_DIR="$REFRESH_BACKUP_DIR"
