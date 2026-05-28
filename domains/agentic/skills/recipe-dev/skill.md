@@ -191,6 +191,30 @@ the runtime lane as `BLOCKED: harness defect` (or `PASS-WITH-GAPS` for product
 code already checked) and report the exact summary/log path. Do not patch the
 harness unless the explicit task is a harness-maintenance task.
 
+## Delegate Recovery Decision Tree
+
+When a live proof is blocked, escalate through the lower-level delegates before
+using ad-hoc commands or packaging partial evidence:
+
+1. **Runtime/CDP unavailable** — use `/mms-recipe-harness` (or the installed
+   delegate path) to launch, live-verify, or recover the runtime with the
+   caller-approved context/prepare command. The high-level skill should not run
+   raw build/watch/Chrome/simulator commands when a harness path exists. If no
+   runtime context or start approval exists, stop with `BLOCKED: missing runtime
+   context` or `BLOCKED: pending runtime-start approval`.
+2. **Wallet locked, wrong account, onboarding, route, or app-ready blocker** —
+   use `/mms-recipe-wallet-control` (or the installed delegate path) for unlock,
+   account, route, and wallet readiness primitives. Do not invent private aliases
+   or mutate controller/store state to prove user-visible ACs.
+3. **Stateful product setup unavailable** — use recipe/harness/wallet-control
+   supported flows or documented pre-start fixtures. If no real flow/fixture
+   exists, record a fixture/state setup blocker; do not manufacture the target
+   state.
+4. **Delegate cannot recover** — stop at the concrete blocker with command/log
+   paths. Fix the delegate/runtime/root cause and restart from clean generated
+   harness state rather than continuing to a partial evidence package, unless
+   the human explicitly asks for partial packaging.
+
 ## CDP Bootstrap Failure Stop Gate
 
 For Extension visual or mixed ACs, a live recipe that fails before CDP session
