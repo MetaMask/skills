@@ -1,5 +1,5 @@
 {
-  "title": "Fixture account parity — wallet unlocks with named SRP/private-key accounts",
+  "title": "Fixture account parity \u2014 wallet unlocks with named SRP/private-key accounts",
   "validate": {
     "workflow": {
       "entry": "unlock",
@@ -11,15 +11,44 @@
         },
         "read-accounts": {
           "action": "eval_async",
-          "expression": "(async function(){var metamask=(stateHooks.store.getState()||{}).metamask||{};var accts=metamask.internalAccounts||{};var byId=accts.accounts||{};var list=Object.keys(byId).map(function(id){var acct=byId[id]||{};var meta=acct.metadata||{};return {id:id,name:meta.name||'',address:acct.address||'',keyringType:(meta.keyring||{}).type||'',type:acct.type||''};});return JSON.stringify({accountCount:list.length,names:list.map(function(account){return account.name;}),keyringTypes:list.map(function(account){return account.keyringType;}),privateKeyCount:list.filter(function(account){return account.keyringType==='Simple Key Pair';}).length,mnemonicCount:list.filter(function(account){return account.keyringType==='HD Key Tree';}).length,selectedAccountId:accts.selectedAccount||null,accounts:list});})()",
+          "expression": "(async function(){var metamask=(stateHooks.store.getState()||{}).metamask||{};var accts=metamask.internalAccounts||{};var byId=accts.accounts||{};var selected=accts.selectedAccount&&byId[accts.selectedAccount]?byId[accts.selectedAccount]:null;var list=Object.keys(byId).map(function(id){var acct=byId[id]||{};var meta=acct.metadata||{};return {id:id,name:meta.name||'',address:acct.address||'',keyringType:(meta.keyring||{}).type||'',type:acct.type||''};});var evm=list.filter(function(account){return String(account.address||'').indexOf('0x')===0;});return JSON.stringify({accountCount:list.length,evmAccountCount:evm.length,names:evm.map(function(account){return account.name;}),keyringTypes:evm.map(function(account){return account.keyringType;}),privateKeyCount:evm.filter(function(account){return account.keyringType==='Simple Key Pair';}).length,mnemonicCount:evm.filter(function(account){return account.keyringType==='HD Key Tree';}).length,selectedAccountId:accts.selectedAccount||null,selectedName:selected&&selected.metadata?selected.metadata.name||'':'',selectedAddress:selected&&selected.address?selected.address:'',accounts:list,evmAccounts:evm});})()",
           "assert": {
             "all": [
-              { "field": "accountCount", "operator": "gte", "value": 3 },
-              { "field": "mnemonicCount", "operator": "gte", "value": 1 },
-              { "field": "privateKeyCount", "operator": "gte", "value": 2 },
-              { "field": "names", "operator": "contains", "value": "Primary" },
-              { "field": "names", "operator": "contains", "value": "Trading" },
-              { "field": "names", "operator": "contains", "value": "MYXTrading" }
+              {
+                "field": "evmAccountCount",
+                "operator": "eq",
+                "value": 3
+              },
+              {
+                "field": "mnemonicCount",
+                "operator": "eq",
+                "value": 1
+              },
+              {
+                "field": "privateKeyCount",
+                "operator": "eq",
+                "value": 2
+              },
+              {
+                "field": "selectedName",
+                "operator": "eq",
+                "value": "Primary"
+              },
+              {
+                "field": "names",
+                "operator": "contains",
+                "value": "Primary"
+              },
+              {
+                "field": "names",
+                "operator": "contains",
+                "value": "Trading"
+              },
+              {
+                "field": "names",
+                "operator": "contains",
+                "value": "MYXTrading"
+              }
             ]
           },
           "next": "done"

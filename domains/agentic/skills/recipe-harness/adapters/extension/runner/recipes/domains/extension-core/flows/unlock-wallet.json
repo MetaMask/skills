@@ -16,7 +16,10 @@
           "cases": [
             {
               "label": "locked",
-              "when": { "field": "vars.lock_check.visible", "operator": "truthy" },
+              "when": {
+                "field": "vars.lock_check.visible",
+                "operator": "truthy"
+              },
               "next": "type-password"
             }
           ],
@@ -25,7 +28,7 @@
         "type-password": {
           "action": "set_input",
           "test_id": "unlock-password",
-          "value": "{{env.WALLET_PASSWORD}}",
+          "value": "{{env.WALLET_PASSWORD|qwerasdf}}",
           "next": "press-unlock"
         },
         "press-unlock": {
@@ -43,7 +46,9 @@
           "action": "ext_check_dom",
           "test_id": "account-menu-icon",
           "visible": true,
-          "assert": { "operator": "not_null" },
+          "assert": {
+            "operator": "not_null"
+          },
           "next": "done"
         },
         "done": {

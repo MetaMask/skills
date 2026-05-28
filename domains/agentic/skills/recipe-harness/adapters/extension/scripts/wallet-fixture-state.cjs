@@ -536,13 +536,87 @@ async function readLiveAccounts(page) {
   return JSON.parse(raw);
 }
 
-function expectedAccountsFromState(state) {
-  const accounts = state.data?.AccountsController?.internalAccounts?.accounts || {};
-  return Object.values(accounts).map((account) => ({
+function expectedFixtureFromState(state) {
+  const internalAccounts = state.data?.AccountsController?.internalAccounts || {};
+  const accounts = internalAccounts.accounts || {};
+  const rows = Object.values(accounts).map((account) => ({
+    id: account.id || '',
     name: account.metadata?.name || '',
     address: String(account.address || '').toLowerCase(),
     keyringType: account.metadata?.keyring?.type || '',
   }));
+  const selected = accounts[internalAccounts.selectedAccount] || rows[0] || null;
+  return {
+    accounts: rows,
+    selected: selected
+      ? {
+          id: selected.id || '',
+          name: selected.metadata?.name || selected.name || '',
+          address: String(selected.address || '').toLowerCase(),
+        }
+      : null,
+  };
+}
+
+function getEvmAccounts(live) {
+  return live.accounts.filter((account) => String(account.address || '').startsWith('0x'));
+}
+
+function compareImportParity(live, expectedFixture) {
+  const evmAccounts = getEvmAccounts(live);
+  const missing = expectedFixture.accounts.filter(
+    (expectedAccount) =>
+      !evmAccounts.some(
+        (actual) =>
+          actual.address.toLowerCase() === expectedAccount.address &&
+          actual.keyringType === expectedAccount.keyringType,
+      ),
+  );
+  const unexpectedEvm = evmAccounts.filter(
+    (actual) =>
+      !expectedFixture.accounts.some(
+        (expectedAccount) => expectedAccount.address === actual.address.toLowerCase(),
+      ),
+  );
+  const selectedMatches = expectedFixture.selected
+    ? String(live.selectedAddress || '').toLowerCase() === expectedFixture.selected.address
+    : true;
+  return {
+    status:
+      missing.length === 0 &&
+      unexpectedEvm.length === 0 &&
+      evmAccounts.length === expectedFixture.accounts.length &&
+      selectedMatches
+        ? 'PASS'
+        : 'FAIL',
+    expectedEvmAccountCount: expectedFixture.accounts.length,
+    liveEvmAccountCount: evmAccounts.length,
+    missing,
+    unexpectedEvm,
+    selectedExpected: expectedFixture.selected,
+    selectedActual: {
+      id: live.selectedAccountId,
+      name: live.selectedName,
+      address: live.selectedAddress,
+    },
+    selectedMatches,
+  };
+}
+
+function compareAccountNames(live, expectedFixture) {
+  const evmAccounts = getEvmAccounts(live);
+  const mismatched = expectedFixture.accounts.filter(
+    (expectedAccount) =>
+      !evmAccounts.some(
+        (actual) =>
+          actual.address.toLowerCase() === expectedAccount.address &&
+          actual.name === expectedAccount.name,
+      ),
+  );
+  return {
+    status: mismatched.length === 0 ? 'PASS' : 'FAIL',
+    mismatched,
+  };
 }
 
 async function applyAccountNames(page, expectedAccounts) {
@@ -559,35 +633,35 @@ async function applyAccountNames(page, expectedAccounts) {
   }
 }
 
-async function waitForExpectedAccounts(page, expectedAccounts) {
+async function applySelectedAccount(page, expectedSelected) {
+  if (!expectedSelected?.id) {
+    return;
+  }
+  await page.evaluate(
+    async ({ accountId }) => {
+      await window.stateHooks.submitRequestToBackground('setSelectedInternalAccount', [accountId]);
+    },
+    { accountId: expectedSelected.id },
+  );
+}
+
+async function waitForFixtureSetup(page, expectedFixture) {
   const deadline = Date.now() + 15000;
   let live = await readLiveAccounts(page);
   while (Date.now() < deadline) {
-    const missing = expectedAccounts.filter(
-      (expectedAccount) =>
-        !live.accounts.some(
-          (actual) =>
-            actual.address.toLowerCase() === expectedAccount.address &&
-            actual.name === expectedAccount.name &&
-            actual.keyringType === expectedAccount.keyringType,
-        ),
-    );
-    if (missing.length === 0 && live.accounts.length >= expectedAccounts.length) {
-      return { live, missing };
+    const names = compareAccountNames(live, expectedFixture);
+    const importParity = compareImportParity(live, expectedFixture);
+    if (names.status === 'PASS' && importParity.selectedMatches) {
+      return { live, names, importParity };
     }
     await page.waitForTimeout(500);
     live = await readLiveAccounts(page);
   }
-  const missing = expectedAccounts.filter(
-    (expectedAccount) =>
-      !live.accounts.some(
-        (actual) =>
-          actual.address.toLowerCase() === expectedAccount.address &&
-          actual.name === expectedAccount.name &&
-          actual.keyringType === expectedAccount.keyringType,
-      ),
-  );
-  return { live, missing };
+  return {
+    live,
+    names: compareAccountNames(live, expectedFixture),
+    importParity: compareImportParity(live, expectedFixture),
+  };
 }
 
 async function disconnectCdpBrowser(browser) {
@@ -636,27 +710,59 @@ async function seedCdp(args) {
   });
   await page.waitForTimeout(1500);
   const screen = await unlockIfNeeded(page, wallet.password);
-  const expected = expectedAccountsFromState(fixtureState);
-  await applyAccountNames(page, expected);
-  const { live, missing } = await waitForExpectedAccounts(page, expected);
+  const expectedFixture = expectedFixtureFromState(fixtureState);
+  const liveBeforeSetup = await readLiveAccounts(page);
+  const importParityBeforeSetup = compareImportParity(liveBeforeSetup, expectedFixture);
+  const namesBeforeSetup = compareAccountNames(liveBeforeSetup, expectedFixture);
+
+  // Name and selected-account calls are an explicit fixture setup phase, not
+  // import-parity proof. The report records import parity before these calls so
+  // validation cannot pass by repairing the imported account set it claims to
+  // prove. The setup phase only applies user-facing labels/selection after the
+  // expected EVM accounts and keyring types already exist.
+  if (importParityBeforeSetup.status === 'PASS' && namesBeforeSetup.status !== 'PASS') {
+    await applyAccountNames(page, expectedFixture.accounts);
+  }
+  if (importParityBeforeSetup.status === 'PASS' && !importParityBeforeSetup.selectedMatches) {
+    await applySelectedAccount(page, expectedFixture.selected);
+  }
+  const setupResult = await waitForFixtureSetup(page, expectedFixture);
+  const finalImportParity = compareImportParity(setupResult.live, expectedFixture);
+  const finalNames = compareAccountNames(setupResult.live, expectedFixture);
+  const fixtureSetupStatus =
+    importParityBeforeSetup.status === 'PASS' && finalImportParity.selectedMatches && finalNames.status === 'PASS'
+      ? 'PASS'
+      : 'FAIL';
   const report = {
-    status: missing.length === 0 && live.accounts.length >= expected.length ? 'PASS' : 'FAIL',
+    status: fixtureSetupStatus,
     extensionId,
     unlockedVia: screen.selector,
-    expectedAccountCount: expected.length,
-    liveAccountCount: live.accounts.length,
-    selected: {
-      name: live.selectedName,
-      address: live.selectedAddress,
+    importParity: importParityBeforeSetup,
+    fixtureSetup: {
+      status: fixtureSetupStatus,
+      namesBeforeSetup,
+      namesAfterSetup: finalNames,
+      selectedAfterSetup: finalImportParity.selectedActual,
+      selectedExpected: finalImportParity.selectedExpected,
+      note:
+        'Account-label/selection calls are setup-time fixture finalization only; importParity is measured before these calls.',
     },
-    expectedAccounts: expected,
-    liveAccounts: live.accounts.map((account) => ({
+    expectedAccountCount: expectedFixture.accounts.length,
+    liveAccountCount: setupResult.live.accounts.length,
+    liveEvmAccountCount: getEvmAccounts(setupResult.live).length,
+    selected: {
+      name: setupResult.live.selectedName,
+      address: setupResult.live.selectedAddress,
+    },
+    expectedAccounts: expectedFixture.accounts,
+    liveAccounts: setupResult.live.accounts.map((account) => ({
       name: account.name,
       address: account.address,
       keyringType: account.keyringType,
       type: account.type,
     })),
-    missing,
+    missing: importParityBeforeSetup.missing,
+    unexpectedEvm: importParityBeforeSetup.unexpectedEvm,
     generatedAt: new Date().toISOString(),
   };
   writeJson(outPath, report);
