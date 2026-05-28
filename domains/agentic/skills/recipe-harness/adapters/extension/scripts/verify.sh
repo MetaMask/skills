@@ -106,25 +106,45 @@ const stat = fs.statSync(found);
 const isFile = stat.isFile();
 let sha256 = null;
 let validJson = null;
+let hasWalletPassword = false;
+let farmslotAccountShape = false;
+const rel = path.relative(target, found);
+const isWalletFixture = rel === 'temp/runtime/wallet-fixture.json' || rel === '.agent/wallet-fixture.json';
 if (isFile) {
   const bytes = fs.readFileSync(found);
   sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
   if (found.endsWith('.json')) {
-    try { JSON.parse(bytes.toString('utf8')); validJson = true; }
-    catch { validJson = false; }
+    try {
+      const parsed = JSON.parse(bytes.toString('utf8'));
+      validJson = true;
+      const accounts = Array.isArray(parsed.accounts) ? parsed.accounts : [];
+      hasWalletPassword = typeof parsed.password === 'string' && parsed.password.length > 0;
+      farmslotAccountShape = accounts.some((account) => account?.type === 'mnemonic') &&
+        accounts.filter((account) => account?.type === 'privateKey').length >= 2;
+    } catch {
+      validJson = false;
+    }
   }
 }
-const rel = path.relative(target, found);
+const status = validJson === false
+  ? 'STALE_OR_INVALID'
+  : isWalletFixture && hasWalletPassword
+    ? 'READY'
+    : 'PROFILE_HINTS';
 console.log(JSON.stringify({
-  status: validJson === false ? 'STALE_OR_INVALID' : 'READY',
+  status,
   path: rel,
   type: isFile ? 'file' : 'directory',
   sha256,
   modifiedAt: stat.mtime.toISOString(),
   profileHints,
+  hasWalletPassword,
+  farmslotAccountShape,
   message: validJson === false
     ? `Fixture status: STALE_OR_INVALID (${rel}). Fix before relying on a clean sandbox.`
-    : `Fixture status: READY (${rel}).`,
+    : status === 'READY'
+      ? `Fixture status: READY (${rel}).`
+      : `Fixture status: PROFILE_HINTS (${rel}); no Mobile-shaped wallet fixture was found for automatic account parity validation.`,
 }));
 NODE
 }
@@ -236,9 +256,9 @@ if [ "$STATIC_ONLY" = false ]; then
       status="fail"
     fi
 
-    fixture_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
+    fixture_parity_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" && v.hasWalletPassword && v.farmslotAccountShape ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
     fixture_parity_flow="$OUT/domains/extension-core/flows/fixture-account-parity.json"
-    if [ "$fixture_ready" = "true" ]; then
+    if [ "$fixture_parity_ready" = "true" ]; then
       if [ -f "$TARGET/$fixture_parity_flow" ]; then
         fixture_password="$(read_fixture_password || true)"
         if [ -n "$fixture_password" ] && (
@@ -256,7 +276,7 @@ if [ "$STATIC_ONLY" = false ]; then
         status="fail"
       fi
     else
-      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no ready wallet fixture was found\"}")
+      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no Farmslot-shaped wallet fixture with password/mnemonic/private keys was found\"}")
     fi
 
     if (
