@@ -86,6 +86,37 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 If the branch cannot be made clean, mark the branch gate `BLOCKED` before
 implementation. Do not mix multiple model attempts on the same product branch.
 
+## Clean Generated Harness State Protocol
+
+A clean product worktree is not enough. Generated, ignored harness/runtime
+outputs can make a fresh run reuse stale recipe code or stale CDP metadata.
+Before the proof plan or harness install gate, record and clean these generated
+paths for the current target repo unless the caller explicitly asks to preserve
+runtime state for debugging:
+
+```bash
+rm -rf temp/agentic/recipes .agent/recipe-harness/extension .agent/recipe-harness/mobile
+rm -rf temp/tasks/<this-run>/harness
+```
+
+Then reinstall the lower-level harness from the currently installed skill. Do
+not use `--force`; deleting known generated outputs first is the idempotent
+refresh. Do not edit `.agents/skills/...`, `.claude/skills/...`, or harness
+source files during product validation.
+
+For Extension, prefer task-local harness output when writing new recipes so each
+run is isolated from shared `temp/agentic/recipes` state:
+
+```bash
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install \
+  --target . \
+  --out temp/tasks/<this-run>/harness/recipes
+```
+
+Use the same task-local `validate-recipe.sh` path for dry-run and live recipe
+runs. If an existing shared harness install must be reused, verify its manifest
+and content hash in `CHECKLIST.md`; do not silently reuse stale ignored files.
+
 ## First Response to the Human
 
 After creating `CHECKLIST.md`, immediately acknowledge the handoff with a short, friendly message that includes the checklist path the human can monitor. Use this exact spirit, adapted only if the user gave a stricter tone:
