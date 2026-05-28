@@ -68,6 +68,16 @@ function deterministicUuid(input) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+function deterministicEntropyId(input) {
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const bytes = crypto.createHash('sha256').update(input).digest();
+  let id = '01';
+  for (let index = 0; id.length < 26; index += 1) {
+    id += alphabet[bytes[index % bytes.length] % alphabet.length];
+  }
+  return id;
+}
+
 function getFixtureAccounts(wallet) {
   const accounts = Array.isArray(wallet.accounts) ? wallet.accounts : [];
   if (accounts.length === 0) {
@@ -110,9 +120,16 @@ async function buildKeyringEntries(target, wallet) {
       const keyring = new HdKeyring();
       await keyring.deserialize({ mnemonic, numberOfAccounts: 1 });
       const [address] = await keyring.getAccounts();
+      const keyringId = deterministicEntropyId(`mnemonic:${mnemonic}:${index}`);
       entries.push({
         fixtureType: 'mnemonic',
-        keyring: { type: 'HD Key Tree', data: await keyring.serialize() },
+        groupIndex: 0,
+        keyringId,
+        keyring: {
+          type: 'HD Key Tree',
+          data: await keyring.serialize(),
+          metadata: { id: keyringId, name: '' },
+        },
         address,
         name,
       });
@@ -126,7 +143,11 @@ async function buildKeyringEntries(target, wallet) {
     const derivedAddress = bytesToHex(privateToAddress(Buffer.from(rawPrivateKey, 'hex')));
     entries.push({
       fixtureType: 'privateKey',
-      keyring: { type: 'Simple Key Pair', data: await keyring.serialize() },
+      keyring: {
+        type: 'Simple Key Pair',
+        data: await keyring.serialize(),
+        metadata: { id: deterministicEntropyId(`privateKey:${derivedAddress}:${index}`), name: '' },
+      },
       address: address || derivedAddress,
       name,
     });
@@ -152,6 +173,52 @@ function patchAccountTracker(data, addresses) {
   }
 }
 
+function patchNetworkState(data) {
+  const mainnetChainId = '0x1';
+  const mainnetClientId = 'mainnet';
+
+  if (data.NetworkController) {
+    data.NetworkController.selectedNetworkClientId = mainnetClientId;
+
+    const configs = data.NetworkController.networkConfigurationsByChainId || {};
+    for (const chainId of Object.keys(configs)) {
+      if (chainId !== mainnetChainId) {
+        delete configs[chainId];
+      }
+    }
+
+    const metadata = data.NetworkController.networksMetadata || {};
+    for (const clientId of Object.keys(metadata)) {
+      if (clientId !== mainnetClientId) {
+        delete metadata[clientId];
+      }
+    }
+  }
+
+  if (data.NetworkEnablementController?.enabledNetworkMap?.eip155) {
+    data.NetworkEnablementController.enabledNetworkMap.eip155 = { [mainnetChainId]: true };
+  }
+
+  if (Array.isArray(data.NetworkOrderController?.orderedNetworkList)) {
+    data.NetworkOrderController.orderedNetworkList =
+      data.NetworkOrderController.orderedNetworkList.filter((entry) => entry?.networkId === 'eip155:1');
+  }
+}
+
+function patchSyncState(data) {
+  data.UserStorageController = {
+    ...(data.UserStorageController || {}),
+    isAccountSyncingEnabled: false,
+    isBackupAndSyncEnabled: false,
+    isContactSyncingEnabled: false,
+  };
+
+  if (data.ProfileMetricsController) {
+    data.ProfileMetricsController.syncQueue = {};
+    data.ProfileMetricsController.initialEnqueueCompleted = false;
+  }
+}
+
 function resolveSelectedAccount(wallet, accountRows) {
   const wanted = wallet.selectedAccount || wallet.selectedAddress || wallet.address;
   if (typeof wanted !== 'string' || !wanted.trim()) {
@@ -165,6 +232,82 @@ function resolveSelectedAccount(wallet, accountRows) {
         account.address.toLowerCase() === normalized,
     ) || accountRows[0]
   );
+}
+
+function accountGroupId(account) {
+  if (account.fixtureType === 'mnemonic') {
+    return `entropy:${account.keyringId}/${account.groupIndex}`;
+  }
+  return `keyring:${account.metadata.keyring.type}/${account.address}`;
+}
+
+function patchAccountTree(data, accountRows, selected) {
+  const wallets = {};
+  const accountGroupsMetadata = {};
+  const accountWalletsMetadata = {};
+
+  for (const account of accountRows) {
+    const groupId = accountGroupId(account);
+    accountGroupsMetadata[groupId] = { lastSelected: account.metadata.lastSelected || 0 };
+
+    if (account.fixtureType === 'mnemonic') {
+      const walletId = `entropy:${account.keyringId}`;
+      wallets[walletId] ??= {
+        id: walletId,
+        type: 'entropy',
+        status: 'ready',
+        groups: {},
+        metadata: {
+          name: 'Wallet 1',
+          entropy: { id: account.keyringId },
+        },
+      };
+      wallets[walletId].groups[groupId] = {
+        id: groupId,
+        type: 'multichain-account',
+        accounts: [account.id],
+        metadata: {
+          name: account.metadata.name,
+          pinned: false,
+          hidden: false,
+          lastSelected: account.metadata.lastSelected || 0,
+          entropy: { groupIndex: account.groupIndex },
+        },
+      };
+      continue;
+    }
+
+    const walletId = `keyring:${account.metadata.keyring.type}`;
+    wallets[walletId] ??= {
+      id: walletId,
+      type: 'keyring',
+      status: 'ready',
+      groups: {},
+      metadata: {
+        name: 'Imported accounts',
+        keyring: { type: account.metadata.keyring.type },
+      },
+    };
+    wallets[walletId].groups[groupId] = {
+      id: groupId,
+      type: 'single-account',
+      accounts: [account.id],
+      metadata: {
+        name: account.metadata.name,
+        pinned: false,
+        hidden: false,
+        lastSelected: account.metadata.lastSelected || 0,
+      },
+    };
+  }
+
+  data.AccountTreeController = {
+    accountGroupsMetadata,
+    accountTree: { wallets },
+    accountWalletsMetadata,
+    hasAccountTreeSyncingSyncedAtLeastOnce: true,
+    selectedAccountGroup: accountGroupId(selected),
+  };
 }
 
 async function generate(args) {
@@ -232,6 +375,9 @@ async function generate(args) {
     const row = {
       id,
       address: entry.address.toLowerCase(),
+      fixtureType: entry.fixtureType,
+      groupIndex: entry.groupIndex ?? 0,
+      keyringId: entry.keyringId || '',
       metadata: {
         name: entry.name,
         importTime: now + index,
@@ -241,14 +387,20 @@ async function generate(args) {
       options:
         entry.fixtureType === 'mnemonic'
           ? {
+              entropySource: entry.keyringId,
               derivationPath: "m/44'/60'/0'/0/0",
-              groupIndex: 0,
+              groupIndex: entry.groupIndex ?? 0,
+              entropy: {
+                type: 'mnemonic',
+                id: entry.keyringId,
+                derivationPath: "m/44'/60'/0'/0/0",
+                groupIndex: entry.groupIndex ?? 0,
+              },
             }
           : {},
       methods: EOA_METHODS,
       scopes: ['eip155:0'],
       type: 'eip155:eoa',
-      fixtureType: entry.fixtureType,
     };
     internalAccounts.accounts[id] = row;
     return row;
@@ -256,6 +408,7 @@ async function generate(args) {
   const selected = resolveSelectedAccount(wallet, accountRows);
   selected.metadata.lastSelected = now + accountRows.length;
   internalAccounts.selectedAccount = selected.id;
+  patchAccountTree(data, accountRows, selected);
 
   data.OnboardingController = {
     completedOnboarding: true,
@@ -276,6 +429,8 @@ async function generate(args) {
     data,
     accountRows.map((account) => account.address),
   );
+  patchNetworkState(data);
+  patchSyncState(data);
 
   writeJson(outputPath, fixture);
   const summary = {
