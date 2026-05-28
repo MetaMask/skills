@@ -4,6 +4,7 @@ set -euo pipefail
 TARGET="$PWD"
 CDP_PORT=""
 ARTIFACTS=""
+OUT="temp/agentic/recipes"
 PREPARE_CMD="${RECIPE_HARNESS_EXTENSION_LAUNCH_CMD:-}"
 LAUNCH_EXISTING_DIST=false
 START_TEST_WATCH=false
@@ -12,6 +13,7 @@ CHROME_USER_DATA_DIR=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
+    --out) OUT="$2"; shift 2 ;;
     --cdp-port) CDP_PORT="$2"; shift 2 ;;
     --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
     --prepare-cmd) PREPARE_CMD="$2"; shift 2 ;;
@@ -19,7 +21,7 @@ while [ "$#" -gt 0 ]; do
     --start-test-watch) START_TEST_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
     --dist-dir) DIST_DIR="$2"; shift 2 ;;
     --chrome-user-data-dir) CHROME_USER_DATA_DIR="$2"; shift 2 ;;
-    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] --cdp-port <port> [--launch-existing-dist|--start-test-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
+    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] --cdp-port <port> [--launch-existing-dist|--start-test-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -94,7 +96,7 @@ set -e
 verify_status=1
 if [ "$launch_status" -eq 0 ]; then
   set +e
-  "$SCRIPT_DIR/verify.sh" --target "$TARGET" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/verify"
+  "$SCRIPT_DIR/verify.sh" --target "$TARGET" --out "$OUT" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/verify"
   verify_status=$?
   set -e
 else
