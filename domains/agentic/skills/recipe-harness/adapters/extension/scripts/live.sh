@@ -7,7 +7,7 @@ ARTIFACTS=""
 OUT="temp/agentic/recipes"
 PREPARE_CMD="${RECIPE_HARNESS_EXTENSION_LAUNCH_CMD:-}"
 LAUNCH_EXISTING_DIST=false
-START_TEST_WATCH=false
+START_WATCH=false
 DIST_DIR="dist/chrome"
 CHROME_USER_DATA_DIR=""
 while [ "$#" -gt 0 ]; do
@@ -18,10 +18,10 @@ while [ "$#" -gt 0 ]; do
     --artifacts-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; ARTIFACTS="$2"; shift 2 ;;
     --prepare-cmd) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; PREPARE_CMD="$2"; shift 2 ;;
     --launch-existing-dist) LAUNCH_EXISTING_DIST=true; shift ;;
-    --start-test-watch) START_TEST_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
+    --start-watch|--start-test-watch) START_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
     --dist-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; DIST_DIR="$2"; shift 2 ;;
     --chrome-user-data-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; CHROME_USER_DATA_DIR="$2"; shift 2 ;;
-    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] --cdp-port <port> [--launch-existing-dist|--start-test-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
+    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] --cdp-port <port> [--launch-existing-dist|--start-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -107,12 +107,13 @@ NODE
   quoted_chrome_log="$(printf '%q' "$ARTIFACTS/logs/chrome.log")"
   quoted_chrome_pid="$(printf '%q' "$ARTIFACTS/logs/chrome.pid")"
   prepare_parts=()
-  if $START_TEST_WATCH; then
+  if $START_WATCH; then
     prepare_parts+=("mkdir -p temp/runtime")
     # Scope watcher reuse to this checkout. A machine-global pgrep can match an
     # unrelated repo and leave this target validating stale dist/chrome output.
-    prepare_parts+=("watch_pid_file=temp/runtime/recipe-harness-webpack.pid; watch_log=temp/runtime/recipe-harness-webpack.log; if [ -f \"\$watch_pid_file\" ]; then watch_pid=\$(cat \"\$watch_pid_file\" 2>/dev/null || true); else watch_pid=; fi; if [ -z \"\$watch_pid\" ] || ! kill -0 \"\$watch_pid\" >/dev/null 2>&1; then rm -f \"\$watch_pid_file\"; : > \"\$watch_log\"; nohup env -u BUNDLED_DEBUGPY_PATH yarn start:test > \"\$watch_log\" 2>&1 & echo \$! > \"\$watch_pid_file\"; fi")
-    prepare_parts+=("compiled=false; for i in {1..240}; do if grep -E 'MetaMask.*compiled|compiled with' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1; then compiled=true; break; fi; sleep 2; done; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start:test compilation marker' >&2; exit 1; fi")
+    prepare_parts+=("watch_pid_file=temp/runtime/recipe-harness-webpack.pid; watch_log=temp/runtime/recipe-harness-webpack.log; if [ -f \"\$watch_pid_file\" ]; then watch_pid=\$(cat \"\$watch_pid_file\" 2>/dev/null || true); else watch_pid=; fi; if [ -z \"\$watch_pid\" ] || ! kill -0 \"\$watch_pid\" >/dev/null 2>&1; then rm -f \"\$watch_pid_file\"; : > \"\$watch_log\"; echo '[recipe-harness] Starting yarn start; streaming temp/runtime/recipe-harness-webpack.log'; nohup env -u BUNDLED_DEBUGPY_PATH yarn start > \"\$watch_log\" 2>&1 & echo \$! > \"\$watch_pid_file\"; else echo \"[recipe-harness] Reusing existing yarn start pid \$watch_pid; streaming temp/runtime/recipe-harness-webpack.log\"; fi")
+    prepare_parts+=("tail -n +1 -F temp/runtime/recipe-harness-webpack.log & watch_tail_pid=\$!")
+    prepare_parts+=("compiled=false; for i in {1..240}; do if grep -E 'MetaMask.*compiled|compiled with|Bundle end: service worker|Bundle end:.*app-init' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1; then compiled=true; break; fi; sleep 2; done; kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start compilation marker' >&2; echo 'Last webpack log lines:' >&2; tail -80 temp/runtime/recipe-harness-webpack.log >&2 || true; exit 1; fi; echo '[recipe-harness] yarn start compilation marker observed'")
   fi
   prepare_parts+=("for i in {1..180}; do [ -f ${quoted_dist}/manifest.json ] && break; sleep 2; done")
   prepare_parts+=("test -f ${quoted_dist}/manifest.json")
@@ -141,7 +142,7 @@ fi
 echo "Extension live validation command:"
 display_args=(recipe-harness live --cdp-port "$CDP_PORT")
 $LAUNCH_EXISTING_DIST && display_args+=(--launch-existing-dist)
-$START_TEST_WATCH && display_args+=(--start-test-watch)
+$START_WATCH && display_args+=(--start-watch)
 printf '  '
 printf '%q ' "${display_args[@]}"
 printf '\n'
@@ -166,7 +167,7 @@ else
   echo "Skipping Extension live verify because launch failed; see $ARTIFACTS/launch/summary.json" >&2
 fi
 
-TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" CDP_PORT_FOR_SUMMARY="$CDP_PORT" LAUNCH_STATUS="$launch_status" VERIFY_STATUS="$verify_status" LAUNCH_EXISTING_DIST="$LAUNCH_EXISTING_DIST" START_TEST_WATCH="$START_TEST_WATCH" node <<'NODE'
+TARGET_FOR_SUMMARY="$TARGET" ARTIFACTS_FOR_SUMMARY="$ARTIFACTS" CDP_PORT_FOR_SUMMARY="$CDP_PORT" LAUNCH_STATUS="$launch_status" VERIFY_STATUS="$verify_status" LAUNCH_EXISTING_DIST="$LAUNCH_EXISTING_DIST" START_WATCH="$START_WATCH" node <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const artifacts = process.env.ARTIFACTS_FOR_SUMMARY;
@@ -181,7 +182,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   target: process.env.TARGET_FOR_SUMMARY,
   cdpPort: process.env.CDP_PORT_FOR_SUMMARY,
   launchExistingDist: process.env.LAUNCH_EXISTING_DIST === 'true',
-  startTestWatch: process.env.START_TEST_WATCH === 'true',
+  startWatch: process.env.START_WATCH === 'true',
   launch: { exitCode: launchStatus, summaryPath: fs.existsSync(launchSummary) ? launchSummary : null },
   verify: { exitCode: verifyStatus, summaryPath: fs.existsSync(verifySummary) ? verifySummary : null },
   easyCommand: `<skill-dir>/scripts/recipe-harness live --cdp-port ${process.env.CDP_PORT_FOR_SUMMARY} --launch-existing-dist`,

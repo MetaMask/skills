@@ -187,7 +187,10 @@ async function generate(args) {
   const data = fixture.data || fixture;
   const browserPassworder = requireFromTarget(target, '@metamask/browser-passworder');
   let keyringEntries = await buildKeyringEntries(target, wallet);
-  if (typeof wallet.vault === 'string' && wallet.vault.length > 0) {
+  const hasExplicitMnemonic = getFixtureAccounts(wallet).some(
+    (account) => account.type === 'mnemonic' && typeof account.value === 'string' && account.value.trim(),
+  );
+  if (!hasExplicitMnemonic && typeof wallet.vault === 'string' && wallet.vault.length > 0) {
     const existingKeyrings = await browserPassworder.decrypt(wallet.password, wallet.vault);
     const existingHd = existingKeyrings.find((keyring) => keyring?.type === 'HD Key Tree');
     if (existingHd) {
