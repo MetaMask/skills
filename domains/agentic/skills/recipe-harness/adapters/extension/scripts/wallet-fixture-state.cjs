@@ -95,6 +95,32 @@ function getFixtureAccounts(wallet) {
   return supported;
 }
 
+function readMnemonicCount(account, label) {
+  const raw = account.count ?? account.numberOfAccounts ?? 1;
+  const count = Number(raw);
+  if (!Number.isInteger(count) || count < 1 || count > 100) {
+    throw new Error(`Invalid mnemonic account count for ${label}: ${raw}`);
+  }
+  return count;
+}
+
+function readAccountNames(account, fallbackName, count) {
+  const names = Array.isArray(account.names) ? account.names : [];
+  return Array.from({ length: count }, (_unused, index) => {
+    const explicitName = names[index];
+    if (typeof explicitName === 'string' && explicitName.trim()) {
+      return explicitName.trim();
+    }
+    if (index === 0 && typeof account.name === 'string' && account.name.trim()) {
+      return account.name.trim();
+    }
+    if (index === 0) {
+      return fallbackName;
+    }
+    return `Account ${index + 1}`;
+  });
+}
+
 async function buildKeyringEntries(target, wallet) {
   const { HdKeyring } = requireFromTarget(target, '@metamask/eth-hd-keyring');
   const SimpleKeyring = requireFromTarget(target, '@metamask/eth-simple-keyring').default;
@@ -117,21 +143,27 @@ async function buildKeyringEntries(target, wallet) {
       if (!mnemonic) {
         throw new Error(`Missing mnemonic value for ${name}`);
       }
+      const count = readMnemonicCount(account, name);
+      const names = readAccountNames(account, name, count);
       const keyring = new HdKeyring();
-      await keyring.deserialize({ mnemonic, numberOfAccounts: 1 });
-      const [address] = await keyring.getAccounts();
+      await keyring.deserialize({ mnemonic, numberOfAccounts: count });
+      const addresses = await keyring.getAccounts();
       const keyringId = deterministicEntropyId(`mnemonic:${mnemonic}:${index}`);
-      entries.push({
-        fixtureType: 'mnemonic',
-        groupIndex: 0,
-        keyringId,
-        keyring: {
-          type: 'HD Key Tree',
-          data: await keyring.serialize(),
-          metadata: { id: keyringId, name: '' },
-        },
-        address,
-        name,
+      const serializedKeyring = {
+        type: 'HD Key Tree',
+        data: await keyring.serialize(),
+        metadata: { id: keyringId, name: '' },
+      };
+      addresses.forEach((address, accountIndex) => {
+        entries.push({
+          fixtureType: 'mnemonic',
+          groupIndex: accountIndex,
+          keyringId,
+          keyring: accountIndex === 0 ? serializedKeyring : null,
+          keyringType: serializedKeyring.type,
+          address,
+          name: names[accountIndex],
+        });
       });
       continue;
     }
@@ -248,7 +280,13 @@ function patchAccountTree(data, accountRows, selected) {
 
   for (const account of accountRows) {
     const groupId = accountGroupId(account);
-    accountGroupsMetadata[groupId] = { lastSelected: account.metadata.lastSelected || 0 };
+    accountGroupsMetadata[groupId] = {
+      name: {
+        value: account.metadata.name,
+        lastUpdatedAt: account.metadata.importTime || 0,
+      },
+      lastSelected: account.metadata.lastSelected || 0,
+    };
 
     if (account.fixtureType === 'mnemonic') {
       const walletId = `entropy:${account.keyringId}`;
@@ -357,7 +395,7 @@ async function generate(args) {
   data.KeyringController = {
     vault: await browserPassworder.encrypt(
       wallet.password,
-      keyringEntries.map((entry) => entry.keyring),
+      keyringEntries.filter((entry) => entry.keyring).map((entry) => entry.keyring),
     ),
   };
 
@@ -381,19 +419,19 @@ async function generate(args) {
       metadata: {
         name: entry.name,
         importTime: now + index,
-        keyring: { type: entry.keyring.type },
+        keyring: { type: entry.keyringType || entry.keyring.type },
         lastSelected: 0,
       },
       options:
         entry.fixtureType === 'mnemonic'
           ? {
               entropySource: entry.keyringId,
-              derivationPath: "m/44'/60'/0'/0/0",
+              derivationPath: `m/44'/60'/0'/0/${entry.groupIndex ?? 0}`,
               groupIndex: entry.groupIndex ?? 0,
               entropy: {
                 type: 'mnemonic',
                 id: entry.keyringId,
-                derivationPath: "m/44'/60'/0'/0/0",
+                derivationPath: `m/44'/60'/0'/0/${entry.groupIndex ?? 0}`,
                 groupIndex: entry.groupIndex ?? 0,
               },
             }
@@ -672,12 +710,22 @@ async function readLiveAccounts(page) {
     const accts = metamask.internalAccounts || {};
     const byId = accts.accounts || {};
     const selectedId = accts.selectedAccount || null;
+    const groupNamesByAccountId = {};
+    const wallets = metamask.accountTree?.wallets || {};
+    for (const wallet of Object.values(wallets)) {
+      for (const group of Object.values(wallet?.groups || {})) {
+        for (const accountId of group?.accounts || []) {
+          groupNamesByAccountId[accountId] = group?.metadata?.name || '';
+        }
+      }
+    }
     const list = Object.keys(byId).map((id) => {
       const account = byId[id] || {};
       const meta = account.metadata || {};
       return {
         id,
         name: meta.name || '',
+        groupName: groupNamesByAccountId[id] || '',
         address: account.address || '',
         keyringType: (meta.keyring || {}).type || '',
         type: account.type || '',
@@ -767,7 +815,7 @@ function compareAccountNames(live, expectedFixture) {
       !evmAccounts.some(
         (actual) =>
           actual.address.toLowerCase() === expectedAccount.address &&
-          actual.name === expectedAccount.name,
+          (actual.groupName || actual.name) === expectedAccount.name,
       ),
   );
   return {
@@ -783,7 +831,26 @@ async function applyAccountNames(page, expectedAccounts) {
     }
     await page.evaluate(
       async ({ address, name }) => {
+        const metamask = window.stateHooks?.store?.getState?.()?.metamask || {};
+        const normalizedAddress = String(address || '').toLowerCase();
+        const accountsById = metamask.internalAccounts?.accounts || {};
+        const accountId = Object.keys(accountsById).find(
+          (id) => String(accountsById[id]?.address || '').toLowerCase() === normalizedAddress,
+        );
+        let groupId = '';
+        const wallets = metamask.accountTree?.wallets || {};
+        for (const wallet of Object.values(wallets)) {
+          for (const group of Object.values(wallet?.groups || {})) {
+            if (Array.isArray(group?.accounts) && group.accounts.includes(accountId)) {
+              groupId = group.id || '';
+            }
+          }
+        }
         await window.stateHooks.submitRequestToBackground('setAccountLabel', [address, name]);
+        if (!groupId) {
+          throw new Error(`No account group found for fixture account ${address}`);
+        }
+        await window.stateHooks.submitRequestToBackground('setAccountGroupName', [groupId, name]);
       },
       { address: account.address, name: account.name },
     );
@@ -921,6 +988,7 @@ async function seedCdp(args) {
     expectedAccounts: expectedFixture.accounts,
     liveAccounts: setupResult.live.accounts.map((account) => ({
       name: account.name,
+      groupName: account.groupName,
       address: account.address,
       keyringType: account.keyringType,
       type: account.type,

@@ -107,6 +107,10 @@ if ! DISABLE_BACKUP=$(cdp_eval "(function(){ globalThis.__AGENTIC_DISABLE_VAULT_
 fi
 echo "Vault backup guard: $DISABLE_BACKUP"
 
+# Read fixture JSON and escape it for safe embedding in a JS string literal.
+FIXTURE_JSON=$(jq -c '.' "$FIXTURE_PATH")
+ESCAPED_FIXTURE=$(node -p "JSON.stringify(JSON.stringify(JSON.parse(process.argv[1])))" "$FIXTURE_JSON")
+
 # -- Check vault state --
 VAULT_STATE=$(cdp_eval "(function(){ var v = Engine.context.KeyringController.state; return JSON.stringify({hasVault: v.vault !== undefined && v.vault !== null, isUnlocked: Engine.context.KeyringController.isUnlocked()}); })()")
 HAS_VAULT=$(echo "$VAULT_STATE" | jq -r '.hasVault')
@@ -128,13 +132,20 @@ if [ "$HAS_VAULT" = "true" ]; then
   else
     echo "Vault already unlocked."
   fi
+
+  echo "Applying fixture accounts/names to existing vault..."
+  APPLY_RESULT=$(cdp_eval_async "(function(){ var fixture = JSON.parse($ESCAPED_FIXTURE); if (!globalThis.__AGENTIC__ || typeof globalThis.__AGENTIC__.applyWalletFixture !== 'function') { return JSON.stringify({ok:false, error:'__AGENTIC__.applyWalletFixture is not installed; reload the app from Metro'}); } return globalThis.__AGENTIC__.applyWalletFixture(fixture).then(function(r){ return JSON.stringify(r); }).catch(function(e){ return JSON.stringify({ok:false, error: e.message || String(e)}); }); })()")
+  APPLY_OK=$(echo "$APPLY_RESULT" | jq -r '.ok')
+  if [ "$APPLY_OK" != "true" ]; then
+    APPLY_ERR=$(echo "$APPLY_RESULT" | jq -r '.error // "unknown error"')
+    echo "ERROR: applyWalletFixture failed — $APPLY_ERR"
+    exit 1
+  fi
+  echo "Wallet fixture apply result:"
+  echo "$APPLY_RESULT" | jq -r '.accounts[]? | "  \(.name): \(.address)"'
 else
   # -- Call AgenticService.setupWallet() on fresh app only --
   echo "Calling __AGENTIC__.setupWallet()..."
-
-  # Read fixture JSON and escape it for safe embedding in a JS string literal
-  FIXTURE_JSON=$(jq -c '.' "$FIXTURE_PATH")
-  ESCAPED_FIXTURE=$(node -p "JSON.stringify(JSON.stringify(JSON.parse(process.argv[1])))" "$FIXTURE_JSON")
 
   SETUP_RESULT=$(cdp_eval_async "(function(){ var fixture = JSON.parse($ESCAPED_FIXTURE); if (!globalThis.__AGENTIC__ || typeof globalThis.__AGENTIC__.setupWallet !== 'function') { return JSON.stringify({ok:false, error:'__AGENTIC__.setupWallet is not installed'}); } return globalThis.__AGENTIC__.setupWallet(fixture).then(function(r){ return JSON.stringify(r); }).catch(function(e){ return JSON.stringify({ok:false, error: e.message || String(e)}); }); })()")
 
