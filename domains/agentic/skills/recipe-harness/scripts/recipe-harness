@@ -180,6 +180,40 @@ is_false() {
   esac
 }
 
+read_runtime_context_field() {
+  local context_path="$1"
+  local field="$2"
+  [ -f "$context_path" ] || return 1
+  node -e '
+const fs = require("node:fs");
+const [path, field] = process.argv.slice(1);
+try {
+  const data = JSON.parse(fs.readFileSync(path, "utf8"));
+  const value = field.split(".").reduce((node, key) => {
+    if (node === undefined || node === null) return undefined;
+    return node[key];
+  }, data);
+  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
+} catch (error) {
+  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
+  process.exitCode = 1;
+}
+' "$context_path" "$field"
+}
+
+resolve_extension_context_cdp_port() {
+  local target="$1"
+  local context_path="${RECIPE_RUNTIME_CONTEXT:-$target/temp/runtime/agentic-runtime.json}"
+  [ -f "$context_path" ] || return 1
+  local value
+  value="$(read_runtime_context_field "$context_path" cdpPort)"
+  [ -n "$value" ] || return 1
+  export RECIPE_RUNTIME_CONTEXT="$context_path"
+  export RECIPE_CDP_PORT="$value"
+  export CDP_PORT="$value"
+  printf '%s\n' "$value"
+}
+
 resolve_extension_cdp_port() {
   local target="$1"
   if [ -n "${CDP_PORT:-}" ]; then
@@ -236,7 +270,10 @@ if [ "$ADAPTER" = "extension" ] && { [ "$ACTION" = "verify" ] || [ "$ACTION" = "
     set -- "${stripped_args[@]}"
   fi
   if ! has_arg --cdp-port "$@" && ! has_arg --static-only "$@"; then
-    if resolved_cdp_port="$(resolve_extension_cdp_port "$TARGET")"; then
+    if resolved_cdp_port="$(resolve_extension_context_cdp_port "$TARGET")"; then
+      log "Using runtime-context CDP port $resolved_cdp_port for extension $ACTION"
+      set -- --cdp-port "$resolved_cdp_port" "$@"
+    elif resolved_cdp_port="$(resolve_extension_cdp_port "$TARGET")"; then
       log "Using CDP port $resolved_cdp_port for extension $ACTION"
       set -- --cdp-port "$resolved_cdp_port" "$@"
     elif [ "$ACTION" = "verify" ]; then

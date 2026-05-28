@@ -35,20 +35,13 @@ async function readConfiguredExtensionId({ cdpPort, log }) {
       log.info(`Using marker MetaMask extension ID from temp/runtime/extension.id: ${markerId}`);
       return markerId;
     }
-  } catch {
-    // No marker exists. Fall through to target discovery and ambiguity checks.
+  } catch (err) {
+    if (!err || err.code !== 'ENOENT') {
+      log.warn('Could not read temp/runtime/extension.id marker', err?.message || err);
+    }
+    // Missing marker is expected for unmanaged developer checkouts.
   }
 
-  const discoveredIds = await discoverExtensionIds(cdpPort).catch((err) => {
-    log.warn('Could not inspect CDP extension targets before recipe attach', err?.message || err);
-    return [];
-  });
-  if (discoveredIds.length > 1) {
-    throw new Error(
-      `CDP: ambiguous extension targets on port ${cdpPort}: ${discoveredIds.join(', ')}; ` +
-        'set RECIPE_HARNESS_EXTENSION_ID or run recipe-harness verify/readiness to repair temp/runtime/extension.id',
-    );
-  }
   return '';
 }
 
@@ -59,9 +52,8 @@ async function resolveExtensionIdOrExplainAmbiguity({ cdpPort, context, log }) {
     return [];
   });
   if (discoveredIds.length > 1) {
-    throw new Error(
-      `CDP: ambiguous extension targets on port ${cdpPort}: ${discoveredIds.join(', ')}; ` +
-        'set RECIPE_HARNESS_EXTENSION_ID or run recipe-harness verify/readiness to repair temp/runtime/extension.id',
+    log.info(
+      `Resolved MetaMask extension ID ${extensionId} among extension targets on port ${cdpPort}: ${discoveredIds.join(', ')}`
     );
   }
   return extensionId;
@@ -174,7 +166,9 @@ class CdpSessionManager {
     // real OS `prefers-color-scheme` (flips MetaMask theme when theme=System).
     await activePage
       .emulateMedia({ colorScheme: null, reducedMotion: null, forcedColors: null })
-      .catch(() => {});
+      .catch((err) => {
+        log.warn('Could not reset media emulation before recipe attach', err?.message || err);
+      });
 
     return new CdpSessionManager(browser, cdpContext, activePage, extensionId, cdpPort);
   }

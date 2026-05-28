@@ -89,8 +89,8 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
    **must start with the lowercased Jira key followed by a hyphen** on both
    Mobile and Extension targets so regular MetaMask/Farmslot tooling can
    associate it, for example
-   `tat-3216-adr58-codex-mms-recipe-dev-fresh2`. For non-Jira prompts, use a
-   stable sanitized task slug such as `adr58-codex-mms-recipe-dev-demo-fresh1`;
+   `tat-3216-adr58-codex-mms-recipe-fix-ticket-fresh2`. For non-Jira prompts, use a
+   stable sanitized task slug such as `adr58-codex-mms-recipe-fix-ticket-demo-fresh1`;
 4. keep all product edits for that loop on that branch only;
 5. include branch name, base SHA, and `git diff --stat <base>...HEAD` in the
    final evidence package.

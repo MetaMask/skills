@@ -20,11 +20,21 @@ function parseArgs(argv) {
 }
 
 function readText(file) {
-  try { return fs.readFileSync(file, 'utf8'); } catch { return ''; }
+  try {
+    return fs.readFileSync(file, 'utf8');
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return '';
+    throw error;
+  }
 }
 
 function readJson(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return null;
+    throw error;
+  }
 }
 
 function mkdirp(dir) { fs.mkdirSync(dir, { recursive: true }); }
@@ -90,6 +100,13 @@ function getRepoRoot(taskDir) {
   }
 }
 
+function assertSafeOutDir(taskDir, outDir) {
+  const relPath = path.relative(taskDir, outDir);
+  if (!relPath || relPath.startsWith('..') || path.isAbsolute(relPath)) {
+    throw new Error(`Refusing --out outside task dir or equal to task dir: ${outDir}`);
+  }
+}
+
 function findPrTemplate(repoRoot) {
   if (!repoRoot) return null;
   const candidates = [
@@ -132,7 +149,7 @@ function buildImageSlots(copied, headingLevel = '###') {
   ].join('\n')).join('\n');
 }
 
-function buildTemplatePrDesc({ templateText, templateRelPath, task, verdict, taskDir, outDir, copied, evidenceExists, qualityExists }) {
+function buildTemplatePrDesc({ templateText, templateRelPath, task, verdict, taskDir, outDir, copied, evidenceExists, qualityExists, checklistExists }) {
   const descriptionBlock = [
     '<!-- recipe-evidence suggestion: edit as needed before publishing. -->',
     task ? `This PR addresses ${task}.` : 'This PR addresses the linked task.',
@@ -163,6 +180,7 @@ function buildTemplatePrDesc({ templateText, templateRelPath, task, verdict, tas
     evidenceExists ? '- Full evidence: `pr-package/evidence.md`' : '- Full evidence: missing `PR-READY-EVIDENCE.md` at package time',
     qualityExists ? '- Quality report: `pr-package/recipe-quality.md`' : '- Quality report: missing `artifacts/RECIPE-QUALITY.md` at package time',
     '- Image files: `pr-package/images/`',
+    checklistExists ? '- Checklist: `pr-package/checklist.md`' : '- Checklist: missing `CHECKLIST.md` at package time',
   ].join('\n');
 
   let out = templateText;
@@ -187,6 +205,7 @@ function main() {
   const repoRoot = getRepoRoot(taskDir);
   const prTemplate = findPrTemplate(repoRoot);
   const outDir = path.resolve(args.out || path.join(taskDir, 'pr-package'));
+  assertSafeOutDir(taskDir, outDir);
   const imagesDir = path.join(outDir, 'images');
   fs.rmSync(outDir, { recursive: true, force: true });
   mkdirp(imagesDir);
@@ -225,7 +244,8 @@ function main() {
   const qualitySrc = path.join(taskDir, 'artifacts', 'RECIPE-QUALITY.md');
   if (fs.existsSync(qualitySrc)) fs.copyFileSync(qualitySrc, path.join(outDir, 'recipe-quality.md'));
   const checklistSrc = path.join(taskDir, 'CHECKLIST.md');
-  if (fs.existsSync(checklistSrc)) fs.copyFileSync(checklistSrc, path.join(outDir, 'checklist.md'));
+  const checklistExists = fs.existsSync(checklistSrc);
+  if (checklistExists) fs.copyFileSync(checklistSrc, path.join(outDir, 'checklist.md'));
 
   const imageReadme = [
     '# Evidence images',
@@ -275,6 +295,7 @@ function main() {
     `PR package: \`${outDir}\``,
     fs.existsSync(evidenceSrc) ? '- Full evidence: `pr-package/evidence.md`' : '- Full evidence: missing `PR-READY-EVIDENCE.md` at package time',
     fs.existsSync(qualitySrc) ? '- Quality report: `pr-package/recipe-quality.md`' : '- Quality report: missing `artifacts/RECIPE-QUALITY.md` at package time',
+    checklistExists ? '- Checklist: `pr-package/checklist.md`' : '- Checklist: missing `CHECKLIST.md` at package time',
     '',
     '## Notes / gaps',
     '',
@@ -292,6 +313,7 @@ function main() {
         copied,
         evidenceExists: fs.existsSync(evidenceSrc),
         qualityExists: fs.existsSync(qualitySrc),
+        checklistExists,
       })
     : genericPrDesc;
 
