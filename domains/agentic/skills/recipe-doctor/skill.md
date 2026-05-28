@@ -63,11 +63,11 @@ cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json
 # edit .agent/wallet-fixture.json with throwaway password/accounts only:
 # - accounts[0]: mnemonic for first vault setup
 # - optional privateKey accounts named "Trading"/"MYXTrading" for funded flows
-# - Farmslot-compatible settings: metametrics=true, skipGtmModals=true,
+# - shared-fixture-compatible settings: metametrics=true, skipGtmModals=true,
 #   skipPerpsTutorial=true, autoLockNever=true, deviceAuthEnabled=true
 ```
 
-For Extension, use the same human-authored account roles as Mobile. A Farmslot-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this shape before live launch.
+For Extension, use the same human-authored account roles as Mobile. A shared-fixture-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this shape before live launch.
 
 ## Shared Wallet Fixture Contract
 
@@ -91,7 +91,7 @@ Mobile and Extension share this human-authored wallet fixture shape:
 
 Extension-specific `address`, `vault`, and persisted controller state are generated from that shared fixture by the Extension harness, not hand-authored by users. This lets agents import multiple account types and names consistently on both platforms, then start each wallet with a predictable selected account.
 
-For Extension browser launch, the Farmslot-like path is an isolated Chromium profile:
+For Extension browser launch, the isolated path is an isolated Chromium profile:
 
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness live \

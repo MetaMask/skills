@@ -107,7 +107,7 @@ const isFile = stat.isFile();
 let sha256 = null;
 let validJson = null;
 let hasWalletPassword = false;
-let farmslotAccountShape = false;
+let mobileAccountShape = false;
 const rel = path.relative(target, found);
 const isWalletFixture = rel === 'temp/runtime/wallet-fixture.json' || rel === '.agent/wallet-fixture.json';
 if (isFile) {
@@ -119,7 +119,7 @@ if (isFile) {
       validJson = true;
       const accounts = Array.isArray(parsed.accounts) ? parsed.accounts : [];
       hasWalletPassword = typeof parsed.password === 'string' && parsed.password.length > 0;
-      farmslotAccountShape = accounts.some((account) => account?.type === 'mnemonic') &&
+      mobileAccountShape = accounts.some((account) => account?.type === 'mnemonic') &&
         accounts.filter((account) => account?.type === 'privateKey').length >= 2;
     } catch {
       validJson = false;
@@ -139,7 +139,7 @@ console.log(JSON.stringify({
   modifiedAt: stat.mtime.toISOString(),
   profileHints,
   hasWalletPassword,
-  farmslotAccountShape,
+  mobileAccountShape,
   message: validJson === false
     ? `Fixture status: STALE_OR_INVALID (${rel}). Fix before relying on a clean sandbox.`
     : status === 'READY'
@@ -256,7 +256,7 @@ if [ "$STATIC_ONLY" = false ]; then
       status="fail"
     fi
 
-    fixture_parity_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" && v.hasWalletPassword && v.farmslotAccountShape ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
+    fixture_parity_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" && v.hasWalletPassword && v.mobileAccountShape ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
     fixture_parity_flow="$OUT/domains/extension-core/flows/fixture-account-parity.json"
     if [ "$fixture_parity_ready" = "true" ]; then
       if [ -f "$TARGET/$fixture_parity_flow" ]; then
@@ -276,7 +276,7 @@ if [ "$STATIC_ONLY" = false ]; then
         status="fail"
       fi
     else
-      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no Farmslot-shaped wallet fixture with password/mnemonic/private keys was found\"}")
+      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no Mobile-shaped wallet fixture with password/mnemonic/private keys was found\"}")
     fi
 
     if (

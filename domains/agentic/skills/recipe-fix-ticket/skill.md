@@ -87,7 +87,7 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 3. create or switch to a fresh branch named with the runner/model, skill, ticket
    or task slug, and run id. If the source is a Jira ticket, the branch name
    **must start with the lowercased Jira key followed by a hyphen** on both
-   Mobile and Extension targets so regular MetaMask/Farmslot tooling can
+   Mobile and Extension targets so regular MetaMask tooling can
    associate it, for example
    `tat-3216-adr58-codex-mms-recipe-fix-ticket-fresh2`. For non-Jira prompts, use a
    stable sanitized task slug such as `adr58-codex-mms-recipe-fix-ticket-demo-fresh1`;
@@ -193,7 +193,7 @@ order and record the result in `CHECKLIST.md`:
    do not probe or fall back to other local runtimes. If it has
    `runtimeStart.approved: true` plus `runtimeStart.command`, pass recovery
    through `/mms-recipe-harness` launch/live/verify and let the harness run that
-   approved command; outside Farmslot, any developer/tool may provide the same
+   approved command; outside managed runtimes, any developer/tool may provide the same
    context or `RECIPE_RUNTIME_START_APPROVED=1` with `RECIPE_RUNTIME_START_CMD`;
 3. installed recipe-harness/delegate summaries or manifests in the current
    checkout that identify an already-owned runtime;

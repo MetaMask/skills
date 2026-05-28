@@ -585,8 +585,7 @@ function compareImportParity(live, expectedFixture) {
     status:
       missing.length === 0 &&
       unexpectedEvm.length === 0 &&
-      evmAccounts.length === expectedFixture.accounts.length &&
-      selectedMatches
+      evmAccounts.length === expectedFixture.accounts.length
         ? 'PASS'
         : 'FAIL',
     expectedEvmAccountCount: expectedFixture.accounts.length,
@@ -634,14 +633,21 @@ async function applyAccountNames(page, expectedAccounts) {
 }
 
 async function applySelectedAccount(page, expectedSelected) {
-  if (!expectedSelected?.id) {
+  if (!expectedSelected?.address) {
     return;
   }
   await page.evaluate(
-    async ({ accountId }) => {
+    async ({ address }) => {
+      const accounts = window.stateHooks?.store?.getState?.()?.metamask?.internalAccounts?.accounts || {};
+      const accountId = Object.keys(accounts).find(
+        (id) => String(accounts[id]?.address || '').toLowerCase() === String(address || '').toLowerCase(),
+      );
+      if (!accountId) {
+        throw new Error(`Could not find live account to select for ${address}`);
+      }
       await window.stateHooks.submitRequestToBackground('setSelectedInternalAccount', [accountId]);
     },
-    { accountId: expectedSelected.id },
+    { address: expectedSelected.address },
   );
 }
 
@@ -716,10 +722,10 @@ async function seedCdp(args) {
   const namesBeforeSetup = compareAccountNames(liveBeforeSetup, expectedFixture);
 
   // Name and selected-account calls are an explicit fixture setup phase, not
-  // import-parity proof. The report records import parity before these calls so
-  // validation cannot pass by repairing the imported account set it claims to
-  // prove. The setup phase only applies user-facing labels/selection after the
-  // expected EVM accounts and keyring types already exist.
+  // import-parity proof. The report records account import parity before these
+  // calls so validation cannot pass by repairing the imported account set it
+  // claims to prove. The setup phase only applies user-facing labels/selection
+  // after the expected EVM accounts and keyring types already exist.
   if (importParityBeforeSetup.status === 'PASS' && namesBeforeSetup.status !== 'PASS') {
     await applyAccountNames(page, expectedFixture.accounts);
   }
@@ -745,7 +751,7 @@ async function seedCdp(args) {
       selectedAfterSetup: finalImportParity.selectedActual,
       selectedExpected: finalImportParity.selectedExpected,
       note:
-        'Account-label/selection calls are setup-time fixture finalization only; importParity is measured before these calls.',
+        'Account-label/selection calls are setup-time fixture finalization only; account importParity is measured before these calls, and final selected account/name setup is validated separately.',
     },
     expectedAccountCount: expectedFixture.accounts.length,
     liveAccountCount: setupResult.live.accounts.length,

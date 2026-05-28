@@ -43,7 +43,7 @@ Fixtures are for local MetaMask Mobile and Extension debug runs only. Keep them 
 | `accounts[].type` | yes | `mnemonic` or `privateKey`. |
 | `accounts[].value` | yes | SRP words or `0x` private key. Use throwaway values only. |
 | `accounts[].name` | no | Human-readable label for imported accounts when supported. |
-| `settings.metametrics` | no | Disable/enable metrics opt-in for debug setup; Farmslot-compatible fixtures opt in to match prepared slot state. |
+| `settings.metametrics` | no | Disable/enable metrics opt-in for debug setup; shared-fixture-compatible fixtures opt in to match prepared slot state. |
 | `settings.skipGtmModals` | no | Skip growth/marketing modals where supported. |
 | `settings.skipPerpsTutorial` | no | Skip Perps tutorial where supported. |
 | `settings.autoLockNever` | no | Keep debug wallet unlocked where supported. |

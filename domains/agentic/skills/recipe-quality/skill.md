@@ -60,7 +60,7 @@ Return `fail` or `pass-with-gaps` (never clean `pass`) when any of these apply:
 - the agent claims acceptance criteria from unit tests only when the task
   requested runtime/visual proof;
 - the recipe never ran and the response does not clearly mark the gap;
-- the run depends on hidden Farmslot-only context when the goal is standalone
+- the run depends on hidden local-runtime-only context when the goal is standalone
   skills validation.
 
 When failing, name the weak layer: product, recipe, fixture/state setup,

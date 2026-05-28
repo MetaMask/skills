@@ -53,7 +53,7 @@ try {
 ' "$context_path" "$field"
 }
 
-# Generic runtime-context contract. Producers such as Farmslot may write
+# Generic runtime-context contract. Producers such as managed runtime may write
 # temp/runtime/agentic-runtime.json; direct recipe runs consume it without
 # guessing default CDP ports or probing unrelated slots.
 _context_path="${RECIPE_RUNTIME_CONTEXT:-$(pwd)/temp/runtime/agentic-runtime.json}"

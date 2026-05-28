@@ -13,10 +13,10 @@ For Extension readiness, doctor must check:
 - `temp/agentic/recipes/validate-recipe.sh` and core recipe domains after harness install;
 - `temp/runtime/agentic-runtime.json` for caller-provided CDP/runtime context;
 - fixture/profile hints such as `temp/runtime/wallet-fixture.json`, `.agent/wallet-fixture.json`, `temp/runtime/extension.id`, `test/e2e/fixtures`, or `fixtures`;
-- Playwright Chromium availability from the Extension checkout; this is the closest portable equivalent to Farmslot's isolated Playwright Chromium launch;
+- Playwright Chromium availability from the Extension checkout; this is the closest portable equivalent to an isolated Playwright Chromium launch;
 - static no-start harness verify output when `mms-recipe-harness` is available.
 
-If fixture/profile hints are missing, report a warning with the Farmslot-compatible shared shape: `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` should include `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this fixture before live launch.
+If fixture/profile hints are missing, report a warning with the shared-fixture-compatible shared shape: `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` should include `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this fixture before live launch.
 
 If browser/CDP readiness is missing, recommend an isolated browser command instead of the user's normal Chrome profile:
 

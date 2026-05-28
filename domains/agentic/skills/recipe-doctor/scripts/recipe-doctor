@@ -274,15 +274,15 @@ if [ "$REPO" = "metamask-extension" ]; then
     record_check WARN "harness:extension-core" "extension-core recipes missing; install harness before wallet-control proof"
   fi
   if [ -n "${playwright_chromium:-}" ]; then
-    record_check PASS "browser:isolation" "Farmslot-like isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
+    record_check PASS "browser:isolation" "isolated isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
   else
-    record_check WARN "browser:isolation" "best local match to Farmslot needs Playwright Chromium with a dedicated profile, e.g. mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; if Chromium is missing, ask the user before installing the Playwright Chromium browser cache with yarn exec playwright install chromium"
+    record_check WARN "browser:isolation" "best local match to the local recipe workflow needs Playwright Chromium with a dedicated profile, e.g. mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; if Chromium is missing, ask the user before installing the Playwright Chromium browser cache with yarn exec playwright install chromium"
   fi
 fi
 
 validate_mobile_fixture() {
   fixture=""
-  mobile_fixture_setup="create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json; include password, accounts[0] as a throwaway mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and Farmslot-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (applied by the Mobile harness on Android)"
+  mobile_fixture_setup="create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json; include password, accounts[0] as a throwaway mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and shared-fixture-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (applied by the Mobile harness on Android)"
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     fixture=".agent/wallet-fixture.json"
   elif [ -f "$TARGET/scripts/perps/agentic/wallet-fixture.json" ]; then
@@ -337,7 +337,7 @@ try {
   } else if (missingSettings.length > 0) {
     console.log(`READY accounts=${accounts.length} types=${types} settings-missing=${missingSettings.join(',')}`);
   } else {
-    console.log(`READY accounts=${accounts.length} types=${types} settings=farmslot-compatible`);
+    console.log(`READY accounts=${accounts.length} types=${types} settings=shared-fixture-compatible`);
   }
 } catch (error) {
   const match = String(error && error.message ? error.message : '').match(/position\s+(\d+)/i);
@@ -347,7 +347,7 @@ NODE
 )"
   case "$result" in
     READY*settings-missing=*)
-      record_check WARN "fixture:mobile" "$fixture $result; Farmslot-compatible settings: metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (Android-applied)"
+      record_check WARN "fixture:mobile" "$fixture $result; shared-fixture-compatible settings: metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (Android-applied)"
       ;;
     READY*)
       record_check PASS "fixture:mobile" "$fixture $result"
@@ -359,7 +359,7 @@ NODE
 }
 
 validate_extension_fixture() {
-  extension_fixture_setup="for Farmslot parity, provide temp/runtime/wallet-fixture.json or .agent/wallet-fixture.json with password, accounts[0] mnemonic, optional privateKey accounts named Trading/MYXTrading, optional selectedAccount, and settings skipPerpsTutorial=true autoLockNever=true; the Extension harness generates address/vault/persisted state from this shared fixture shape"
+  extension_fixture_setup="for shared fixture parity, provide temp/runtime/wallet-fixture.json or .agent/wallet-fixture.json with password, accounts[0] mnemonic, optional privateKey accounts named Trading/MYXTrading, optional selectedAccount, and settings skipPerpsTutorial=true autoLockNever=true; the Extension harness generates address/vault/persisted state from this shared fixture shape"
   wallet_fixture=""
   if [ -f "$TARGET/temp/runtime/wallet-fixture.json" ]; then
     wallet_fixture="temp/runtime/wallet-fixture.json"
@@ -406,7 +406,7 @@ try {
   } else if (missingSettings.length > 0) {
     console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} state=${generated} settings-missing=${missingSettings.join(',')}`);
   } else {
-    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} state=${generated} settings=farmslot-compatible`);
+    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} state=${generated} settings=shared-fixture-compatible`);
   }
 } catch (error) {
   const match = String(error && error.message ? error.message : '').match(/position\s+(\d+)/i);
@@ -416,7 +416,7 @@ NODE
 )"
     case "$result" in
       READY*settings-missing=*)
-        record_check WARN "fixture:extension" "$wallet_fixture $result; Farmslot-compatible settings: skipPerpsTutorial=true autoLockNever=true"
+        record_check WARN "fixture:extension" "$wallet_fixture $result; shared-fixture-compatible settings: skipPerpsTutorial=true autoLockNever=true"
         ;;
       READY*)
         record_check PASS "fixture:extension" "$wallet_fixture $result"
