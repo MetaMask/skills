@@ -36,7 +36,8 @@ const cdpPort = (() => {
     const val = parseInt(process.argv[idx + 1] ?? '', 10);
     return Number.isNaN(val) ? 6668 : val;
   }
-  return 6668;
+  const envPort = parseInt(process.env.CDP_PORT || '', 10);
+  return Number.isNaN(envPort) ? 6668 : envPort;
 })();
 
 const G = '\x1b[32m';

@@ -90,6 +90,10 @@ if [ -f "$_context_path" ]; then
 fi
 unset _context_path
 
+if [ -z "${CDP_PORT:-}" ] && [ -n "${RECIPE_CDP_PORT:-}" ] && ! _has_arg --cdp-port "$@"; then
+  export CDP_PORT="$RECIPE_CDP_PORT"
+fi
+
 # Prefer the harness-selected extension ID marker only when neither the caller nor
 # runtime context selected an extension ID. This avoids stale marker reuse when a
 # managed slot writes a fresher temp/runtime/agentic-runtime.json.

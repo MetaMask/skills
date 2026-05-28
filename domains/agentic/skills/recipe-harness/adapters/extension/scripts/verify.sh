@@ -30,6 +30,26 @@ fi
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 EXTENSION_ID_FILE="$TARGET/temp/runtime/extension.id"
+read_runtime_context_field() {
+  local context_path="$1"
+  local field="$2"
+  [ -f "$context_path" ] || return 1
+  node -e '
+const fs = require("node:fs");
+const [path, field] = process.argv.slice(1);
+try {
+  const data = JSON.parse(fs.readFileSync(path, "utf8"));
+  const value = field.split(".").reduce((node, key) => {
+    if (node === undefined || node === null) return undefined;
+    return node[key];
+  }, data);
+  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
+} catch (error) {
+  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
+  process.exitCode = 1;
+}
+' "$context_path" "$field"
+}
 refresh_extension_id() {
   if [ -f "$EXTENSION_ID_FILE" ]; then
     RECIPE_HARNESS_EXTENSION_ID="$(tr -d '[:space:]' < "$EXTENSION_ID_FILE")"
@@ -38,7 +58,21 @@ refresh_extension_id() {
     unset RECIPE_HARNESS_EXTENSION_ID || true
   fi
 }
-refresh_extension_id
+CONTEXT_PATH="${RECIPE_RUNTIME_CONTEXT:-$TARGET/temp/runtime/agentic-runtime.json}"
+if [ -f "$CONTEXT_PATH" ]; then
+  CONTEXT_EXTENSION_ID="$(read_runtime_context_field "$CONTEXT_PATH" extensionId || true)"
+  if [[ "$CONTEXT_EXTENSION_ID" =~ ^[a-z]{32}$ ]]; then
+    mkdir -p "$(dirname "$EXTENSION_ID_FILE")"
+    printf '%s\n' "$CONTEXT_EXTENSION_ID" > "$EXTENSION_ID_FILE"
+    RECIPE_HARNESS_EXTENSION_ID="$CONTEXT_EXTENSION_ID"
+    export RECIPE_HARNESS_EXTENSION_ID
+  else
+    refresh_extension_id
+  fi
+  unset CONTEXT_EXTENSION_ID
+else
+  refresh_extension_id
+fi
 
 status="pass"
 checks=()

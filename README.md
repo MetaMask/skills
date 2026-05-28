@@ -231,7 +231,7 @@ Recipe skills are experimental. Install them with:
 yarn skills --domain agentic --maturity experimental
 ```
 
-Experimental recipe skills in this first rollout are the lower-level proof tools. High-level workflows such as `/mms-recipe-dev` and `/mms-recipe-fix-ticket` are intentionally held for a follow-up PR so their orchestration checklist can be tightened before broad use.
+Experimental recipe skills include lower-level proof tools plus the opt-in high-level workflows `/mms-recipe-dev` and `/mms-recipe-fix-ticket`. Treat the high-level workflows as validation-backed orchestration entry points; they still delegate runtime proof to the lower-level recipe skills.
 
 Use these directly when steering/debugging:
 
