@@ -49,7 +49,11 @@ read_runtime_context_field() {
 const fs = require("node:fs");
 const [path, field] = process.argv.slice(1);
 try {
-  const value = JSON.parse(fs.readFileSync(path, "utf8"))[field];
+  const data = JSON.parse(fs.readFileSync(path, "utf8"));
+  const value = field.split(".").reduce((node, key) => {
+    if (node === undefined || node === null) return undefined;
+    return node[key];
+  }, data);
   if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
 } catch (error) {
   process.stderr.write(String(error && error.message ? error.message : error) + "\n");
@@ -111,6 +115,24 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" != "install" ] && [ "$ACTION" != 
       [ -n "$_extension_id" ] && export RECIPE_HARNESS_EXTENSION_ID="$_extension_id"
       unset _extension_id
     fi
+    if [ -z "${RECIPE_RUNTIME_START_APPROVED:-}" ]; then
+      _runtime_start_approved="$(read_runtime_context_field "$CONTEXT_PATH" runtimeStart.approved || true)"
+      case "$_runtime_start_approved" in
+        true|True|1) export RECIPE_RUNTIME_START_APPROVED=1 ;;
+        false|False|0) export RECIPE_RUNTIME_START_APPROVED=0 ;;
+      esac
+      unset _runtime_start_approved
+    fi
+    if [ -z "${RECIPE_RUNTIME_START_CMD:-}" ]; then
+      _runtime_start_cmd="$(read_runtime_context_field "$CONTEXT_PATH" runtimeStart.command || true)"
+      [ -n "$_runtime_start_cmd" ] && export RECIPE_RUNTIME_START_CMD="$_runtime_start_cmd"
+      unset _runtime_start_cmd
+    fi
+    if [ -z "${RECIPE_RUNTIME_READY_URL:-}" ]; then
+      _runtime_ready_url="$(read_runtime_context_field "$CONTEXT_PATH" runtimeStart.readyUrl || true)"
+      [ -n "$_runtime_ready_url" ] && export RECIPE_RUNTIME_READY_URL="$_runtime_ready_url"
+      unset _runtime_ready_url
+    fi
   fi
 
   if ! has_arg --cdp-port "$@"; then
@@ -122,6 +144,12 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" != "install" ] && [ "$ACTION" != 
       export RECIPE_CDP_PORT="$CONTEXT_CDP_PORT"
       export CDP_PORT="$CONTEXT_CDP_PORT"
       set -- "$@" --cdp-port "$CONTEXT_CDP_PORT"
+    fi
+  fi
+
+  if { [ "$ACTION" = "launch" ] || [ "$ACTION" = "live" ]; } && ! has_arg --prepare-cmd "$@"; then
+    if [ "${RECIPE_RUNTIME_START_APPROVED:-0}" = "1" ] && [ -n "${RECIPE_RUNTIME_START_CMD:-}" ]; then
+      set -- "$@" --prepare-cmd "$RECIPE_RUNTIME_START_CMD"
     fi
   fi
 fi

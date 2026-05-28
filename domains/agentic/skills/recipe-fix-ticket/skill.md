@@ -171,7 +171,11 @@ order and record the result in `CHECKLIST.md`:
 2. repo-local generic runtime context: `temp/runtime/agentic-runtime.json`
    (and `temp/runtime/agentic-runtime.env` if you want to source it). If this
    file has `strict: true`, use only the recorded slot/port/device values and
-   do not probe or fall back to other local runtimes;
+   do not probe or fall back to other local runtimes. If it has
+   `runtimeStart.approved: true` plus `runtimeStart.command`, pass recovery
+   through `/mms-recipe-harness` launch/live/verify and let the harness run that
+   approved command; outside Farmslot, any developer/tool may provide the same
+   context or `RECIPE_RUNTIME_START_APPROVED=1` with `RECIPE_RUNTIME_START_CMD`;
 3. installed recipe-harness/delegate summaries or manifests in the current
    checkout that identify an already-owned runtime;
 4. currently listening local CDP/device endpoints only as fallbacks, never as a
