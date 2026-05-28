@@ -46,9 +46,10 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   prepare_parts=()
   if $START_TEST_WATCH; then
     prepare_parts+=("mkdir -p temp/runtime")
-    # Drop inherited debugger env that can poison child Node/Yarn processes in editor-launched shells.
-    prepare_parts+=("if ! pgrep -f 'yarn start:test' >/dev/null 2>&1; then nohup env -u BUNDLED_DEBUGPY_PATH yarn start:test > temp/runtime/recipe-harness-webpack.log 2>&1 & echo \$! > temp/runtime/recipe-harness-webpack.pid; fi")
-    prepare_parts+=("for i in {1..240}; do grep -E 'MetaMask.*compiled|compiled with' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1 && break; sleep 2; done")
+    # Scope watcher reuse to this checkout. A machine-global pgrep can match an
+    # unrelated repo and leave this target validating stale dist/chrome output.
+    prepare_parts+=("watch_pid_file=temp/runtime/recipe-harness-webpack.pid; watch_log=temp/runtime/recipe-harness-webpack.log; if [ -f \"\$watch_pid_file\" ]; then watch_pid=\$(cat \"\$watch_pid_file\" 2>/dev/null || true); else watch_pid=; fi; if [ -z \"\$watch_pid\" ] || ! kill -0 \"\$watch_pid\" >/dev/null 2>&1; then rm -f \"\$watch_pid_file\"; : > \"\$watch_log\"; nohup env -u BUNDLED_DEBUGPY_PATH yarn start:test > \"\$watch_log\" 2>&1 & echo \$! > \"\$watch_pid_file\"; fi")
+    prepare_parts+=("compiled=false; for i in {1..240}; do if grep -E 'MetaMask.*compiled|compiled with' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1; then compiled=true; break; fi; sleep 2; done; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start:test compilation marker' >&2; exit 1; fi")
   fi
   prepare_parts+=("for i in {1..180}; do [ -f ${quoted_dist}/manifest.json ] && break; sleep 2; done")
   prepare_parts+=("test -f ${quoted_dist}/manifest.json")

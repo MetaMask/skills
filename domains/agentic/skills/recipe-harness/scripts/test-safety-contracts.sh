@@ -122,10 +122,28 @@ assert_mobile_adapter_scripts_parse_with_macos_bash() {
   done
 }
 
+assert_extension_start_test_watch_is_target_scoped() {
+  local live="$SKILL_DIR/adapters/extension/scripts/live.sh"
+  node - "$live" <<'NODE'
+const fs = require('fs');
+const src = fs.readFileSync(process.argv[2], 'utf8');
+if (src.includes("pgrep -f 'yarn start:test'")) {
+  throw new Error('extension live --start-test-watch must not use machine-global pgrep');
+}
+if (!src.includes('watch_pid_file=temp/runtime/recipe-harness-webpack.pid')) {
+  throw new Error('extension live --start-test-watch must use a target-scoped watcher pid file');
+}
+if (!src.includes('compiled=false') || !src.includes('Timed out waiting for target-scoped yarn start:test compilation marker')) {
+  throw new Error('extension live --start-test-watch compile wait must fail when marker is not observed');
+}
+NODE
+}
+
 assert_extension_verify_does_not_autostart_by_default
 assert_mobile_check_only_exits_before_wallet_reset
 assert_verify_marks_harness_owned_only_after_preflight_success
 assert_partial_product_harness_install_is_metadata_only
 assert_mobile_adapter_scripts_parse_with_macos_bash
+assert_extension_start_test_watch_is_target_scoped
 
 echo "recipe-harness safety contracts OK"
