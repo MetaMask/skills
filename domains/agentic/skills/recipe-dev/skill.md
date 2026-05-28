@@ -86,14 +86,6 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 If the branch cannot be made clean, mark the branch gate `BLOCKED` before
 implementation. Do not mix multiple model attempts on the same product branch.
 
-Do not copy task metadata such as `DO NOT MERGE`, `[POC]`,
-`[ADR58 POC]`, or similar review/process labels from a Jira title into the git
-branch name or future PR title unless the human explicitly asks. Those labels
-may be recorded in `CHECKLIST.md` as ticket context, but they are not product
-acceptance criteria and they defeat the purpose of producing reusable PR-ready
-branches. Use stable, mergeable branch names such as
-`adr58/codex/mms-recipe-dev/tat-3216-20260528`.
-
 ## First Response to the Human
 
 After creating `CHECKLIST.md`, immediately acknowledge the handoff with a short, friendly message that includes the checklist path the human can monitor. Use this exact spirit, adapted only if the user gave a stricter tone:
