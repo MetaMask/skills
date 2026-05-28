@@ -85,8 +85,12 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
    record the stash in `CHECKLIST.md`;
 2. record the base branch and base SHA in `CHECKLIST.md`;
 3. create or switch to a fresh branch named with the runner/model, skill, ticket
-   or task slug, and run id, for example:
-   `adr58/codex/mms-recipe-dev/tat-3216-fresh2`;
+   or task slug, and run id. If the source is a Jira ticket, the branch name
+   **must start with the lowercased Jira key followed by a hyphen** on both
+   Mobile and Extension targets so regular MetaMask/Farmslot tooling can
+   associate it, for example
+   `tat-3216-adr58-codex-mms-recipe-dev-fresh2`. For non-Jira prompts, use a
+   stable sanitized task slug such as `adr58-codex-mms-recipe-dev-demo-fresh1`;
 4. keep all product edits for that loop on that branch only;
 5. include branch name, base SHA, and `git diff --stat <base>...HEAD` in the
    final evidence package.

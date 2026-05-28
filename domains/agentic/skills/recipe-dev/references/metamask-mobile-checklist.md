@@ -10,7 +10,7 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 - [ ] **1. Task captured** — URL or pasted text, summary, requirements, ACs.
 - [ ] **2. AC matrix written** — Verbatim numbered ACs; proof mode: `state`, `visual`, or `mixed`; primary evidence.
 - [ ] **3. Target selected** — Platform/runtime target with rationale.
-- [ ] **3a. Clean per-run branch prepared** — Worktree clean or previous loop stashed; model-specific branch created; base SHA recorded for later diff comparison.
+- [ ] **3a. Clean per-run branch prepared** — Worktree clean or previous loop stashed; model-specific branch created; Jira branches start with lowercased ticket key plus hyphen (for example `tat-3216-...`); base SHA recorded for later diff comparison.
 - [ ] **4. Proof plan written before implementation** — Fixture/state setup, target route, selectors/testIDs, expected after evidence; before evidence or `Baseline: N/A`.
 - [ ] **5. `mms-recipe-harness` delegate completed install/verify when runtime proof applies** — Manifest + verify artifact path, or `N/A: <non-runtime reason>`.
 - [ ] **6. `mms-recipe-cook` delegate drafted recipe** — Recipe path + exact command covering ACs.

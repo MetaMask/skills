@@ -10,7 +10,7 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 - [ ] **1. Ticket captured** — URL or pasted text, summary, requirements, ACs.
 - [ ] **2. AC matrix written** — Verbatim numbered ACs; proof mode: `state`, `visual`, or `mixed`; primary evidence.
 - [ ] **3. Target runtime selected** — Mobile/Extension + platform/env + rationale.
-- [ ] **3a. Clean per-run branch prepared** — Worktree clean or previous loop stashed; model-specific branch created; base SHA recorded for later diff comparison.
+- [ ] **3a. Clean per-run branch prepared** — Worktree clean or previous loop stashed; model-specific branch created; Jira branches start with lowercased ticket key plus hyphen (for example `tat-3216-...`); base SHA recorded for later diff comparison.
 - [ ] **3b. Clean generated harness/runtime state prepared** — Ignored stale outputs removed or task-local harness output selected; harness install path recorded.
 - [ ] **4. Baseline/repro plan written before behavior edits** — Route, fixture/state setup, selectors/testIDs, expected before evidence.
 - [ ] **5. `mms-recipe-harness` delegate completed install/verify** — Manifest + verify artifact path.
