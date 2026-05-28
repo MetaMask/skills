@@ -38,8 +38,7 @@ For `/mms-recipe-dev`, use `$mms-recipe-dev <ticket-or-task-url-or-task-prompt>`
 ## Live Checklist File Protocol
 
 Before product edits, before implementation planning, and before telling the
-human to go get coffee, create a farmslot-style live checklist file from the
-installed platform reference:
+human to go get coffee, create a live checklist file from the installed platform reference:
 
 ```bash
 # Pick mobile or extension after identifying the target repo from cwd/ticket.
@@ -128,6 +127,42 @@ When approval exists, prefer the installed harness delegate and cache/watch-firs
 commands. Do not run Mobile `auto`, `default`, `clean`, `rebuild-native`,
 manual bundle prewarm/cache warming, Extension `--start-test-watch`, or
 Extension prepare/build unless that heavier mode was explicitly approved.
+
+## Portable Runtime Discovery Gate
+
+Before choosing any runtime command or port, perform read-only discovery in this
+order and record the result in `CHECKLIST.md`:
+
+1. caller-provided runtime context: `RECIPE_RUNTIME_CONTEXT` JSON path,
+   `RECIPE_SLOT_ID`, `RECIPE_CDP_PORT`, `CDP_PORT`, `RECIPE_METRO_PORT`,
+   `METRO_PORT`, `RECIPE_WATCHER_PORT`, `WATCHER_PORT`, `IOS_SIMULATOR`,
+   `SIMULATOR`, `ANDROID_SERIAL`, `ADB_SERIAL`, and comparable env vars;
+2. installed recipe-harness/delegate summaries or manifests in the current
+   checkout that identify an already-owned runtime;
+3. currently listening local CDP/device endpoints only as fallbacks, never as a
+   reason to ignore caller-provided context.
+
+Do not assume default ports such as `9222` when no context was supplied. Do not
+turn missing runtime context into a raw product build (`yarn build:test`,
+`start:test`, native rebuild, or direct Chrome/simulator launch). Use static
+verify/no-start checks where useful, then record the missing runtime context or
+needed harness command as the blocker.
+
+## Harness Boundary Gate
+
+This high-level skill owns product code, recipes, and evidence. It does **not**
+own the lower-level harness implementation during a product/ticket run. Do not
+edit installed delegate files such as `.agents/skills/mms-recipe-harness`,
+`.claude/skills/mms-recipe-harness`, `.cursor/rules/mms-recipe-harness`,
+`.agent/recipe-harness`, or copied harness adapter scripts while fixing a
+product ticket or validating this high-level workflow.
+
+If the harness fails, inspect only enough logs/summaries to classify the failure
+and capture artifact paths. Rerun only with documented harness flags and the
+discovered runtime context. If success would require changing harness code, stop
+the runtime lane as `BLOCKED: harness defect` (or `PASS-WITH-GAPS` for product
+code already checked) and report the exact summary/log path. Do not patch the
+harness unless the explicit task is a harness-maintenance task.
 
 ## Ticket Source-of-Truth Gate
 
@@ -312,9 +347,10 @@ recovery:
   `BLOCKED: pending runtime-start approval` with the exact command that would be
   needed, and wait for explicit approval.
 - **If runtime-start approval exists**, invoke/follow `/mms-recipe-harness`
-  verify/preflight for the platform, using the provided `FARMSLOT_SLOT_ID`,
-  `IOS_SIMULATOR`, `SIMULATOR`, `ADB_SERIAL`, `WATCHER_PORT`, `METRO_PORT`,
-  `CDP_PORT`, or equivalent env vars first;
+  verify/preflight for the platform, using the provided `RECIPE_RUNTIME_CONTEXT`, `RECIPE_SLOT_ID`, `CDP_PORT`,
+  `RECIPE_CDP_PORT`, `IOS_SIMULATOR`, `SIMULATOR`, `ADB_SERIAL`,
+  `ANDROID_SERIAL`, `WATCHER_PORT`, `METRO_PORT`, or equivalent caller-provided
+  env vars first;
 - for wallet/login readiness, invoke/follow `/mms-recipe-wallet-control` or the
   repo harness wallet setup/unlock command rather than asking the human to run a
   private alias;
@@ -400,9 +436,10 @@ runtime-start approval` with the exact command, and wait. Only declare
 `BLOCKED` for a concrete external failure after the harness or recipe command
 was actually attempted with approval.
 
-Honor runtime environment variables first. If `CDP_PORT`, `FARMSLOT_SLOT_ID`,
-`ADB_SERIAL`, simulator, or equivalent slot variables are present, use those
-values in harness verify and recipe commands before probing default ports. Do
+Honor runtime environment variables first. If `RECIPE_RUNTIME_CONTEXT`, `RECIPE_SLOT_ID`, `CDP_PORT`, `RECIPE_CDP_PORT`,
+`ADB_SERIAL`, simulator/device, or equivalent caller-provided runtime variables
+are present, use those values in harness verify and recipe commands before
+probing default ports. Do
 not claim "no CDP/browser/device" until the env-provided target was attempted
 and its failure artifact was recorded. If the env-provided runtime fails but a
 fallback port works, record both; if only fallback probing was done, the runtime

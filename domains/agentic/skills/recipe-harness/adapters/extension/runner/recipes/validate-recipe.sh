@@ -26,6 +26,18 @@ if [ -f "$RUNNER_ENV" ]; then
   unset _line _key _val
 fi
 
+# Prefer the harness-selected extension ID marker when a caller did not pass
+# RECIPE_HARNESS_EXTENSION_ID explicitly. This keeps direct recipe runs aligned
+# with the preceding harness readiness/verify result when multiple extension IDs
+# are open on the same CDP endpoint.
+if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ] && [ -f "temp/runtime/extension.id" ]; then
+  _extension_id="$(tr -d '[:space:]' < temp/runtime/extension.id)"
+  case "$_extension_id" in
+    [a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z]) export RECIPE_HARNESS_EXTENSION_ID="$_extension_id" ;;
+  esac
+  unset _extension_id
+fi
+
 # Make wallet-fixture.json fields available as env tokens (e.g.
 # {{env.WALLET_PASSWORD}}) for templated flow input defaults. Existing env wins.
 WALLET_FIXTURE="${WALLET_FIXTURE:-$SCRIPT_DIR/../runtime/wallet-fixture.json}"

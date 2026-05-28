@@ -5,7 +5,7 @@ usage() {
   cat >&2 <<'USAGE'
 Usage: init-checklist.sh --platform mobile|extension [--slug task-slug] [--task-dir path]
 
-Creates a farmslot-style CHECKLIST.md copied from this skill's embedded
+Creates a live CHECKLIST.md copied from this skill's embedded
 platform checklist. Prints the CHECKLIST.md path on stdout.
 USAGE
 }

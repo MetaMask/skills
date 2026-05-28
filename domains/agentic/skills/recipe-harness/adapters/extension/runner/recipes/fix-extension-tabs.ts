@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test';
 const EXT_ID = 'hebhblbkkdabgoldnojllkipeoacjioc';
 
 async function main() {
-  const browser = await chromium.connectOverCDP('http://localhost:6668');
+  const browser = await chromium.connectOverCDP('http://127.0.0.1:6668');
   const ctx = browser.contexts()[0];
   if (!ctx) { console.error('No context'); process.exit(1); }
 

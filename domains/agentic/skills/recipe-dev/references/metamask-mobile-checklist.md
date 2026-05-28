@@ -27,8 +27,11 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 
 Mobile-specific gates:
 
-- Before starting or restarting any runtime command, record the exact command and approval state in this checklist. If the caller/orchestrator requires explicit runtime-start approval, do not create `manual-prewarm`, `nohup`, background tmux, detached `sleep`, ad-hoc cache-warming helpers, repo aliases such as `yarn a:ios` / `yarn a:android`, or direct preflight/start scripts such as `scripts/perps/agentic/start-metro.sh --launch` to bypass it; mark `BLOCKED: pending runtime-start approval` with the exact command instead. Prefer installed harness cache/watch-first commands after approval, and do not use Mobile `auto`, `default`, `clean`, `rebuild-native`, manual bundle prewarm/cache warming, Extension `--start-test-watch`, or Extension prepare/build unless that heavier mode was explicitly approved.
+- Before starting or restarting any runtime command, record the exact command and approval state in this checklist. After read-only runtime discovery, if the caller/orchestrator requires explicit runtime-start approval, do not create `manual-prewarm`, `nohup`, background tmux, detached `sleep`, ad-hoc cache-warming helpers, repo aliases such as `yarn a:ios` / `yarn a:android`, or direct preflight/start scripts such as `scripts/perps/agentic/start-metro.sh --launch` to bypass it; mark `BLOCKED: pending runtime-start approval` with the exact command instead. Prefer installed harness cache/watch-first commands after approval, and do not use Mobile `auto`, `default`, `clean`, `rebuild-native`, manual bundle prewarm/cache warming, Extension `--start-test-watch`, raw `yarn build:test`, or Extension prepare/build unless that exact heavier mode was explicitly approved.
 - Runner command form: Claude/Cursor use `/mms-recipe-*`; Codex/OpenAI agents use `$mms-recipe-*`. When this checklist names `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, `/mms-recipe-evidence`, or `/mms-recipe-wallet-control`, use the runner-appropriate command form or the installed delegate file path for the current runner.
+
+- Runtime discovery is portable: prefer `RECIPE_RUNTIME_CONTEXT`, `RECIPE_SLOT_ID`, `RECIPE_CDP_PORT`/`CDP_PORT`, `RECIPE_METRO_PORT`/`METRO_PORT`, `RECIPE_WATCHER_PORT`/`WATCHER_PORT`, simulator/device env, and installed harness summaries before probing fallback ports. Do not assume `9222` or start raw product builds when no context is present; record missing runtime context instead.
+- Harness boundary: do not edit installed `mms-recipe-harness`/wallet-control/cook/quality/evidence delegate files, `.agent/recipe-harness` overlays, or copied adapter scripts during a product/ticket run. Inspect summaries/logs only enough to classify failures. If a harness code change is required, stop the runtime lane as `BLOCKED: harness defect` with artifact paths.
 
 - Prefer after evidence for new/additive UI; use before/after when there is a meaningful previous state.
 - Do not ask whether to proceed with harness/recipe validation after implementation checks. Proceed automatically.
@@ -90,8 +93,9 @@ Mobile-specific gates:
   record `BLOCKED: pending runtime-start approval` with the needed command, and
   wait. If runtime-start approval exists, run `/mms-recipe-harness`
   verify/preflight and `/mms-recipe-wallet-control`/wallet setup using the
-  provided `FARMSLOT_SLOT_ID`, `IOS_SIMULATOR`, `SIMULATOR`, `WATCHER_PORT`,
-  `METRO_PORT`, and `ADB_SERIAL` env. Record the recovery command,
+  provided `RECIPE_RUNTIME_CONTEXT`, `RECIPE_SLOT_ID`, `IOS_SIMULATOR`,
+  `SIMULATOR`, `WATCHER_PORT`, `METRO_PORT`, `ANDROID_SERIAL`, `ADB_SERIAL`,
+  or equivalent caller-provided runtime env. Record the recovery command,
   app-state/status output, and rerun command. Static-only verify plus a failed
   live precondition is `PASS-WITH-GAPS`/`BLOCKED_PRECONDITIONS`, not a complete
   visual proof package.

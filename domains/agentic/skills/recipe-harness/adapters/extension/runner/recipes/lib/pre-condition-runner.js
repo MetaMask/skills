@@ -5,6 +5,14 @@
  * Evaluates named pre-conditions before recipe steps run. Fails fast with hints.
  */
 
+function classifyPreConditionError(message) {
+  const raw = String(message || 'unknown error');
+  if (/scuttl|stateHooks|globalThis\.(setInterval|clearInterval)|LavaMoat/i.test(raw)) {
+    return `Pre-condition blocked by automation-incompatible Extension runtime, likely LavaMoat scuttling/stateHooks access: ${raw}. Use a harness-compatible runtime or classify this as a recipe/precondition limitation; do not start an expensive rebuild unless explicitly approved.`;
+  }
+  return `Pre-condition threw: ${raw}`;
+}
+
 async function runPreConditions(conditions, registries, context) {
   const results = [];
 
@@ -33,10 +41,11 @@ async function runPreConditions(conditions, registries, context) {
       if (!result.pass) return { allPassed: false, results };
     } catch (err) {
       const durationMs = Date.now() - start;
+      const message = err instanceof Error ? err.message : String(err);
       results.push({
         name,
         pass: false,
-        hint: `Pre-condition threw: ${err instanceof Error ? err.message : String(err)}`,
+        hint: classifyPreConditionError(message),
         durationMs,
       });
       return { allPassed: false, results };

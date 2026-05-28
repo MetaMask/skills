@@ -23,6 +23,75 @@ const { getExtensionState: readExtensionState } = require('./state-inspector');
 
 const execFileAsync = promisify(execFile);
 
+async function readConfiguredExtensionId({ cdpPort, log }) {
+  const envId = String(process.env.RECIPE_HARNESS_EXTENSION_ID || '').trim();
+  if (/^[a-z]{32}$/.test(envId)) return envId;
+
+  const markerPath = path.join(process.cwd(), 'temp/runtime/extension.id');
+  try {
+    const markerId = (await fs.readFile(markerPath, 'utf8')).trim();
+    if (/^[a-z]{32}$/.test(markerId)) {
+      process.env.RECIPE_HARNESS_EXTENSION_ID = markerId;
+      log.info(`Using marker MetaMask extension ID from temp/runtime/extension.id: ${markerId}`);
+      return markerId;
+    }
+  } catch {
+    // No marker exists. Fall through to target discovery and ambiguity checks.
+  }
+
+  const discoveredIds = await discoverExtensionIds(cdpPort).catch((err) => {
+    log.warn('Could not inspect CDP extension targets before recipe attach', err?.message || err);
+    return [];
+  });
+  if (discoveredIds.length > 1) {
+    throw new Error(
+      `CDP: ambiguous extension targets on port ${cdpPort}: ${discoveredIds.join(', ')}; ` +
+        'set RECIPE_HARNESS_EXTENSION_ID or run recipe-harness verify/readiness to repair temp/runtime/extension.id',
+    );
+  }
+  return '';
+}
+
+async function resolveExtensionIdOrExplainAmbiguity({ cdpPort, context, log }) {
+  const extensionId = await resolveExtensionId({ context, log });
+  const discoveredIds = await discoverExtensionIds(cdpPort).catch((err) => {
+    log.warn('Could not inspect CDP extension targets after recipe attach', err?.message || err);
+    return [];
+  });
+  if (discoveredIds.length > 1) {
+    throw new Error(
+      `CDP: ambiguous extension targets on port ${cdpPort}: ${discoveredIds.join(', ')}; ` +
+        'set RECIPE_HARNESS_EXTENSION_ID or run recipe-harness verify/readiness to repair temp/runtime/extension.id',
+    );
+  }
+  return extensionId;
+}
+
+async function discoverExtensionIds(cdpPort) {
+  const targets = await httpGetJson(`http://127.0.0.1:${cdpPort}/json/list`);
+  const ids = new Set();
+  for (const target of Array.isArray(targets) ? targets : []) {
+    const match = String(target.url || '').match(/^chrome-extension:\/\/([a-z]{32})\//u);
+    if (match) ids.add(match[1]);
+  }
+  return [...ids];
+}
+
+function httpGetJson(url, timeoutMs = 2000) {
+  return new Promise((resolve, reject) => {
+    const req = http.get(url, (res) => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (err) { reject(err); }
+      });
+    });
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`timeout from ${url}`)));
+    req.on('error', reject);
+  });
+}
+
 class CdpSessionManager {
   #browser;
   #cdpContext;
@@ -58,7 +127,7 @@ class CdpSessionManager {
   }
 
   static async connect(cdpPort) {
-    const browser = await chromium.connectOverCDP(`http://localhost:${cdpPort}`);
+    const browser = await chromium.connectOverCDP(`http://127.0.0.1:${cdpPort}`);
 
     const contexts = browser.contexts();
     const cdpContext = contexts[0];
@@ -69,10 +138,10 @@ class CdpSessionManager {
       warn: (message, error) => process.stderr.write(`[cdp] WARN: ${message} ${error || ''}\n`),
     };
 
-    const configuredExtensionId = String(process.env.RECIPE_HARNESS_EXTENSION_ID || '').trim();
+    const configuredExtensionId = await readConfiguredExtensionId({ cdpPort, log });
     const extensionId = /^[a-z]{32}$/.test(configuredExtensionId)
       ? configuredExtensionId
-      : await resolveExtensionId({ context: cdpContext, log });
+      : await resolveExtensionIdOrExplainAmbiguity({ cdpPort, context: cdpContext, log });
     if (!extensionId) throw new Error('CDP: Could not resolve MetaMask extension ID');
     if (configuredExtensionId && configuredExtensionId === extensionId) {
       log.info(`Using configured MetaMask extension ID: ${extensionId}`);
