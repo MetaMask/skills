@@ -105,6 +105,13 @@ function assertSafeOutDir(taskDir, outDir) {
   if (!relPath || relPath.startsWith('..') || path.isAbsolute(relPath)) {
     throw new Error(`Refusing --out outside task dir or equal to task dir: ${outDir}`);
   }
+  const parts = relPath.split(path.sep).filter(Boolean);
+  if (parts[0] === 'artifacts' || parts[0] === 'harness') {
+    throw new Error(`Refusing --out inside task source/artifact dir: ${outDir}`);
+  }
+  if (!/^pr-package(?:[-_.][a-zA-Z0-9-]+)?$/.test(path.basename(outDir))) {
+    throw new Error(`Refusing --out that is not a generated pr-package directory: ${outDir}`);
+  }
 }
 
 function findPrTemplate(repoRoot) {

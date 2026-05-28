@@ -136,10 +136,11 @@ if [ "$ADAPTER" = "extension" ] && [ "$ACTION" != "install" ] && [ "$ACTION" != 
   fi
 
   if ! has_arg --cdp-port "$@"; then
-    CONTEXT_CDP_PORT="${RECIPE_CDP_PORT:-${CDP_PORT:-}}"
-    if [ -z "$CONTEXT_CDP_PORT" ] && [ -f "$CONTEXT_PATH" ]; then
+    CONTEXT_CDP_PORT=""
+    if [ -f "$CONTEXT_PATH" ]; then
       CONTEXT_CDP_PORT="$(read_runtime_context_field "$CONTEXT_PATH" cdpPort || true)"
     fi
+    CONTEXT_CDP_PORT="${CONTEXT_CDP_PORT:-${RECIPE_CDP_PORT:-${CDP_PORT:-}}}"
     if [ -n "$CONTEXT_CDP_PORT" ]; then
       export RECIPE_CDP_PORT="$CONTEXT_CDP_PORT"
       export CDP_PORT="$CONTEXT_CDP_PORT"

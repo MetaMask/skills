@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 
 async function main() {
-  const browser = await chromium.connectOverCDP('http://127.0.0.1:6668');
+  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${process.env.CDP_PORT || '6668'}`);
   const ctx = browser.contexts()[0];
   if (!ctx) { process.exit(1); }
 

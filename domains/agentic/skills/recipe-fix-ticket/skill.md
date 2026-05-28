@@ -576,7 +576,7 @@ continue through these gates before showing an idle prompt or final response:
    when present.
    A JSON manifest alone is not a PR-ready evidence package.
 
-If you find yourself at the model prompt with steps 13-16 unchecked, that is a
+If you find yourself at the model prompt with steps 13-17 unchecked, that is a
 workflow failure. Continue immediately from the earliest unchecked gate; do not
 wait for the human to say "continue".
 

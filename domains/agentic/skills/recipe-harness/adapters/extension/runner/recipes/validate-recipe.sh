@@ -26,18 +26,6 @@ if [ -f "$RUNNER_ENV" ]; then
   unset _line _key _val
 fi
 
-# Prefer the harness-selected extension ID marker when a caller did not pass
-# RECIPE_HARNESS_EXTENSION_ID explicitly. This keeps direct recipe runs aligned
-# with the preceding harness readiness/verify result when multiple extension IDs
-# are open on the same CDP endpoint.
-if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ] && [ -f "temp/runtime/extension.id" ]; then
-  _extension_id="$(tr -d '[:space:]' < temp/runtime/extension.id)"
-  case "$_extension_id" in
-    [a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z]) export RECIPE_HARNESS_EXTENSION_ID="$_extension_id" ;;
-  esac
-  unset _extension_id
-fi
-
 _has_arg() {
   local needle="$1"
   shift
@@ -89,18 +77,29 @@ if [ -f "$_context_path" ]; then
     [ -n "$_extension_id" ] && export RECIPE_HARNESS_EXTENSION_ID="$_extension_id"
     unset _extension_id
   fi
-  if [ -z "${CDP_PORT:-}" ] && [ -z "${RECIPE_CDP_PORT:-}" ] && ! _has_arg --cdp-port "$@"; then
+  if ! _has_arg --cdp-port "$@"; then
     _cdp_port="$(_runtime_context_field "$_context_path" cdpPort || true)"
     if [ -n "$_cdp_port" ]; then
       export RECIPE_CDP_PORT="$_cdp_port"
       export CDP_PORT="$_cdp_port"
+    elif [ -z "${CDP_PORT:-}" ] && [ -n "${RECIPE_CDP_PORT:-}" ]; then
+      export CDP_PORT="$RECIPE_CDP_PORT"
     fi
     unset _cdp_port
-  elif [ -z "${CDP_PORT:-}" ] && [ -n "${RECIPE_CDP_PORT:-}" ]; then
-    export CDP_PORT="$RECIPE_CDP_PORT"
   fi
 fi
 unset _context_path
+
+# Prefer the harness-selected extension ID marker only when neither the caller nor
+# runtime context selected an extension ID. This avoids stale marker reuse when a
+# managed slot writes a fresher temp/runtime/agentic-runtime.json.
+if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ] && [ -f "temp/runtime/extension.id" ]; then
+  _extension_id="$(tr -d '[:space:]' < temp/runtime/extension.id)"
+  case "$_extension_id" in
+    [a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z][a-z]) export RECIPE_HARNESS_EXTENSION_ID="$_extension_id" ;;
+  esac
+  unset _extension_id
+fi
 
 # Make wallet-fixture.json fields available as env tokens (e.g.
 # {{env.WALLET_PASSWORD}}) for templated flow input defaults. Existing env wins.
