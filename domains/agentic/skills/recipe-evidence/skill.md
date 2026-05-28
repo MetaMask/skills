@@ -54,7 +54,10 @@ Always create a reviewer-copyable package directory under the task folder:
 The package must contain:
 
 - `pr-package/pr-desc.md` — GitHub PR description draft with explicit
-  drag/drop image markers.
+  drag/drop image markers. This draft must be based on the target repo's
+  `.github/pull-request-template.md` / `.github/pull_request_template.md`
+  when that file exists; only use the generic fallback if no repo template is
+  present.
 - `pr-package/images/` — copied screenshot/video evidence with short,
   stable, reviewer-friendly filenames such as
   `01-ac1-no-btc-position-banner-absent.png`.

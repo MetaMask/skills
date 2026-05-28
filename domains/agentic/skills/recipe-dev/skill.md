@@ -518,6 +518,9 @@ continue through these gates before showing an idle prompt or final response:
    (or the runner-equivalent installed path) so the task contains
    `pr-package/pr-desc.md`, `pr-package/images/` with easy-to-copy filenames,
    `pr-package/package-manifest.json`, and `pr-package/final-report.md`.
+   The `pr-desc.md` draft must follow the target repo's
+   `.github/pull-request-template.md` / `.github/pull_request_template.md`
+   when present.
    A JSON manifest alone is not a PR-ready evidence package.
 
 If you find yourself at the model prompt with quality/evidence/package gates

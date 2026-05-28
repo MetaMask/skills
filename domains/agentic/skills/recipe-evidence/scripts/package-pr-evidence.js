@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 function usage() {
   console.error('Usage: package-pr-evidence.js --task <task-dir> [--out <task-dir/pr-package>]');
@@ -76,6 +77,103 @@ function firstMatch(text, regex, fallback = '') {
   return match ? match[1].trim() : fallback;
 }
 
+function getRepoRoot(taskDir) {
+  try {
+    return execFileSync('git', ['-C', taskDir, 'rev-parse', '--show-toplevel'], { text: true, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    let dir = taskDir;
+    while (dir && dir !== path.dirname(dir)) {
+      if (fs.existsSync(path.join(dir, '.git'))) return dir;
+      dir = path.dirname(dir);
+    }
+    return '';
+  }
+}
+
+function findPrTemplate(repoRoot) {
+  if (!repoRoot) return null;
+  const candidates = [
+    '.github/pull-request-template.md',
+    '.github/pull_request_template.md',
+    '.github/PULL_REQUEST_TEMPLATE.md',
+  ];
+  for (const relPath of candidates) {
+    const abs = path.join(repoRoot, relPath);
+    if (fs.existsSync(abs)) return { abs, relPath };
+  }
+  return null;
+}
+
+function insertAfterHeading(markdown, headingPattern, block) {
+  const match = markdown.match(headingPattern);
+  if (!match || match.index === undefined) return markdown;
+  const lineEnd = markdown.indexOf('\n', match.index);
+  const insertAt = lineEnd === -1 ? markdown.length : lineEnd + 1;
+  return `${markdown.slice(0, insertAt)}\n${block}\n${markdown.slice(insertAt)}`;
+}
+
+function insertBeforeHeading(markdown, headingPattern, block) {
+  const match = markdown.match(headingPattern);
+  if (!match || match.index === undefined) return `${markdown}\n\n${block}\n`;
+  return `${markdown.slice(0, match.index)}${block}\n\n${markdown.slice(match.index)}`;
+}
+
+function buildImageSlots(copied, headingLevel = '###') {
+  if (!copied.length) {
+    return '<!-- No screenshot files were found under artifacts/**/screenshots. Add visual evidence before claiming visual ACs. -->\n';
+  }
+  return copied.map((item, i) => [
+    `${headingLevel} ${i + 1}. ${item.caption}`,
+    '',
+    `<!-- IMAGE_SLOT_${String(i + 1).padStart(2, '0')}: drag/drop \`pr-package/images/${item.name}\` here in GitHub, then keep the uploaded image markdown below. -->`,
+    '',
+    `Local file: \`pr-package/images/${item.name}\``,
+    '',
+  ].join('\n')).join('\n');
+}
+
+function buildTemplatePrDesc({ templateText, templateRelPath, task, verdict, taskDir, outDir, copied, evidenceExists, qualityExists }) {
+  const descriptionBlock = [
+    '<!-- recipe-evidence suggestion: edit as needed before publishing. -->',
+    task ? `This PR addresses ${task}.` : 'This PR addresses the linked task.',
+    'See the validation and evidence sections below for recipe-backed proof.',
+  ].join('\n');
+
+  const validationBlock = [
+    '<!-- recipe-evidence validation summary: keep commands concise; full paths are in pr-package/evidence.md. -->',
+    verdict ? `Verdict: \`${verdict}\`` : 'Verdict: `TODO`',
+    '- See `pr-package/evidence.md` for recipe commands, summaries, traces, and artifact manifests.',
+    evidenceExists ? '- Full evidence package: `pr-package/evidence.md`' : '- Full evidence package: TODO (`PR-READY-EVIDENCE.md` was missing at package time).',
+    qualityExists ? '- Quality report: `pr-package/recipe-quality.md`' : '- Quality report: TODO (`artifacts/RECIPE-QUALITY.md` was missing at package time).',
+  ].join('\n');
+
+  const screenshotBlock = [
+    '### **Recipe evidence**',
+    '',
+    `<!-- Generated from ${templateRelPath}. Drag/drop each local image file at its marker so GitHub uploads and renders it. -->`,
+    '',
+    buildImageSlots(copied, '####'),
+  ].join('\n');
+
+  const artifactBlock = [
+    '## **Recipe artifact package**',
+    '',
+    `Task path: \`${taskDir}\``,
+    `PR package: \`${outDir}\``,
+    evidenceExists ? '- Full evidence: `pr-package/evidence.md`' : '- Full evidence: missing `PR-READY-EVIDENCE.md` at package time',
+    qualityExists ? '- Quality report: `pr-package/recipe-quality.md`' : '- Quality report: missing `artifacts/RECIPE-QUALITY.md` at package time',
+    '- Image files: `pr-package/images/`',
+  ].join('\n');
+
+  let out = templateText;
+  out = insertAfterHeading(out, /^## \*\*Description\*\*\s*$/m, descriptionBlock);
+  if (task) out = out.replace(/^Fixes:\s*$/m, `Fixes: ${task}\n`);
+  out = insertAfterHeading(out, /^## \*\*Manual testing steps\*\*\s*$/m, validationBlock);
+  out = insertBeforeHeading(out, /^## \*\*Pre-merge author checklist\*\*\s*$/m, screenshotBlock);
+  out = insertBeforeHeading(out, /^## \*\*Pre-merge author checklist\*\*\s*$/m, artifactBlock);
+  return out;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.task) {
@@ -86,6 +184,8 @@ function main() {
   if (!fs.existsSync(taskDir) || !fs.statSync(taskDir).isDirectory()) {
     throw new Error(`Task dir not found: ${taskDir}`);
   }
+  const repoRoot = getRepoRoot(taskDir);
+  const prTemplate = findPrTemplate(repoRoot);
   const outDir = path.resolve(args.out || path.join(taskDir, 'pr-package'));
   const imagesDir = path.join(outDir, 'images');
   fs.rmSync(outDir, { recursive: true, force: true });
@@ -143,18 +243,7 @@ function main() {
   ].join('\n');
   fs.writeFileSync(path.join(imagesDir, 'README.md'), `${imageReadme}\n`);
 
-  const imageSlots = copied.length
-    ? copied.map((item, i) => [
-        `### ${i + 1}. ${item.caption}`,
-        '',
-        `<!-- IMAGE_SLOT_${String(i + 1).padStart(2, '0')}: drag/drop \`pr-package/images/${item.name}\` below this line in GitHub, then keep the generated uploaded image markdown here. -->`,
-        '',
-        `Local file: \`pr-package/images/${item.name}\``,
-        '',
-      ].join('\n')).join('\n')
-    : '<!-- No screenshot files were found under artifacts/**/screenshots. Add visual evidence before claiming visual ACs. -->\n';
-
-  const prDesc = [
+  const genericPrDesc = [
     '# PR description draft',
     '',
     '## Description',
@@ -179,7 +268,7 @@ function main() {
     '',
     '<!-- Drag/drop each image file at the markers below to let GitHub upload and render them. -->',
     '',
-    imageSlots,
+    buildImageSlots(copied),
     '## Artifact package',
     '',
     `Task path: \`${taskDir}\``,
@@ -191,6 +280,21 @@ function main() {
     '',
     '<!-- Preserve pass-with-gaps details, runtime console noise, blocked states, or cleanup status. -->',
   ].join('\n');
+
+  const prDesc = prTemplate
+    ? buildTemplatePrDesc({
+        templateText: readText(prTemplate.abs),
+        templateRelPath: prTemplate.relPath,
+        task,
+        verdict,
+        taskDir,
+        outDir,
+        copied,
+        evidenceExists: fs.existsSync(evidenceSrc),
+        qualityExists: fs.existsSync(qualitySrc),
+      })
+    : genericPrDesc;
+
   fs.writeFileSync(path.join(outDir, 'pr-desc.md'), `${prDesc}\n`);
 
   const manifest = {
@@ -199,6 +303,8 @@ function main() {
     task,
     branch,
     verdict,
+    repoRoot,
+    prTemplate: prTemplate ? prTemplate.relPath : null,
     files: {
       prDescription: path.join(outDir, 'pr-desc.md'),
       evidence: fs.existsSync(evidenceSrc) ? path.join(outDir, 'evidence.md') : null,
@@ -217,6 +323,7 @@ function main() {
     `PR package path: \`${outDir}\``,
     `PR description draft: \`${path.join(outDir, 'pr-desc.md')}\``,
     `Evidence images folder: \`${imagesDir}\``,
+    prTemplate ? `PR template source: \`${prTemplate.relPath}\`` : 'PR template source: not found; used generic fallback',
     '',
     copied.length ? 'Images:' : 'Images: none found',
     ...copied.map((item) => `- \`${path.join(outDir, 'images', item.name)}\` — ${item.caption}`),
