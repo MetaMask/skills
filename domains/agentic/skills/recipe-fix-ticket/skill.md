@@ -137,9 +137,13 @@ order and record the result in `CHECKLIST.md`:
    `RECIPE_SLOT_ID`, `RECIPE_CDP_PORT`, `CDP_PORT`, `RECIPE_METRO_PORT`,
    `METRO_PORT`, `RECIPE_WATCHER_PORT`, `WATCHER_PORT`, `IOS_SIMULATOR`,
    `SIMULATOR`, `ANDROID_SERIAL`, `ADB_SERIAL`, and comparable env vars;
-2. installed recipe-harness/delegate summaries or manifests in the current
+2. repo-local generic runtime context: `temp/runtime/agentic-runtime.json`
+   (and `temp/runtime/agentic-runtime.env` if you want to source it). If this
+   file has `strict: true`, use only the recorded slot/port/device values and
+   do not probe or fall back to other local runtimes;
+3. installed recipe-harness/delegate summaries or manifests in the current
    checkout that identify an already-owned runtime;
-3. currently listening local CDP/device endpoints only as fallbacks, never as a
+4. currently listening local CDP/device endpoints only as fallbacks, never as a
    reason to ignore caller-provided context.
 
 Do not assume default ports such as `9222` when no context was supplied. Do not

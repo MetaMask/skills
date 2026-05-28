@@ -38,6 +38,70 @@ if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ] && [ -f "temp/runtime/extension.id"
   unset _extension_id
 fi
 
+_has_arg() {
+  local needle="$1"
+  shift
+  local arg
+  for arg in "$@"; do
+    [ "$arg" = "$needle" ] && return 0
+  done
+  return 1
+}
+
+_runtime_context_field() {
+  local context_path="$1"
+  local field="$2"
+  [ -f "$context_path" ] || return 1
+  node -e '
+const fs = require("node:fs");
+const [path, field] = process.argv.slice(1);
+try {
+  const value = JSON.parse(fs.readFileSync(path, "utf8"))[field];
+  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
+} catch (error) {
+  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
+  process.exitCode = 1;
+}
+' "$context_path" "$field"
+}
+
+# Generic runtime-context contract. Producers such as Farmslot may write
+# temp/runtime/agentic-runtime.json; direct recipe runs consume it without
+# guessing default CDP ports or probing unrelated slots.
+_context_path="${RECIPE_RUNTIME_CONTEXT:-$(pwd)/temp/runtime/agentic-runtime.json}"
+if [ -f "$_context_path" ]; then
+  export RECIPE_RUNTIME_CONTEXT="$_context_path"
+  if [ -z "${RECIPE_SLOT_ID:-}" ]; then
+    _slot_id="$(_runtime_context_field "$_context_path" slotId || true)"
+    [ -n "$_slot_id" ] && export RECIPE_SLOT_ID="$_slot_id"
+    unset _slot_id
+  fi
+  if [ -z "${RECIPE_RUNTIME_STRICT:-}" ]; then
+    _strict="$(_runtime_context_field "$_context_path" strict || true)"
+    case "$_strict" in
+      true|True|1) export RECIPE_RUNTIME_STRICT=1 ;;
+      false|False|0) export RECIPE_RUNTIME_STRICT=0 ;;
+    esac
+    unset _strict
+  fi
+  if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ]; then
+    _extension_id="$(_runtime_context_field "$_context_path" extensionId || true)"
+    [ -n "$_extension_id" ] && export RECIPE_HARNESS_EXTENSION_ID="$_extension_id"
+    unset _extension_id
+  fi
+  if [ -z "${CDP_PORT:-}" ] && [ -z "${RECIPE_CDP_PORT:-}" ] && ! _has_arg --cdp-port "$@"; then
+    _cdp_port="$(_runtime_context_field "$_context_path" cdpPort || true)"
+    if [ -n "$_cdp_port" ]; then
+      export RECIPE_CDP_PORT="$_cdp_port"
+      export CDP_PORT="$_cdp_port"
+    fi
+    unset _cdp_port
+  elif [ -z "${CDP_PORT:-}" ] && [ -n "${RECIPE_CDP_PORT:-}" ]; then
+    export CDP_PORT="$RECIPE_CDP_PORT"
+  fi
+fi
+unset _context_path
+
 # Make wallet-fixture.json fields available as env tokens (e.g.
 # {{env.WALLET_PASSWORD}}) for templated flow input defaults. Existing env wins.
 WALLET_FIXTURE="${WALLET_FIXTURE:-$SCRIPT_DIR/../runtime/wallet-fixture.json}"

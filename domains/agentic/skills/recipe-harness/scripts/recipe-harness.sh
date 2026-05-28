@@ -11,11 +11,51 @@ Examples:
   recipe-harness.sh mobile live --target /path/to/metamask-mobile --platform ios --preflight-mode fast
   recipe-harness.sh mobile verify --target /path/to/metamask-mobile --no-auto-start
   recipe-harness.sh extension install --target /path/to/metamask-extension
-  recipe-harness.sh extension launch --target /path/to/metamask-extension --cdp-port 9222
-  recipe-harness.sh extension live --target /path/to/metamask-extension --cdp-port 9222 --launch-existing-dist
-  recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port 9222
+  recipe-harness.sh extension launch --target /path/to/metamask-extension --cdp-port <port>
+  recipe-harness.sh extension live --target /path/to/metamask-extension --cdp-port <port> --launch-existing-dist
+  recipe-harness.sh extension verify --target /path/to/metamask-extension --cdp-port <port>
   recipe-harness.sh extension verify --target /path/to/metamask-extension --static-only
 EOF
+}
+
+has_arg() {
+  local needle="$1"
+  shift
+  local arg
+  for arg in "$@"; do
+    [ "$arg" = "$needle" ] && return 0
+  done
+  return 1
+}
+
+arg_value() {
+  local needle="$1"
+  shift
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = "$needle" ]; then
+      [ "$#" -ge 2 ] && printf '%s\n' "$2"
+      return 0
+    fi
+    shift
+  done
+  return 1
+}
+
+read_runtime_context_field() {
+  local context_path="$1"
+  local field="$2"
+  [ -f "$context_path" ] || return 1
+  node -e '
+const fs = require("node:fs");
+const [path, field] = process.argv.slice(1);
+try {
+  const value = JSON.parse(fs.readFileSync(path, "utf8"))[field];
+  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
+} catch (error) {
+  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
+  process.exitCode = 1;
+}
+' "$context_path" "$field"
 }
 
 if [ "$#" -lt 2 ]; then
@@ -42,6 +82,48 @@ esac
 if [ ! -x "$ADAPTER_SCRIPT" ]; then
   echo "Missing adapter script: $ADAPTER_SCRIPT" >&2
   exit 1
+fi
+
+if [ "$ADAPTER" = "extension" ] && [ "$ACTION" != "install" ] && [ "$ACTION" != "cleanup" ]; then
+  TARGET="$(arg_value --target "$@" || true)"
+  TARGET="${TARGET:-$(pwd)}"
+  if [ -d "$TARGET" ]; then
+    TARGET="$(cd "$TARGET" && pwd -P)"
+  fi
+
+  CONTEXT_PATH="${RECIPE_RUNTIME_CONTEXT:-$TARGET/temp/runtime/agentic-runtime.json}"
+  if [ -f "$CONTEXT_PATH" ]; then
+    export RECIPE_RUNTIME_CONTEXT="$CONTEXT_PATH"
+    if [ -z "${RECIPE_SLOT_ID:-}" ]; then
+      RECIPE_SLOT_ID="$(read_runtime_context_field "$CONTEXT_PATH" slotId || true)"
+      [ -n "$RECIPE_SLOT_ID" ] && export RECIPE_SLOT_ID
+    fi
+    if [ -z "${RECIPE_RUNTIME_STRICT:-}" ]; then
+      _strict="$(read_runtime_context_field "$CONTEXT_PATH" strict || true)"
+      case "$_strict" in
+        true|True|1) export RECIPE_RUNTIME_STRICT=1 ;;
+        false|False|0) export RECIPE_RUNTIME_STRICT=0 ;;
+      esac
+      unset _strict
+    fi
+    if [ -z "${RECIPE_HARNESS_EXTENSION_ID:-}" ]; then
+      _extension_id="$(read_runtime_context_field "$CONTEXT_PATH" extensionId || true)"
+      [ -n "$_extension_id" ] && export RECIPE_HARNESS_EXTENSION_ID="$_extension_id"
+      unset _extension_id
+    fi
+  fi
+
+  if ! has_arg --cdp-port "$@"; then
+    CONTEXT_CDP_PORT="${RECIPE_CDP_PORT:-${CDP_PORT:-}}"
+    if [ -z "$CONTEXT_CDP_PORT" ] && [ -f "$CONTEXT_PATH" ]; then
+      CONTEXT_CDP_PORT="$(read_runtime_context_field "$CONTEXT_PATH" cdpPort || true)"
+    fi
+    if [ -n "$CONTEXT_CDP_PORT" ]; then
+      export RECIPE_CDP_PORT="$CONTEXT_CDP_PORT"
+      export CDP_PORT="$CONTEXT_CDP_PORT"
+      set -- "$@" --cdp-port "$CONTEXT_CDP_PORT"
+    fi
+  fi
 fi
 
 exec "$ADAPTER_SCRIPT" "$@"
