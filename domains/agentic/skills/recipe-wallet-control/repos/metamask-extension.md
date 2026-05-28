@@ -74,4 +74,4 @@ Use `press`, `set_input`, `wait_for`, and `screenshot` for real UI paths. Use se
 
 ## Current Boundary
 
-`setup-wallet` for a brand-new Extension profile is not a stable wallet-control primitive yet. Prefer a prepared debug profile or an existing harness fixture flow; if neither exists, record the missing fixture/profile setup as a proof gap.
+For brand-new Extension profiles, use `/mms-recipe-harness live --launch-existing-dist` with a shared wallet fixture at `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json`. The harness generates persisted Extension state from the Mobile-compatible fixture shape, injects it into the isolated browser profile over CDP, unlocks with the fixture password, and validates the named mnemonic/private-key accounts before recipe proof begins.

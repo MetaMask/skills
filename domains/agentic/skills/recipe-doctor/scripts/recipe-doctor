@@ -181,7 +181,7 @@ if [ "$REPO" = "metamask-extension" ]; then
   if [ -n "$playwright_chromium" ]; then
     record_check PASS "tool:chromium" "Playwright Chromium available at $playwright_chromium; preferred for isolated CDP recipe runs"
   else
-    record_check WARN "tool:chromium" "Playwright Chromium executable not found from this checkout; do not install it automatically. Ask the user for approval, then run npx playwright install chromium from the Extension checkout, or set RECIPE_HARNESS_CHROME_BIN to an explicitly approved browser"
+    record_check WARN "tool:chromium" "Playwright Chromium executable not found from this checkout. Manual approval required: ask the user before installing anything. If they approve, they can run yarn exec playwright install chromium from the Extension checkout to populate the user-level Playwright browser cache without package.json changes, or explicitly set RECIPE_HARNESS_CHROME_BIN to a browser they choose"
   fi
 
   if [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
@@ -276,7 +276,7 @@ if [ "$REPO" = "metamask-extension" ]; then
   if [ -n "${playwright_chromium:-}" ]; then
     record_check PASS "browser:isolation" "Farmslot-like isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
   else
-    record_check WARN "browser:isolation" "best local match to Farmslot needs Playwright Chromium with a dedicated profile, e.g. mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; if Chromium is missing, ask the user before running npx playwright install chromium"
+    record_check WARN "browser:isolation" "best local match to Farmslot needs Playwright Chromium with a dedicated profile, e.g. mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; if Chromium is missing, ask the user before installing the Playwright Chromium browser cache with yarn exec playwright install chromium"
   fi
 fi
 
@@ -359,7 +359,7 @@ NODE
 }
 
 validate_extension_fixture() {
-  extension_fixture_setup="for Farmslot parity, provide temp/runtime/wallet-fixture.json or .agent/wallet-fixture.json with password, address, vault, accounts[0] mnemonic, optional privateKey accounts named Trading/MYXTrading, and settings skipPerpsTutorial=true autoLockNever=true; use a prepared profile with the intended throwaway account selected when no fixture generator is available"
+  extension_fixture_setup="for Farmslot parity, provide temp/runtime/wallet-fixture.json or .agent/wallet-fixture.json with password, accounts[0] mnemonic, optional privateKey accounts named Trading/MYXTrading, optional selectedAccount, and settings skipPerpsTutorial=true autoLockNever=true; the Extension harness generates address/vault/persisted state from this shared fixture shape"
   wallet_fixture=""
   if [ -f "$TARGET/temp/runtime/wallet-fixture.json" ]; then
     wallet_fixture="temp/runtime/wallet-fixture.json"
@@ -381,9 +381,8 @@ try {
   const accounts = Array.isArray(data.accounts) ? data.accounts : [];
   const invalid = [];
   if (typeof data.password !== 'string' || data.password.length === 0) invalid.push('password');
-  if (typeof data.address !== 'string' || data.address.length === 0) invalid.push('address');
-  if (typeof data.vault !== 'string' || data.vault.length === 0) invalid.push('vault');
   if (accounts.length === 0) invalid.push('accounts');
+  if (!accounts.some((account) => account && account.type === 'mnemonic')) invalid.push('accounts.mnemonic');
   accounts.forEach((account, index) => {
     if (!account || typeof account !== 'object') invalid.push(`accounts[${index}]`);
     else {
@@ -401,12 +400,13 @@ try {
     .filter((account) => account && account.type === 'privateKey')
     .map((account) => account.name || '(unnamed)')
     .join(',');
+  const generated = data.address && data.vault ? 'precomputed' : 'generated-by-harness';
   if (invalid.length > 0) {
     console.log(`INVALID ${invalid.join(',')}`);
   } else if (missingSettings.length > 0) {
-    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} settings-missing=${missingSettings.join(',')}`);
+    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} state=${generated} settings-missing=${missingSettings.join(',')}`);
   } else {
-    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} settings=farmslot-compatible`);
+    console.log(`READY accounts=${accounts.length} types=${types} imported=${importedNames || 'none'} state=${generated} settings=farmslot-compatible`);
   }
 } catch (error) {
   const match = String(error && error.message ? error.message : '').match(/position\s+(\d+)/i);

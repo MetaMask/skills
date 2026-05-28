@@ -25,7 +25,7 @@
         "type-password": {
           "action": "set_input",
           "test_id": "unlock-password",
-          "value": "qwerasdf",
+          "value": "{{env.WALLET_PASSWORD}}",
           "next": "press-unlock"
         },
         "press-unlock": {

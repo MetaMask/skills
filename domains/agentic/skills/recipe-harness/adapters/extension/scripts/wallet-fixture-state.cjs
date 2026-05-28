@@ -1,0 +1,689 @@
+#!/usr/bin/env node
+'use strict';
+
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const http = require('node:http');
+const path = require('node:path');
+
+const EOA_METHODS = [
+  'personal_sign',
+  'eth_sign',
+  'eth_signTransaction',
+  'eth_signTypedData_v1',
+  'eth_signTypedData_v3',
+  'eth_signTypedData_v4',
+];
+
+function usage() {
+  console.error(`Usage:
+  wallet-fixture-state.cjs generate --target <metamask-extension> --fixture <wallet-fixture.json> --out <fixture-state.json>
+  wallet-fixture-state.cjs prefill-profile --target <metamask-extension> --state <fixture-state.json> --profile <chrome-profile> --extension-dir <runtime-dist> [--extension-id-file <path>]
+  wallet-fixture-state.cjs seed-cdp --target <metamask-extension> --fixture <wallet-fixture.json> --state <fixture-state.json> --cdp-port <port> --extension-dir <runtime-dist> --extension-id-file <path> --out <report.json>`);
+}
+
+function parseArgs(argv) {
+  const [command, ...rest] = argv;
+  const args = { command };
+  for (let index = 0; index < rest.length; index += 1) {
+    const arg = rest[index];
+    if (!arg.startsWith('--')) {
+      throw new Error(`Unknown positional argument: ${arg}`);
+    }
+    if (index + 1 >= rest.length) {
+      throw new Error(`Missing value for ${arg}`);
+    }
+    args[arg.slice(2)] = rest[index + 1];
+    index += 1;
+  }
+  return args;
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function requireFromTarget(target, moduleName) {
+  return require(require.resolve(moduleName, { paths: [target] }));
+}
+
+function normalizePrivateKey(value, label) {
+  const raw = String(value || '').replace(/^0x/u, '').toLowerCase();
+  if (!/^[0-9a-f]{64}$/u.test(raw)) {
+    throw new Error(`Invalid private key for ${label}`);
+  }
+  return raw;
+}
+
+function deterministicUuid(input) {
+  const bytes = crypto.createHash('sha256').update(input).digest();
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = bytes.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+function getFixtureAccounts(wallet) {
+  const accounts = Array.isArray(wallet.accounts) ? wallet.accounts : [];
+  if (accounts.length === 0) {
+    throw new Error('wallet fixture must include accounts[]');
+  }
+  const supported = accounts.filter(
+    (account) => account && (account.type === 'mnemonic' || account.type === 'privateKey'),
+  );
+  if (supported.length !== accounts.length) {
+    throw new Error('wallet fixture accounts must use type mnemonic or privateKey');
+  }
+  if (!supported.some((account) => account.type === 'mnemonic')) {
+    throw new Error('wallet fixture must include at least one mnemonic account for Extension vault setup');
+  }
+  return supported;
+}
+
+async function buildKeyringEntries(target, wallet) {
+  const { HdKeyring } = requireFromTarget(target, '@metamask/eth-hd-keyring');
+  const SimpleKeyring = requireFromTarget(target, '@metamask/eth-simple-keyring').default;
+  const { privateToAddress, bytesToHex } = requireFromTarget(target, '@ethereumjs/util');
+  const accounts = getFixtureAccounts(wallet);
+  const entries = [];
+
+  for (const [index, account] of accounts.entries()) {
+    const name =
+      typeof account.name === 'string' && account.name.trim()
+        ? account.name.trim()
+        : account.type === 'mnemonic'
+          ? index === 0
+            ? 'Primary'
+            : `SRP ${index + 1}`
+          : `Imported ${index + 1}`;
+
+    if (account.type === 'mnemonic') {
+      const mnemonic = String(account.value || '').trim();
+      if (!mnemonic) {
+        throw new Error(`Missing mnemonic value for ${name}`);
+      }
+      const keyring = new HdKeyring();
+      await keyring.deserialize({ mnemonic, numberOfAccounts: 1 });
+      const [address] = await keyring.getAccounts();
+      entries.push({
+        fixtureType: 'mnemonic',
+        keyring: { type: 'HD Key Tree', data: await keyring.serialize() },
+        address,
+        name,
+      });
+      continue;
+    }
+
+    const rawPrivateKey = normalizePrivateKey(account.value, name);
+    const keyring = new SimpleKeyring();
+    await keyring.deserialize([rawPrivateKey]);
+    const [address] = await keyring.getAccounts();
+    const derivedAddress = bytesToHex(privateToAddress(Buffer.from(rawPrivateKey, 'hex')));
+    entries.push({
+      fixtureType: 'privateKey',
+      keyring: { type: 'Simple Key Pair', data: await keyring.serialize() },
+      address: address || derivedAddress,
+      name,
+    });
+  }
+
+  return entries;
+}
+
+function patchAccountTracker(data, addresses) {
+  if (!data.AccountTracker?.accountsByChainId) {
+    return;
+  }
+  for (const chain of Object.values(data.AccountTracker.accountsByChainId)) {
+    if (!chain || typeof chain !== 'object') {
+      continue;
+    }
+    for (const oldAddress of Object.keys(chain)) {
+      delete chain[oldAddress];
+    }
+    for (const address of addresses) {
+      chain[address] = { balance: '0x0' };
+    }
+  }
+}
+
+function resolveSelectedAccount(wallet, accountRows) {
+  const wanted = wallet.selectedAccount || wallet.selectedAddress || wallet.address;
+  if (typeof wanted !== 'string' || !wanted.trim()) {
+    return accountRows[0];
+  }
+  const normalized = wanted.trim().toLowerCase();
+  return (
+    accountRows.find(
+      (account) =>
+        (account.metadata?.name || '').toLowerCase() === normalized ||
+        account.address.toLowerCase() === normalized,
+    ) || accountRows[0]
+  );
+}
+
+async function generate(args) {
+  const target = path.resolve(args.target || process.cwd());
+  const fixturePath = path.resolve(args.fixture || '');
+  const outputPath = path.resolve(args.out || '');
+  if (!fixturePath || !outputPath) {
+    throw new Error('generate requires --fixture and --out');
+  }
+  const wallet = readJson(fixturePath);
+  if (typeof wallet.password !== 'string' || wallet.password.length === 0) {
+    throw new Error('wallet fixture must include password');
+  }
+
+  const defaultFixturePath = path.join(target, 'test/e2e/fixtures/default-fixture.json');
+  if (!fs.existsSync(defaultFixturePath)) {
+    throw new Error(`default-fixture.json not found at ${defaultFixturePath}`);
+  }
+  const fixture = readJson(defaultFixturePath);
+  const data = fixture.data || fixture;
+  const browserPassworder = requireFromTarget(target, '@metamask/browser-passworder');
+  let keyringEntries = await buildKeyringEntries(target, wallet);
+  if (typeof wallet.vault === 'string' && wallet.vault.length > 0) {
+    const existingKeyrings = await browserPassworder.decrypt(wallet.password, wallet.vault);
+    const existingHd = existingKeyrings.find((keyring) => keyring?.type === 'HD Key Tree');
+    if (existingHd) {
+      let replacedPrimary = false;
+      keyringEntries = keyringEntries.map((entry) => {
+        if (entry.fixtureType !== 'mnemonic' || replacedPrimary) {
+          return entry;
+        }
+        replacedPrimary = true;
+        return {
+          ...entry,
+          keyring: existingHd,
+          address:
+            typeof wallet.address === 'string' && wallet.address
+              ? wallet.address
+              : entry.address,
+        };
+      });
+    }
+  }
+  data.KeyringController = {
+    vault: await browserPassworder.encrypt(
+      wallet.password,
+      keyringEntries.map((entry) => entry.keyring),
+    ),
+  };
+
+  if (!data.AccountsController) {
+    data.AccountsController = { internalAccounts: { accounts: {}, selectedAccount: null } };
+  }
+  if (!data.AccountsController.internalAccounts) {
+    data.AccountsController.internalAccounts = { accounts: {}, selectedAccount: null };
+  }
+  const internalAccounts = data.AccountsController.internalAccounts;
+  internalAccounts.accounts = {};
+  const now = Date.now();
+  const accountRows = keyringEntries.map((entry, index) => {
+    const id = deterministicUuid(`${entry.fixtureType}:${entry.address}:${index}`);
+    const row = {
+      id,
+      address: entry.address.toLowerCase(),
+      metadata: {
+        name: entry.name,
+        importTime: now + index,
+        keyring: { type: entry.keyring.type },
+        lastSelected: 0,
+      },
+      options:
+        entry.fixtureType === 'mnemonic'
+          ? {
+              derivationPath: "m/44'/60'/0'/0/0",
+              groupIndex: 0,
+            }
+          : {},
+      methods: EOA_METHODS,
+      scopes: ['eip155:0'],
+      type: 'eip155:eoa',
+      fixtureType: entry.fixtureType,
+    };
+    internalAccounts.accounts[id] = row;
+    return row;
+  });
+  const selected = resolveSelectedAccount(wallet, accountRows);
+  selected.metadata.lastSelected = now + accountRows.length;
+  internalAccounts.selectedAccount = selected.id;
+
+  data.OnboardingController = {
+    completedOnboarding: true,
+    firstTimeFlowType: 'import',
+    seedPhraseBackedUp: true,
+  };
+  data.PreferencesController ??= {};
+  data.PreferencesController.useExternalServices = true;
+  data.PreferencesController.preferences ??= {};
+  data.PreferencesController.preferences.useSidePanelAsDefault = true;
+  if (wallet.settings?.autoLockNever) {
+    data.PreferencesController.autoLockTimeLimit = 0;
+  }
+  data.PerpsController ??= {};
+  data.PerpsController.isFirstTimeUser = { mainnet: false, testnet: false };
+  data.PerpsController.hasPlacedFirstOrder = { mainnet: true, testnet: true };
+  patchAccountTracker(
+    data,
+    accountRows.map((account) => account.address),
+  );
+
+  writeJson(outputPath, fixture);
+  const summary = {
+    status: 'READY',
+    accountCount: accountRows.length,
+    selectedAccount: { name: selected.metadata.name, address: selected.address },
+    accounts: accountRows.map((account) => ({
+      name: account.metadata.name,
+      address: account.address,
+      type: account.fixtureType,
+      keyringType: account.metadata.keyring.type,
+    })),
+  };
+  writeJson(`${outputPath}.summary.json`, summary);
+  console.error(
+    `[fixture] Generated Extension fixture state: accounts=${summary.accountCount} selected=${summary.selectedAccount.name}`,
+  );
+}
+
+function httpJson(port, pathname) {
+  return new Promise((resolve) => {
+    const req = http.get(`http://127.0.0.1:${port}${pathname}`, { timeout: 1000 }, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(body));
+        } catch (_error) {
+          // CDP can briefly return a non-JSON error page while Chrome is still
+          // starting. Treat that as "not ready yet" so waitForCdp can retry.
+          resolve(null);
+        }
+      });
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on('error', () => resolve(null));
+  });
+}
+
+async function waitForCdp(port) {
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline) {
+    const version = await httpJson(port, '/json/version');
+    if (version) {
+      return version;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`CDP not reachable on port ${port}`);
+}
+
+function extensionIdFromUrl(url) {
+  if (!String(url || '').startsWith('chrome-extension://')) {
+    return '';
+  }
+  return String(url).split('/')[2] || '';
+}
+
+function extensionIdFromManifestKey(key) {
+  if (!key) {
+    return '';
+  }
+  const digest = crypto.createHash('sha256').update(Buffer.from(key, 'base64')).digest();
+  return [...digest.subarray(0, 16)]
+    .map((byte) => `${'abcdefghijklmnop'[byte >> 4]}${'abcdefghijklmnop'[byte & 0x0f]}`)
+    .join('');
+}
+
+function versionedStorageState(fixtureState) {
+  return fixtureState.data
+    ? { data: fixtureState.data, meta: { ...(fixtureState.meta || {}), storageKind: 'data' } }
+    : fixtureState;
+}
+
+async function prefillProfile(args) {
+  const target = path.resolve(args.target || process.cwd());
+  const statePath = path.resolve(args.state || '');
+  const profilePath = path.resolve(args.profile || '');
+  const extensionDir = path.resolve(args['extension-dir'] || '');
+  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
+  if (!statePath || !profilePath || !extensionDir) {
+    throw new Error('prefill-profile requires --state, --profile, and --extension-dir');
+  }
+  const manifest = readJson(path.join(extensionDir, 'manifest.json'));
+  const candidateIds = new Set();
+  const manifestId = extensionIdFromManifestKey(manifest.key);
+  if (manifestId) {
+    candidateIds.add(manifestId);
+  }
+  if (extensionIdFile && fs.existsSync(extensionIdFile)) {
+    const marker = fs.readFileSync(extensionIdFile, 'utf8').trim();
+    if (/^[a-p]{32}$/u.test(marker)) {
+      candidateIds.add(marker);
+    }
+  }
+  if (candidateIds.size === 0) {
+    console.error('[fixture] No deterministic extension id available for profile prefill; CDP seeding will run after launch.');
+    return;
+  }
+  const { ClassicLevel } = requireFromTarget(target, 'classic-level');
+  const stateEntries = Object.entries(versionedStorageState(readJson(statePath)));
+  const settingsRoot = path.join(profilePath, 'Default', 'Local Extension Settings');
+  for (const extensionId of candidateIds) {
+    const dbPath = path.join(settingsRoot, extensionId);
+    fs.mkdirSync(dbPath, { recursive: true });
+    const db = new ClassicLevel(dbPath, { valueEncoding: 'json' });
+    await db.open();
+    try {
+      for (const [key, value] of stateEntries) {
+        await db.put(key, value);
+      }
+    } finally {
+      await db.close();
+    }
+    console.error(`[fixture] Prefilled Extension profile storage for ${extensionId} (${stateEntries.length} keys)`);
+  }
+}
+
+async function detectExtension(context, extensionDir, extensionIdFile) {
+  const manifest = readJson(path.join(extensionDir, 'manifest.json'));
+  const expectedServiceWorker = manifest.background?.service_worker || '';
+  const manifestId = extensionIdFromManifestKey(manifest.key);
+  const rejected = new Set();
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const candidates = [];
+    const push = (id, reason) => {
+      if (!id || rejected.has(id) || candidates.some((candidate) => candidate.id === id)) {
+        return;
+      }
+      candidates.push({ id, reason });
+    };
+    if (extensionIdFile && fs.existsSync(extensionIdFile)) {
+      push(fs.readFileSync(extensionIdFile, 'utf8').trim(), 'extension id marker');
+    }
+    push(manifestId, 'manifest key');
+    for (const worker of context.serviceWorkers()) {
+      const id = extensionIdFromUrl(worker.url());
+      if (expectedServiceWorker && worker.url().endsWith(`/${expectedServiceWorker}`)) {
+        push(id, `manifest service worker ${expectedServiceWorker}`);
+      } else {
+        push(id, 'extension service worker');
+      }
+    }
+    for (const page of context.pages()) {
+      push(extensionIdFromUrl(page.url()), `extension page ${page.url()}`);
+    }
+
+    for (const candidate of candidates) {
+      const page = await context.newPage();
+      try {
+        await page.goto(`chrome-extension://${candidate.id}/home.html`, {
+          waitUntil: 'load',
+          timeout: 10000,
+        });
+        if (page.url().startsWith('chrome-error://')) {
+          throw new Error('candidate resolved to chrome-error page');
+        }
+        return { extensionId: candidate.id, page };
+      } catch (error) {
+        rejected.add(candidate.id);
+        await page.close().catch((closeError) => {
+          console.error(`[fixture] WARN: failed to close rejected extension page: ${closeError.message}`);
+        });
+        console.error(`[fixture] Rejected extension id ${candidate.id} (${candidate.reason}): ${error.message}`);
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error('Could not detect MetaMask extension ID from CDP targets');
+}
+
+async function locatorVisible(locator) {
+  try {
+    return await locator.first().isVisible();
+  } catch (_error) {
+    // During startup the Extension page can navigate between onboarding, lock,
+    // and home. A stale/missing locator means "not visible in this poll", not
+    // a fixture failure; the caller keeps polling until the deadline.
+    return false;
+  }
+}
+
+async function waitForWalletScreen(page) {
+  const readySelectors = [
+    '[data-testid="account-menu-icon"]',
+    '[data-testid="account-options-menu-button"]',
+    '[data-testid="account-overview__asset-tab"]',
+    '.wallet-overview',
+    '.home__container',
+  ];
+  const unlockSelector = '[data-testid="unlock-password"]';
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    for (const selector of readySelectors) {
+      if (await locatorVisible(page.locator(selector))) {
+        return { state: 'unlocked', selector };
+      }
+    }
+    if (await locatorVisible(page.locator(unlockSelector))) {
+      return { state: 'locked', selector: unlockSelector };
+    }
+    if (page.url().includes('/onboarding')) {
+      return { state: 'onboarding', selector: null };
+    }
+    await page.waitForTimeout(500);
+  }
+  return { state: 'unknown', selector: null };
+}
+
+async function unlockIfNeeded(page, password) {
+  let state = await waitForWalletScreen(page);
+  if (state.state === 'locked') {
+    await page.fill('[data-testid="unlock-password"]', password);
+    await page.locator('[data-testid="unlock-submit"]').first().click({ timeout: 15000 });
+    const deadline = Date.now() + 45000;
+    while (Date.now() < deadline) {
+      state = await waitForWalletScreen(page);
+      if (state.state === 'unlocked') {
+        break;
+      }
+      await page.waitForTimeout(750);
+    }
+  }
+  if (state.state !== 'unlocked') {
+    throw new Error(`Wallet did not reach unlocked home screen after fixture seeding (state=${state.state})`);
+  }
+  return state;
+}
+
+async function readLiveAccounts(page) {
+  const raw = await page.evaluate(() => {
+    const metamask = (window.stateHooks?.store?.getState?.() || {}).metamask || {};
+    const accts = metamask.internalAccounts || {};
+    const byId = accts.accounts || {};
+    const selectedId = accts.selectedAccount || null;
+    const list = Object.keys(byId).map((id) => {
+      const account = byId[id] || {};
+      const meta = account.metadata || {};
+      return {
+        id,
+        name: meta.name || '',
+        address: account.address || '',
+        keyringType: (meta.keyring || {}).type || '',
+        type: account.type || '',
+      };
+    });
+    const selected = selectedId && byId[selectedId] ? byId[selectedId] : null;
+    return JSON.stringify({
+      selectedAccountId: selectedId,
+      selectedAddress: selected?.address || null,
+      selectedName: selected?.metadata?.name || null,
+      accounts: list,
+    });
+  });
+  return JSON.parse(raw);
+}
+
+function expectedAccountsFromState(state) {
+  const accounts = state.data?.AccountsController?.internalAccounts?.accounts || {};
+  return Object.values(accounts).map((account) => ({
+    name: account.metadata?.name || '',
+    address: String(account.address || '').toLowerCase(),
+    keyringType: account.metadata?.keyring?.type || '',
+  }));
+}
+
+async function applyAccountNames(page, expectedAccounts) {
+  for (const account of expectedAccounts) {
+    if (!account.name || !account.address.startsWith('0x')) {
+      continue;
+    }
+    await page.evaluate(
+      async ({ address, name }) => {
+        await window.stateHooks.submitRequestToBackground('setAccountLabel', [address, name]);
+      },
+      { address: account.address, name: account.name },
+    );
+  }
+}
+
+async function waitForExpectedAccounts(page, expectedAccounts) {
+  const deadline = Date.now() + 15000;
+  let live = await readLiveAccounts(page);
+  while (Date.now() < deadline) {
+    const missing = expectedAccounts.filter(
+      (expectedAccount) =>
+        !live.accounts.some(
+          (actual) =>
+            actual.address.toLowerCase() === expectedAccount.address &&
+            actual.name === expectedAccount.name &&
+            actual.keyringType === expectedAccount.keyringType,
+        ),
+    );
+    if (missing.length === 0 && live.accounts.length >= expectedAccounts.length) {
+      return { live, missing };
+    }
+    await page.waitForTimeout(500);
+    live = await readLiveAccounts(page);
+  }
+  const missing = expectedAccounts.filter(
+    (expectedAccount) =>
+      !live.accounts.some(
+        (actual) =>
+          actual.address.toLowerCase() === expectedAccount.address &&
+          actual.name === expectedAccount.name &&
+          actual.keyringType === expectedAccount.keyringType,
+      ),
+  );
+  return { live, missing };
+}
+
+async function disconnectCdpBrowser(browser) {
+  try {
+    if (typeof browser.disconnect === 'function') {
+      await browser.disconnect();
+    } else {
+      await browser.close();
+    }
+  } catch (error) {
+    console.error(`[fixture] WARN: failed to disconnect CDP session cleanly: ${error.message}`);
+  }
+}
+
+async function seedCdp(args) {
+  const target = path.resolve(args.target || process.cwd());
+  const fixturePath = path.resolve(args.fixture || '');
+  const statePath = path.resolve(args.state || '');
+  const extensionDir = path.resolve(args['extension-dir'] || '');
+  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
+  const outPath = path.resolve(args.out || path.join(target, 'temp/runtime/fixture-state-validation.json'));
+  const port = Number(args['cdp-port']);
+  if (!fixturePath || !statePath || !extensionDir || !port) {
+    throw new Error('seed-cdp requires --fixture, --state, --extension-dir, and --cdp-port');
+  }
+  const wallet = readJson(fixturePath);
+  const fixtureState = readJson(statePath);
+  const versionedState = versionedStorageState(fixtureState);
+
+  await waitForCdp(port);
+  const playwright = requireFromTarget(target, 'playwright');
+  const browser = await playwright.chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+  const context = browser.contexts()[0] || (await browser.newContext());
+  const { extensionId, page } = await detectExtension(context, extensionDir, extensionIdFile);
+  if (extensionIdFile) {
+    fs.mkdirSync(path.dirname(extensionIdFile), { recursive: true });
+    fs.writeFileSync(extensionIdFile, `${extensionId}\n`);
+  }
+
+  await page.evaluate(async (state) => {
+    await chrome.storage.local.set(state);
+  }, versionedState);
+  await page.goto(`chrome-extension://${extensionId}/home.html`, {
+    waitUntil: 'load',
+    timeout: 30000,
+  });
+  await page.waitForTimeout(1500);
+  const screen = await unlockIfNeeded(page, wallet.password);
+  const expected = expectedAccountsFromState(fixtureState);
+  await applyAccountNames(page, expected);
+  const { live, missing } = await waitForExpectedAccounts(page, expected);
+  const report = {
+    status: missing.length === 0 && live.accounts.length >= expected.length ? 'PASS' : 'FAIL',
+    extensionId,
+    unlockedVia: screen.selector,
+    expectedAccountCount: expected.length,
+    liveAccountCount: live.accounts.length,
+    selected: {
+      name: live.selectedName,
+      address: live.selectedAddress,
+    },
+    expectedAccounts: expected,
+    liveAccounts: live.accounts.map((account) => ({
+      name: account.name,
+      address: account.address,
+      keyringType: account.keyringType,
+      type: account.type,
+    })),
+    missing,
+    generatedAt: new Date().toISOString(),
+  };
+  writeJson(outPath, report);
+  await disconnectCdpBrowser(browser);
+  if (report.status !== 'PASS') {
+    throw new Error(`Extension fixture account parity failed; see ${outPath}`);
+  }
+  console.error(
+    `[fixture] CDP validated Extension wallet fixture: accounts=${report.liveAccountCount} selected=${report.selected.name || report.selected.address}`,
+  );
+}
+
+(async () => {
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    if (args.command === 'generate') {
+      await generate(args);
+    } else if (args.command === 'prefill-profile') {
+      await prefillProfile(args);
+    } else if (args.command === 'seed-cdp') {
+      await seedCdp(args);
+    } else {
+      usage();
+      process.exit(2);
+    }
+  } catch (error) {
+    console.error(`FAIL: ${error.message || error}`);
+    process.exit(1);
+  }
+})();

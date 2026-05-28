@@ -1,6 +1,6 @@
 # Wallet Fixture Format
 
-Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitignored path such as `.agent/wallet-fixture.json` and use throwaway test wallets.
+Fixtures are for local MetaMask Mobile and Extension debug runs only. Keep them in a gitignored path such as `.agent/wallet-fixture.json` or `temp/runtime/wallet-fixture.json` and use throwaway test wallets.
 
 ## Schema
 
@@ -57,11 +57,10 @@ Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitigno
 - Fixture seeding is setup/reset only. It is not a valid way to fabricate a mid-test state or bypass the user flow under validation.
 - Existing mobile template: `scripts/perps/agentic/wallet-fixture.example.json` in MetaMask Mobile.
 
-## Follow-Up Goal
+## Extension Parity
 
 Keep Mobile as the human-authored fixture shape for both platforms: `password`,
 `accounts[]` with `mnemonic` or `privateKey`, optional account `name`, optional
-`selectedAccount`, and setup `settings`. Extension should generate its
-`address`, `vault`, and persisted fixture state from that same shape so agents
-can import and select multiple named accounts consistently across Mobile and
-Extension.
+`selectedAccount`, and setup `settings`. Extension generates its `address`,
+`vault`, and persisted fixture state from that same shape so agents can import
+and select multiple named accounts consistently across Mobile and Extension.

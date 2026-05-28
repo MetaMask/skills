@@ -67,11 +67,11 @@ cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json
 #   skipPerpsTutorial=true, autoLockNever=true, deviceAuthEnabled=true
 ```
 
-For Extension, use the same account roles where possible. A Farmslot-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `address`, `vault`, `accounts[0]` mnemonic, optional private-key accounts named `Trading` / `MYXTrading`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. If no fixture generator is available, use a prepared debug profile with the intended throwaway account already selected.
+For Extension, use the same human-authored account roles as Mobile. A Farmslot-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this shape before live launch.
 
-## Follow-Up Goal: Shared Wallet Fixture Contract
+## Shared Wallet Fixture Contract
 
-Mobile and Extension should converge on the same human-authored wallet fixture shape:
+Mobile and Extension share this human-authored wallet fixture shape:
 
 ```json
 {
@@ -89,7 +89,7 @@ Mobile and Extension should converge on the same human-authored wallet fixture s
 }
 ```
 
-Extension-specific `address`, `vault`, and persisted controller state should be generated from that shared fixture by the Extension harness, not hand-authored by users. The goal is for agents to import multiple account types and names consistently on both platforms, then start each wallet with a predictable selected account.
+Extension-specific `address`, `vault`, and persisted controller state are generated from that shared fixture by the Extension harness, not hand-authored by users. This lets agents import multiple account types and names consistently on both platforms, then start each wallet with a predictable selected account.
 
 For Extension browser launch, the Farmslot-like path is an isolated Chromium profile:
 
@@ -100,4 +100,4 @@ For Extension browser launch, the Farmslot-like path is an isolated Chromium pro
   --chrome-user-data-dir temp/runtime/chrome-profile-recipe
 ```
 
-If no compatible `dist/chrome` exists and the human accepts build/watch cost, add `--start-test-watch`. Prefer Playwright Chromium over the user's normal Chrome profile. `mms-recipe-harness live` must not install Chromium automatically; when the browser binary is missing, ask the user first, then run `npx playwright install chromium` only if they approve, or set `RECIPE_HARNESS_CHROME_BIN` to a browser they explicitly chose.
+If no compatible `dist/chrome` exists and the human accepts build/watch cost, add `--start-test-watch`. Prefer Playwright Chromium over the user's normal Chrome profile. `mms-recipe-harness live` must not install Chromium automatically. When the browser binary is missing, stop and ask the user for approval; only after explicit approval should the user/agent run `yarn exec playwright install chromium` to populate the user-level Playwright browser cache without package.json changes, or the user can set `RECIPE_HARNESS_CHROME_BIN` to a browser they explicitly choose.

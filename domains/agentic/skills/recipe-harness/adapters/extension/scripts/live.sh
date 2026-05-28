@@ -37,10 +37,23 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   DIST_ABS="$TARGET/$DIST_DIR"
   RUNTIME_DIST_ABS="$ARTIFACTS/runtime-dist"
   PROFILE_ABS="${CHROME_USER_DATA_DIR:-$ARTIFACTS/chrome-profile}"
+  WALLET_FIXTURE_ABS=""
+  if [ -f "$TARGET/temp/runtime/wallet-fixture.json" ]; then
+    WALLET_FIXTURE_ABS="$TARGET/temp/runtime/wallet-fixture.json"
+  elif [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
+    WALLET_FIXTURE_ABS="$TARGET/.agent/wallet-fixture.json"
+  fi
+  FIXTURE_STATE_ABS="$ARTIFACTS/fixture-state.json"
+  FIXTURE_VALIDATION_ABS="$ARTIFACTS/logs/fixture-account-parity.json"
   mkdir -p "$PROFILE_ABS"
   quoted_dist="$(printf '%q' "$DIST_ABS")"
   quoted_runtime_dist="$(printf '%q' "$RUNTIME_DIST_ABS")"
   quoted_profile="$(printf '%q' "$PROFILE_ABS")"
+  quoted_fixture_script="$(printf '%q' "$SCRIPT_DIR/wallet-fixture-state.cjs")"
+  quoted_fixture_state="$(printf '%q' "$FIXTURE_STATE_ABS")"
+  quoted_fixture_validation="$(printf '%q' "$FIXTURE_VALIDATION_ABS")"
+  quoted_extension_id_file="$(printf '%q' "$TARGET/temp/runtime/extension.id")"
+  quoted_target="$(printf '%q' "$TARGET")"
   if [ -n "${RECIPE_HARNESS_CHROME_BIN:-}" ]; then
     CHROME_BIN="$RECIPE_HARNESS_CHROME_BIN"
     if [ ! -f "$CHROME_BIN" ] || [ ! -x "$CHROME_BIN" ]; then
@@ -73,11 +86,11 @@ try {
   executable = chromium.executablePath();
 } catch (error) {
   const message = error && error.message ? error.message : String(error);
-  console.error(`[recipe-harness] Could not resolve Playwright Chromium executable: ${message}. Do not install it automatically; ask the user before running npx playwright install chromium.`);
+  console.error(`[recipe-harness] Could not resolve Playwright Chromium executable: ${message}. Manual approval required before installing the Playwright Chromium browser cache (no package.json changes); ask the user before running yarn exec playwright install chromium.`);
   process.exit(1);
 }
 if (!fs.existsSync(executable)) {
-  console.error(`[recipe-harness] Playwright Chromium is not installed at ${executable}. Do not install it automatically. Ask the user for approval; if they agree, run: cd ${shellQuote(process.cwd())} && npx playwright install chromium`);
+  console.error(`[recipe-harness] Playwright Chromium is not installed at ${executable}. Manual approval required before installing the Playwright Chromium browser cache (no package.json changes). Ask the user for approval; if they agree, run: cd ${shellQuote(process.cwd())} && yarn exec playwright install chromium`);
   console.error('[recipe-harness] To use a browser that is already installed, set RECIPE_HARNESS_CHROME_BIN=/path/to/chrome explicitly.');
   process.exit(1);
 }
@@ -104,8 +117,12 @@ NODE
   prepare_parts+=("for i in {1..180}; do [ -f ${quoted_dist}/manifest.json ] && break; sleep 2; done")
   prepare_parts+=("test -f ${quoted_dist}/manifest.json")
   prepare_parts+=("rm -rf ${quoted_runtime_dist} && mkdir -p ${quoted_runtime_dist} && rsync -a --delete --exclude _metadata ${quoted_dist}/ ${quoted_runtime_dist}/")
-  prepare_parts+=("node -e 'const fs=require(\"fs\"); const p=process.argv[1]; const m=JSON.parse(fs.readFileSync(p,\"utf8\")); delete m.key; fs.writeFileSync(p, JSON.stringify(m, null, 2)+\"\\\\n\")' ${quoted_runtime_dist}/manifest.json")
-  chrome_launch_cmd="nohup ${quoted_chrome} --user-data-dir=${quoted_profile}"
+  if [ -n "$WALLET_FIXTURE_ABS" ]; then
+    quoted_wallet_fixture="$(printf '%q' "$WALLET_FIXTURE_ABS")"
+    prepare_parts+=("node ${quoted_fixture_script} generate --target ${quoted_target} --fixture ${quoted_wallet_fixture} --out ${quoted_fixture_state}")
+    prepare_parts+=("node ${quoted_fixture_script} prefill-profile --target ${quoted_target} --state ${quoted_fixture_state} --profile ${quoted_profile} --extension-dir ${quoted_runtime_dist} --extension-id-file ${quoted_extension_id_file}")
+  fi
+  chrome_launch_cmd="nohup env -u BUNDLED_DEBUGPY_PATH -u PYTHONHOME -u PYTHONPATH -u DYLD_LIBRARY_PATH -u DYLD_FALLBACK_LIBRARY_PATH -u DYLD_INSERT_LIBRARIES ${quoted_chrome} --user-data-dir=${quoted_profile}"
   chrome_launch_cmd+=" --remote-debugging-address=127.0.0.1 --remote-debugging-port=${CDP_PORT}"
   chrome_launch_cmd+=" --no-first-run --disable-first-run-ui --disable-default-apps --disable-popup-blocking"
   chrome_launch_cmd+=" --disable-extensions-file-access-check --disable-extensions-content-verification"
@@ -114,7 +131,10 @@ NODE
   chrome_launch_cmd+=" --load-extension=${quoted_runtime_dist} chrome://extensions/"
   chrome_launch_cmd+=" > ${quoted_chrome_log} 2>&1 & echo \$! > ${quoted_chrome_pid}"
   prepare_parts+=("$chrome_launch_cmd")
-  prepare_parts+=("for i in {1..60}; do curl -fsS --max-time 1 http://127.0.0.1:${CDP_PORT}/json/version >/dev/null 2>&1 && exit 0; sleep 1; done; exit 1")
+  prepare_parts+=("for i in {1..60}; do curl -fsS --max-time 1 http://127.0.0.1:${CDP_PORT}/json/version >/dev/null 2>&1 && break; sleep 1; done; curl -fsS --max-time 1 http://127.0.0.1:${CDP_PORT}/json/version >/dev/null")
+  if [ -n "$WALLET_FIXTURE_ABS" ]; then
+    prepare_parts+=("node ${quoted_fixture_script} seed-cdp --target ${quoted_target} --fixture ${quoted_wallet_fixture} --state ${quoted_fixture_state} --cdp-port ${CDP_PORT} --extension-dir ${quoted_runtime_dist} --extension-id-file ${quoted_extension_id_file} --out ${quoted_fixture_validation}")
+  fi
   PREPARE_CMD="$(IFS='; '; printf '%s' "${prepare_parts[*]}")"
 fi
 

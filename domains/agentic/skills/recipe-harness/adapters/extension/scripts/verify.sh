@@ -189,6 +189,27 @@ check_file "$OUT/validate-recipe.sh"
 check_file "$OUT/validate-recipe.js"
 check_file "$OUT/lib/workflow.js"
 
+read_fixture_password() {
+  TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const target = process.env.TARGET_FOR_FIXTURE;
+const candidates = [
+  path.join(target, 'temp/runtime/wallet-fixture.json'),
+  path.join(target, '.agent/wallet-fixture.json'),
+];
+for (const candidate of candidates) {
+  if (!fs.existsSync(candidate)) continue;
+  const fixture = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+  if (fixture.password) {
+    process.stdout.write(String(fixture.password));
+    process.exit(0);
+  }
+}
+process.exit(1);
+NODE
+}
+
 live_mode="static-only"
 if [ "$STATIC_ONLY" = false ]; then
   fixture_status_json > "$ARTIFACTS/logs/fixture-status.json"
@@ -213,6 +234,29 @@ if [ "$STATIC_ONLY" = false ]; then
     else
       checks+=("{\"name\":\"live extension readiness\",\"status\":\"fail\",\"detail\":\"see logs/extension-readiness.json\"}")
       status="fail"
+    fi
+
+    fixture_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
+    fixture_parity_flow="$OUT/domains/extension-core/flows/fixture-account-parity.json"
+    if [ "$fixture_ready" = "true" ]; then
+      if [ -f "$TARGET/$fixture_parity_flow" ]; then
+        fixture_password="$(read_fixture_password || true)"
+        if [ -n "$fixture_password" ] && (
+          cd "$TARGET"
+          WALLET_PASSWORD="$fixture_password" bash "$OUT/validate-recipe.sh" "$fixture_parity_flow" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/fixture-account-parity"
+        ) > "$ARTIFACTS/logs/fixture-account-parity-flow.log" 2>&1; then
+          checks+=("{\"name\":\"live fixture account parity\",\"status\":\"pass\"}")
+        else
+          checks+=("{\"name\":\"live fixture account parity\",\"status\":\"fail\",\"detail\":\"see logs/fixture-account-parity-flow.log\"}")
+          status="fail"
+        fi
+        unset fixture_password
+      else
+        checks+=("{\"name\":\"live fixture account parity\",\"status\":\"fail\",\"detail\":\"missing $fixture_parity_flow\"}")
+        status="fail"
+      fi
+    else
+      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no ready wallet fixture was found\"}")
     fi
 
     if (
