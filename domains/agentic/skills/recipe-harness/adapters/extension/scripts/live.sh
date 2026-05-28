@@ -12,15 +12,15 @@ DIST_DIR="dist/chrome"
 CHROME_USER_DATA_DIR=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --target) TARGET="$2"; shift 2 ;;
-    --out) OUT="$2"; shift 2 ;;
-    --cdp-port) CDP_PORT="$2"; shift 2 ;;
-    --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
-    --prepare-cmd) PREPARE_CMD="$2"; shift 2 ;;
+    --target) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; TARGET="$2"; shift 2 ;;
+    --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; OUT="$2"; shift 2 ;;
+    --cdp-port) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; CDP_PORT="$2"; shift 2 ;;
+    --artifacts-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; ARTIFACTS="$2"; shift 2 ;;
+    --prepare-cmd) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; PREPARE_CMD="$2"; shift 2 ;;
     --launch-existing-dist) LAUNCH_EXISTING_DIST=true; shift ;;
     --start-test-watch) START_TEST_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
-    --dist-dir) DIST_DIR="$2"; shift 2 ;;
-    --chrome-user-data-dir) CHROME_USER_DATA_DIR="$2"; shift 2 ;;
+    --dist-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; DIST_DIR="$2"; shift 2 ;;
+    --chrome-user-data-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; CHROME_USER_DATA_DIR="$2"; shift 2 ;;
     -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] --cdp-port <port> [--launch-existing-dist|--start-test-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -43,9 +43,52 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   quoted_profile="$(printf '%q' "$PROFILE_ABS")"
   if [ -n "${RECIPE_HARNESS_CHROME_BIN:-}" ]; then
     CHROME_BIN="$RECIPE_HARNESS_CHROME_BIN"
+    if [ ! -f "$CHROME_BIN" ] || [ ! -x "$CHROME_BIN" ]; then
+      echo "[recipe-harness] RECIPE_HARNESS_CHROME_BIN is not an executable file: $CHROME_BIN" >&2
+      exit 1
+    fi
   else
-    CHROME_BIN="$(cd "$TARGET" && node -e 'for (const pkg of ["@playwright/test", "playwright"]) { try { const { chromium } = require(pkg); const p = chromium.executablePath(); if (p) { process.stdout.write(p); process.exit(0); } } catch {} } process.exit(1);' 2>/dev/null || true)"
-    CHROME_BIN="${CHROME_BIN:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
+    CHROME_BIN="$(cd "$TARGET" && node <<'NODE' || true
+const fs = require('fs');
+
+let chromium = null;
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+for (const pkg of ['@playwright/test', 'playwright']) {
+  try {
+    chromium = require(pkg).chromium;
+    if (chromium) break;
+  } catch (_error) {
+    // Optional Playwright package unavailable; try the next package name.
+  }
+}
+if (!chromium) {
+  console.error('[recipe-harness] Playwright is not available from this checkout; install dependencies first, or set RECIPE_HARNESS_CHROME_BIN to an explicitly approved browser.');
+  process.exit(1);
+}
+
+let executable = '';
+try {
+  executable = chromium.executablePath();
+} catch (error) {
+  const message = error && error.message ? error.message : String(error);
+  console.error(`[recipe-harness] Could not resolve Playwright Chromium executable: ${message}. Do not install it automatically; ask the user before running npx playwright install chromium.`);
+  process.exit(1);
+}
+if (!fs.existsSync(executable)) {
+  console.error(`[recipe-harness] Playwright Chromium is not installed at ${executable}. Do not install it automatically. Ask the user for approval; if they agree, run: cd ${shellQuote(process.cwd())} && npx playwright install chromium`);
+  console.error('[recipe-harness] To use a browser that is already installed, set RECIPE_HARNESS_CHROME_BIN=/path/to/chrome explicitly.');
+  process.exit(1);
+}
+
+process.stdout.write(executable);
+NODE
+)"
+    if [ -z "$CHROME_BIN" ]; then
+      echo "[recipe-harness] No approved Chromium binary selected; stopping before live Extension launch." >&2
+      exit 1
+    fi
   fi
   quoted_chrome="$(printf '%q' "$CHROME_BIN")"
   quoted_chrome_log="$(printf '%q' "$ARTIFACTS/logs/chrome.log")"

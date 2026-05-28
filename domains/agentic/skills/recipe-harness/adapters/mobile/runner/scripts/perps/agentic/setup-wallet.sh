@@ -11,10 +11,11 @@
 #   {
 #     "password": "yourpassword",
 #     "accounts": [
-#       { "type": "mnemonic", "value": "word1 word2 ..." },
-#       { "type": "privateKey", "value": "0xabc...", "name": "Trading" }
+#       { "type": "mnemonic", "value": "word1 word2 ...", "name": "Primary" },
+#       { "type": "privateKey", "value": "0xabc...", "name": "Trading" },
+#       { "type": "privateKey", "value": "0xdef...", "name": "MYXTrading" }
 #     ],
-#     "settings": { "metametrics": false, "skipGtmModals": true }
+#     "settings": { "metametrics": true, "skipGtmModals": true, "skipPerpsTutorial": true, "autoLockNever": true, "deviceAuthEnabled": true }
 #   }
 
 set -euo pipefail

@@ -98,6 +98,21 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 If the branch cannot be made clean, mark the branch gate `BLOCKED` before
 implementation. Do not mix multiple model attempts on the same product branch.
 
+## Setup Doctor Gate
+
+Before reproduction planning or harness install, invoke/follow
+`/mms-recipe-doctor` from the target checkout when it is installed:
+
+```bash
+.agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target .
+```
+
+Record the doctor status in `CHECKLIST.md`, including fixture/profile status.
+If it reports missing fixtures only, continue only after recording that wallet
+setup may be slower/manual or after the human chooses to create the fixture. If
+it reports an invalid/malformed fixture, missing required tools, or missing
+harness skills, mark the gate `BLOCKED` and fix setup before product edits.
+
 ## Clean Generated Harness State Protocol
 
 A clean product worktree is not enough. Generated, ignored harness/runtime
@@ -275,6 +290,7 @@ text instead of proceeding.
 
 Load only what applies:
 
+- Setup readiness: `/mms-recipe-doctor`
 - Runtime setup: `/mms-recipe-harness`
 - Recipe authoring: `/mms-recipe-cook`
 - Recipe critique: `/mms-recipe-quality`
