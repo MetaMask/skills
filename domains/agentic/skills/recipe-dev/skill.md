@@ -513,7 +513,11 @@ continue through these gates before showing an idle prompt or final response:
    verdict that no rerun is needed;
 5. invoke/follow `/mms-recipe-evidence` and write a PR-ready evidence block/file
    (for example `PR-READY-EVIDENCE.md`) with task, diff, commands, artifact
-   paths, screenshot notes, quality verdict, fallback audit, and remaining gaps.
+   paths, screenshot notes, quality verdict, fallback audit, and remaining gaps;
+6. run `.agents/skills/mms-recipe-evidence/scripts/package-pr-evidence.js --task <task-dir>`
+   (or the runner-equivalent installed path) so the task contains
+   `pr-package/pr-desc.md`, `pr-package/images/` with easy-to-copy filenames,
+   `pr-package/package-manifest.json`, and `pr-package/final-report.md`.
    A JSON manifest alone is not a PR-ready evidence package.
 
 If you find yourself at the model prompt with quality/evidence/package gates

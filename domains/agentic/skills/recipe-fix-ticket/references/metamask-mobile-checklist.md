@@ -25,7 +25,7 @@ Copy this file to the task artifact folder as `CHECKLIST.md` before product edit
 - [ ] **14. Improvement/rerun loop** — One fix + rerun, or explicit “no rerun needed” from quality verdict.
 - [ ] **15. `mms-recipe-evidence` package** — PR-ready evidence block/file with artifact paths and blocked gaps.
 - [ ] **16. Resource cleanup prompt** — Ask whether to stop Metro/release simulator or keep runtime alive for review; record the answer.
-- [ ] **17. Final response** — Fix, tests, recipe evidence, quality loop, remaining risk.
+- [ ] **17. Final response** — Fix, tests, recipe evidence, quality loop, task path, PR package path, remaining risk.
 
 Mobile-specific gates:
 
@@ -53,7 +53,8 @@ Mobile-specific gates:
   explicit evidence manifest that lists recipe path, exact command,
   `summary.json`, `trace.json`, logs, screenshots/videos, quality verdict, and
   remaining gaps.
-- `/mms-recipe-evidence` packaging must produce a PR-ready evidence block/file (for example `PR-READY-EVIDENCE.md`) in addition to any JSON manifest. A manifest-only package is still `PASS-WITH-GAPS` for the workflow packaging gate.
+- `/mms-recipe-evidence` packaging must produce a PR-ready evidence block/file (for example `PR-READY-EVIDENCE.md`) and run `package-pr-evidence.js --task <task-dir>` so reviewers get `pr-package/pr-desc.md`, `pr-package/images/` with easy-to-copy filenames, `pr-package/package-manifest.json`, and `pr-package/final-report.md`. A manifest-only package is still `PASS-WITH-GAPS` for the workflow packaging gate.
+- Final response must print `Task path:`, `PR package path:`, `PR description draft:`, and `Evidence images folder:` so the human can immediately copy/upload PR evidence.
 - Do not stop at an idle prompt after recipe PASS. Continue through gates 13-16
   (`/mms-recipe-quality`, improvement/rerun or no-rerun verdict,
   `/mms-recipe-evidence`, final summary).

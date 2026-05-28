@@ -44,6 +44,38 @@ Use available files:
 
 ## Output
 
+Always create a reviewer-copyable package directory under the task folder:
+
+```bash
+.agents/skills/mms-recipe-evidence/scripts/package-pr-evidence.js \
+  --task temp/tasks/<skill>/<run-slug>
+```
+
+The package must contain:
+
+- `pr-package/pr-desc.md` — GitHub PR description draft with explicit
+  drag/drop image markers.
+- `pr-package/images/` — copied screenshot/video evidence with short,
+  stable, reviewer-friendly filenames such as
+  `01-ac1-no-btc-position-banner-absent.png`.
+- `pr-package/evidence.md` — full evidence block copied from
+  `PR-READY-EVIDENCE.md` when present.
+- `pr-package/recipe-quality.md` — quality verdict when present.
+- `pr-package/package-manifest.json` — machine-readable package index.
+- `pr-package/final-report.md` — human summary with the task path and package
+  path.
+
+If the script cannot infer enough context, still write `pr-desc.md` with TODO
+markers rather than skipping the package. Do not put generated task artifacts in
+the product PR diff; the package is for copy/paste and drag/drop only.
+
+The final response from the high-level skill must print:
+
+- `Task path: <task-dir>`
+- `PR package path: <task-dir>/pr-package`
+- `PR description draft: <task-dir>/pr-package/pr-desc.md`
+- `Evidence images folder: <task-dir>/pr-package/images`
+
 ```md
 ### Recipe validation
 
