@@ -199,6 +199,27 @@ the runtime lane as `BLOCKED: harness defect` (or `PASS-WITH-GAPS` for product
 code already checked) and report the exact summary/log path. Do not patch the
 harness unless the explicit task is a harness-maintenance task.
 
+## CDP Bootstrap Failure Stop Gate
+
+For Extension visual or mixed ACs, a live recipe that fails before CDP session
+bootstrap (for example `ECONNREFUSED 127.0.0.1:<port>`, missing `/json/version`,
+no extension target, or no `summary.json`/`trace.json` emitted) is not a
+quality/evidence packaging condition. Stop the product validation lane, record
+`BLOCKED: CDP bootstrap failed`, preserve the exact command/log path, and fix
+the runtime/preflight root cause before restarting from a clean generated
+harness state.
+
+Only continue to recipe-quality/evidence packaging after either:
+
+1. the live recipe emitted normal runtime artifacts (`summary.json`,
+   `trace.json`, artifact manifest, screenshots/video where applicable); or
+2. the human explicitly asks for a partial package despite the bootstrap
+   blocker.
+
+Do not convert pre-bootstrap CDP failure into `pass-with-gaps`. Do not keep
+retrying inside the same dirty product run. Fix the root cause, clean generated
+outputs, and restart.
+
 ## Ticket Source-of-Truth Gate
 
 The ticket text or pasted task details are the source of truth. If Jira, MCP,
