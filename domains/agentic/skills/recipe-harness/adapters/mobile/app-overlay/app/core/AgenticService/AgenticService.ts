@@ -359,9 +359,11 @@ function isExpectedLegacyAccountTreeInitError(error: unknown) {
   );
 }
 
-async function initializeFixtureAccountTree(options: {
-  allowLegacyAccountTreeInitFailure?: boolean;
-} = {}) {
+async function initializeFixtureAccountTree(
+  options: {
+    allowLegacyAccountTreeInitFailure?: boolean;
+  } = {},
+) {
   try {
     await AccountTreeInitService.initializeAccountTree();
   } catch (error) {
@@ -1249,12 +1251,23 @@ const AgenticService = {
           if (!KeyringController.isUnlocked()) {
             await Authentication.unlockWallet({ password: fixture.password });
           }
-          await initializeFixtureAccountTree();
-          await materializeFixtureAccounts(fixture, {
-            KeyringController,
-            AccountsController,
-            AccountTreeController,
-          });
+          // Existing replay vaults can have the same historical multichain
+          // account-tree init gap as fresh legacy setup. Only the known legacy
+          // init errors are tolerated by this option; unexpected errors still
+          // throw from initializeFixtureAccountTree().
+          const legacyAccountTreeInitOptions = {
+            allowLegacyAccountTreeInitFailure: true,
+          };
+          await initializeFixtureAccountTree(legacyAccountTreeInitOptions);
+          await materializeFixtureAccounts(
+            fixture,
+            {
+              KeyringController,
+              AccountsController,
+              AccountTreeController,
+            },
+            legacyAccountTreeInitOptions,
+          );
           const ethAccs = findEvmAccounts(
             AccountsController.state.internalAccounts.accounts,
           ).map(toAccountSummary);
