@@ -25,8 +25,8 @@ For architecture and developer-facing implementation details, see `test/e2e/play
 **CLI invocation**: The `mm` CLI is a project-local dependency. Use one of:
 
 ```bash
-npx mm <command>
 yarn mm <command>
+npx mm <command>
 ./node_modules/.bin/mm <command>
 ```
 
@@ -55,7 +55,7 @@ If ports are stuck from a previous run, do not assume fixed port numbers. The cu
 cat .mm-server
 ```
 
-Look under `subPorts` for the active `anvil`, `fixture`, and `mock` ports, then target those specific ports if you need to clean up orphan processes.
+Look under `subPorts` for the active `anvil` and `fixture` ports, then target those specific ports if you need to clean up orphan processes.
 
 ## Gotchas
 
@@ -67,6 +67,8 @@ Look under `subPorts` for the active `anvil`, `fixture`, and `mock` ports, then 
 - In `mm run-steps`, prefer `a11yRef`, `testId`, or `selector` in args. `ref` is accepted as shorthand, but explicit keys are clearer.
 - You cannot switch context during an active session. Run `mm cleanup` first, or use `mm launch --context ...`.
 - The default password for built-in fixtures is `correct horse battery staple`.
+- Network mocks are session-scoped. Add `mm mock-network` rules after `mm launch` and before the UI action that triggers the request; `mm cleanup` removes them.
+- `mm mock-network` uses Playwright route interception and can mock requests from both page and extension service-worker contexts. However, it **cannot** intercept requests made during extension startup before the session is fully active. Pre-launch mocking is not currently supported and will be added in a future update.
 
 ## CLI Commands Overview
 
@@ -130,9 +132,13 @@ The `mm` CLI is the primary interface.
 
 ### Advanced
 
-| Command                                            | Description                                                  |
-| -------------------------------------------------- | ------------------------------------------------------------ |
-| `mm cdp <method> [params-json] [--timeout <ms>]`   | Send raw Chrome DevTools Protocol command against active page |
+| Command                                         | Description                                                   |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `mm mock-network add '<json-rule-or-config>'`   | Add one or more Playwright route mocks during active session   |
+| `mm mock-network clear`                         | Clear network mocks and recorded requests                     |
+| `mm mock-network list`                          | List active network mock rules                                |
+| `mm mock-network requests [--limit <n>]`        | Show recorded matched and missed mocked-origin requests       |
+| `mm cdp <method> [params-json] [--timeout <ms>]` | Send raw Chrome DevTools Protocol command against active page |
 
 ## Launch Modes & Fixtures
 
@@ -399,6 +405,78 @@ mm cleanup
 mm cleanup --shutdown
 ```
 
+## Mock Network Requests
+
+Use `mm mock-network` to stub browser network requests during an active session. Prefer this over raw CDP when you need deterministic API responses.
+
+Rules are installed on the active Playwright browser context:
+
+- Run `mm launch` first.
+- Add rules before the UI action that triggers the request.
+- Rules are removed by `mm cleanup`; `mm mock-network clear` removes rules and request history without ending the session.
+- Unmatched requests on an origin with a mock rule continue unchanged and are recorded as misses.
+
+Rule shape:
+
+```json
+{
+  "id": "token-prices",
+  "method": "GET",
+  "url": "https://price.api.metamask.io/v1/**",
+  "response": {
+    "status": 200,
+    "json": {
+      "ethereum": {
+        "usd": 1234.56
+      }
+    }
+  }
+}
+```
+
+Fields:
+
+| Field              | Description                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| `id`               | Stable identifier. Adding another rule with the same `id` replaces the previous rule.               |
+| `method`           | HTTP method to match; normalized to uppercase.                                                       |
+| `url`              | Absolute `http`/`https` URL or URL glob. `*` matches within a segment; `**` matches any path suffix. |
+| `response.status`  | Optional HTTP status; defaults to `200`.                                                            |
+| `response.json`    | JSON response payload.                                                                              |
+| `response.body`    | Text response payload. Use either `json` or `body`.                                                 |
+| `response.headers` | Optional response headers. JSON/text defaults include `access-control-allow-origin: *`.              |
+
+Examples:
+
+```bash
+mm mock-network add '{"id":"token-prices","method":"GET","url":"https://price.api.metamask.io/v1/**","response":{"status":200,"json":{"ethereum":{"usd":1234.56}}}}'
+
+mm mock-network add '{"routes":[
+  {"id":"feature-flags","method":"GET","url":"https://client-config.api.cx.metamask.io/**","response":{"json":{"flags":{}}}},
+  {"id":"empty-nfts","method":"POST","url":"https://nft.api.metamask.io/**","response":{"status":200,"json":{"nfts":[]}}}
+]}'
+
+mm mock-network list
+mm mock-network requests --limit 20
+mm mock-network clear
+```
+
+Verification pattern:
+
+1. Add the rule with `mm mock-network add ...`
+2. Trigger the UI flow that makes the request
+3. Run `mm mock-network requests --limit 20`
+4. Confirm the expected request has `matched: true` and the expected `ruleId`
+
+In `mm run-steps`, use tool name `mock_network` with the same input shape:
+
+```bash
+mm run-steps '{"steps":[
+  {"tool":"mock_network","args":{"action":"add","rule":{"id":"prices","method":"GET","url":"https://price.api.metamask.io/v1/**","response":{"json":{"ok":true}}}}},
+  {"tool":"navigate","args":{"screen":"url","url":"https://test-dapp.io"}}
+]}'
+```
+
 ## Raw CDP Commands
 
 `mm cdp` sends a raw [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) command against the active page. Reach for this **only when structured commands (`mm click`, `mm type`, `mm navigate`, etc.) cannot express what you need** — for example, evaluating JavaScript, enabling network tracking, or inspecting the DOM tree directly.
@@ -473,7 +551,6 @@ Pattern:
 - **Anvil**: Local blockchain on port 8545
 - **Fixture Server**: Wallet state management on port 12345
 - **Contract Seeding**: Deploy test contracts with `mm seed-contract`
-- **Mock Server**: Mock external API responses when enabled
 
 ## Error Recovery
 
