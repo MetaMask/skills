@@ -4,7 +4,7 @@ set -euo pipefail
 TARGET="$PWD"
 CDP_PORT=""
 ARTIFACTS=""
-OUT="temp/agentic/recipes"
+OUT=".agent/recipe-harness/extension/runner/recipes"
 PREPARE_CMD="${RECIPE_HARNESS_EXTENSION_LAUNCH_CMD:-}"
 LAUNCH_EXISTING_DIST=false
 START_WATCH=false
@@ -21,7 +21,7 @@ while [ "$#" -gt 0 ]; do
     --start-watch|--start-test-watch) START_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
     --dist-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; DIST_DIR="$2"; shift 2 ;;
     --chrome-user-data-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; CHROME_USER_DATA_DIR="$2"; shift 2 ;;
-    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] --cdp-port <port> [--launch-existing-dist|--start-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
+    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <.agent/recipe-harness/extension/runner/recipes>] --cdp-port <port> [--launch-existing-dist|--start-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done

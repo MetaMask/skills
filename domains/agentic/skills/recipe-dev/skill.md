@@ -114,7 +114,7 @@ paths for the current target repo unless the caller explicitly asks to preserve
 runtime state for debugging:
 
 ```bash
-rm -rf temp/agentic/recipes .agent/recipe-harness/extension .agent/recipe-harness/mobile
+rm -rf .agent/recipe-harness/extension .agent/recipe-harness/mobile
 rm -rf temp/tasks/<this-run>/harness
 ```
 
@@ -124,7 +124,7 @@ refresh. Do not edit `.agents/skills/...`, `.claude/skills/...`, or harness
 source files during product validation.
 
 For Extension, prefer task-local harness output when writing new recipes so each
-run is isolated from shared `temp/agentic/recipes` state:
+run is isolated from shared installed runner recipe state:
 
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install \
@@ -617,7 +617,7 @@ visual assertion protocol before screenshot evidence:
 
 ```json
 {
-  "action": "wait_for",
+  "action": "ui.wait_for",
   "test_id": "target-test-id",
   "visibility": "viewport",
   "scroll": { "strategy": "into_view", "settle_ms": 300 },
@@ -626,11 +626,11 @@ visual assertion protocol before screenshot evidence:
 }
 ```
 
-Then the `screenshot` node must declare what the image is supposed to prove:
+Then the `ui.screenshot` node must declare what the image is supposed to prove:
 
 ```json
 {
-  "action": "screenshot",
+  "action": "ui.screenshot",
   "filename": "after-ac1-target-visible.png",
   "note": "AC1: target component is visible with the expected text",
   "claims": {
@@ -640,7 +640,7 @@ Then the `screenshot` node must declare what the image is supposed to prove:
 }
 ```
 
-Do not treat `wait_for` fiber-tree/DOM presence, `eval_sync`, controller state,
+Do not treat `ui.wait_for` fiber-tree/DOM presence, `eval_sync`, controller state,
 or a passing recipe as proof that a user can see the element. Visual claims need
 viewport visibility plus screenshot claims, followed by human/quality review of
 the PNG/video.

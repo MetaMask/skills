@@ -2,7 +2,7 @@
   "adapter": "extension",
   "runtime": "MetaMask Extension recipe runtime",
   "version": 3,
-  "defaultInstallPath": "temp/agentic/recipes",
+  "defaultInstallPath": ".agent/recipe-harness/extension/runner/recipes",
   "readinessProbe": "scripts/extension-readiness.js",
   "recommendedCommandEnv": {
     "unset": ["BUNDLED_DEBUGPY_PATH"]

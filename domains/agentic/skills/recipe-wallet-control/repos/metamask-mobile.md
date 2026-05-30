@@ -107,15 +107,13 @@ Expected output is an absolute PNG path under `.agent/screenshots/`. Failure usu
 
 Read wallet/controller state through manifest-backed state actions where available; use raw CDP inspection only for debugging/setup evidence:
 
-```bash
-bash scripts/perps/agentic/app-state.sh status
-bash scripts/perps/agentic/app-state.sh accounts
-bash scripts/perps/agentic/app-state.sh eval-ref --list
-bash scripts/perps/agentic/app-state.sh eval-ref perps/positions
-bash scripts/perps/agentic/app-state.sh state engine.backgroundState.AccountsController
+```json
+{ "action": "metamask.wallet.read_state" }
+{ "action": "metamask.perps.read_positions", "market": "ETH" }
+{ "action": "metamask.perps.read_orders", "market": "ETH" }
 ```
 
-Expected output is JSON or route/state text from the running app. Failure means CDP cannot evaluate in the app context or the requested eval ref/path is not registered.
+Expected output is JSON state from the manifest-declared action. Use raw CDP inspection only for debugging/setup evidence when no manifest action exists.
 
 ## Interaction Helpers
 
