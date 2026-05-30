@@ -8,14 +8,23 @@ maturity: experimental
 
 `recipe-harness` makes a product checkout recipe-capable without making the product repo permanently own the runtime files.
 
-This is an extraction/overlay of the working runtimes, not a downgraded generic runner. Installed skills mirror the shared `adapters/` bundle for self-contained use; follow the target repo overlay to choose `mobile` or `extension`.
+The skill is a thin UX wrapper. It does **not** define the graph executor or final runtime source. Install resolves a MetaMask recipe runner package/source, copies that runner into the ignored checkout overlay, and records the resolved source in `.agent/recipe-harness/<adapter>/manifest.json`.
+
+Runner source resolution order:
+
+1. `METAMASK_RECIPE_RUNNER_SOURCE`
+2. `RECIPE_RUNNER_SOURCE`
+3. `METAMASK_RECIPE_RUNNER_PACKAGE_DIR`
+4. sibling checkout `../metamask-recipe-runner` next to `metamask-skills`
+
+The runner is a separate project. This skill never owns the runner runtime; it only resolves a runner source, copies it into `.agent/recipe-harness/<adapter>/runner/`, and records the source path/revision in the install manifest.
 
 ## Rules
 
 - Run `install` before claiming runtime recipe proof.
 - Run `verify`; failed harness verification blocks runtime claims and is not a product failure.
 - Keep product diffs/evidence separate from harness overlay files.
-- Record the harness manifest path, source version when available, adapter, verification status, and artifacts in PR evidence. If installed from a copied skill, `source.revision` may be `unknown`; record the installed skill path and PR/branch instead.
+- Record the harness manifest path, source version when available, adapter, verification status, and artifacts in PR evidence. If installed from a copied skill or unpacked runner, `source.skillRevision` or `source.runnerRevision` may be `unknown`; record the installed skill path, runner path, runner source kind, and PR/branch instead.
 - Call direct injected scripts for automation. `yarn a:*` aliases are developer convenience only.
 - Treat "app/browser is open" as insufficient. Verification must prove the ADR58 observability layer is present: CDP target, recipe bridge, log capture, screenshot capture, fixture/profile status, and cleanup ownership.
 - Avoid full rebuilds by default. Reuse an already-compatible harness runtime, installed app, shared build cache, Expo/native build artifacts, or Extension watch output before starting expensive builds. Mobile verify defaults to `--preflight-mode fast`; only use `auto`, `rebuild-native`, or `clean` after the caller/human explicitly opts into a rebuild.

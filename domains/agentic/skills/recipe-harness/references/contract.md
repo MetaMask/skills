@@ -8,13 +8,17 @@ Required fields:
 
 - `adapter`: `mobile` or `extension`
 - `installedAt`
-- `source`: skill/runtime source path and git revision when available
+- `source`: skill UX wrapper path/revision plus resolved runner source path/revision/kind when available. Prefer `METAMASK_RECIPE_RUNNER_SOURCE`; local development may use a sibling `metamask-recipe-runner` checkout. The skills repo does not own the runner runtime.
 - `target`
 - `installedPaths`
 - `patchedFiles` (may be an empty array for adapters that only copy ignored runtime files)
 - `backupDir`
 - `cleanupCommand`
 - `productDiffExcludes`
+
+## Overlay Source Files
+
+Mobile app overlay templates under `adapters/mobile/app-overlay/` use `.patch` suffixed filenames such as `AgenticService.ts.patch`. They are full overlay templates, not TypeScript files meant to compile inside the skills repo. The installer strips the `.patch` suffix when copying them into the target checkout. This keeps editors and reviewers from treating target-specific imports as broken skills-repo source.
 
 ## Verification
 
@@ -34,9 +38,9 @@ Build/reuse rule: verification must not silently kick off an expensive native/fu
 
 Mobile verification should prove, when a live app is available:
 
-- `scripts/perps/agentic/**` backing scripts are installed.
+- `scripts/perps/agentic/**` backing scripts are present from the product checkout or an explicit external Mobile bridge source; they are not bundled in the skills repo.
 - direct script entrypoints work; harness automation must not depend on `yarn a:*`.
-- `package.json` exposes optional `a:*` aliases that point at the injected backing scripts.
+- `package.json` exposes optional `a:*` aliases that point at the product/external backing scripts when overlay install is used.
 - CDP connects.
 - `globalThis.__AGENTIC__` exists.
 - route read works.
@@ -62,7 +66,7 @@ Static verification is useful for install/idempotency checks but does not prove 
 
 ## Source Revision Caveat
 
-When install runs from a copied installed skill directory rather than a git checkout, `source.revision` may be `unknown`. Treat `source.skillDir`, `source.runtime`, adapter name, manifest timestamp, and the PR/branch that installed the skill as the audit trail in that case.
+When install runs from a copied installed skill directory or unpacked runner package rather than a git checkout, `source.skillRevision` or `source.runnerRevision` may be `unknown`. Treat `source.skillDir`, `source.runnerDir`, `source.runnerSourceKind`, adapter name, manifest timestamp, and the PR/branch that installed the skill as the audit trail in that case.
 
 ## Static vs Live Verification
 

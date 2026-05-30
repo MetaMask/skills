@@ -17,10 +17,42 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ADAPTER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SKILL_DIR="$(cd "${ADAPTER_DIR}/../.." && pwd)"
+AGENTIC_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/hash-helpers.sh"
+# shellcheck disable=SC1091
+. "$SKILL_DIR/scripts/resolve-runner-source.sh"
 TARGET="$(cd "$TARGET" && pwd)"
+resolve_metamask_recipe_runner_source "$SKILL_DIR" "$AGENTIC_DIR" "$TARGET"
+
+refuse_symlink_destination() {
+  local rel="$1"
+  local path_so_far="$TARGET"
+  IFS='/' read -r -a parts <<< "$rel"
+  for part in "${parts[@]}"; do
+    [ -n "$part" ] || continue
+    path_so_far="$path_so_far/$part"
+    if [ -L "$path_so_far" ]; then
+      echo "Refusing mobile recipe harness install: $rel contains symlink component $path_so_far." >&2
+      return 1
+    fi
+  done
+}
+
 HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
+refuse_symlink_destination ".agent"
+refuse_symlink_destination ".agent/recipe-harness"
+refuse_symlink_destination ".agent/recipe-harness/mobile"
+refuse_symlink_destination "scripts"
+refuse_symlink_destination "scripts/perps"
+refuse_symlink_destination "scripts/perps/agentic"
+refuse_symlink_destination "app"
+refuse_symlink_destination "app/core"
+refuse_symlink_destination "app/core/AgenticService"
+refuse_symlink_destination "app/core/NavigationService"
+refuse_symlink_destination "app/components"
+refuse_symlink_destination "app/components/Nav"
+refuse_symlink_destination "app/components/Nav/App"
 if GIT_BACKUP_PATH="$(git -C "$TARGET" rev-parse --git-path recipe-harness/mobile/backup 2>/dev/null)"; then
   case "$GIT_BACKUP_PATH" in
     /*) BACKUP_DIR="$GIT_BACKUP_PATH" ;;
@@ -36,7 +68,45 @@ if [ "$BACKUP_DIR" != "$OLD_BACKUP_DIR" ] && [ -f "$OLD_BACKUP_DIR/state.env" ] 
 fi
 STATE_FILE="$BACKUP_DIR/state.env"
 
-mkdir -p "$HARNESS_DIR"
+install_v1_runner_assets() {
+  refuse_symlink_destination ".agent"
+  refuse_symlink_destination ".agent/recipe-harness"
+  refuse_symlink_destination ".agent/recipe-harness/mobile"
+  refuse_symlink_destination ".agent/recipe-harness/mobile/runner"
+  refuse_symlink_destination ".agent/recipe-harness/mobile/action-manifest.json"
+  mkdir -p "$HARNESS_DIR"
+  rm -rf "$HARNESS_DIR/runner"
+  mkdir -p "$HARNESS_DIR/runner/bin" "$HARNESS_DIR/runner/manifests" "$HARNESS_DIR/runner/recipes"
+
+  # Mobile Metro/Watchman observes the product checkout. Copying the full
+  # TypeScript runner tree into .agent while Metro is running can trigger large
+  # file-map recrawls and make the React Native debug bridge unresponsive.
+  # Keep the target overlay lightweight: install a harness-owned delegate plus
+  # manifest/recipe snapshots, and execute the reviewed external runner source
+  # recorded in manifest.json. This preserves the injection contract without
+  # making the skills repo or the watched product checkout own the runtime.
+  cat > "$HARNESS_DIR/runner/bin/metamask-recipe" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$METAMASK_RUNNER_FARMSLOT_ROOT}
+exec "$METAMASK_RUNNER_DIR/bin/metamask-recipe" "\$@"
+EOF
+  chmod +x "$HARNESS_DIR/runner/bin/metamask-recipe"
+  printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
+  printf '%s\n' "$METAMASK_RUNNER_DIR" > "$HARNESS_DIR/runner/.runner-source"
+  cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/action-manifest.json"
+  cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/runner/manifests/mobile.action-manifest.json"
+  cp "$METAMASK_RUNNER_DIR/manifests/extension.action-manifest.json" "$HARNESS_DIR/runner/manifests/extension.action-manifest.json"
+  for runner_recipe in smoke.mobile.recipe.json action-validation.mobile.recipe.json; do
+    if [ -f "$METAMASK_RUNNER_DIR/recipes/$runner_recipe" ]; then
+      cp "$METAMASK_RUNNER_DIR/recipes/$runner_recipe" "$HARNESS_DIR/runner/recipes/$runner_recipe"
+    fi
+  done
+  if [ ! -x "$HARNESS_DIR/runner/bin/metamask-recipe" ]; then
+    echo "Refusing mobile recipe harness install: failed to make runner executable." >&2
+    return 1
+  fi
+}
 
 git_tracks_any_under() {
   git -C "$TARGET" ls-files -- "$1" 2>/dev/null | grep -q .
@@ -53,6 +123,55 @@ has_product_owned_mobile_harness() {
   # Marker fallback for checkouts where the harness was patched but not tracked.
   grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null \
     && grep -q "AgentStepHud" "$TARGET/app/components/Nav/App/App.tsx" 2>/dev/null
+}
+
+validate_mobile_agentic_source() {
+  local source="$1"
+  local rel
+  for rel in \
+    "cdp-bridge.js" \
+    "validate-recipe.sh" \
+    "preflight.sh" \
+    "start-metro.sh" \
+    "interactive-start.sh" \
+    "stop-metro.sh" \
+    "reload-metro.sh" \
+    "app-state.sh" \
+    "app-navigate.sh" \
+    "screenshot.sh" \
+    "setup-wallet.sh" \
+    "lib/safe-env-parser.sh"; do
+    if [ ! -f "$source/$rel" ]; then
+      echo "METAMASK_MOBILE_AGENTIC_SOURCE is missing required Mobile bridge entrypoint: $source/$rel" >&2
+      return 1
+    fi
+  done
+}
+
+resolve_mobile_agentic_source() {
+  local raw="${METAMASK_MOBILE_AGENTIC_SOURCE:-${METAMASK_RECIPE_MOBILE_BRIDGE_SOURCE:-}}"
+  local candidate=""
+  if [ -n "$raw" ]; then
+    if [ -d "$raw/scripts/perps/agentic" ]; then
+      candidate="$raw/scripts/perps/agentic"
+    elif [ -d "$raw" ] && [ -f "$raw/cdp-bridge.js" ]; then
+      candidate="$raw"
+    else
+      echo "METAMASK_MOBILE_AGENTIC_SOURCE must point at scripts/perps/agentic or a repo containing scripts/perps/agentic: $raw" >&2
+      return 1
+    fi
+    validate_mobile_agentic_source "$candidate"
+    MOBILE_AGENTIC_SOURCE="$(cd "$candidate" && pwd)"
+    return 0
+  fi
+
+  cat >&2 <<EOF
+Mobile bridge overlay source is not bundled in metamask-skills.
+Set METAMASK_MOBILE_AGENTIC_SOURCE to a reviewed product/farm checkout path
+(or directly to its scripts/perps/agentic directory) when installing into a
+checkout that does not already own scripts/perps/agentic.
+EOF
+  return 1
 }
 
 add_git_exclude_entry() {
@@ -79,19 +198,32 @@ add_git_exclude_entry() {
 }
 
 if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
+  install_v1_runner_assets
   SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
-  add_git_exclude_entry ".agent/recipe-harness/"
-  add_git_exclude_entry ".skills-cache/"
-  add_git_exclude_entry "temp/agentic/recipe-harness/"
+  add_git_exclude_entry ".agent/recipe-harness/" "$HARNESS_DIR/added-git-exclude"
+  add_git_exclude_entry ".skills-cache/" "$HARNESS_DIR/added-git-exclude"
+  add_git_exclude_entry "temp/agentic/recipe-harness/" "$HARNESS_DIR/added-git-exclude"
   node -e '
     const fs = require("fs");
     const m = {
       adapter: "mobile",
       installMode: "product-owned",
       installedAt: new Date().toISOString(),
-      source: { skillDir: process.argv[1], revision: process.argv[2], runtime: process.argv[3] },
-      target: process.argv[4],
+      source: {
+        skillDir: process.argv[1],
+        skillRevision: process.argv[2],
+        runnerDir: process.argv[3],
+        runnerRevision: process.argv[4],
+        runnerSourceKind: process.argv[5],
+        adapterRuntime: process.argv[6],
+        mobileAgenticSource: null
+      },
+      target: process.argv[7],
+      protocolVersion: "v1",
+      actionManifestPath: ".agent/recipe-harness/mobile/action-manifest.json",
+      runnerEntrypoint: ".agent/recipe-harness/mobile/runner/bin/metamask-recipe",
       installedPaths: [],
+      harnessInstalledPaths: [".agent/recipe-harness/mobile/runner", ".agent/recipe-harness/mobile/action-manifest.json"],
       patchedFiles: [],
       productOwnedPaths: [
         "scripts/perps/agentic",
@@ -101,7 +233,7 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
         "app/components/Nav/App/App.tsx"
       ],
       backupDir: null,
-      cleanupCommand: process.argv[5] + "/cleanup.sh --target " + process.argv[4],
+      cleanupCommand: process.argv[8] + "/cleanup.sh --target " + process.argv[7],
       productDiffExcludes: [
         ":(exclude).agent/recipe-harness",
         ":(exclude).skills-cache",
@@ -109,8 +241,8 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
       ],
       note: "This checkout already contains the first-party Mobile agentic harness. Skill install only writes recipe-harness metadata and must not overwrite tracked product harness files."
     };
-    fs.writeFileSync(process.argv[6], JSON.stringify(m, null, 2) + "\n");
-  ' "$SKILL_DIR" "$SOURCE_REV" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
+    fs.writeFileSync(process.argv[9], JSON.stringify(m, null, 2) + "\n");
+  ' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
   echo "Installed mobile recipe harness metadata only (product-owned harness detected): $HARNESS_DIR/manifest.json"
   exit 0
 fi
@@ -184,6 +316,8 @@ EOF
     exit 1
   fi
 fi
+
+mkdir -p "$HARNESS_DIR"
 
 backup_path() {
   local rel="$1"
@@ -316,9 +450,19 @@ fi
 
 INSTALL_MUTATING=true
 
+resolve_mobile_agentic_source
+install_v1_runner_assets
+
 mkdir -p "$TARGET/scripts/perps" "$TARGET/app/core"
-rsync -a --delete "$ADAPTER_DIR/runner/scripts/perps/agentic" "$TARGET/scripts/perps/"
-rsync -a --delete "$ADAPTER_DIR/app-overlay/app/core/AgenticService" "$TARGET/app/core/"
+rsync -a --delete "$MOBILE_AGENTIC_SOURCE/" "$TARGET/scripts/perps/agentic/"
+rm -rf "$TARGET/app/core/AgenticService"
+mkdir -p "$TARGET/app/core/AgenticService"
+while IFS= read -r -d '' overlay_file; do
+  rel="${overlay_file#$ADAPTER_DIR/app-overlay/app/core/AgenticService/}"
+  dest_rel="${rel%.patch}"
+  mkdir -p "$TARGET/app/core/AgenticService/$(dirname "$dest_rel")"
+  cp "$overlay_file" "$TARGET/app/core/AgenticService/$dest_rel"
+done < <(find "$ADAPTER_DIR/app-overlay/app/core/AgenticService" -type f -print0)
 
 node - "$TARGET" <<'NODE'
 const fs = require('fs');
@@ -438,19 +582,30 @@ node -e '
   const m = {
     adapter: "mobile",
     installedAt: new Date().toISOString(),
-    source: { skillDir: process.argv[1], revision: process.argv[2], runtime: process.argv[3] },
-    target: process.argv[4],
-    installedPaths: ["scripts/perps/agentic", "app/core/AgenticService"],
+    source: {
+      skillDir: process.argv[1],
+      skillRevision: process.argv[2],
+      runnerDir: process.argv[3],
+      runnerRevision: process.argv[4],
+      runnerSourceKind: process.argv[5],
+      adapterRuntime: process.argv[6],
+      mobileAgenticSource: process.argv[11]
+    },
+    target: process.argv[7],
+    protocolVersion: "v1",
+    actionManifestPath: ".agent/recipe-harness/mobile/action-manifest.json",
+    runnerEntrypoint: ".agent/recipe-harness/mobile/runner/bin/metamask-recipe",
+    installedPaths: [".agent/recipe-harness/mobile/runner", ".agent/recipe-harness/mobile/action-manifest.json", "scripts/perps/agentic", "app/core/AgenticService"],
     patchedFiles: ["package.json", "app/core/NavigationService/NavigationService.ts", "app/components/Nav/App/App.tsx"],
-    backupDir: process.argv[5],
-    managedHashes: process.argv[5] + "/managed-hashes.tsv",
-    cleanupCommand: process.argv[6] + "/cleanup.sh --target " + process.argv[4],
+    backupDir: process.argv[8],
+    managedHashes: process.argv[8] + "/managed-hashes.tsv",
+    cleanupCommand: process.argv[9] + "/cleanup.sh --target " + process.argv[7],
     productDiffExcludes: [
       ":(exclude).agent/recipe-harness", ":(exclude).skills-cache",
       ":(exclude)scripts/perps/agentic", ":(exclude)app/core/AgenticService"
     ]
   };
-  fs.writeFileSync(process.argv[7], JSON.stringify(m, null, 2) + "\n");
-' "$SKILL_DIR" "$SOURCE_REV" "$ADAPTER_DIR" "$TARGET" "$BACKUP_DIR" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
+  fs.writeFileSync(process.argv[10], JSON.stringify(m, null, 2) + "\n");
+' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$BACKUP_DIR" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json" "${MOBILE_AGENTIC_SOURCE:-}"
 
 echo "Installed mobile recipe harness: $HARNESS_DIR/manifest.json"

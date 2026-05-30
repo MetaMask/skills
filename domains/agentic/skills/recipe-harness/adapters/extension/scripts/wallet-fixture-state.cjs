@@ -688,7 +688,19 @@ async function unlockIfNeeded(page, password) {
   let state = await waitForWalletScreen(page);
   if (state.state === 'locked') {
     await page.fill('[data-testid="unlock-password"]', password);
-    await page.locator('[data-testid="unlock-submit"]').first().click({ timeout: 15000 });
+    try {
+      await page.locator('[data-testid="unlock-submit"]').first().click({ timeout: 15000 });
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      if (!message.includes('Timeout')) throw error;
+      const clicked = await page.evaluate(() => {
+        const button = document.querySelector('[data-testid="unlock-submit"]');
+        if (!button) return false;
+        button.click();
+        return true;
+      });
+      if (!clicked) throw new Error(`Unlock submit timed out and DOM fallback could not find the button: ${message}`);
+    }
     const deadline = Date.now() + 45000;
     while (Date.now() < deadline) {
       state = await waitForWalletScreen(page);

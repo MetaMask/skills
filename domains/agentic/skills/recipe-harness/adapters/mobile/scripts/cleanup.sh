@@ -47,15 +47,35 @@ remove_git_exclude_entry() {
   mv "$exclude_file.tmp" "$exclude_file"
 }
 
+remove_recorded_git_exclude_entries() {
+  local tracking_file="$1"
+  [ -f "$tracking_file" ] || return 0
+  local entry
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    remove_git_exclude_entry "$entry"
+  done < "$tracking_file"
+}
+
+if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
+    const fs = require("fs");
+    const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    process.exit(manifest.installMode === "product-owned" ? 0 : 1);
+  ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
+  remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
+  rm -rf "$HARNESS_DIR"
+  rm -rf "$TARGET/.skills-cache"
+  echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
+  exit 0
+fi
+
 if [ ! -f "$STATE_FILE" ]; then
   if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
     const fs = require("fs");
     const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
     process.exit(manifest.installMode === "product-owned" ? 0 : 1);
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
-    remove_git_exclude_entry ".agent/recipe-harness/"
-    remove_git_exclude_entry ".skills-cache/"
-    remove_git_exclude_entry "temp/agentic/recipe-harness/"
+    remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
     rm -rf "$HARNESS_DIR"
     rm -rf "$TARGET/.skills-cache"
     echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"

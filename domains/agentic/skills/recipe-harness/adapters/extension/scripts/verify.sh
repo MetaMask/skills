@@ -2,31 +2,25 @@
 set -euo pipefail
 
 TARGET="$PWD"
-OUT="temp/agentic/recipes"
 CDP_PORT=""
 ARTIFACTS=""
 STATIC_ONLY=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
-    --out) OUT="$2"; shift 2 ;;
+    --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; shift 2 ;;
     --cdp-port) CDP_PORT="$2"; shift 2 ;;
     --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
     --static-only) STATIC_ONLY=true; shift ;;
-    -h|--help) echo "Usage: verify.sh [--target <metamask-extension>] [--out <temp/agentic/recipes>] [--cdp-port <port>] [--static-only]"; exit 0 ;;
+    -h|--help) echo "Usage: verify.sh [--target <metamask-extension>] [--cdp-port <port>] [--static-only]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck disable=SC1091
-. "$SCRIPT_DIR/path.sh"
 TARGET="$(cd "$TARGET" && pwd)"
 HARNESS_DIR="$TARGET/.agent/recipe-harness/extension"
-if ! OUT_ABS="$(resolve_harness_out "$TARGET" "$OUT")"; then
-  echo "Refusing extension harness verify outside target: $OUT" >&2
-  exit 1
-fi
+RUNNER_BIN="$HARNESS_DIR/runner/bin/metamask-recipe"
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 EXTENSION_ID_FILE="$TARGET/temp/runtime/extension.id"
@@ -205,9 +199,9 @@ check_file() {
 }
 
 check_file ".agent/recipe-harness/extension/manifest.json"
-check_file "$OUT/validate-recipe.sh"
-check_file "$OUT/validate-recipe.js"
-check_file "$OUT/lib/workflow.js"
+check_file ".agent/recipe-harness/extension/action-manifest.json"
+check_file ".agent/recipe-harness/extension/runner/bin/metamask-recipe"
+check_file ".agent/recipe-harness/extension/runner/manifests/extension.action-manifest.json"
 
 read_fixture_password() {
   TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
@@ -256,53 +250,30 @@ if [ "$STATIC_ONLY" = false ]; then
       status="fail"
     fi
 
-    fixture_parity_ready="$(node -e 'const fs=require("fs"); const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.stdout.write(v.status === "READY" && v.hasWalletPassword && v.mobileAccountShape ? "true" : "false");' "$ARTIFACTS/logs/fixture-status.json")"
-    fixture_parity_flow="$OUT/domains/extension-core/flows/fixture-account-parity.json"
-    if [ "$fixture_parity_ready" = "true" ]; then
-      if [ -f "$TARGET/$fixture_parity_flow" ]; then
-        fixture_password="$(read_fixture_password || true)"
-        if [ -n "$fixture_password" ] && (
-          cd "$TARGET"
-          WALLET_PASSWORD="$fixture_password" bash "$OUT/validate-recipe.sh" "$fixture_parity_flow" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/fixture-account-parity"
-        ) > "$ARTIFACTS/logs/fixture-account-parity-flow.log" 2>&1; then
-          checks+=("{\"name\":\"live fixture account parity\",\"status\":\"pass\"}")
-        else
-          checks+=("{\"name\":\"live fixture account parity\",\"status\":\"fail\",\"detail\":\"see logs/fixture-account-parity-flow.log\"}")
-          status="fail"
-        fi
-        unset fixture_password
-      else
-        checks+=("{\"name\":\"live fixture account parity\",\"status\":\"fail\",\"detail\":\"missing $fixture_parity_flow\"}")
-        status="fail"
-      fi
-    else
-      checks+=("{\"name\":\"live fixture account parity\",\"status\":\"warn\",\"detail\":\"skipped because no Mobile-shaped wallet fixture with password/mnemonic/private keys was found\"}")
-    fi
-
     if (
       cd "$TARGET"
-      bash "$OUT/validate-recipe.sh" "$OUT/domains/browser-features/recipes/service-worker-smoke.json" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/non-ui"
-    ) > "$ARTIFACTS/logs/non-ui-sample.log" 2>&1; then
-      checks+=("{\"name\":\"live non-ui service-worker sample\",\"status\":\"pass\"}")
+      "$RUNNER_BIN" manifest --adapter extension --json
+    ) > "$ARTIFACTS/logs/runner-manifest.json" 2> "$ARTIFACTS/logs/runner-manifest.err"; then
+      checks+=("{\"name\":\"runner manifest\",\"status\":\"pass\"}")
     else
-      checks+=("{\"name\":\"live non-ui service-worker sample\",\"status\":\"fail\"}")
+      checks+=("{\"name\":\"runner manifest\",\"status\":\"fail\",\"detail\":\"see logs/runner-manifest.err\"}")
       status="fail"
     fi
 
     if (
       cd "$TARGET"
-      bash "$OUT/validate-recipe.sh" "$OUT/domains/browser-features/recipes/target-inspect-smoke.json" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/ui"
-    ) > "$ARTIFACTS/logs/ui-browser-sample.log" 2>&1; then
-      checks+=("{\"name\":\"live UI/browser target-inspect sample\",\"status\":\"pass\"}")
+      "$RUNNER_BIN" run "$HARNESS_DIR/runner/recipes/smoke.extension.recipe.json" --adapter extension --project-root "$TARGET" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/runner-smoke" --json
+    ) > "$ARTIFACTS/logs/runner-smoke.log" 2>&1; then
+      checks+=("{\"name\":\"runner v1 smoke\",\"status\":\"pass\"}")
     else
-      checks+=("{\"name\":\"live UI/browser target-inspect sample\",\"status\":\"fail\"}")
+      checks+=("{\"name\":\"runner v1 smoke\",\"status\":\"fail\",\"detail\":\"see logs/runner-smoke.log\"}")
       status="fail"
     fi
   fi
 fi
 
 if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude).skills-cache" ":(exclude)$OUT" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
+  git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude).skills-cache" ":(exclude)temp/agentic/recipe-harness" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
 RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'

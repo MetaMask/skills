@@ -33,10 +33,13 @@ domains/agentic/skills/recipe-harness/scripts/recipe-harness mobile live --targe
 Install is conservative by default. On Mobile commits that already track the
 first-party agentic harness, it writes metadata only and does not overwrite
 tracked product files unless `--force-overlay` is explicit. On older commits
-without a product-owned harness, install overlays the recipe runtime and
-idempotently patches:
+without a product-owned harness, install overlays the recipe runtime only when
+`METAMASK_MOBILE_AGENTIC_SOURCE` (or `METAMASK_RECIPE_MOBILE_BRIDGE_SOURCE`) points
+to a reviewed product/farm checkout or directly to its `scripts/perps/agentic`
+directory. The skills repo does not bundle that product harness. Overlay install
+then idempotently patches:
 
-- `scripts/perps/agentic/**`, including start/preflight, CDP, wallet, screenshot, and recipe scripts.
+- `scripts/perps/agentic/**`, copied from the external Mobile bridge source.
 - `package.json` with optional `a:*` aliases pointing at injected scripts.
 - `app/core/NavigationService/NavigationService.ts` to install `AgenticService`.
 - `app/components/Nav/App/App.tsx` to render `AgentStepHud`.
