@@ -40,12 +40,14 @@ Prefer repo-owned browser, extension, fixture, and mock helpers over raw CDP sni
 
 ## Common Action Mapping
 
-- Launch extension: project-owned browser launch or `playwright` action.
-- Open route/popup: `navigate` or extension-specific route action.
-- Inspect service worker/background: `service_worker` with a named query.
-- Interact with UI: `press`, `set_input`, `wait_for`, `screenshot`.
-- Assert internal state: command-level test or named state query.
-- Capture proof: screenshot, trace, console log, test report, or state JSON.
+Use only action names declared by the installed v1 action manifest. Typical Extension mappings are:
+
+- Launch extension: `/recipe-harness` live/verify flow or runner setup with `--launch-existing-dist`.
+- Open route/popup: `ui.navigate`, `metamask.wallet.navigate`, or `metamask.perps.navigate` with `target`/`market` parameters.
+- Probe browser/extension runtime: `cdp.target` for target metadata and reachability.
+- Interact with UI: `ui.press`, manifest-declared `ui.set_input`, `ui.wait_for`, `ui.scroll`, and `ui.screenshot`.
+- Assert internal/domain state: command-level tests, `assert_json`, or manifest-declared domain actions such as `metamask.wallet.read_state` and `metamask.perps.assert_positions`.
+- Capture proof: `ui.screenshot`, trace, console log, test report, or state JSON, then `index_artifacts` for extra files not registered by the runner.
 
 ## Extension Quality Bar
 

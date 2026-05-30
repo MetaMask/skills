@@ -64,6 +64,24 @@ Extension verification should prove:
 
 Static verification is useful for install/idempotency checks but does not prove runtime behavior.
 
+## Recipe authoring boundary
+
+The skills repo is only the installer/invoker. Recipe semantics come from
+Farmslot Recipe Protocol v1 and the resolved MetaMask recipe runner manifest.
+
+- Read the runner action manifest before writing a recipe; only manifest-listed
+  actions are callable.
+- Use `metamask.*` actions for reproducible setup/teardown, direct supported
+  product/controller operations, and read/assert checks.
+- Use official `ui.*` actions for any human-visible proof path: pressing a
+  button, entering an input/keypad value, scrolling an element into view, and
+  capturing screenshots.
+- Do not use direct controller/CDP calls to replace the UI path for a visual
+  acceptance criterion. Controller/API calls are acceptable for setup when the
+  recipe then proves the resulting state.
+- Drag/swipe proof is not available until the runner manifest advertises
+  `ui.gesture` and live action-validation proves it on Mobile and Extension.
+
 ## Source Revision Caveat
 
 When install runs from a copied installed skill directory or unpacked runner package rather than a git checkout, `source.skillRevision` or `source.runnerRevision` may be `unknown`. Treat `source.skillDir`, `source.runnerDir`, `source.runnerSourceKind`, adapter name, manifest timestamp, and the PR/branch that installed the skill as the audit trail in that case.

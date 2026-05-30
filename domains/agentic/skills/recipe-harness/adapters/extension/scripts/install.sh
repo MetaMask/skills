@@ -60,8 +60,21 @@ refuse_symlink_destination ".agent/recipe-harness/extension/action-manifest.json
 
 mkdir -p "$HARNESS_DIR"
 
-rsync -a --delete --exclude node_modules --exclude .git "$METAMASK_RUNNER_DIR/" "$HARNESS_DIR/runner/"
+rm -rf "$HARNESS_DIR/runner"
+mkdir -p "$HARNESS_DIR/runner/bin" "$HARNESS_DIR/runner/manifests" "$HARNESS_DIR/runner/recipes"
+cat > "$HARNESS_DIR/runner/bin/metamask-recipe" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$METAMASK_RUNNER_FARMSLOT_ROOT}
+exec "$METAMASK_RUNNER_DIR/bin/metamask-recipe" "\$@"
+EOF
 printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
+printf '%s\n' "$METAMASK_RUNNER_DIR" > "$HARNESS_DIR/runner/.runner-source"
+cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/runner/manifests/mobile.action-manifest.json"
+cp "$METAMASK_RUNNER_DIR/manifests/extension.action-manifest.json" "$HARNESS_DIR/runner/manifests/extension.action-manifest.json"
+if [ -d "$METAMASK_RUNNER_DIR/recipes" ]; then
+  rsync -a --delete "$METAMASK_RUNNER_DIR/recipes/" "$HARNESS_DIR/runner/recipes/"
+fi
 cp "$METAMASK_RUNNER_DIR/manifests/extension.action-manifest.json" "$HARNESS_DIR/action-manifest.json"
 make_executable "$HARNESS_DIR/runner/bin/metamask-recipe"
 mkdir -p "$HARNESS_DIR/scripts"

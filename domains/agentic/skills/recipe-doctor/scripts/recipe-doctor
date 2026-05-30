@@ -263,15 +263,15 @@ if [ "$REPO" = "metamask-mobile" ]; then
 fi
 
 if [ "$REPO" = "metamask-extension" ]; then
-  if [ -f "$TARGET/temp/agentic/recipes/validate-recipe.sh" ]; then
-    record_check PASS "harness:file" "temp/agentic/recipes/validate-recipe.sh"
+  if [ -f "$TARGET/.agent/recipe-harness/extension/action-manifest.json" ]; then
+    record_check PASS "harness:v1-manifest" ".agent/recipe-harness/extension/action-manifest.json"
   else
-    record_check WARN "harness:file" "temp/agentic/recipes/validate-recipe.sh missing; run mms-recipe-harness install before runtime proof"
+    record_check WARN "harness:v1-manifest" ".agent/recipe-harness/extension/action-manifest.json missing; run mms-recipe-harness install before runtime proof"
   fi
-  if [ -d "$TARGET/temp/agentic/recipes/domains/extension-core" ]; then
-    record_check PASS "harness:extension-core" "extension-core recipes installed"
+  if [ -x "$TARGET/.agent/recipe-harness/extension/runner/bin/metamask-recipe" ]; then
+    record_check PASS "harness:v1-runner" ".agent/recipe-harness/extension/runner/bin/metamask-recipe"
   else
-    record_check WARN "harness:extension-core" "extension-core recipes missing; install harness before wallet-control proof"
+    record_check WARN "harness:v1-runner" ".agent/recipe-harness/extension/runner/bin/metamask-recipe missing; run mms-recipe-harness install before runtime proof"
   fi
   if [ -n "${playwright_chromium:-}" ]; then
     record_check PASS "browser:isolation" "isolated isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
@@ -282,7 +282,7 @@ fi
 
 validate_mobile_fixture() {
   fixture=""
-  mobile_fixture_setup="create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json; include password, accounts[0] as a throwaway mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and shared-fixture-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (applied by the Mobile harness on Android)"
+  mobile_fixture_setup="create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json; include password, accounts[0] as a local development mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and shared-fixture-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (applied by the Mobile harness on Android)"
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     fixture=".agent/wallet-fixture.json"
   elif [ -f "$TARGET/scripts/perps/agentic/wallet-fixture.json" ]; then
@@ -490,6 +490,61 @@ NODE
 else
   record_check WARN "runtime-context" "missing; runtime discovery will rely on explicit env/ports or local probing"
 fi
+
+
+check_v1_runner() {
+  adapter=""
+  case "$REPO" in
+    metamask-mobile) adapter="mobile" ;;
+    metamask-extension) adapter="extension" ;;
+    *) return 0 ;;
+  esac
+  v1_dir="$TARGET/.agent/recipe-harness/$adapter"
+  manifest="$v1_dir/action-manifest.json"
+  runner_bin="$v1_dir/runner/bin/metamask-recipe"
+  if [ -f "$manifest" ]; then
+    record_check PASS "runner:v1-manifest" "$manifest"
+  else
+    record_check WARN "runner:v1-manifest" "missing; run mms-recipe-harness install to install Farmslot v1 action manifest"
+  fi
+  if [ -x "$runner_bin" ]; then
+    record_check PASS "runner:v1-entrypoint" "$runner_bin"
+    if [ -f "$manifest" ] && command_exists node; then
+      if "$runner_bin" manifest --adapter "$adapter" --action-manifest "$manifest" >/dev/null 2>&1; then
+        record_check PASS "runner:v1-manifest-validation" "installed manifest validates through metamask-recipe"
+      else
+        record_check FAIL "runner:v1-manifest-validation" "metamask-recipe manifest failed for installed $adapter manifest"
+      fi
+    elif command_exists node; then
+      record_check WARN "runner:v1-manifest-validation" "skipped because installed action manifest is missing"
+    fi
+  else
+    record_check WARN "runner:v1-entrypoint" "missing executable $runner_bin; run mms-recipe-harness install"
+  fi
+
+  mode="unsupported/no bridge"
+  if [ "$adapter" = "mobile" ]; then
+    if [ -f "$TARGET/app/core/AgenticService/AgenticService.ts" ]; then
+      mode="bridge present"
+    elif [ -d "$TARGET/scripts/perps/agentic" ]; then
+      mode="product-local harness present"
+    elif [ "$REPO" = "metamask-mobile" ]; then
+      mode="bridge injectable"
+    fi
+  else
+    if [ -d "$TARGET/.agent/recipe-harness/extension" ]; then
+      mode="bridge present"
+    else
+      mode="bridge injectable"
+    fi
+  fi
+  case "$mode" in
+    unsupported*) record_check FAIL "runner:compatibility-mode" "$mode" ;;
+    *) record_check PASS "runner:compatibility-mode" "$mode" ;;
+  esac
+}
+
+check_v1_runner
 
 if [ "$RUN_STATIC_VERIFY" = true ] && [ -n "$HARNESS_CMD" ] && [ "$REPO" != "" ]; then
   tmp_log="${TMPDIR:-/tmp}/recipe-doctor-$$.log"

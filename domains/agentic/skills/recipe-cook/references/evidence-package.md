@@ -9,7 +9,7 @@ Recommended files:
 - `trace.json`: ordered node events with timestamps, status, and linked artifacts.
 - `artifact-manifest.json`: reviewer-facing artifact index.
 
-Runner output note: `artifact_index` may run before runner-generated
+Runner output note: `index_artifacts` may run before runner-generated
 `summary.json` and `trace.json` exist, and some repo runners write those files
 outside the task artifact directory, such as `.agent/recipe-runs/<timestamp>/`.
 Search the runner's declared output path and keep those files in the evidence

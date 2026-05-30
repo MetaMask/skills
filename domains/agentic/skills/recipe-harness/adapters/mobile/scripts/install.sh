@@ -97,11 +97,9 @@ EOF
   cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/action-manifest.json"
   cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/runner/manifests/mobile.action-manifest.json"
   cp "$METAMASK_RUNNER_DIR/manifests/extension.action-manifest.json" "$HARNESS_DIR/runner/manifests/extension.action-manifest.json"
-  for runner_recipe in smoke.mobile.recipe.json action-validation.mobile.recipe.json; do
-    if [ -f "$METAMASK_RUNNER_DIR/recipes/$runner_recipe" ]; then
-      cp "$METAMASK_RUNNER_DIR/recipes/$runner_recipe" "$HARNESS_DIR/runner/recipes/$runner_recipe"
-    fi
-  done
+  if [ -d "$METAMASK_RUNNER_DIR/recipes" ]; then
+    rsync -a --delete "$METAMASK_RUNNER_DIR/recipes/" "$HARNESS_DIR/runner/recipes/"
+  fi
   if [ ! -x "$HARNESS_DIR/runner/bin/metamask-recipe" ]; then
     echo "Refusing mobile recipe harness install: failed to make runner executable." >&2
     return 1
