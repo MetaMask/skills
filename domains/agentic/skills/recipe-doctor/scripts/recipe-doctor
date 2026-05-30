@@ -15,7 +15,7 @@ usage() {
 Usage:
   recipe-doctor [--target <repo>] [--repo metamask-mobile|metamask-extension] [--json] [--no-static-verify]
 
-Diagnoses ADR-58 recipe setup readiness without starting live runtimes.
+Diagnoses Recipe v1 setup readiness without starting live runtimes.
 USAGE
 }
 

@@ -56,7 +56,7 @@ For live runtime proof, verify that:
 - screenshot capture works;
 - a tiny recipe emits `summary.json`, `trace.json`, and `artifact-manifest.json`.
 - if Metro/app was started by Expo, direct `yarn watch`, or another shell, it is
-  reused only when the ADR58 bridge and screenshots work; otherwise the harness
+  reused only when the Recipe v1 bridge and screenshots work; otherwise the harness
   explains the missing observability and reconnects through preflight.
 - fixture status is printed before long debugging (`READY`,
   `MISSING_FIXTURES`, or `STALE_OR_INVALID`).

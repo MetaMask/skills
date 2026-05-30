@@ -1,12 +1,12 @@
 ---
 name: recipe-doctor
-description: Diagnose whether a MetaMask Mobile or Extension checkout is ready to use ADR-58 recipe skills, including installed skill bundles, harness scripts, local tools, runtime context, and wallet fixtures/profiles. Use before recipe-dev, recipe-fix-ticket, recipe-harness, recipe-wallet-control, or demo recording on a fresh machine or checkout.
+description: Diagnose whether a MetaMask Mobile or Extension checkout is ready to use Recipe v1 skills, including installed skill bundles, harness scripts, local tools, runtime context, and wallet fixtures/profiles. Use before recipe-dev, recipe-fix-ticket, recipe-harness, recipe-wallet-control, or demo recording on a fresh machine or checkout.
 maturity: experimental
 ---
 
 # Recipe Doctor
 
-`recipe-doctor` is the first command to run when a fresh agent, machine, or checkout is about to use the ADR-58 recipe workflow.
+`recipe-doctor` is the first command to run when a fresh agent, machine, or checkout is about to use the Recipe v1 workflow.
 
 It does not prove product behavior. It answers: "Can this checkout run the recipe skills efficiently, and will wallet/account setup be automatic or manual?"
 
@@ -60,7 +60,7 @@ For Mobile, a missing fixture should produce the exact setup hint:
 ```bash
 mkdir -p .agent
 cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json
-# edit .agent/wallet-fixture.json with throwaway password/accounts only:
+# edit .agent/wallet-fixture.json with local development password/accounts only:
 # - accounts[0]: mnemonic for first vault setup
 # - optional privateKey accounts named "Trading"/"MYXTrading" for funded flows
 # - shared-fixture-compatible settings: metametrics=true, skipGtmModals=true,
@@ -75,9 +75,9 @@ Mobile and Extension share this human-authored wallet fixture shape:
 
 ```json
 {
-  "password": "throwaway-password",
+  "password": "local-dev-password",
   "accounts": [
-    { "type": "mnemonic", "value": "throwaway srp words", "name": "Primary" },
+    { "type": "mnemonic", "value": "local development srp words", "name": "Primary" },
     { "type": "privateKey", "value": "0x...", "name": "Trading" },
     { "type": "privateKey", "value": "0x...", "name": "MYXTrading" }
   ],

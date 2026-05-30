@@ -501,10 +501,9 @@ describe('AgenticService.install', () => {
   it('refreshPerpsStreams reconnects streams and reports position count', async () => {
     mockEnsureConnected.mockClear();
     mockClearAllChannels.mockClear();
-    (MockEngine.context.PerpsController.getPositions as jest.Mock).mockResolvedValue([
-      { coin: 'ETH' },
-      { coin: 'BTC' },
-    ]);
+    (
+      MockEngine.context.PerpsController.getPositions as jest.Mock
+    ).mockResolvedValue([{ coin: 'ETH' }, { coin: 'BTC' }]);
 
     await expect(bridge().refreshPerpsStreams()).resolves.toEqual({
       ok: true,

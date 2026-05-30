@@ -26,7 +26,7 @@ The runner is a separate project. This skill never owns the runner runtime; it o
 - Keep product diffs/evidence separate from harness overlay files.
 - Record the harness manifest path, source version when available, adapter, verification status, and artifacts in PR evidence. If installed from a copied skill or unpacked runner, `source.skillRevision` or `source.runnerRevision` may be `unknown`; record the installed skill path, runner path, runner source kind, and PR/branch instead.
 - Call direct injected scripts for automation. `yarn a:*` aliases are developer convenience only.
-- Treat "app/browser is open" as insufficient. Verification must prove the ADR58 observability layer is present: CDP target, recipe bridge, log capture, screenshot capture, fixture/profile status, and cleanup ownership.
+- Treat "app/browser is open" as insufficient. Verification must prove the Recipe v1 observability layer is present: CDP target, recipe bridge, log capture, screenshot capture, fixture/profile status, and cleanup ownership.
 - Avoid full rebuilds by default. Reuse an already-compatible harness runtime, installed app, shared build cache, Expo/native build artifacts, or Extension watch output before starting expensive builds. Mobile verify defaults to `--preflight-mode fast`; only use `auto`, `rebuild-native`, or `clean` after the caller/human explicitly opts into a rebuild.
 - Report fixture status before long runtime debugging. If fixtures are missing, tell the human the run may spend time repairing wallet/perps state manually and give the exact fixture setup path.
 
