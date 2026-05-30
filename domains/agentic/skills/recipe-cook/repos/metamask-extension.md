@@ -45,7 +45,7 @@ Use only action names declared by the installed v1 action manifest. Typical Exte
 - Launch extension: `/recipe-harness` live/verify flow or runner setup with `--launch-existing-dist`.
 - Open route/popup: `ui.navigate`, `metamask.wallet.navigate`, or `metamask.perps.navigate` with `target`/`market` parameters.
 - Probe browser/extension runtime: `cdp.target` for target metadata and reachability.
-- Interact with UI: `ui.press`, manifest-declared `ui.set_input`, `ui.wait_for`, `ui.scroll`, and `ui.screenshot`.
+- Interact with UI: `ui.press`, `ui.wait_for`, `ui.scroll`, `ui.screenshot`, and any manifest-declared text-entry action.
 - Assert internal/domain state: command-level tests, `assert_json`, or manifest-declared domain actions such as `metamask.wallet.read_state` and `metamask.perps.assert_positions`.
 - Capture proof: `ui.screenshot`, trace, console log, test report, or state JSON, then `index_artifacts` for extra files not registered by the runner.
 

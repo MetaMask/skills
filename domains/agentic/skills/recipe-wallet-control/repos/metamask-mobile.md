@@ -54,9 +54,9 @@ bash scripts/perps/agentic/preflight.sh \
 
 ## Core Wallet Primitives
 
-### `unlock`
+### `metamask.wallet.ensure_unlocked`
 
-Unlock an existing vault with the fixture password:
+Use the Recipe v1 wallet action to unlock an existing vault with the fixture password:
 
 ```bash
 MM_PASSWORD="$WALLET_PASSWORD" bash scripts/perps/agentic/unlock-wallet.sh
@@ -66,9 +66,9 @@ bash scripts/perps/agentic/unlock-wallet.sh "$WALLET_PASSWORD"
 
 Expected output prints the current route, unlock result, and route after unlock. Failure usually means the app is not on the login screen, the password is wrong, or CDP is disconnected.
 
-### `setup-wallet`
+### `metamask.wallet.setup`
 
-Seed a debug wallet from a JSON fixture:
+Use the Recipe v1 wallet setup action to seed a debug wallet from a JSON fixture:
 
 ```bash
 bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json
@@ -76,9 +76,9 @@ bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json
 
 Expected output validates the fixture, creates or unlocks the vault, and prints an account summary. For validation evidence, start from clean state or capture a before/after account assertion because the script intentionally skips creation when a vault already exists.
 
-### `navigate`
+### `ui.navigate` / `metamask.wallet.navigate`
 
-Navigate to a registered route:
+Use the manifest-backed navigation action for registered app or wallet destinations:
 
 ```bash
 bash scripts/perps/agentic/app-navigate.sh WalletTabHome
@@ -93,9 +93,9 @@ bash scripts/perps/agentic/app-navigate.sh --list
 
 Some route aliases are idempotent when the app is already on the target tab/screen. Treat "previous route equals current route" as success only when the route/status evidence matches the intended destination.
 
-### `screenshot`
+### `ui.screenshot`
 
-Capture the current simulator/emulator screen:
+Capture the current simulator/emulator screen through the Recipe v1 screenshot action:
 
 ```bash
 bash scripts/perps/agentic/screenshot.sh recipe-wallet-control-home
@@ -103,9 +103,9 @@ bash scripts/perps/agentic/screenshot.sh recipe-wallet-control-home
 
 Expected output is an absolute PNG path under `.agent/screenshots/`. Failure usually means no matching booted simulator or connected Android device was found.
 
-### `eval-state`
+### `metamask.wallet.read_state`
 
-Read wallet/controller state via CDP:
+Read wallet/controller state through manifest-backed state actions where available; use raw CDP inspection only for debugging/setup evidence:
 
 ```bash
 bash scripts/perps/agentic/app-state.sh status
@@ -121,37 +121,37 @@ Expected output is JSON or route/state text from the running app. Failure means 
 
 Use these only to complete real UI flows around the wallet primitives. Do not inject final validation state directly; drive the same UI code path a user would hit.
 
-### `press`
+### `ui.press`
 
 ```bash
 bash scripts/perps/agentic/app-state.sh press <testId>
 ```
 
-### `set-input` / `type`
+### text entry
 
 ```bash
 bash scripts/perps/agentic/app-state.sh set-input <testId> "text value"
 ```
 
-### `scroll`
+### `ui.scroll`
 
 ```bash
 bash scripts/perps/agentic/app-state.sh scroll --test-id <testId> --offset 600
 bash scripts/perps/agentic/app-state.sh scroll --offset 600
 ```
 
-### `wait-for`
+### `ui.wait_for`
 
-Prefer recipe `wait_for` nodes for repeated polling. For a one-off check, poll a route or expression with `app-state.sh route` or `app-state.sh eval` in the shell and fail loudly on timeout.
+Prefer Recipe v1 `ui.wait_for` nodes for repeated polling. For a one-off check, poll a route or expression with `app-state.sh route` or `app-state.sh eval` in the shell and fail loudly on timeout.
 
-### `go-back`
+### go back
 
 ```bash
 bash scripts/perps/agentic/app-state.sh can-go-back
 bash scripts/perps/agentic/app-state.sh go-back
 ```
 
-### guarded `raw-eval`
+### guarded raw CDP inspection
 
 ```bash
 bash scripts/perps/agentic/app-state.sh eval 'JSON.stringify({route: globalThis.__AGENTIC__.getRoute().name})'

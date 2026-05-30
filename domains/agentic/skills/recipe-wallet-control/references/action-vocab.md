@@ -1,37 +1,42 @@
 # Recipe Wallet Control Action Vocabulary
 
-Use this vocabulary when recording wallet validation evidence or composing `/recipe-cook` recipes that call harness-backed Mobile or Extension wallet primitives. Runtime injection belongs in `/recipe-harness`; wallet-control names the primitives and proof expectations.
+Use this vocabulary when composing `/recipe-cook` recipes or recording wallet validation evidence. Runtime injection belongs in `/recipe-harness`; wallet-control names the manifest-backed Recipe v1 primitives and proof expectations.
 
-## Mobile
+## Shared Recipe v1 Actions
 
-| Action | Args | MetaMask Mobile command | Return shape |
+| Action | Args | Use | Return/proof shape |
 |---|---|---|---|
-| `status` | none | `bash scripts/perps/agentic/app-state.sh status` (`yarn a:status` convenience alias only) | current account, route, device, platform |
-| `unlock` | `password` or `MM_PASSWORD` | `bash scripts/perps/agentic/unlock-wallet.sh "$WALLET_PASSWORD"` | success/failure plus post-unlock route |
-| `setup-wallet` | `fixturePath` | `bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json` | `{ ok, accountCount, selectedAccount }` or account summary |
-| `navigate` | `routeName`, optional params JSON | `bash scripts/perps/agentic/app-navigate.sh <RouteName> [params-json]` | previous/current route plus optional screenshot path |
-| `screenshot` | `label` or `outputPath` | `bash scripts/perps/agentic/screenshot.sh <label>` | absolute PNG path |
-| `eval-state` | `ref` such as `accounts`, `network`, `perps/positions` | `bash scripts/perps/agentic/app-state.sh status/accounts/eval-ref <ref>` | JSON snapshot |
+| `app.status` | none | Confirm runner compatibility and project shape. | platform, project root, compatibility summary |
+| `cdp.target` | optional `cdp_port`, `required` | Prove the automation channel is reachable before UI work. | target/probe metadata or a hard failure when required |
+| `app.hud` | `intent`, optional `status`, `progress`, `display` | Communicate the current recipe intent to a human reviewer. | HUD update result |
+| `ui.press` | `test_id`, `selector`, or `text` depending on adapter support | Drive a real visible press/tap/click. | pressed target proof |
+| `ui.scroll` | `test_id`/`selector`, `offset`, optional `scroll_into_view` | Reveal content or controls. | scroll result proof |
+| `ui.wait_for` | `test_id`/`selector`/`text`, `expected`, timeout | Wait for settled UI state before proof. | matched/visible proof |
+| `ui.screenshot` | `path` | Capture reviewer-visible proof after a settle condition. | registered screenshot artifact |
 
-## Extension
+## MetaMask Wallet Actions
 
-| Action | Args | MetaMask Extension harness primitive | Return shape |
+| Action | Args | Use | Return/proof shape |
 |---|---|---|---|
-| `unlock` | existing vault/profile, CDP port | `validate-recipe.sh temp/agentic/recipes/domains/extension-core/flows/unlock-wallet.json --cdp-port <port>` | summary/trace plus visible account menu assertion |
-| `select-account` | `address`, CDP port | `validate-recipe.sh temp/agentic/recipes/domains/extension-core/flows/select-account.json --param address=0x... --cdp-port <port>` | `selectedAddress` equals requested address |
-| `navigate` | route or flow file | recipe `navigate` node or `extension-core/flows/navigate-settings.json` | route/selector proof plus optional screenshot |
-| `screenshot` | `filename` | recipe `screenshot` node | PNG artifact path |
-| `eval-state` | `extension-core/accounts`, `extension-core/network`, `extension-core/wallet-state` | recipe `eval_ref` node | JSON snapshot |
+| `metamask.wallet.fixture_status` | none | Check fixture/profile readiness before wallet setup. | redacted fixture summary |
+| `metamask.wallet.setup` | fixture-backed setup | Materialize the configured debug wallet/profile. | setup proof, redacted fixture/account summary |
+| `metamask.wallet.ensure_unlocked` | optional password source | Unlock only if the runtime is locked. | unlocked/already-unlocked proof |
+| `metamask.wallet.select_account` | `address` | Select a deterministic fixture account. | selected-account proof |
+| `metamask.wallet.navigate` | `target` | Navigate through wallet-owned areas such as Perps. | navigation proof |
+| `metamask.wallet.read_state` | none | Read wallet state without mutating UI. | selected account/network/runtime state |
 
-## Bounded Interaction Helpers
+## MetaMask Perps Actions
 
-These helpers are lower-level escape hatches for real UI flows. They are not replacements for wallet-semantic primitives and must not fabricate final validation state.
-
-| Helper | MetaMask Mobile command | Use |
+| Action | Args | Use |
 |---|---|---|
-| `press` | `bash scripts/perps/agentic/app-state.sh press <testId>` | Tap a real UI control by test id. |
-| `set-input` / `type` | `bash scripts/perps/agentic/app-state.sh set-input <testId> "value"` | Enter user-provided text through the UI. |
-| `scroll` | `bash scripts/perps/agentic/app-state.sh scroll --test-id <id> --offset <n>` or `--offset <n>` | Reveal content or controls. |
-| `wait-for` | recipe `wait_for`, or shell polling with `app-state.sh` | Wait for route, selector, or state readiness. |
-| `go-back` | `bash scripts/perps/agentic/app-state.sh go-back` | Return to the previous route/screen. |
-| `raw-eval` | `app-state.sh eval`, `eval-async`, `eval-ref` | Debug inspection or setup-only operations when named primitives are insufficient. |
+| `metamask.perps.start_state` | `market`, `page`, optional position/order expectations | Converge a recipe to a reproducible Perps starting state. |
+| `metamask.perps.teardown_state` | cleanup parameters | Return the account/domain to a reusable state. |
+| `metamask.perps.navigate` | `target`, optional `market` | Move through Perps domain screens. |
+| `metamask.perps.read_positions` / `metamask.perps.read_orders` | optional `market` | Collect domain state for proof. |
+| `metamask.perps.assert_positions` / `metamask.perps.assert_orders` | expected `state`, optional `market`/mode | Assert domain state without relying on screenshots alone. |
+| `metamask.perps.ensure_positions` / `metamask.perps.ensure_orders` | desired state/mode | Idempotent setup/cleanup building blocks. |
+| `metamask.perps.place_order` / `metamask.perps.close_positions` / `metamask.perps.close_orders` | market/order parameters | Execute controlled Perps validation actions. |
+
+## Boundary
+
+Use controller/CDP inspection for setup or internal-state proof only. For a human-visible acceptance criterion, drive the UI path with `ui.*` or a domain action that itself drives the UI, then capture `ui.screenshot` or equivalent visual evidence.
