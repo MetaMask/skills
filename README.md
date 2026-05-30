@@ -235,13 +235,14 @@ Experimental recipe skills include lower-level proof tools plus the opt-in high-
 
 Use these directly when steering/debugging:
 
+- `/mms-recipe-doctor` — check tool, skill, harness, runtime-context, and fixture/profile readiness before a run.
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
 - `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
 
-Happy path for this lower-level rollout: clear task + acceptance criteria → `/mms-recipe-harness` verify → `/mms-recipe-cook` recipe → live recipe run → screenshots/trace/summary/manifest → `/mms-recipe-quality` critique → `/mms-recipe-evidence` block → human validation.
+Happy path for this lower-level rollout: clear task + acceptance criteria → `/mms-recipe-doctor` setup check → `/mms-recipe-harness` verify → `/mms-recipe-cook` recipe → live recipe run → screenshots/trace/summary/manifest → `/mms-recipe-quality` critique → `/mms-recipe-evidence` block → human validation.
 
 ### Output
 

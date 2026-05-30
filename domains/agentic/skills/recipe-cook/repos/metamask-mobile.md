@@ -37,17 +37,21 @@ Do this especially on historical commits, where the checked-out runner may be st
 - Existing e2e flows and page objects for navigation and selectors.
 - Existing fixtures for wallet/account/network setup.
 - Simulator/device status commands before UI work.
-- Named state evaluators such as `eval_ref` when the repo provides them.
+- Manifest-declared app, UI, wallet, and domain actions exposed by the installed runner manifest.
 
 ## Common Action Mapping
 
-- Open screen: `navigate` with a route or project-owned flow name.
-- Tap: `press` with a stable test id or page-object target.
-- Enter text: `set_input` with target and value.
-- Wait: `wait_for` with a UI target or state predicate.
-- Assert wallet/app state: `eval_ref` with an expected JSON shape.
-- Capture proof: `screenshot` after `wait_for` or `eval_ref`.
-- Reset state: fixture reset, app relaunch, or project cleanup action.
+Use only action names declared by the installed v1 action manifest. Typical Mobile mappings are:
+
+- Open app area/screen: `ui.navigate`, `metamask.wallet.navigate`, or `metamask.perps.navigate` with `target`/`market` parameters.
+- Tap: `ui.press` with a stable `test_id`, text, or page-object target.
+- Enter text: use a domain action that owns the flow unless the installed manifest declares a text-entry UI action.
+- Scroll: `ui.scroll` with direction/target parameters.
+- Wait: `ui.wait_for` with `test_id`, `text`, `text_contains`, or a manifest-supported predicate.
+- Assert wallet/app/domain state: manifest-declared actions such as `metamask.wallet.read_state`, `metamask.perps.assert_positions`, or `assert_json` over a real artifact/output.
+- Capture proof: `ui.screenshot` after `ui.wait_for` or a domain assertion.
+- Index proof: `index_artifacts` for screenshots/logs not automatically registered by the runner.
+- Reset state: fixture setup, app relaunch, or manifest-declared project cleanup action.
 
 ## Mobile Quality Bar
 

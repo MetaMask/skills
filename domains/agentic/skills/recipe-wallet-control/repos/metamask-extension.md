@@ -21,57 +21,62 @@ If harness verify fails, report wallet-control proof as blocked by runtime readi
 
 ## Core Wallet Primitives
 
-These primitives are backed by `temp/agentic/recipes/domains/extension-core/**` after harness install.
+These primitives are the manifest-backed Recipe v1 actions exposed by the installed MetaMask runner. Use `/recipe-harness` to install/verify the runner, then compose these actions in `/recipe-cook` recipes.
 
-### `unlock`
+### `metamask.wallet.ensure_unlocked`
 
-Use the named flow when a vault already exists:
-
-```bash
-bash temp/agentic/recipes/validate-recipe.sh \
-  temp/agentic/recipes/domains/extension-core/flows/unlock-wallet.json \
-  --cdp-port <port> \
-  --artifacts-dir <artifacts-dir>
-```
-
-Expected proof: unlock form is absent or password entry succeeds, then `account-menu-icon` is visible.
-
-### `select-account`
-
-Use the named flow with a target address:
-
-```bash
-bash temp/agentic/recipes/validate-recipe.sh \
-  temp/agentic/recipes/domains/extension-core/flows/select-account.json \
-  --cdp-port <port> \
-  --param address=0x... \
-  --artifacts-dir <artifacts-dir>
-```
-
-Expected proof: `extension-core/accounts` reports `selectedAddress` equal to the requested address.
-
-### `navigate`
-
-Use `navigate` nodes or existing flows such as `navigate-settings.json` for Extension routes.
-
-### `screenshot`
-
-Use recipe `screenshot` nodes after a route, selector, or state settle condition. Do not screenshot a loading or transitional page as proof.
-
-### `eval-state`
-
-Use named eval refs before raw service-worker/page eval:
+Use when a vault/profile already exists and may be locked:
 
 ```json
-{ "action": "eval_ref", "ref": "extension-core/accounts" }
-{ "action": "eval_ref", "ref": "extension-core/network" }
-{ "action": "eval_ref", "ref": "extension-core/wallet-state" }
+{ "action": "metamask.wallet.ensure_unlocked" }
 ```
+
+Expected proof: the unlock form is absent after the action and wallet state can be read.
+
+### `metamask.wallet.select_account`
+
+Use with a deterministic fixture address:
+
+```json
+{ "action": "metamask.wallet.select_account", "address": "0x..." }
+```
+
+Expected proof: `metamask.wallet.read_state` reports the selected account/address expected by the recipe.
+
+### `metamask.wallet.navigate`
+
+Use for wallet-owned destinations such as Perps:
+
+```json
+{ "action": "metamask.wallet.navigate", "target": "perps" }
+```
+
+Use `ui.navigate` only for manifest-supported generic app navigation targets.
+
+### `metamask.wallet.read_state`
+
+Read wallet state without mutating UI:
+
+```json
+{ "action": "metamask.wallet.read_state" }
+```
+
+Use this as internal-state proof alongside visible UI proof. Do not use raw page/service-worker evaluation to fabricate a visible result.
+
+### `ui.screenshot`
+
+Capture visual proof after a route, selector, or state settle condition:
+
+```json
+{ "action": "ui.screenshot", "path": "screenshots/wallet-state.png" }
+```
+
+Do not screenshot a loading or transitional page as proof.
 
 ## Interaction Helpers
 
-Use `press`, `set_input`, `wait_for`, and `screenshot` for real UI paths. Use service-worker or page eval only for inspection, setup, or internal-state proof; never use it to fabricate a visible UI result.
+Use namespaced Recipe v1 UI actions for real UI paths: `ui.press`, `ui.wait_for`, `ui.scroll`, and `ui.screenshot`. If text entry is needed, use a manifest-declared domain action that owns the flow until the target runner advertises and validates a text-entry UI action.
 
 ## Current Boundary
 
-`setup-wallet` for a brand-new Extension profile is not a stable wallet-control primitive yet. Prefer a prepared debug profile or an existing harness fixture flow; if neither exists, record the missing fixture/profile setup as a proof gap.
+For brand-new Extension profiles, use `/mms-recipe-harness live --launch-existing-dist` with a shared wallet fixture at `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json`. The harness generates persisted Extension state from the Mobile-compatible fixture shape, injects it into the isolated browser profile over CDP, unlocks with the fixture password, and validates the named mnemonic/private-key accounts before recipe proof begins.

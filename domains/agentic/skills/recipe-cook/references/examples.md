@@ -69,7 +69,7 @@ Use this for live-device validation of the recipe plumbing itself. It intentiona
           "next": "index-artifacts"
         },
         "index-artifacts": {
-          "action": "artifact_index",
+          "action": "index_artifacts",
           "description": "Index command outputs used as proof",
           "artifacts": ["logs/status.json", "logs/scroll.json"],
           "next": "done"
@@ -101,32 +101,32 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
   "validate": {
     "workflow": {
       "pre_conditions": ["wallet.unlocked", "perps.feature_enabled"],
-      "entry": "market-discovery",
+      "entry": "open-market",
       "nodes": {
-        "market-discovery": {
-          "action": "call",
-          "description": "PT-1: reuse the existing market-discovery flow to find BTC and open detail",
-          "ref": "perps/market-discovery",
-          "params": { "symbol": "{{symbol}}" },
-          "next": "assert-price"
+        "open-market": {
+          "action": "metamask.perps.navigate",
+          "description": "PT-1: open the BTC market detail through the manifest-declared Perps navigation action",
+          "target": "market",
+          "market": "{{symbol}}",
+          "timeout_ms": 30000,
+          "next": "wait-market"
         },
-        "assert-price": {
-          "action": "eval_async",
-          "description": "PT-2: after navigation settles, BTC has a non-zero price",
-          "expression": "Engine.context.PerpsController.getMarketDataWithPrices().then(function(ms){var m=ms.find(function(x){return x.symbol==='{{symbol}}'});return JSON.stringify({found:!!m,price:m?m.price:'0'})})",
-          "assert": { "operator": "neq", "field": "price", "value": "0" },
+        "wait-market": {
+          "action": "ui.wait_for",
+          "description": "PT-2: after navigation settles, the BTC market detail content is present",
+          "text_contains": ["{{symbol}}"],
+          "expected": "present",
           "timeout_ms": 30000,
           "next": "capture-detail"
         },
         "capture-detail": {
-          "action": "screenshot",
+          "action": "ui.screenshot",
           "description": "PT-2: reviewer-visible settled market detail screen",
-          "note": "BTC market detail is settled with a loaded non-zero price.",
-          "filename": "perps-btc-detail",
+          "path": "screenshots/perps-btc-detail.png",
           "next": "index-artifacts"
         },
         "index-artifacts": {
-          "action": "artifact_index",
+          "action": "index_artifacts",
           "description": "Index state and screenshot evidence",
           "artifacts": ["screenshots/"],
           "next": "done"
@@ -170,7 +170,7 @@ Use command assertions when the PR claim is not user-facing.
           "next": "index-artifacts"
         },
         "index-artifacts": {
-          "action": "artifact_index",
+          "action": "index_artifacts",
           "description": "Index the test report",
           "artifacts": ["reports/jest-token-metadata.json"],
           "next": "done"

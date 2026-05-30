@@ -1,6 +1,6 @@
 # Wallet Fixture Format
 
-Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitignored path such as `.agent/wallet-fixture.json` and use throwaway test wallets.
+Fixtures are for local MetaMask Mobile and Extension debug runs only. Keep them in a gitignored path such as `.agent/wallet-fixture.json` or `temp/runtime/wallet-fixture.json` and use throwaway test wallets.
 
 ## Schema
 
@@ -10,20 +10,26 @@ Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitigno
   "accounts": [
     {
       "type": "mnemonic",
-      "value": "test test test test test test test test test test test junk"
+      "value": "test test test test test test test test test test test junk",
+      "name": "Primary"
     },
     {
       "type": "privateKey",
       "value": "0xabc123...",
       "name": "Trading"
+    },
+    {
+      "type": "privateKey",
+      "value": "0xdef456...",
+      "name": "MYXTrading"
     }
   ],
   "settings": {
-    "metametrics": false,
+    "metametrics": true,
     "skipGtmModals": true,
     "skipPerpsTutorial": true,
     "autoLockNever": true,
-    "deviceAuthEnabled": false
+    "deviceAuthEnabled": true
   }
 }
 ```
@@ -37,11 +43,11 @@ Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitigno
 | `accounts[].type` | yes | `mnemonic` or `privateKey`. |
 | `accounts[].value` | yes | SRP words or `0x` private key. Use throwaway values only. |
 | `accounts[].name` | no | Human-readable label for imported accounts when supported. |
-| `settings.metametrics` | no | Disable/enable metrics opt-in for debug setup. |
+| `settings.metametrics` | no | Disable/enable metrics opt-in for debug setup; shared-fixture-compatible fixtures opt in to match prepared slot state. |
 | `settings.skipGtmModals` | no | Skip growth/marketing modals where supported. |
 | `settings.skipPerpsTutorial` | no | Skip Perps tutorial where supported. |
 | `settings.autoLockNever` | no | Keep debug wallet unlocked where supported. |
-| `settings.deviceAuthEnabled` | no | Disable device auth for automation where supported. |
+| `settings.deviceAuthEnabled` | no | Enable device-auth-backed auto-unlock where supported; the Mobile harness only applies this on Android. |
 
 ## Security Rules
 
@@ -50,3 +56,11 @@ Fixtures are for local MetaMask Mobile debug builds only. Keep them in a gitigno
 - Redact raw `password`, `mnemonic`, and `privateKey` values from command transcripts and PR bodies.
 - Fixture seeding is setup/reset only. It is not a valid way to fabricate a mid-test state or bypass the user flow under validation.
 - Existing mobile template: `scripts/perps/agentic/wallet-fixture.example.json` in MetaMask Mobile.
+
+## Extension Parity
+
+Keep Mobile as the human-authored fixture shape for both platforms: `password`,
+`accounts[]` with `mnemonic` or `privateKey`, optional account `name`, optional
+`selectedAccount`, and setup `settings`. Extension generates its `address`,
+`vault`, and persisted fixture state from that same shape so agents can import
+and select multiple named accounts consistently across Mobile and Extension.

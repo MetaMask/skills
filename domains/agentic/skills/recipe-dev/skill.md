@@ -79,7 +79,7 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 3. create or switch to a fresh branch named with the runner/model, skill, ticket
    or task slug, and run id. If the source is a Jira ticket, the branch name
    **must start with the lowercased Jira key followed by a hyphen** on both
-   Mobile and Extension targets so regular MetaMask/Farmslot tooling can
+   Mobile and Extension targets so regular MetaMask tooling can
    associate it, for example
    `tat-3216-adr58-codex-mms-recipe-dev-fresh2`. For non-Jira prompts, use a
    stable sanitized task slug such as `adr58-codex-mms-recipe-dev-demo-fresh1`;
@@ -90,6 +90,21 @@ human can compare Claude/Codex/Cursor diffs afterwards. Before product edits:
 If the branch cannot be made clean, mark the branch gate `BLOCKED` before
 implementation. Do not mix multiple model attempts on the same product branch.
 
+## Setup Doctor Gate
+
+Before implementation planning or harness install, invoke/follow
+`/mms-recipe-doctor` from the target checkout when it is installed:
+
+```bash
+.agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target .
+```
+
+Record the doctor status in `CHECKLIST.md`, including fixture/profile status.
+If it reports missing fixtures only, continue only after recording that wallet
+setup may be slower/manual or after the human chooses to create the fixture. If
+it reports an invalid/malformed fixture, missing required tools, or missing
+harness skills, mark the gate `BLOCKED` and fix setup before product edits.
+
 ## Clean Generated Harness State Protocol
 
 A clean product worktree is not enough. Generated, ignored harness/runtime
@@ -99,7 +114,7 @@ paths for the current target repo unless the caller explicitly asks to preserve
 runtime state for debugging:
 
 ```bash
-rm -rf temp/agentic/recipes .agent/recipe-harness/extension .agent/recipe-harness/mobile
+rm -rf .agent/recipe-harness/extension .agent/recipe-harness/mobile
 rm -rf temp/tasks/<this-run>/harness
 ```
 
@@ -109,7 +124,7 @@ refresh. Do not edit `.agents/skills/...`, `.claude/skills/...`, or harness
 source files during product validation.
 
 For Extension, prefer task-local harness output when writing new recipes so each
-run is isolated from shared `temp/agentic/recipes` state:
+run is isolated from shared installed runner recipe state:
 
 ```bash
 .agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install \
@@ -170,7 +185,7 @@ order and record the result in `CHECKLIST.md`:
    do not probe or fall back to other local runtimes. If it has
    `runtimeStart.approved: true` plus `runtimeStart.command`, pass recovery
    through `/mms-recipe-harness` launch/live/verify and let the harness run that
-   approved command; outside Farmslot, any developer/tool may provide the same
+   approved command; outside managed runtimes, any developer/tool may provide the same
    context or `RECIPE_RUNTIME_START_APPROVED=1` with `RECIPE_RUNTIME_START_CMD`;
 3. installed recipe-harness/delegate summaries or manifests in the current
    checkout that identify an already-owned runtime;
@@ -271,6 +286,7 @@ Use it when the task is broader than a bug fix: new feature work, exploratory im
 
 Load only what applies:
 
+- Setup readiness: `/mms-recipe-doctor`
 - Runtime setup: `/mms-recipe-harness`
 - Recipe authoring: `/mms-recipe-cook`
 - Recipe critique: `/mms-recipe-quality`
@@ -601,7 +617,7 @@ visual assertion protocol before screenshot evidence:
 
 ```json
 {
-  "action": "wait_for",
+  "action": "ui.wait_for",
   "test_id": "target-test-id",
   "visibility": "viewport",
   "scroll": { "strategy": "into_view", "settle_ms": 300 },
@@ -610,11 +626,11 @@ visual assertion protocol before screenshot evidence:
 }
 ```
 
-Then the `screenshot` node must declare what the image is supposed to prove:
+Then the `ui.screenshot` node must declare what the image is supposed to prove:
 
 ```json
 {
-  "action": "screenshot",
+  "action": "ui.screenshot",
   "filename": "after-ac1-target-visible.png",
   "note": "AC1: target component is visible with the expected text",
   "claims": {
@@ -624,7 +640,7 @@ Then the `screenshot` node must declare what the image is supposed to prove:
 }
 ```
 
-Do not treat `wait_for` fiber-tree/DOM presence, `eval_sync`, controller state,
+Do not treat `ui.wait_for` fiber-tree/DOM presence, `eval_sync`, controller state,
 or a passing recipe as proof that a user can see the element. Visual claims need
 viewport visibility plus screenshot claims, followed by human/quality review of
 the PNG/video.

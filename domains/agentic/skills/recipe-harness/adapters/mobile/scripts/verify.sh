@@ -33,6 +33,7 @@ esac
 
 TARGET="$(cd "$TARGET" && pwd)"
 HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
+RUNNER_BIN="$HARNESS_DIR/runner/bin/metamask-recipe"
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 
@@ -110,7 +111,9 @@ console.log(JSON.stringify({
   listening: Boolean(pid),
   pid: pid || null,
   command: command || null,
-  metroStatusReachable: Boolean(run(`curl -sf --max-time 1 http://127.0.0.1:${port}/status`)),
+  metroStatusReachable: null,
+  metroHttpProbeSkipped: true,
+  note: 'HTTP /status probing is skipped during live verify because the React Native bridge is the authoritative readiness path for Mobile.',
 }));
 NODE
 }
@@ -157,12 +160,10 @@ check_file() {
 }
 
 check_file ".agent/recipe-harness/mobile/manifest.json"
+check_file ".agent/recipe-harness/mobile/action-manifest.json"
+check_file ".agent/recipe-harness/mobile/runner/bin/metamask-recipe"
 check_file "package.json"
-check_file "scripts/perps/agentic/validate-recipe.sh"
-check_file "scripts/perps/agentic/preflight.sh"
-check_file "scripts/perps/agentic/start-metro.sh"
-check_file "scripts/perps/agentic/app-state.sh"
-check_file "scripts/perps/agentic/screenshot.sh"
+check_file "scripts/perps/agentic/cdp-bridge.js"
 check_file "app/core/AgenticService/AgenticService.ts"
 
 if ! grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null; then
@@ -227,9 +228,28 @@ live_status_ok() {
   run_with_timeout "$log_path" 20 bash -lc 'cd "$1" && bash scripts/perps/agentic/app-state.sh status' bash "$TARGET" && node - "$log_path" <<'NODE'
 const fs = require('fs');
 const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
-const value = JSON.parse(raw);
+const start = raw.search(/[\[{]/);
+if (start < 0) process.exit(1);
+const value = JSON.parse(raw.slice(start));
 if (!value || Array.isArray(value) || !value.route || !value.route.name) process.exit(1);
 NODE
+}
+
+preflight_supports_mode_flag() {
+  grep -q -- '--mode)' "$TARGET/scripts/perps/agentic/preflight.sh" 2>/dev/null
+}
+
+managed_native_config_hash() {
+  (
+    cd "$TARGET"
+    for rel in package.json tsconfig.json ios/Podfile.lock; do
+      if [ -e "$rel" ]; then
+        shasum -a 256 "$rel"
+      else
+        printf 'missing  %s\n' "$rel"
+      fi
+    done
+  )
 }
 
 ensure_live_runtime() {
@@ -241,11 +261,21 @@ ensure_live_runtime() {
 
   echo "Mobile runtime is not recipe-controllable; starting ${PLATFORM} app via harness preflight (--mode ${PREFLIGHT_MODE})..." >&2
   if [ "$PREFLIGHT_MODE" = "fast" ]; then
+    if ! preflight_supports_mode_flag; then
+      cat >&2 <<'EOF'
+Refusing mobile auto-start in fast mode: target scripts/perps/agentic/preflight.sh does not support --mode.
+Running it would silently fall back to legacy/default behavior and may mutate package.json,
+tsconfig.json, ios/Podfile.lock, Pods, or native build state. Start the app manually or install
+a product-owned harness preflight that supports --mode fast.
+EOF
+      return 1
+    fi
     echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
     echo "  To permit a rebuild, rerun with --preflight-mode auto or RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
   else
     echo "  Build policy: ${PREFLIGHT_MODE} may run native build/setup work; use only after explicit caller/human approval." >&2
   fi
+  managed_native_config_hash > "$ARTIFACTS/logs/native-config-before-autostart.sha256"
   preflight_args=(scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --mode "$PREFLIGHT_MODE")
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     preflight_args+=(--wallet-setup --wallet-fixture .agent/wallet-fixture.json)
@@ -254,15 +284,28 @@ ensure_live_runtime() {
   fi
   if (
     cd "$TARGET"
-    bash "${preflight_args[@]}"
+    EXPO_NO_TYPESCRIPT_SETUP=1 bash "${preflight_args[@]}"
   ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"; then
+    managed_native_config_hash > "$ARTIFACTS/logs/native-config-after-autostart.sha256"
+    if ! cmp -s "$ARTIFACTS/logs/native-config-before-autostart.sha256" "$ARTIFACTS/logs/native-config-after-autostart.sha256"; then
+      echo "Mobile auto-start mutated package/native config; refusing to treat runtime as verified. See logs/native-config-*-autostart.sha256." >&2
+      return 1
+    fi
     : > "$ARTIFACTS/logs/harness-started-runtime"
   else
+    managed_native_config_hash > "$ARTIFACTS/logs/native-config-after-autostart.sha256"
     return 1
   fi
 }
 
 if [ "$STATIC_ONLY" = false ]; then
+  if ensure_live_runtime; then
+    checks+=('{"name":"mobile runtime controllable precheck","status":"pass"}')
+  else
+    checks+=('{"name":"mobile runtime controllable precheck","status":"fail","detail":"see logs/app-state-precheck.log or logs/auto-start.log"}')
+    status="fail"
+  fi
+
   fixture_json="$(fixture_status_json)"
   printf '%s\n' "$fixture_json" > "$ARTIFACTS/logs/fixture-status.json"
   fixture_check_json="$(fixture_check_json "$ARTIFACTS/logs/fixture-status.json")"
@@ -274,94 +317,40 @@ if [ "$STATIC_ONLY" = false ]; then
   port="$(watcher_port)"
   port_holder_json "$port" > "$ARTIFACTS/logs/port-holder.json"
 
-  RUNTIME_AVAILABLE=false
-  if ensure_live_runtime; then
-    RUNTIME_AVAILABLE=true
-    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"pass\"}")
+  cat > "$ARTIFACTS/mobile-v1-live-smoke.recipe.json" <<'JSON'
+{
+  "schema_version": 1,
+  "title": "Mobile v1 runner live bridge smoke",
+  "description": "Verifies the installed MetaMask runner can drive the React Native debug bridge without using the legacy recipe graph.",
+  "validate": {
+    "workflow": {
+      "entry": "status",
+      "nodes": {
+        "status": { "action": "app.status", "next": "cdp-probe" },
+        "cdp-probe": { "action": "cdp.target", "required": true, "timeout_ms": 15000, "next": "wallet-setup" },
+        "wallet-setup": { "action": "metamask.wallet.setup", "timeout_ms": 45000, "next": "wallet-unlock" },
+        "wallet-unlock": { "action": "metamask.wallet.ensure_unlocked", "timeout_ms": 45000, "next": "wallet-read" },
+        "wallet-read": { "action": "metamask.wallet.read_state", "timeout_ms": 45000, "next": "navigate-wallet" },
+        "navigate-wallet": { "action": "metamask.wallet.navigate", "target": "wallet", "timeout_ms": 45000, "next": "wait-wallet" },
+        "wait-wallet": { "action": "ui.wait_for", "test_id": "wallet-screen", "expected": "present", "timeout_ms": 45000, "next": "hud-smoke" },
+        "hud-smoke": { "action": "app.hud", "text": "Mobile v1 live bridge smoke", "detail": "Explicit HUD action after CDP bridge reachability is proven.", "timeout_ms": 45000, "next": "screenshot" },
+        "screenshot": { "action": "ui.screenshot", "path": "screenshots/mobile-v1-live-smoke.png", "timeout_ms": 45000, "next": "done" },
+        "done": { "action": "end", "status": "pass" }
+      }
+    }
+  }
+}
+JSON
+
+  if (
+    cd "$TARGET"
+    METAMASK_RECIPE_AUTO_HUD=0 "$RUNNER_BIN" run "$ARTIFACTS/mobile-v1-live-smoke.recipe.json" --adapter mobile --project-root "$TARGET" --artifacts-dir "$ARTIFACTS/runner-live-smoke" --json
+  ) > "$ARTIFACTS/logs/runner-live-smoke.log" 2>&1; then
+    checks+=("{\"name\":\"runner v1 live bridge smoke\",\"status\":\"pass\"}")
   else
-    checks+=("{\"name\":\"live runtime auto-start\",\"status\":\"fail\",\"detail\":\"see logs/app-state-precheck.log, logs/port-holder.json, and logs/auto-start.log\"}")
-    add_note "Runtime found/missing state was not recipe-controllable. Harness did not proceed to avoid weak evidence; inspect logs/port-holder.json and rerun with an explicit build policy if needed."
+    checks+=("{\"name\":\"runner v1 live bridge smoke\",\"status\":\"fail\",\"detail\":\"see logs/runner-live-smoke.log\"}")
+    add_note "Runner v1 live bridge smoke failed; inspect logs/runner-live-smoke.log and runner-live-smoke/trace.json."
     status="fail"
-  fi
-
-  if $RUNTIME_AVAILABLE; then
-    if live_status_ok "$ARTIFACTS/logs/app-state-status.log"; then
-      checks+=("{\"name\":\"live app-state status\",\"status\":\"pass\"}")
-    else
-      checks+=("{\"name\":\"live app-state status\",\"status\":\"fail\"}")
-      status="fail"
-    fi
-
-    if (
-      cd "$TARGET"
-      bash scripts/perps/agentic/app-state.sh eval "JSON.stringify({hasAgentic: !!globalThis.__AGENTIC__})"
-    ) > "$ARTIFACTS/logs/agentic-bridge.log" 2>&1 && node - "$ARTIFACTS/logs/agentic-bridge.log" <<'NODE'
-const fs = require('fs');
-const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
-let value = JSON.parse(raw);
-if (typeof value === 'string') value = JSON.parse(value);
-if (!value.hasAgentic) process.exit(1);
-NODE
-    then
-      checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"pass\"}")
-    else
-      checks+=("{\"name\":\"live __AGENTIC__ bridge\",\"status\":\"fail\"}")
-      status="fail"
-    fi
-
-    if (
-      cd "$TARGET"
-      bash scripts/perps/agentic/app-state.sh route
-    ) > "$ARTIFACTS/logs/route.log" 2>&1 && node - "$ARTIFACTS/logs/route.log" <<'NODE'
-const fs = require('fs');
-const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
-const value = JSON.parse(raw);
-if (!value || !value.name) process.exit(1);
-NODE
-    then
-      checks+=("{\"name\":\"live route read\",\"status\":\"pass\"}")
-    else
-      checks+=("{\"name\":\"live route read\",\"status\":\"fail\"}")
-      status="fail"
-    fi
-
-    if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
-      if (
-        cd "$TARGET"
-        bash scripts/perps/agentic/setup-wallet.sh
-      ) > "$ARTIFACTS/logs/wallet-setup-unlock.log" 2>&1; then
-        checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"pass\"}")
-      else
-        checks+=("{\"name\":\"live wallet setup/unlock\",\"status\":\"fail\"}")
-        status="fail"
-      fi
-    fi
-
-    if (
-      cd "$TARGET"
-      shot="$(bash scripts/perps/agentic/screenshot.sh recipe-harness-live)"
-      cp "$shot" "$ARTIFACTS/screenshot.png"
-      echo "$shot"
-    ) > "$ARTIFACTS/logs/screenshot.log" 2>&1; then
-      checks+=("{\"name\":\"live screenshot capture\",\"status\":\"pass\"}")
-    else
-      checks+=("{\"name\":\"live screenshot capture\",\"status\":\"fail\"}")
-      status="fail"
-    fi
-
-    if [ -f "$TARGET/scripts/perps/agentic/teams/perps/recipes/provider-smoke.json" ]; then
-      if (
-        cd "$TARGET"
-        bash scripts/perps/agentic/validate-recipe.sh scripts/perps/agentic/teams/perps/recipes/provider-smoke.json --artifacts-dir "$ARTIFACTS/recipe"
-      ) > "$ARTIFACTS/logs/tiny-recipe.log" 2>&1; then
-        checks+=("{\"name\":\"live tiny recipe\",\"status\":\"pass\"}")
-      else
-        checks+=("{\"name\":\"live tiny recipe\",\"status\":\"fail\"}")
-        status="fail"
-      fi
-    fi
-  else
-    checks+=("{\"name\":\"live observability checks\",\"status\":\"skip\",\"detail\":\"runtime was not recipe-controllable after startup check\"}")
   fi
 fi
 
@@ -386,14 +375,14 @@ function runGit(args) {
     return null;
   }
 }
-const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness']);
+const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness', ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),
   head: runGit(['rev-parse', '--short', 'HEAD']),
   dirtyCount: statusShort ? statusShort.split('\n').filter(Boolean).length : 0,
   dirtyPreview: statusShort ? statusShort.split('\n').filter(Boolean).slice(0, 25) : [],
 };
-const liveRuntimeCheck = parsedChecks.find((check) => check.name === 'live runtime auto-start');
+const liveRuntimeCheck = parsedChecks.find((check) => check.name === 'runner v1 live bridge smoke');
 const runtimeOwner = !portHolder
   ? 'static-only'
   : startedRuntime
