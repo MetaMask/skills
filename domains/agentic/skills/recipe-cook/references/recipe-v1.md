@@ -22,8 +22,7 @@ Use this shape unless the target repo already publishes a stricter schema.
         "start": {
           "action": "command",
           "description": "Run a project-native check",
-          "cmd": "yarn test --runInBand path/to/test",
-          "stdout": "logs/test.log",
+          "cmd": "mkdir -p logs && yarn test --runInBand path/to/test > logs/test.log 2>&1; status=$?; cat logs/test.log; exit $status",
           "timeout_ms": 120000,
           "next": "assert-result"
         },
@@ -31,7 +30,14 @@ Use this shape unless the target repo already publishes a stricter schema.
           "action": "assert_exit_code",
           "description": "Check the project-native check passed",
           "expected": 0,
-          "log_must_contain": ["PASS"],
+          "next": "assert-output"
+        },
+        "assert-output": {
+          "action": "assert_output",
+          "description": "Check the project-native output looked successful",
+          "source": "start",
+          "stream": "stdout",
+          "contains": "PASS",
           "next": "index-artifacts"
         },
         "index-artifacts": {
@@ -106,9 +112,9 @@ Prefer named project actions over raw eval. If raw eval is unavoidable, keep it 
 
 Runner expectations:
 
-- `command` runs from the target repo root and may capture `stdout`/`stderr` files under the artifact directory. If only `stdout` is declared, runners should capture combined stdout+stderr because many test runners print results to stderr. Use `timeout_ms` for commands that can hang or take unbounded time.
+- `command` runs from the target repo root and returns stdout/stderr/exitCode in node output. If a recipe needs a durable log artifact, redirect output explicitly in `cmd`, for example `> logs/test.log 2>&1`. Use `timeout_ms` for commands that can hang or take unbounded time.
 - `assert_exit_code` checks the previous command with `expected` as a number, for example `"expected": 0`. Use `expected`; do not use ambiguous fields such as `code`.
-- `assert_json` reads an artifact JSON file and compares fields from `equals`.
+- `assert_json` reads a JSON file and evaluates an `assert` object, for example `{ "path": "$.status", "operator": "eq", "value": "pass" }`.
 - `assert_file` checks that an expected artifact exists.
 - `index_artifacts` writes or updates `artifact-manifest.json`. For the portable overlay, list recipe-authored artifacts that already exist before the graph ends, such as logs, reports, screenshots, and runner metadata. Do not list runner-generated `summary.json` or `trace.json` in this node unless the target runner explicitly writes the manifest after those files exist.
 - Recipes that assert an error is absent from logs should record a baseline before the user action, prove the watched stream advanced after the action, and write the searched strings plus baseline/end offsets into the evidence package.
