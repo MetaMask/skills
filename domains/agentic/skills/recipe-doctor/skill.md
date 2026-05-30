@@ -25,14 +25,14 @@ From a consumer repo after installing agentic skills:
 ```bash
 .agents/skills/mms-recipe-doctor/scripts/recipe-doctor
 .agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target . --json
-.agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target ~/dev/metamask/metamask-mobile --repo metamask-mobile
+.agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target <metamask-mobile-checkout> --repo metamask-mobile
 ```
 
 From a source checkout while developing this skill:
 
 ```bash
-domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target ~/dev/metamask/metamask-mobile
-domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target ~/dev/metamask/metamask-extension
+domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target <metamask-mobile-checkout>
+domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target <metamask-extension-checkout>
 ```
 
 Use `--no-static-verify` only when the caller explicitly wants a pure read-only scan. The default static verify is no-start/no-live; it may write ignored `.agent/recipe-harness/.../summary.json` artifacts.
