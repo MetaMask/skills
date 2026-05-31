@@ -5,45 +5,55 @@ TARGET="$PWD"
 CDP_PORT=""
 ARTIFACTS=""
 STATIC_ONLY=false
+OUT=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
-    --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; shift 2 ;;
+    --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; OUT="$2"; shift 2 ;;
     --cdp-port) CDP_PORT="$2"; shift 2 ;;
     --artifacts-dir) ARTIFACTS="$2"; shift 2 ;;
     --static-only) STATIC_ONLY=true; shift ;;
-    -h|--help) echo "Usage: verify.sh [--target <metamask-extension>] [--cdp-port <port>] [--static-only]"; exit 0 ;;
+    -h|--help) echo "Usage: verify.sh [--target <metamask-extension>] [--out <recipes-dir>] [--cdp-port <port>] [--static-only]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/path.sh"
 TARGET="$(cd "$TARGET" && pwd)"
-HARNESS_DIR="$TARGET/.agent/recipe-harness/extension"
+HARNESS_ROOT="$(harness_root)"
+HARNESS_REL="$HARNESS_ROOT/extension"
+HARNESS_DIR="$(harness_dir "$TARGET" extension)"
 RUNNER_BIN="$HARNESS_DIR/runner/bin/metamask-recipe"
+# --out (optional): a task-local recipes dir. Resolve it safely within the target
+# (resolve_harness_out rejects absolute/.. escapes) and prefer its smoke recipe so
+# `live --out <dir>` does not silently fall back to the installed default.
+SMOKE_RECIPE="$HARNESS_DIR/runner/recipes/smoke.extension.recipe.json"
+if [ -n "$OUT" ]; then
+  OUT_ABS="$(resolve_harness_out "$TARGET" "$OUT" 2>/dev/null || true)"
+  if [ -n "$OUT_ABS" ] && [ -f "$OUT_ABS/smoke.extension.recipe.json" ]; then
+    SMOKE_RECIPE="$OUT_ABS/smoke.extension.recipe.json"
+  else
+    echo "recipe-harness verify: --out '$OUT' unresolved or has no smoke.extension.recipe.json; using harness default smoke recipe." >&2
+  fi
+fi
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 EXTENSION_ID_FILE="$TARGET/temp/runtime/extension.id"
-read_runtime_context_field() {
-  local context_path="$1"
-  local field="$2"
-  [ -f "$context_path" ] || return 1
-  node -e '
-const fs = require("node:fs");
-const [path, field] = process.argv.slice(1);
-try {
-  const data = JSON.parse(fs.readFileSync(path, "utf8"));
-  const value = field.split(".").reduce((node, key) => {
-    if (node === undefined || node === null) return undefined;
-    return node[key];
-  }, data);
-  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
-} catch (error) {
-  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
-  process.exitCode = 1;
-}
-' "$context_path" "$field"
-}
+# Shared JSON reader: $SCRIPT_DIR/lib when running from the installed copy,
+# else the skill-tree canonical at scripts/lib.
+# shellcheck disable=SC1091
+for _lib in "$SCRIPT_DIR/lib/json-field.sh" "$SCRIPT_DIR/../../../scripts/lib/json-field.sh"; do
+  [ -f "$_lib" ] && { . "$_lib"; break; }
+done
+unset _lib
+# Fail fast with an actionable message if neither path loaded (e.g. an install that
+# predates the lib co-location), instead of a cryptic later `set -e` abort.
+if ! command -v read_runtime_context_field >/dev/null 2>&1; then
+  echo "recipe-harness verify: json-field helper missing (scripts/lib/json-field.sh). Reinstall: /recipe-harness extension install --target $TARGET" >&2
+  exit 1
+fi
 refresh_extension_id() {
   if [ -f "$EXTENSION_ID_FILE" ]; then
     RECIPE_HARNESS_EXTENSION_ID="$(tr -d '[:space:]' < "$EXTENSION_ID_FILE")"
@@ -198,10 +208,96 @@ check_file() {
   fi
 }
 
-check_file ".agent/recipe-harness/extension/manifest.json"
-check_file ".agent/recipe-harness/extension/action-manifest.json"
-check_file ".agent/recipe-harness/extension/runner/bin/metamask-recipe"
-check_file ".agent/recipe-harness/extension/runner/manifests/extension.action-manifest.json"
+check_file "$HARNESS_REL/manifest.json"
+check_file "$HARNESS_REL/action-manifest.json"
+check_file "$HARNESS_REL/runner/bin/metamask-recipe"
+check_file "$HARNESS_REL/runner/manifests/extension.action-manifest.json"
+
+# dist-freshness: compare git id stamped in manifest.description
+# (development/build/manifest.js) to HEAD; flag validating a build that does not
+# match current source. git+fs only; no-op when ids match.
+dist_freshness_json() {
+  TARGET_FOR_DIST="$TARGET" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const cp = require('child_process');
+const target = process.env.TARGET_FOR_DIST;
+const manifestPath = path.join(target, 'dist/chrome/manifest.json');
+function git(args) {
+  try { return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+  catch { return null; }
+}
+// Untrimmed: porcelain path starts at col 3; trimming drops the leading
+// space of " M file" and misaligns the slice.
+function gitRaw(args) {
+  try { return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); }
+  catch { return ''; }
+}
+function emit(obj) { process.stdout.write(JSON.stringify(obj)); process.exit(0); }
+if (!fs.existsSync(manifestPath)) {
+  emit({ status: 'no-build', message: 'no dist/chrome/manifest.json.' });
+}
+let manifest;
+try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+catch { emit({ status: 'no-build', message: 'manifest.json unreadable.' }); }
+const match = String(manifest.description || '').match(/from git id:\s*([0-9a-f]{7,40})/i);
+const head = (git(['rev-parse', 'HEAD']) || '').toLowerCase();
+const headShort = head ? head.slice(0, 8) : null;
+if (!match) {
+  emit({ status: 'unknown', head: headShort, message: 'no git id in dist (prod/unknown build); cannot prove parity.' });
+}
+// Compare on the stamped id's length (manifest stamps 8, format allows 7-40) so a
+// differently-sized stamp never spuriously mismatches.
+const distGitId = match[1].toLowerCase();
+const distShort = distGitId.slice(0, 8);
+if (!head) {
+  emit({ status: 'unknown', distGitId: distShort, message: 'target not a git checkout; cannot compare.' });
+}
+if (head.slice(0, distGitId.length) !== distGitId) {
+  emit({ status: 'stale', reason: 'commit-mismatch', distGitId: distShort, head: headShort,
+    message: `dist id ${distShort} != HEAD ${headShort}; rebuild.` });
+}
+// Same commit: any uncommitted source change means the working tree differs from
+// what was built. -z gives NUL-separated, unquoted paths (spaces/unicode/renames
+// parse correctly); mtime is unreliable since checkout/rsync rewrite it.
+const dirs = ['ui', 'app', 'shared', 'development'].filter((d) => fs.existsSync(path.join(target, d)));
+const SRC = /\.(ts|tsx|js|jsx|cjs|mjs|json|scss|css)$/i;
+const dirty = [];
+if (dirs.length) {
+  const records = gitRaw(['-c', 'core.quotePath=false', 'status', '--porcelain', '-z', '--', ...dirs]).split('\0').filter(Boolean);
+  for (const record of records) {
+    const file = /^.. /.test(record) ? record.slice(3) : record; // strip XY prefix; a rename's old-path record has none
+    if (SRC.test(file)) dirty.push(file);
+  }
+}
+if (dirty.length) {
+  emit({ status: 'stale', reason: 'uncommitted-source', distGitId: distShort, head: headShort,
+    modified: dirty.slice(0, 10),
+    message: `${dirty.length} uncommitted source file(s); rebuild or commit.` });
+}
+emit({ status: 'fresh', distGitId: distShort, head: headShort, message: 'dist id matches HEAD; no uncommitted source.' });
+NODE
+}
+
+dist_freshness_json > "$ARTIFACTS/logs/dist-freshness.json" 2>/dev/null \
+  || printf '%s' '{"status":"unknown","message":"dist-freshness probe error"}' > "$ARTIFACTS/logs/dist-freshness.json"
+df_read() { node -e 'const fs=require("fs");try{const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(String(v[process.argv[2]]??""))}catch{process.stdout.write("")}' "$ARTIFACTS/logs/dist-freshness.json" "$1"; }
+df_status="$(df_read status)"
+echo "dist-freshness: ${df_status:-unknown} — $(df_read message)" >&2
+case "$df_status" in
+  fresh) checks+=("{\"name\":\"dist-freshness\",\"status\":\"pass\"}") ;;
+  stale)
+    # A stale dist only fails a LIVE verify (runtime proof would use the wrong
+    # build). --static-only checks install/idempotency shape, not runtime, so
+    # there it is a warning — don't regress install-only verification.
+    if [ "$STATIC_ONLY" = false ]; then
+      checks+=("{\"name\":\"dist-freshness\",\"status\":\"fail\",\"detail\":\"see logs/dist-freshness.json\"}"); status="fail"
+    else
+      checks+=("{\"name\":\"dist-freshness\",\"status\":\"warn\",\"detail\":\"stale (static-only); see logs/dist-freshness.json\"}")
+    fi
+    ;;
+  *)     checks+=("{\"name\":\"dist-freshness\",\"status\":\"warn\",\"detail\":\"${df_status:-unknown}; see logs/dist-freshness.json\"}") ;;
+esac
 
 read_fixture_password() {
   TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
@@ -262,7 +358,7 @@ if [ "$STATIC_ONLY" = false ]; then
 
     if (
       cd "$TARGET"
-      "$RUNNER_BIN" run "$HARNESS_DIR/runner/recipes/smoke.extension.recipe.json" --adapter extension --project-root "$TARGET" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/runner-smoke" --json
+      "$RUNNER_BIN" run "$SMOKE_RECIPE" --adapter extension --project-root "$TARGET" --cdp-port "$CDP_PORT" --artifacts-dir "$ARTIFACTS/runner-smoke" --json
     ) > "$ARTIFACTS/logs/runner-smoke.log" 2>&1; then
       checks+=("{\"name\":\"runner v1 smoke\",\"status\":\"pass\"}")
     else
@@ -273,10 +369,10 @@ if [ "$STATIC_ONLY" = false ]; then
 fi
 
 if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$TARGET" status --short -- . ":(exclude).agent/recipe-harness" ":(exclude).skills-cache" ":(exclude)temp/agentic/recipe-harness" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
+  git -C "$TARGET" status --short -- . ":(exclude)$HARNESS_ROOT" ":(exclude).skills-cache" ":(exclude)temp/agentic/recipe-harness" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
-RECIPE_HARNESS_LIVE_MODE="$live_mode" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_LIVE_MODE="$live_mode" RECIPE_HARNESS_ROOT_EXCLUDE="$HARNESS_ROOT" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
@@ -286,6 +382,8 @@ const liveMode = process.env.RECIPE_HARNESS_LIVE_MODE || 'unknown';
 let fixtureStatus = null;
 let cdpHolder = null;
 let readinessReport = null;
+let distFreshness = null;
+try { distFreshness = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/dist-freshness.json'), 'utf8')); } catch {}
 try { fixtureStatus = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/fixture-status.json'), 'utf8')); } catch {}
 try { cdpHolder = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/cdp-holder.json'), 'utf8')); } catch {}
 try { readinessReport = JSON.parse(fs.readFileSync(path.join(artifacts, 'logs/extension-readiness.json'), 'utf8')); } catch {}
@@ -297,7 +395,8 @@ function runGit(args) {
     return null;
   }
 }
-const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness', ':(exclude).skills-cache']);
+const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || '.agent/recipe-harness';
+const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),
   head: runGit(['rev-parse', '--short', 'HEAD']),
@@ -341,6 +440,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
     reason: 'extension verify inspects the supplied CDP runtime; wrapper/preflight ownership must be recorded by the caller before stopping processes',
   },
   gitStatus,
+  distFreshness,
   runtimePolicy: {
     runtimeReusePolicy: 'reuse a running harness-compatible CDP target when possible; wrapper auto-start must use a cached/watch-only prepare path unless the human explicitly permits a rebuild',
   },

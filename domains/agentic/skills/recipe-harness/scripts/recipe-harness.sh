@@ -41,27 +41,6 @@ arg_value() {
   return 1
 }
 
-read_runtime_context_field() {
-  local context_path="$1"
-  local field="$2"
-  [ -f "$context_path" ] || return 1
-  node -e '
-const fs = require("node:fs");
-const [path, field] = process.argv.slice(1);
-try {
-  const data = JSON.parse(fs.readFileSync(path, "utf8"));
-  const value = field.split(".").reduce((node, key) => {
-    if (node === undefined || node === null) return undefined;
-    return node[key];
-  }, data);
-  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
-} catch (error) {
-  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
-  process.exitCode = 1;
-}
-' "$context_path" "$field"
-}
-
 if [ "$#" -lt 2 ]; then
   usage >&2
   exit 2
@@ -74,6 +53,8 @@ shift 2
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ADAPTER_SCRIPT="${SKILL_DIR}/adapters/${ADAPTER}/scripts/${ACTION}.sh"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/json-field.sh"
 
 case "${ADAPTER}:${ACTION}" in
   mobile:install|mobile:launch|mobile:live|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:live|extension:verify|extension:cleanup) ;;

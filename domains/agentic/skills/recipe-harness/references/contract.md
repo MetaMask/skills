@@ -62,8 +62,6 @@ Extension verification should prove:
 - product diff excludes harness files.
 - externally-started webpack/Chrome/CDP states are detected as compatible only if the loaded extension target is recipe-controllable and screenshot/evidence capture works; otherwise verification must relaunch/reconnect through the harness path or fail with actionable diagnostics.
 
-Static verification is useful for install/idempotency checks but does not prove runtime behavior.
-
 ## Recipe authoring boundary
 
 The skills repo is only the installer/invoker. Recipe semantics come from

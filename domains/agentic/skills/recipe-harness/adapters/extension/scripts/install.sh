@@ -27,7 +27,9 @@ AGENTIC_DIR="$(cd "$SKILL_DIR/../.." && pwd)"
 . "$SKILL_DIR/scripts/resolve-runner-source.sh"
 TARGET="$(cd "$TARGET" && pwd)"
 resolve_metamask_recipe_runner_source "$SKILL_DIR" "$AGENTIC_DIR" "$TARGET"
-HARNESS_DIR="$TARGET/.agent/recipe-harness/extension"
+HARNESS_ROOT="$(harness_root)"
+HARNESS_REL="$HARNESS_ROOT/extension"
+HARNESS_DIR="$(harness_dir "$TARGET" extension)"
 
 refuse_symlink_destination() {
   local rel="$1"
@@ -52,11 +54,11 @@ make_executable() {
   fi
 }
 
-refuse_symlink_destination ".agent"
-refuse_symlink_destination ".agent/recipe-harness"
-refuse_symlink_destination ".agent/recipe-harness/extension"
-refuse_symlink_destination ".agent/recipe-harness/extension/runner/bin/metamask-recipe"
-refuse_symlink_destination ".agent/recipe-harness/extension/action-manifest.json"
+# refuse_symlink_destination walks every path component, so the deepest paths
+# also guard their parents ($HARNESS_REL covers the root segments).
+refuse_symlink_destination "$HARNESS_REL"
+refuse_symlink_destination "$HARNESS_REL/runner/bin/metamask-recipe"
+refuse_symlink_destination "$HARNESS_REL/action-manifest.json"
 
 mkdir -p "$HARNESS_DIR"
 
@@ -83,6 +85,10 @@ for executable in "$HARNESS_DIR/scripts/"*.sh "$HARNESS_DIR/scripts/"*.js; do
   [ -e "$executable" ] || continue
   make_executable "$executable"
 done
+# Co-locate the shared JSON helper (lives in the skill's generic scripts/lib) so the
+# installed adapter scripts are self-contained when run from .agent.
+mkdir -p "$HARNESS_DIR/scripts/lib"
+cp "$SKILL_DIR/scripts/lib/json-field.sh" "$HARNESS_DIR/scripts/lib/json-field.sh"
 dir_content_hash "$HARNESS_DIR/scripts" > "$HARNESS_DIR/installed-scripts.sha256"
 
 add_git_exclude() {
@@ -105,11 +111,14 @@ add_git_exclude() {
   fi
 }
 
-add_git_exclude ".agent/recipe-harness/"
+add_git_exclude "$HARNESS_ROOT/"
 add_git_exclude ".skills-cache/"
 add_git_exclude "temp/agentic/recipe-harness/"
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+# Build the cleanup hint with shell-safe quoting here (target/script paths may
+# contain spaces); HARNESS_ROOT is charset-validated so it needs no quoting.
+CLEANUP_COMMAND="RECIPE_HARNESS_ROOT=$HARNESS_ROOT $(printf '%q' "$SCRIPT_DIR/cleanup.sh") --target $(printf '%q' "$TARGET")"
 node -e '
   const fs = require("fs");
   const m = {
@@ -125,16 +134,16 @@ node -e '
     },
     target: process.argv[7],
     protocolVersion: "v1",
-    actionManifestPath: ".agent/recipe-harness/extension/action-manifest.json",
-    runnerEntrypoint: ".agent/recipe-harness/extension/runner/bin/metamask-recipe",
-    installedPaths: [".agent/recipe-harness/extension/scripts", ".agent/recipe-harness/extension/runner", ".agent/recipe-harness/extension/action-manifest.json"],
+    actionManifestPath: process.argv[11] + "/action-manifest.json",
+    runnerEntrypoint: process.argv[11] + "/runner/bin/metamask-recipe",
+    installedPaths: [process.argv[11] + "/scripts", process.argv[11] + "/runner", process.argv[11] + "/action-manifest.json"],
     patchedFiles: [],
     recommendedCommandEnv: { unset: ["BUNDLED_DEBUGPY_PATH"] },
     backupDir: null,
-    cleanupCommand: process.argv[8] + "/cleanup.sh --target " + process.argv[7],
-    productDiffExcludes: [":(exclude).agent/recipe-harness", ":(exclude).skills-cache", ":(exclude)temp/agentic/recipe-harness"]
+    cleanupCommand: process.argv[12],
+    productDiffExcludes: [":(exclude)" + process.argv[10], ":(exclude).skills-cache", ":(exclude)temp/agentic/recipe-harness"]
   };
   fs.writeFileSync(process.argv[9], JSON.stringify(m, null, 2) + "\n");
-' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json"
+' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json" "$HARNESS_ROOT" "$HARNESS_REL" "$CLEANUP_COMMAND"
 
 echo "Installed extension recipe harness: $HARNESS_DIR/manifest.json"

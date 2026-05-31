@@ -46,27 +46,9 @@ then idempotently patches:
 
 ## Validation
 
-For live runtime proof, verify that:
+See references/contract.md for the full verification checklist. Mobile-specific: `scripts/perps/agentic/**` backing scripts must be present from the product checkout or an explicit external Mobile bridge source (not bundled in the skills repo); direct script entrypoints must work independently of `yarn a:*`.
 
-- the simulator/device and Metro state are known;
-- CDP connects;
-- `globalThis.__AGENTIC__` exists;
-- route read and `app-state.sh status` work;
-- wallet fixture setup/unlock works when fixture data exists;
-- screenshot capture works;
-- a tiny recipe emits `summary.json`, `trace.json`, and `artifact-manifest.json`.
-- if Metro/app was started by Expo, direct `yarn watch`, or another shell, it is
-  reused only when the Recipe v1 bridge and screenshots work; otherwise the harness
-  explains the missing observability and reconnects through preflight.
-- fixture status is printed before long debugging (`READY`,
-  `MISSING_FIXTURES`, or `STALE_OR_INVALID`).
-- cache/build policy is recorded in `summary.json`.
-
-Use `--static-only` only for install/idempotency checks when the simulator,
-Metro, or CDP is unavailable. Static verification is intentionally not runtime
-proof.
-
-Harness automation should call direct scripts, for example:
+Use `--static-only` only for install/idempotency checks when the simulator, Metro, or CDP is unavailable.
 
 ```bash
 bash scripts/perps/agentic/preflight.sh --platform ios --mode fast
@@ -74,10 +56,3 @@ bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setu
 bash scripts/perps/agentic/app-state.sh status
 <external-runner>/bin/metamask-recipe run <recipe> --target <metamask-mobile>
 ```
-
-Build rule: start with `--mode fast`. It reuses an installed matching app or
-shared cache artifact and fails before a native rebuild. Escalate to
-`--mode auto`, `--rebuild`, or `--clean` only after the caller/human explicitly
-opts into a rebuild.
-
-Use `yarn a:*` only after install, and only as a human convenience.

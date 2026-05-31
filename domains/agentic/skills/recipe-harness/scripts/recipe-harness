@@ -180,26 +180,8 @@ is_false() {
   esac
 }
 
-read_runtime_context_field() {
-  local context_path="$1"
-  local field="$2"
-  [ -f "$context_path" ] || return 1
-  node -e '
-const fs = require("node:fs");
-const [path, field] = process.argv.slice(1);
-try {
-  const data = JSON.parse(fs.readFileSync(path, "utf8"));
-  const value = field.split(".").reduce((node, key) => {
-    if (node === undefined || node === null) return undefined;
-    return node[key];
-  }, data);
-  if (value !== undefined && value !== null && value !== "") process.stdout.write(String(value));
-} catch (error) {
-  process.stderr.write(String(error && error.message ? error.message : error) + "\n");
-  process.exitCode = 1;
-}
-' "$context_path" "$field"
-}
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/json-field.sh"
 
 resolve_extension_context_cdp_port() {
   local target="$1"

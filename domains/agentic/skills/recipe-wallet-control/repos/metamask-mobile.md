@@ -9,9 +9,7 @@ Use the agentic mobile scripts under `scripts/perps/agentic/` to drive a debug M
 
 ## Harness Launch Requirement
 
-**Launch via harness only** (`recipe-harness launch`, `preflight.sh --mode fast`, or `start-metro.sh --launch` after approval). `__AGENTIC__` is in any debug build (patched by `recipe-harness install`), but non-harness launch (manual tap, Xcode, `xcrun simctl launch`) won't have Metro on the correct `WATCHER_PORT` or CDP targets on that port. Fixtures also won't be injected. If the app was started outside the harness, record the exact recovery command and approval state before relaunching.
-
-**Never use `yarn start:ios`, `xcrun simctl launch`, manual taps, or direct `preflight.sh --mode auto` as an agent workaround** — they bypass either harness port/CDP wiring or the caller's runtime/rebuild approval gate. Prefer cache-first `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
+Launch via harness only (`recipe-harness launch` / `preflight.sh --mode fast`). Non-harness launch lacks Metro/CDP wiring and fixtures. Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps. Prefer `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
 
 ## Prerequisites
 
@@ -31,9 +29,9 @@ bash scripts/perps/agentic/app-state.sh status
 
 | State | Detection | Recovery |
 |---|---|---|
-| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user to approve the exact cache-first command: `preflight.sh --platform <plat> --mode fast`. If it fails for a cache miss, stop and ask before escalating to `--mode auto` (native build/cache warming). |
-| Installed, not launched | Home screen visible, "0 targets" | Ask user to approve the exact relaunch command: `preflight.sh --platform <plat> --mode fast` or `start-metro.sh --platform <plat> --launch`. Do not switch to `auto` unless rebuild/cache-warm approval exists. |
-| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user before killing/relaunching: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode fast`; escalate to `auto` only after explicit rebuild/cache-warm approval. |
+| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user to approve: `preflight.sh --platform <plat> --mode fast`. |
+| Installed, not launched | Home screen visible, "0 targets" | Ask user to approve: `preflight.sh --platform <plat> --mode fast` or `start-metro.sh --platform <plat> --launch`. |
+| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user before killing/relaunching: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode fast`. |
 
 ### Preflight modes
 
@@ -113,8 +111,6 @@ Read wallet/controller state through manifest-backed state actions where availab
 { "action": "metamask.perps.read_orders", "market": "ETH" }
 ```
 
-Expected output is JSON state from the manifest-declared action. Use raw CDP inspection only for debugging/setup evidence when no manifest action exists.
-
 ## Interaction Helpers
 
 Use these only to complete real UI flows around the wallet primitives. Do not inject final validation state directly; drive the same UI code path a user would hit.
@@ -157,11 +153,3 @@ bash scripts/perps/agentic/app-state.sh eval-async '(async function(){ return JS
 ```
 
 Use raw eval for inspection or debug-only setup, not to fabricate a passing assertion.
-
-## Path Caveat
-
-The primitives currently live under `scripts/perps/agentic/`. A follow-up should graduate them to `scripts/agentic/`; update this skill when that lands.
-
-## Compose-Up Note
-
-If you are authoring a per-PR verification recipe, use `/recipe-cook` and let it call these primitives. Do not hand-write large recipe graphs inside this skill.

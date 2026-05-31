@@ -17,14 +17,14 @@ Runner source resolution order:
 3. `METAMASK_RECIPE_RUNNER_PACKAGE_DIR`
 4. sibling checkout `../metamask-recipe-runner` next to `metamask-skills`
 
-The runner is a separate project. This skill never owns the runner runtime; it only resolves a runner source, copies it into `.agent/recipe-harness/<adapter>/runner/`, and records the source path/revision in the install manifest.
+The runner is a separate project. It only resolves a runner source, copies it into `.agent/recipe-harness/<adapter>/runner/`, and records the source path/revision in the install manifest.
 
 ## Rules
 
 - Run `install` before claiming runtime recipe proof.
 - Run `verify`; failed harness verification blocks runtime claims and is not a product failure.
 - Keep product diffs/evidence separate from harness overlay files.
-- Record the harness manifest path, source version when available, adapter, verification status, and artifacts in PR evidence. If installed from a copied skill or unpacked runner, `source.skillRevision` or `source.runnerRevision` may be `unknown`; record the installed skill path, runner path, runner source kind, and PR/branch instead.
+- Record the harness manifest path, source version, adapter, verification status, and artifacts in PR evidence. See references/contract.md (source revision caveat).
 - Call direct injected scripts for automation. `yarn a:*` aliases are developer convenience only.
 - Treat "app/browser is open" as insufficient. Verification must prove the Recipe v1 observability layer is present: CDP target, recipe bridge, log capture, screenshot capture, fixture/profile status, and cleanup ownership.
 - Avoid full rebuilds by default. Reuse an already-compatible harness runtime, installed app, shared build cache, Expo/native build artifacts, or Extension watch output before starting expensive builds. Mobile verify defaults to `--preflight-mode fast`; only use `auto`, `rebuild-native`, or `clean` after the caller/human explicitly opts into a rebuild.
@@ -51,7 +51,14 @@ Use `live` when a developer wants the easiest manual validation command: it runs
 
 For Mobile launch/live verification, `--preflight-mode fast` is the default cache-first mode: it can reuse an installed matching app or a shared cache artifact, but it fails instead of launching a native rebuild. If a rebuild is genuinely needed, the caller should rerun explicitly with `--preflight-mode auto` after the human accepts the rebuild cost.
 
-For Extension launch/live, the skill does not encode local farm aliases. Reuse an already-open CDP runtime with `--cdp-port`, pass a caller-owned startup command through `--prepare-cmd` / `RECIPE_HARNESS_EXTENSION_LAUNCH_CMD`, or provide a generic runtime context (`RECIPE_RUNTIME_CONTEXT` or `temp/runtime/agentic-runtime.json`) with `runtimeStart.approved: true` and `runtimeStart.command`. The wrapper will forward that approved command as `--prepare-cmd`; outside managed runtimes, any developer/tool can write the same context or set `RECIPE_RUNTIME_START_APPROVED=1` plus `RECIPE_RUNTIME_START_CMD`. If the run installed recipes to a task-local path, pass the same path with `live --out <task-local-recipes>` so live verify does not fall back to stale/default installed runner recipes. If no startup approval is present, do not invent a build command. `live --cdp-port <port> --launch-existing-dist` may launch Chrome against an already-built `dist/chrome`. If no compatible `dist/chrome` exists, `live --cdp-port <port> --start-test-watch` starts the repo's test watch before launching Chrome; use that only when the caller/human accepted the build/watch cost.
+For Extension launch/live:
+
+- Reuse an open CDP runtime with `--cdp-port`, or pass a startup command via `--prepare-cmd` / `RECIPE_HARNESS_EXTENSION_LAUNCH_CMD`.
+- Or provide `RECIPE_RUNTIME_CONTEXT` / `temp/runtime/agentic-runtime.json` with `runtimeStart.approved: true` and `runtimeStart.command`; the wrapper forwards it as `--prepare-cmd`. Outside managed runtimes, set `RECIPE_RUNTIME_START_APPROVED=1` plus `RECIPE_RUNTIME_START_CMD`.
+- If recipes were installed to a task-local path, pass it with `live --out <task-local-recipes>` to avoid falling back to stale defaults.
+- Do not invent a build command if no startup approval is present.
+- `live --cdp-port <port> --launch-existing-dist` launches Chrome against an already-built `dist/chrome`.
+- `live --cdp-port <port> --start-test-watch` starts test watch then Chrome; use only after caller/human accepted the build cost.
 
 For orchestration or explicit automation, keep using the low-level stable form:
 

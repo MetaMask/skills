@@ -5,7 +5,7 @@ parent: recipe-wallet-control
 
 # Recipe Wallet Control - MetaMask Extension
 
-Use the Extension recipe runtime injected by `/recipe-harness` to drive wallet-semantic flows through browser/CDP contexts. Keep injection, browser launch, and runner installation in `/recipe-harness`; this overlay names the wallet primitives an agent may compose in `/recipe-cook`.
+Use the Extension recipe runtime injected by `/recipe-harness` to drive wallet-semantic flows through browser/CDP contexts. Install/launch via /recipe-harness; this overlay names the wallet primitives.
 
 ## Prerequisites
 
@@ -19,9 +19,13 @@ Before any primitive:
 
 If harness verify fails, report wallet-control proof as blocked by runtime readiness, not as product failure.
 
-## Core Wallet Primitives
+**Dist-freshness gate.** Verify's `dist-freshness` check compares the git id in `dist/chrome/manifest.json` to HEAD:
 
-These primitives are the manifest-backed Recipe v1 actions exposed by the installed MetaMask runner. Use `/recipe-harness` to install/verify the runner, then compose these actions in `/recipe-cook` recipes.
+- `stale` (verify fails) — dist built from another commit, or source edited since build. Stop; ask: reuse / `yarn start` (watch) / rebuild. (`build:test` = e2e baseline only.)
+- `no-build` / `unknown` — can't prove parity; confirm before relying on it.
+- `fresh` — proceed.
+
+## Core Wallet Primitives
 
 ### `metamask.wallet.ensure_unlocked`
 
@@ -44,8 +48,6 @@ Use with a deterministic fixture address:
 Expected proof: `metamask.wallet.read_state` reports the selected account/address expected by the recipe.
 
 ### `ui.navigate`
-
-Use the official `ui.navigate` action with a raw extension `hash` route for any destination, including Perps. There is no wallet- or perps-specific navigate action:
 
 ```json
 { "action": "ui.navigate", "hash": "#/?tab=perps" }
@@ -73,8 +75,12 @@ Do not screenshot a loading or transitional page as proof.
 
 ## Interaction Helpers
 
-Use namespaced Recipe v1 UI actions for real UI paths: `ui.press`, `ui.wait_for`, `ui.scroll`, and `ui.screenshot`. If text entry is needed, use a manifest-declared domain action that owns the flow until the target runner advertises and validates a text-entry UI action.
+Use namespaced Recipe v1 UI actions for real UI paths: `ui.press`, `ui.wait_for`, `ui.scroll`, and `ui.screenshot`. No text-entry ui.* yet; use a manifest domain action.
 
 ## Current Boundary
 
-For brand-new Extension profiles, use `/mms-recipe-harness live --launch-existing-dist` with a shared wallet fixture at `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json`. The harness generates persisted Extension state from the Mobile-compatible fixture shape, injects it into the isolated browser profile over CDP, unlocks with the fixture password, and validates the named mnemonic/private-key accounts before recipe proof begins.
+```bash
+/mms-recipe-harness live --cdp-port <port> --launch-existing-dist  # fixture at temp/runtime/wallet-fixture.json or .agent/wallet-fixture.json
+```
+
+Harness injects fixture state and unlocks before proof.

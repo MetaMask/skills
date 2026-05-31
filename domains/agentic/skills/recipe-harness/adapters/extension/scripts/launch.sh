@@ -16,12 +16,15 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/path.sh"
 TARGET="$(cd "$TARGET" && pwd)"
-HARNESS_DIR="$TARGET/.agent/recipe-harness/extension"
+HARNESS_DIR="$(harness_dir "$TARGET" extension)"
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/launch/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
 
-if [ ! -f "$TARGET/.agent/recipe-harness/extension/manifest.json" ]; then
+if [ ! -f "$HARNESS_DIR/manifest.json" ]; then
   echo "Extension recipe harness is not installed in $TARGET. Run recipe-harness extension install --target $TARGET first." >&2
   exit 1
 fi

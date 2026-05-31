@@ -59,8 +59,4 @@ Fixtures are for local MetaMask Mobile and Extension debug runs only. Keep them 
 
 ## Extension Parity
 
-Keep Mobile as the human-authored fixture shape for both platforms: `password`,
-`accounts[]` with `mnemonic` or `privateKey`, optional account `name`, optional
-`selectedAccount`, and setup `settings`. Extension generates its `address`,
-`vault`, and persisted fixture state from that same shape so agents can import
-and select multiple named accounts consistently across Mobile and Extension.
+Mobile fixture shape is canonical for both platforms; Extension derives address/vault/persisted state from it.

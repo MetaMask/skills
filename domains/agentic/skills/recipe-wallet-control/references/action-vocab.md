@@ -1,6 +1,6 @@
 # Recipe Wallet Control Action Vocabulary
 
-Use this vocabulary when composing `/recipe-cook` recipes or recording wallet validation evidence. Runtime injection belongs in `/recipe-harness`; wallet-control names the manifest-backed Recipe v1 primitives and proof expectations.
+Use this vocabulary when composing `/recipe-cook` recipes or recording wallet validation evidence. See /recipe-harness for injection.
 
 ## Shared Recipe v1 Actions
 
@@ -40,4 +40,4 @@ Navigation has no wallet- or perps-specific action: use `ui.navigate` with a raw
 
 ## Boundary
 
-Use controller/CDP inspection for setup or internal-state proof only. For a human-visible acceptance criterion, drive the UI path with `ui.*` or a domain action that itself drives the UI, then capture `ui.screenshot` or equivalent visual evidence.
+See `/recipe-harness` `references/contract.md`. Use `ui.*` or a domain action for human-visible criteria; capture `ui.screenshot` as visual proof.

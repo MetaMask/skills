@@ -4,7 +4,7 @@ set -euo pipefail
 TARGET="$PWD"
 CDP_PORT=""
 ARTIFACTS=""
-OUT=".agent/recipe-harness/extension/runner/recipes"
+OUT=""
 PREPARE_CMD="${RECIPE_HARNESS_EXTENSION_LAUNCH_CMD:-}"
 LAUNCH_EXISTING_DIST=false
 START_WATCH=false
@@ -21,7 +21,7 @@ while [ "$#" -gt 0 ]; do
     --start-watch|--start-test-watch) START_WATCH=true; LAUNCH_EXISTING_DIST=true; shift ;;
     --dist-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; DIST_DIR="$2"; shift 2 ;;
     --chrome-user-data-dir) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; CHROME_USER_DATA_DIR="$2"; shift 2 ;;
-    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <.agent/recipe-harness/extension/runner/recipes>] --cdp-port <port> [--launch-existing-dist|--start-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
+    -h|--help) echo "Usage: live.sh [--target <metamask-extension>] [--out <recipes-dir>] --cdp-port <port> [--launch-existing-dist|--start-watch|--prepare-cmd <cmd>] [--dist-dir dist/chrome] [--artifacts-dir <dir>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -29,9 +29,27 @@ done
 [ -n "$CDP_PORT" ] || { echo "Missing --cdp-port for Extension live validation" >&2; exit 2; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/path.sh"
 TARGET="$(cd "$TARGET" && pwd)"
-ARTIFACTS="${ARTIFACTS:-$TARGET/.agent/recipe-harness/extension/live/$(date -u +%Y%m%dT%H%M%SZ)}"
+OUT="${OUT:-$(harness_root)/extension/runner/recipes}"
+ARTIFACTS="${ARTIFACTS:-$(harness_dir "$TARGET" extension)/live/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
+
+# Prune stale live artifact dirs (configurable harness root, not a hardcoded path)
+# so old runtime-dist snapshots can't be loaded and don't accumulate to GBs.
+# Keep the most recent few; override count with RECIPE_HARNESS_LIVE_KEEP.
+LIVE_ROOT="$(harness_dir "$TARGET" extension)/live"
+LIVE_KEEP="${RECIPE_HARNESS_LIVE_KEEP:-5}"
+# Must be a positive integer: a non-numeric value would break the arithmetic and a
+# 0 would `tail -n +1` and delete every dir including this run's fresh $ARTIFACTS.
+case "$LIVE_KEEP" in ''|*[!0-9]*) LIVE_KEEP=5 ;; esac
+[ "$LIVE_KEEP" -ge 1 ] 2>/dev/null || LIVE_KEEP=5
+if [ -d "$LIVE_ROOT" ]; then
+  # `|| true`: an empty live/ (no child dirs) makes ls exit non-zero, which would
+  # abort the script under `set -euo pipefail`. Pruning is best-effort.
+  ls -1dt "$LIVE_ROOT"/*/ 2>/dev/null | tail -n "+$((LIVE_KEEP + 1))" | while IFS= read -r _old; do rm -rf "$_old"; done || true
+fi
 
 if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   DIST_ABS="$TARGET/$DIST_DIR"
@@ -116,8 +134,12 @@ NODE
     prepare_parts+=("compiled=false; for i in {1..240}; do if grep -E 'MetaMask.*compiled|compiled with|Bundle end: service worker|Bundle end:.*app-init' temp/runtime/recipe-harness-webpack.log >/dev/null 2>&1; then compiled=true; break; fi; sleep 2; done; kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start compilation marker' >&2; echo 'Last webpack log lines:' >&2; tail -80 temp/runtime/recipe-harness-webpack.log >&2 || true; exit 1; fi; echo '[recipe-harness] yarn start compilation marker observed'")
   fi
   prepare_parts+=("for i in {1..180}; do [ -f ${quoted_dist}/manifest.json ] && break; sleep 2; done")
-  prepare_parts+=("test -f ${quoted_dist}/manifest.json")
-  prepare_parts+=("rm -rf ${quoted_runtime_dist} && mkdir -p ${quoted_runtime_dist} && rsync -a --delete --exclude _metadata ${quoted_dist}/ ${quoted_runtime_dist}/")
+  prepare_parts+=("test -f ${quoted_dist}/manifest.json || exit 1")
+  prepare_parts+=("rm -rf ${quoted_runtime_dist} && mkdir -p ${quoted_runtime_dist} && rsync -a --delete --exclude _metadata ${quoted_dist}/ ${quoted_runtime_dist}/ || exit 1")
+  # Freshness guard: the loaded runtime-dist must match dist/chrome's git id. A
+  # mismatch means the rsync caught a mid-rebuild dist; abort rather than load
+  # an inconsistent bundle (the "Element type is invalid: undefined" class of crash).
+  prepare_parts+=("node -e 'const fs=require(\"fs\");const id=p=>{try{return (JSON.parse(fs.readFileSync(p,\"utf8\")).description||\"\").match(/from git id: *([0-9a-f]+)/i)?.[1]||\"\"}catch{return\"\"}};const d=id(process.argv[1]),r=id(process.argv[2]);if(d&&d!==r){console.error(\"runtime-dist git id \"+r+\" != dist \"+d+\" (mid-rebuild?); aborting\");process.exit(1)}' ${quoted_dist}/manifest.json ${quoted_runtime_dist}/manifest.json")
   if [ -n "$WALLET_FIXTURE_ABS" ]; then
     quoted_wallet_fixture="$(printf '%q' "$WALLET_FIXTURE_ABS")"
     prepare_parts+=("node ${quoted_fixture_script} generate --target ${quoted_target} --fixture ${quoted_wallet_fixture} --out ${quoted_fixture_state}")
