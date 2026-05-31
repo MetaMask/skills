@@ -128,7 +128,6 @@ validate_mobile_agentic_source() {
   local rel
   for rel in \
     "cdp-bridge.js" \
-    "validate-recipe.sh" \
     "preflight.sh" \
     "start-metro.sh" \
     "interactive-start.sh" \

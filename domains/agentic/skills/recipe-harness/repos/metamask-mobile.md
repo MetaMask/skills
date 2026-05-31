@@ -72,7 +72,7 @@ Harness automation should call direct scripts, for example:
 bash scripts/perps/agentic/preflight.sh --platform ios --mode fast
 bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup --wallet-fixture .agent/wallet-fixture.json
 bash scripts/perps/agentic/app-state.sh status
-bash scripts/perps/agentic/validate-recipe.sh <recipe> --artifacts-dir <dir>
+<external-runner>/bin/metamask-recipe run <recipe> --target <metamask-mobile>
 ```
 
 Build rule: start with `--mode fast`. It reuses an installed matching app or
