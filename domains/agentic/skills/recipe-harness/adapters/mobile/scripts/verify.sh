@@ -149,6 +149,29 @@ console.log(port);
 NODE
 }
 
+# Resolve a runtime env var (e.g. IOS_SIMULATOR, ADB_SERIAL) from the process
+# env or the target repo's .js.env so the runner can bind device-scoped proof
+# (screenshots) to the same device as the bridge commands.
+jsenv_value() {
+  TARGET_FOR_JSENV="$TARGET" JSENV_NAME="$1" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const target = process.env.TARGET_FOR_JSENV;
+const name = process.env.JSENV_NAME;
+let value = process.env[name] || '';
+if (!value) {
+  const re = new RegExp("^\\s*(?:export\\s+)?" + name + "=([\"']?)([^\"'\\n]+)\\1", "m");
+  for (const file of ['.js.env', '.env', '.env.local']) {
+    const full = path.join(target, file);
+    if (!fs.existsSync(full)) continue;
+    const match = fs.readFileSync(full, 'utf8').match(re);
+    if (match) { value = match[2]; break; }
+  }
+}
+process.stdout.write(value);
+NODE
+}
+
 check_file() {
   local rel="$1"
   if [ -e "$TARGET/$rel" ]; then
@@ -331,7 +354,7 @@ if [ "$STATIC_ONLY" = false ]; then
         "wallet-setup": { "action": "metamask.wallet.setup", "timeout_ms": 45000, "next": "wallet-unlock" },
         "wallet-unlock": { "action": "metamask.wallet.ensure_unlocked", "timeout_ms": 45000, "next": "wallet-read" },
         "wallet-read": { "action": "metamask.wallet.read_state", "timeout_ms": 45000, "next": "navigate-wallet" },
-        "navigate-wallet": { "action": "metamask.wallet.navigate", "target": "wallet", "timeout_ms": 45000, "next": "wait-wallet" },
+        "navigate-wallet": { "action": "ui.navigate", "route": "WalletView", "timeout_ms": 45000, "next": "wait-wallet" },
         "wait-wallet": { "action": "ui.wait_for", "test_id": "wallet-screen", "expected": "present", "timeout_ms": 45000, "next": "hud-smoke" },
         "hud-smoke": { "action": "app.hud", "text": "Mobile v1 live bridge smoke", "detail": "Explicit HUD action after CDP bridge reachability is proven.", "timeout_ms": 45000, "next": "screenshot" },
         "screenshot": { "action": "ui.screenshot", "path": "screenshots/mobile-v1-live-smoke.png", "timeout_ms": 45000, "next": "done" },
@@ -342,9 +365,15 @@ if [ "$STATIC_ONLY" = false ]; then
 }
 JSON
 
+  ios_simulator_resolved="$(jsenv_value IOS_SIMULATOR)"
+  adb_serial_resolved="$(jsenv_value ADB_SERIAL)"
   if (
     cd "$TARGET"
-    METAMASK_RECIPE_AUTO_HUD=0 "$RUNNER_BIN" run "$ARTIFACTS/mobile-v1-live-smoke.recipe.json" --adapter mobile --project-root "$TARGET" --artifacts-dir "$ARTIFACTS/runner-live-smoke" --json
+    METAMASK_RECIPE_AUTO_HUD=0 \
+    IOS_SIMULATOR="${IOS_SIMULATOR:-$ios_simulator_resolved}" \
+    ADB_SERIAL="${ADB_SERIAL:-$adb_serial_resolved}" \
+    ANDROID_SERIAL="${ANDROID_SERIAL:-$adb_serial_resolved}" \
+    "$RUNNER_BIN" run "$ARTIFACTS/mobile-v1-live-smoke.recipe.json" --adapter mobile --project-root "$TARGET" --artifacts-dir "$ARTIFACTS/runner-live-smoke" --json
   ) > "$ARTIFACTS/logs/runner-live-smoke.log" 2>&1; then
     checks+=("{\"name\":\"runner v1 live bridge smoke\",\"status\":\"pass\"}")
   else

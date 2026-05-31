@@ -43,7 +43,7 @@ Do this especially on historical commits, where the checked-out runner may be st
 
 Use only action names declared by the installed v1 action manifest. Typical Mobile mappings are:
 
-- Open app area/screen: `ui.navigate`, `metamask.wallet.navigate`, or `metamask.perps.navigate` with `target`/`market` parameters.
+- Open app area/screen: `ui.navigate` with a raw `route` (and optional `params`), e.g. `{ "route": "PerpsMarketListView" }` or `{ "route": "PerpsMarketDetails", "params": { "market": { "symbol": "ETH" } } }`.
 - Tap: `ui.press` with a stable `test_id`, text, or page-object target.
 - Enter text: use a domain action that owns the flow unless the installed manifest declares a text-entry UI action.
 - Scroll: `ui.scroll` with direction/target parameters.

@@ -76,9 +76,9 @@ bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json
 
 Expected output validates the fixture, creates or unlocks the vault, and prints an account summary. For validation evidence, start from clean state or capture a before/after account assertion because the script intentionally skips creation when a vault already exists.
 
-### `ui.navigate` / `metamask.wallet.navigate`
+### `ui.navigate`
 
-Use the manifest-backed navigation action for registered app or wallet destinations:
+Use the official `ui.navigate` action with a raw app `route` (and optional `params`) for any app, wallet, or Perps destination. There is no wallet- or perps-specific navigate action:
 
 ```bash
 bash scripts/perps/agentic/app-navigate.sh WalletTabHome

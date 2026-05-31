@@ -43,15 +43,13 @@ Use with a deterministic fixture address:
 
 Expected proof: `metamask.wallet.read_state` reports the selected account/address expected by the recipe.
 
-### `metamask.wallet.navigate`
+### `ui.navigate`
 
-Use for wallet-owned destinations such as Perps:
+Use the official `ui.navigate` action with a raw extension `hash` route for any destination, including Perps. There is no wallet- or perps-specific navigate action:
 
 ```json
-{ "action": "metamask.wallet.navigate", "target": "perps" }
+{ "action": "ui.navigate", "hash": "#/?tab=perps" }
 ```
-
-Use `ui.navigate` only for manifest-supported generic app navigation targets.
 
 ### `metamask.wallet.read_state`
 

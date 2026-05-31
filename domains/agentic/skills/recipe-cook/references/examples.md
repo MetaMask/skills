@@ -104,10 +104,10 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
       "entry": "open-market",
       "nodes": {
         "open-market": {
-          "action": "metamask.perps.navigate",
-          "description": "PT-1: open the BTC market detail through the manifest-declared Perps navigation action",
-          "target": "market",
-          "market": "{{symbol}}",
+          "action": "ui.navigate",
+          "description": "PT-1: open the BTC market detail through the raw Perps market route",
+          "route": "PerpsMarketDetails",
+          "params": { "market": { "symbol": "{{symbol}}" } },
           "timeout_ms": 30000,
           "next": "wait-market"
         },

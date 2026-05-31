@@ -43,7 +43,7 @@ Prefer repo-owned browser, extension, fixture, and mock helpers over raw CDP sni
 Use only action names declared by the installed v1 action manifest. Typical Extension mappings are:
 
 - Launch extension: `/recipe-harness` live/verify flow or runner setup with `--launch-existing-dist`.
-- Open route/popup: `ui.navigate`, `metamask.wallet.navigate`, or `metamask.perps.navigate` with `target`/`market` parameters.
+- Open route/popup: `ui.navigate` with a raw extension `hash` route, e.g. `{ "hash": "#/?tab=perps" }`.
 - Probe browser/extension runtime: `cdp.target` for target metadata and reachability.
 - Interact with UI: `ui.press`, `ui.wait_for`, `ui.scroll`, `ui.screenshot`, and any manifest-declared text-entry action.
 - Assert internal/domain state: command-level tests, `assert_json`, or manifest-declared domain actions such as `metamask.wallet.read_state` and `metamask.perps.assert_positions`.
