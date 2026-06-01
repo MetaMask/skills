@@ -6,7 +6,7 @@ tags: fps, performance, monitoring, flashlight
 
 # Skill: Measure JS FPS
 
-> **MetaMask note:** Always measure on **Android with the power-user scenario** (~30 accounts, ~90 assets — see [mm-power-user-scenario.md](mm-power-user-scenario.md)). The in-app **Perf Monitor** (shake → Dev Menu) is the quick check; **Flashlight** (Android, automatable score + JSON export) is for before/after comparison and CI. The JS-vs-UI-thread split below is the first triage step in [mm-tools.md](mm-tools.md).
+> **MetaMask note:** Always measure on **Android with the power-user scenario** (~30 accounts, ~90 assets — see [mm-power-user-scenario.md](mm-power-user-scenario.md)). The in-app **Perf Monitor** (shake → Dev Menu) is the quick check and the **RN DevTools Profiler** is the primary tool. **Flashlight is NOT installed in this repo** — it's an optional external tool; install it separately only if you want an automatable Android score for before/after or CI. The JS-vs-UI-thread split below is the first triage step in [mm-tools.md](mm-tools.md).
 
 Monitor and measure JavaScript frame rate to quantify app smoothness and identify performance regressions.
 

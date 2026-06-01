@@ -26,6 +26,7 @@ tags: tti, startup, performance, markers
 > ```
 >
 > - To measure a **new** flow: add a `TraceName` (and `TraceOperation` if needed) to `app/util/trace.ts`, then wrap the flow.
+> - **Component-level: prefer a per-feature `useXMeasurement` hook over raw `trace()`.** The repo convention (e.g. `app/components/UI/Predict/hooks/usePredictMeasurement.ts`, `usePerpsMeasurement`, `useSectionPerformance`) is declarative — `usePredictMeasurement({ traceName, conditions: [dataLoaded, !isLoading] })` starts on mount and ends when conditions are true, which makes the data-loaded rule below automatic. Raw `trace()/endTrace()` is the core-init pattern (`EngineService.ts`, `Vault.ts`).
 > - ⚠️ **End the trace on _interactive / data-loaded_, not _mounted_.** An `endTrace` condition that is already `true` on the first render (e.g. `!isSearchVisible`, `!!component`, `isMounted`) closes the span at mount, before data loads — it silently measures ~zero and gives false confidence. End on the active view's data being ready (e.g. `conditions: [!isSearchVisible, hasActiveTabData]`). Real bug found in the Predict feed.
 > - Numeric `tags` become Sentry **measurements** (queryable numerically). Spans **nest** via `parentContext`. Traces buffer until metrics consent, then flush.
 > - **Real gaps (not the tool):** no automated **cold-start TTI gate in CI**, and no bundle-analysis script. The markers/targets below are still the right mental model for what "TTI" means.

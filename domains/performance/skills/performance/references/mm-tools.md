@@ -80,7 +80,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
       Both dropping → start with JS profiling
 
 "FPS drops while scrolling a list"
-  → Perf Monitor to confirm → Flashlight for an Android score → js-lists-flatlist-flashlist.md
+  → Perf Monitor to confirm → RN DevTools Profiler (or Flashlight, if installed) → js-lists-flatlist-flashlist.md
 
 "Components re-render too much"
   → React Native DevTools → "why did this render?" → mm-selector-memoization.md / mm-redux-antipatterns.md
@@ -105,7 +105,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
   → instrument with trace() (below) → native-measure-tti.md → bundle-analyze-js.md
 
 "How do I prove my fix is faster?"
-  → Reassure (render count) + Flashlight (FPS score) + trace() (duration). Baseline → fix → re-measure.
+  → Reassure (render count) + trace() (duration) [+ Flashlight FPS, if installed]. Baseline → fix → re-measure.
 
 "Prevent regressions going forward"
   → Reassure perf-test in CI  +  E2E performance gates (mms-performance-testing skill)
@@ -135,9 +135,9 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
 ### Reactotron (network on Android)
 - Network inspection when the DevTools network tab is unavailable on Android.
 
-### Flashlight (automatable Android FPS score)
-- **Use:** before/after comparison, CI. Score 0–100 + FPS graph + CPU/RAM, JSON export. Install from a verified release (don't pipe a remote script to a shell).
-- `flashlight measure --output results.json` → `flashlight compare baseline.json current.json`.
+### Flashlight (optional, external — NOT installed in this repo)
+- **Not in `package.json`** — it's an external Callstack tool. Don't assume it's available; for day-to-day FPS use Perf Monitor + RN DevTools.
+- **If you install it** (separately, from a verified release — don't pipe a remote script to a shell): `flashlight measure --output results.json` → `flashlight compare baseline.json current.json` for an automatable Android score (before/after, CI).
 
 ### Reassure (render-time regression gate) — INSTALLED
 - **Use:** guard a component/hook against render-time regressions before merge.
@@ -158,6 +158,11 @@ endTrace({ name: TraceName.AssetDetails });                              // end
 const x = trace({ name: TraceName.Tokens, op: TraceOperation.UIStartup }, () => build());
 ```
 - New flow → add a `TraceName` (+ `TraceOperation`) to `app/util/trace.ts`, then wrap it.
+- **Component-level: use a per-feature measurement hook, not raw `trace()`.** The repo convention is a declarative `useXMeasurement` hook (e.g. `app/components/UI/Predict/hooks/usePredictMeasurement.ts`, `usePerpsMeasurement`, `useSectionPerformance`) that starts on mount and ends when conditions are true — which structurally enforces the "end on data-loaded, not mount" rule below:
+  ```ts
+  usePredictMeasurement({ traceName: TraceName.PredictMarketDetailsView, conditions: [dataLoaded, !isLoading] });
+  ```
+  Raw `trace()/endTrace()` (above) is the **core-init** pattern (`EngineService.ts`, `Vault.ts`).
 - Numeric `tags` become Sentry **measurements**; spans nest via `parentContext`; traces buffer until metrics consent then flush.
 - ⚠️ **Your `endTrace` condition must represent _interactive / data-loaded_, not _mounted_.** A condition that is already `true` on the first render (e.g. `!isSearchVisible`, `!!component`, `isMounted`) closes the span at mount, before data loads — so it silently measures ~zero and gives false confidence. End on the active view's data being ready (e.g. `[!isSearchVisible, hasActiveTabData]`). This is a real bug found in the wild.
 - Details: [native-measure-tti.md](native-measure-tti.md).
