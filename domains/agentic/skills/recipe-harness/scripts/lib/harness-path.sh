@@ -1,7 +1,8 @@
 # harness-path.sh — shared, configurable recipe-harness injection root.
 # Sourced (not executed) by both adapters and the wrapper so skill + farmslot use
 # one definition. Override RECIPE_HARNESS_ROOT (relative to the target repo);
-# defaults to .agent/recipe-harness.
+# defaults to temp/agentic/recipe-harness (under the gitignored temp/, so installs
+# need no extra git-exclude).
 #
 # An empty/unset value falls back to the default; a set value is validated
 # (relative, safe charset, no '.'/'..' components) so a hostile/typo'd value
@@ -9,7 +10,7 @@
 # embed in shell/JSON without quoting surprises.
 # Returns non-zero on an invalid value; callers run under `set -e`.
 harness_root() {
-  local root="${RECIPE_HARNESS_ROOT:-.agent/recipe-harness}"
+  local root="${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}"
   case "$root" in
     ""|/*) echo "RECIPE_HARNESS_ROOT must be a non-empty relative path: '$root'" >&2; return 1 ;;
     *[!A-Za-z0-9._/-]*) echo "RECIPE_HARNESS_ROOT may only contain A-Za-z0-9 and . _ / - : '$root'" >&2; return 1 ;;

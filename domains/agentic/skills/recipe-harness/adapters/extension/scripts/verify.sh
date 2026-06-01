@@ -395,7 +395,7 @@ function runGit(args) {
     return null;
   }
 }
-const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || '.agent/recipe-harness';
+const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || 'temp/agentic/recipe-harness';
 const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),

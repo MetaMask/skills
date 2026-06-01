@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# These contracts assert install/cleanup mechanics against a fixed harness root;
+# pin it so the suite is independent of the configurable default.
+export RECIPE_HARNESS_ROOT=.agent/recipe-harness
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
