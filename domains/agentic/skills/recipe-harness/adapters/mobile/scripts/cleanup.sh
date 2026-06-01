@@ -39,10 +39,10 @@ if [ ! -f "$BACKUP_DIR/state.env" ] && [ -f "$HARNESS_DIR/backup/state.env" ]; t
 fi
 STATE_FILE="$BACKUP_DIR/state.env"
 
-remove_git_exclude_entry() {
-  local entry="$1"
-  local git_dir
-  local exclude_file
+remove_recorded_git_exclude_entries() {
+  local tracking_file="$1"
+  [ -s "$tracking_file" ] || return 0
+  local git_dir exclude_file tmp_file
   if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
     return 0
   fi
@@ -52,18 +52,17 @@ remove_git_exclude_entry() {
   esac
   exclude_file="$git_dir/info/exclude"
   [ -f "$exclude_file" ] || return 0
-  awk -v entry="$entry" '$0 != entry { print }' "$exclude_file" > "$exclude_file.tmp"
-  mv "$exclude_file.tmp" "$exclude_file"
-}
-
-remove_recorded_git_exclude_entries() {
-  local tracking_file="$1"
-  [ -f "$tracking_file" ] || return 0
-  local entry
-  while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
-    remove_git_exclude_entry "$entry"
-  done < "$tracking_file"
+  # Remove only the lines THIS install recorded, one occurrence per distinct
+  # ledger entry (the appended copy is the last match), so a pre-existing
+  # duplicate copy or a stale/duplicate ledger entry never drops a line we did
+  # not add this run.
+  tmp_file="$(mktemp)"
+  awk '
+    NR==FNR { if (length($0)) want[$0]=1; next }
+    { lines[++n]=$0; if ($0 in want) last[$0]=n }
+    END { for (k in last) drop[last[k]]=1; for (i=1;i<=n;i++) if (!(i in drop)) print lines[i] }
+  ' "$tracking_file" "$exclude_file" > "$tmp_file"
+  mv "$tmp_file" "$exclude_file"
 }
 
 if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
@@ -73,7 +72,6 @@ if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
   remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
   rm -rf "$HARNESS_DIR"
-  rm -rf "$TARGET/.skills-cache"
   echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
   exit 0
 fi
@@ -86,7 +84,6 @@ if [ ! -f "$STATE_FILE" ]; then
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
     remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
     rm -rf "$HARNESS_DIR"
-    rm -rf "$TARGET/.skills-cache"
     echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
     exit 0
   fi
@@ -168,28 +165,10 @@ fi
 restore_path "app/core/NavigationService/NavigationService.ts" "${NAVIGATION_SERVICE_EXISTED:-0}"
 restore_path "app/components/Nav/App/App.tsx" "${APP_TSX_EXISTED:-0}"
 
-if [ -f "$BACKUP_DIR/added-git-exclude" ]; then
-  git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null || true)"
-  if [ -n "$git_dir" ]; then
-    case "$git_dir" in
-      /*) ;;
-      *) git_dir="$TARGET/$git_dir" ;;
-    esac
-    exclude_file="$git_dir/info/exclude"
-    if [ -f "$exclude_file" ]; then
-      tmp_file="$(mktemp)"
-      cp "$exclude_file" "$tmp_file"
-      while IFS= read -r entry; do
-        [ -n "$entry" ] || continue
-        grep -vxF "$entry" "$tmp_file" > "$tmp_file.next" || true
-        mv "$tmp_file.next" "$tmp_file"
-      done < "$BACKUP_DIR/added-git-exclude"
-      mv "$tmp_file" "$exclude_file"
-    fi
-  fi
-fi
+remove_recorded_git_exclude_entries "$BACKUP_DIR/added-git-exclude"
 
+# Leave the consumer's .skills-cache/ alone: it is gitignored and owned by the
+# product checkout, not the harness.
 rm -rf "$HARNESS_DIR"
 rm -rf "$BACKUP_DIR"
-rm -rf "$TARGET/.skills-cache"
 echo "Cleaned mobile recipe harness from $TARGET"

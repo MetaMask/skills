@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="$(cd "$TARGET" && pwd)"
 HARNESS_DIR="$(harness_dir "$TARGET" extension)"
 
-if [ -f "$HARNESS_DIR/added-git-exclude" ]; then
+if [ -s "$HARNESS_DIR/added-git-exclude" ]; then
   git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null || true)"
   if [ -n "$git_dir" ]; then
     case "$git_dir" in
@@ -26,18 +26,22 @@ if [ -f "$HARNESS_DIR/added-git-exclude" ]; then
     esac
     exclude_file="$git_dir/info/exclude"
     if [ -f "$exclude_file" ]; then
+      # Remove only the lines THIS install recorded, one occurrence per distinct
+      # ledger entry (the appended copy is the last match). A pre-existing
+      # duplicate copy, or a stale/duplicate ledger entry, must never drop a line
+      # we did not add this run.
       tmp_file="$(mktemp)"
-      cp "$exclude_file" "$tmp_file"
-      while IFS= read -r entry; do
-        [ -n "$entry" ] || continue
-        grep -vxF "$entry" "$tmp_file" > "$tmp_file.next" || true
-        mv "$tmp_file.next" "$tmp_file"
-      done < "$HARNESS_DIR/added-git-exclude"
+      awk '
+        NR==FNR { if (length($0)) want[$0]=1; next }
+        { lines[++n]=$0; if ($0 in want) last[$0]=n }
+        END { for (k in last) drop[last[k]]=1; for (i=1;i<=n;i++) if (!(i in drop)) print lines[i] }
+      ' "$HARNESS_DIR/added-git-exclude" "$exclude_file" > "$tmp_file"
       mv "$tmp_file" "$exclude_file"
     fi
   fi
 fi
 
+# Leave the consumer's .skills-cache/ alone: it is gitignored and owned by the
+# product checkout, not the harness.
 rm -rf "$HARNESS_DIR"
-rm -rf "$TARGET/.skills-cache"
 echo "Cleaned extension recipe harness from $TARGET"

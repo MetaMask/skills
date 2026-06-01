@@ -155,6 +155,77 @@ NODE
     || fail "metadata-only cleanup left an install-added exclude entry behind"
 }
 
+assert_install_cleanup_restores_exclude_baseline_byte_identical() {
+  # An install->cleanup cycle must leave .git/info/exclude byte-for-byte at its
+  # pre-install baseline, and must never delete the consumer-owned .skills-cache/
+  # directory (it is gitignored and product-owned).
+  local target="$tmpdir/mobile-exclude-byte-identical"
+  mkdir -p "$target/scripts/perps/agentic"
+  (
+    cd "$target"
+    git init -q
+    printf 'product-owned\n' > scripts/perps/agentic/preflight.sh
+    git add scripts/perps/agentic/preflight.sh
+  )
+
+  # Pre-install baseline: developer-owned exclude lines (incl. their own
+  # .skills-cache/) that the harness must leave untouched.
+  printf 'node_modules/\n.skills-cache/\n' > "$target/.git/info/exclude"
+  local baseline
+  baseline="$(cat "$target/.git/info/exclude")"
+
+  # A consumer-owned skills cache that the harness must never delete.
+  mkdir -p "$target/.skills-cache"
+  printf 'cache\n' > "$target/.skills-cache/marker"
+
+  run_mobile_install --target "$target" >/tmp/recipe-harness-mobile-exclude-byte.log 2>&1
+  # .skills-cache/ is already excluded, so install must NOT re-record it.
+  ! grep -qxF '.skills-cache/' "$target/.agent/recipe-harness/mobile/added-git-exclude" \
+    || fail "install recorded a developer-owned pre-existing exclude entry (.skills-cache/)"
+
+  "$SKILL_DIR/adapters/mobile/scripts/cleanup.sh" --target "$target" \
+    >/tmp/recipe-harness-mobile-exclude-byte-cleanup.log 2>&1
+
+  [ -f "$target/.skills-cache/marker" ] \
+    || fail "cleanup deleted the consumer-owned .skills-cache directory"
+  [ "$(cat "$target/.git/info/exclude")" = "$baseline" ] \
+    || fail "install->cleanup did not restore .git/info/exclude byte-for-byte (pre-existing exclude lines lost)"
+}
+
+assert_cleanup_removes_only_one_copy_per_recorded_exclude_entry() {
+  # Regression: an unconditional `grep -vxF` removal dropped EVERY copy of a
+  # recorded exclude line. cleanup must remove only the single occurrence this
+  # install added, leaving a developer's own duplicate copy intact.
+  local target="$tmpdir/mobile-exclude-one-occurrence"
+  mkdir -p "$target/scripts/perps/agentic"
+  (
+    cd "$target"
+    git init -q
+    printf 'product-owned\n' > scripts/perps/agentic/preflight.sh
+    git add scripts/perps/agentic/preflight.sh
+  )
+
+  # No tracked .gitignore: install records `.skills-cache/` as harness-added.
+  : > "$target/.git/info/exclude"
+  run_mobile_install --target "$target" >/tmp/recipe-harness-mobile-exclude-one.log 2>&1
+  grep -qxF '.skills-cache/' "$target/.agent/recipe-harness/mobile/added-git-exclude" \
+    || fail "fixture precondition: install did not record .skills-cache/ in the ledger"
+
+  # A developer independently keeps their OWN identical exclude line plus an
+  # unrelated one. cleanup must not nuke the developer's duplicate.
+  printf '.skills-cache/\nnode_modules/\n' >> "$target/.git/info/exclude"
+
+  "$SKILL_DIR/adapters/mobile/scripts/cleanup.sh" --target "$target" \
+    >/tmp/recipe-harness-mobile-exclude-one-cleanup.log 2>&1
+
+  local remaining
+  remaining="$(grep -cxF '.skills-cache/' "$target/.git/info/exclude" 2>/dev/null || true)"
+  [ "${remaining:-0}" = "1" ] \
+    || fail "cleanup must leave exactly one .skills-cache/ copy (developer's), got ${remaining:-0}"
+  grep -qxF 'node_modules/' "$target/.git/info/exclude" \
+    || fail "cleanup dropped an unrelated developer exclude line (node_modules/)"
+}
+
 assert_installer_refuses_symlinked_runner_destinations() {
   local mobile_target="$tmpdir/mobile-symlink-runner"
   local extension_target="$tmpdir/extension-symlink-runner"
@@ -311,6 +382,8 @@ assert_no_mobile_harness_bundled_in_skill
 assert_force_overlay_requires_external_mobile_source
 assert_verify_marks_harness_owned_only_after_preflight_success
 assert_partial_product_harness_install_is_metadata_only
+assert_install_cleanup_restores_exclude_baseline_byte_identical
+assert_cleanup_removes_only_one_copy_per_recorded_exclude_entry
 assert_installer_refuses_symlinked_runner_destinations
 assert_runner_source_precedence_allows_stale_lower_priority_env
 assert_mobile_adapter_scripts_parse_with_macos_bash
