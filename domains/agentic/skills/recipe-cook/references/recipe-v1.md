@@ -103,8 +103,8 @@ Node rules:
 
 Action classes:
 
-- Portable/base: `command`, `wait`, `assert_json`, `assert_file`, `assert_exit_code`, `watch_logs`, `index_artifacts`, `end`.
-- Manifest-declared UI/app/CDP: `ui.press`, `ui.scroll`, `ui.wait_for`, `ui.screenshot`, `app.status`, supported `ui.navigate`, supported `cdp.*`.
+- Portable/base: `command`, `wait`, `assert_json`, `assert_file`, `assert_exit_code`, `assert_output`, `watch_logs`, `index_artifacts`, `end`.
+- Manifest-declared UI/app/CDP: `ui.press`, `ui.set_input`, `ui.scroll`, `ui.wait_for`, `ui.screenshot`, `app.status`, `app.hud`, supported `ui.navigate`, supported `cdp.target`.
 - Flow composition: manifest-declared `call` when the runner publishes reusable flow catalogs.
 - MetaMask custom: manifest-declared `metamask.wallet.*` and `metamask.perps.*`; prefer `metamask.wallet.ensure_unlocked` and `metamask.perps.start_state` for setup when available. `metamask.debug.*` is reserved but should not be used unless the target manifest declares an E2E-validated debug action.
 

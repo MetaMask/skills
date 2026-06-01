@@ -618,38 +618,33 @@ Hard gates:
 15. Ask whether to clean up runtime resources such as Metro/simulator/webpack/CDP now, or record that they were intentionally left running for review.
 16. Return a PR-ready summary and stop for human validation unless asked to open a PR.
 
-For every visual or mixed acceptance criterion, the recipe must use the shared
-visual assertion protocol before screenshot evidence:
+For every visual or mixed acceptance criterion, the recipe must bring the target
+into the viewport and wait for it to be visible before capturing screenshot
+evidence (scroll into view, then wait — the runner polls until `timeout_ms`):
 
 ```json
-{
-  "action": "ui.wait_for",
-  "test_id": "target-test-id",
-  "visibility": "viewport",
-  "scroll": { "strategy": "into_view", "settle_ms": 300 },
-  "timeout_ms": 10000,
-  "poll_ms": 500
-}
+[
+  { "action": "ui.scroll", "test_id": "target-test-id", "scroll_into_view": true },
+  { "action": "ui.wait_for", "test_id": "target-test-id", "visible": true, "timeout_ms": 10000 }
+]
 ```
 
-Then the `ui.screenshot` node must declare what the image is supposed to prove:
+Then capture the screenshot and describe what it must prove. Express any
+"must not show" condition as a real state assertion (`assert_json` over a
+`metamask.*` read, or `assert_output`), not a screenshot field:
 
 ```json
 {
   "action": "ui.screenshot",
-  "filename": "after-ac1-target-visible.png",
-  "note": "AC1: target component is visible with the expected text",
-  "claims": {
-    "must_show": [{ "test_id": "target-test-id", "visibility": "viewport" }],
-    "must_not_show": [{ "text_contains": "Fund your wallet" }]
-  }
+  "description": "AC1: target component is visible with the expected text",
+  "path": "screenshots/after-ac1-target-visible.png"
 }
 ```
 
-Do not treat `ui.wait_for` fiber-tree/DOM presence, `eval_sync`, controller state,
-or a passing recipe as proof that a user can see the element. Visual claims need
-viewport visibility plus screenshot claims, followed by human/quality review of
-the PNG/video.
+Do not treat `ui.wait_for` fiber-tree/DOM presence, controller state, or a passing
+recipe as proof that a user can see the element. Visual claims need viewport
+visibility (`ui.scroll` + `ui.wait_for` with `visible`) plus a reviewer-visible
+screenshot, followed by human/quality review of the PNG/video.
 
 The evidence package should include: task URL or prompt, product diff summary, harness verify path, recipe path, exact run command, `summary.json`, `trace.json`, `artifact-manifest.json`, screenshots/video for UI claims, quality critique, and explicit gaps.
 

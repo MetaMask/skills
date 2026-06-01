@@ -428,7 +428,7 @@ if [ "$STATIC_ONLY" = false ]; then
         "wallet-read": { "action": "metamask.wallet.read_state", "timeout_ms": 45000, "next": "navigate-wallet" },
         "navigate-wallet": { "action": "ui.navigate", "route": "WalletView", "timeout_ms": 45000, "next": "wait-wallet" },
         "wait-wallet": { "action": "ui.wait_for", "test_id": "wallet-screen", "expected": "present", "timeout_ms": 45000, "next": "hud-smoke" },
-        "hud-smoke": { "action": "app.hud", "text": "Mobile v1 live bridge smoke", "detail": "Explicit HUD action after CDP bridge reachability is proven.", "timeout_ms": 45000, "next": "screenshot" },
+        "hud-smoke": { "action": "app.hud", "status": "running", "intent": "Mobile v1 live bridge smoke", "progress": { "current": 1, "total": 1 }, "timeout_ms": 45000, "next": "screenshot" },
         "screenshot": { "action": "ui.screenshot", "path": "screenshots/mobile-v1-live-smoke.png", "timeout_ms": 45000, "next": "done" },
         "done": { "action": "end", "status": "pass" }
       }

@@ -246,6 +246,37 @@ if (!src.includes('compiled=false') || !src.includes('Timed out waiting for targ
 NODE
 }
 
+assert_recipe_docs_validate_clean() {
+  # All committed recipe-authoring docs + embedded smoke recipes must validate
+  # against the vendored manifest vocabulary (offline; no external runner needed).
+  node "$SKILL_DIR/scripts/validate-recipe-docs.js" >/tmp/recipe-harness-validate-docs.log 2>&1 \
+    || { cat /tmp/recipe-harness-validate-docs.log >&2; fail "recipe-doc validator reported violations on committed docs"; }
+}
+
+assert_recipe_docs_validator_catches_bad_recipe() {
+  # Negative test: prove the validator actually catches drift (unknown action +
+  # an invalid assert_json field), so a green run means something.
+  local bad="$tmpdir/bad-recipe-doc.md"
+  cat > "$bad" <<'MD'
+# deliberately broken recipe doc (negative test fixture)
+
+```json
+{ "action": "assert_json", "path": "x.json", "equals": { "a": 1 } }
+```
+
+```json
+{ "action": "metamask.not_a_real_action" }
+```
+MD
+  set +e
+  node "$SKILL_DIR/scripts/validate-recipe-docs.js" "$bad" >/tmp/recipe-harness-validate-bad.log 2>&1
+  local rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "validator did not fail on a deliberately-broken recipe doc"
+  grep -q 'equals' /tmp/recipe-harness-validate-bad.log || fail "validator did not flag the invalid assert_json 'equals' field"
+  grep -q 'unknown action' /tmp/recipe-harness-validate-bad.log || fail "validator did not flag the unknown action name"
+}
+
 assert_extension_verify_does_not_autostart_by_default
 assert_no_mobile_harness_bundled_in_skill
 assert_force_overlay_requires_external_mobile_source
@@ -255,5 +286,7 @@ assert_installer_refuses_symlinked_runner_destinations
 assert_runner_source_precedence_allows_stale_lower_priority_env
 assert_mobile_adapter_scripts_parse_with_macos_bash
 assert_extension_start_test_watch_is_target_scoped
+assert_recipe_docs_validate_clean
+assert_recipe_docs_validator_catches_bad_recipe
 
 echo "recipe-harness safety contracts OK"

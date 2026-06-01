@@ -77,8 +77,10 @@ The fixture (accounts, password, settings) is provided to the run by the harness
 Use the official `ui.navigate` action with a raw app `route` (and optional `params`) for any app, wallet, or Perps destination. There is no wallet- or perps-specific navigate action:
 
 ```json
-{ "action": "ui.navigate", "route": "WalletTabHome", "timeout_ms": 30000 }
-{ "action": "ui.navigate", "route": "PerpsMarketDetails", "params": { "market": { "symbol": "BTC", "name": "BTC", "price": "0", "change24h": "0", "change24hPercent": "0", "volume": "0", "maxLeverage": "100" } }, "timeout_ms": 30000 }
+[
+  { "action": "ui.navigate", "route": "WalletTabHome", "timeout_ms": 30000 },
+  { "action": "ui.navigate", "route": "PerpsMarketDetails", "params": { "market": { "symbol": "BTC", "name": "BTC", "price": "0", "change24h": "0", "change24hPercent": "0", "volume": "0", "maxLeverage": "100" } }, "timeout_ms": 30000 }
+]
 ```
 
 `ui.navigate` reports the previous and current routes; pair it with a `ui.wait_for` on a screen `test_id` to prove the destination settled. Some routes are idempotent when the app is already on the target tab/screen — treat "previous route equals current route" as success only when a following `ui.wait_for`/screenshot confirms the intended destination. If a route name is wrong the action fails with the attempted route; confirm route names against the app's navigation config.
@@ -98,9 +100,11 @@ The runner writes the PNG under the run's artifacts dir. Failure usually means n
 Read wallet/controller state through manifest-backed state actions where available; use raw CDP inspection only for debugging/setup evidence:
 
 ```json
-{ "action": "metamask.wallet.read_state" }
-{ "action": "metamask.perps.read_positions", "market": "ETH" }
-{ "action": "metamask.perps.read_orders", "market": "ETH" }
+[
+  { "action": "metamask.wallet.read_state" },
+  { "action": "metamask.perps.read_positions", "market": "ETH" },
+  { "action": "metamask.perps.read_orders", "market": "ETH" }
+]
 ```
 
 ## Interaction Helpers
@@ -122,15 +126,19 @@ Use these only to complete real UI flows around the wallet primitives. Do not in
 ### `ui.scroll`
 
 ```json
-{ "action": "ui.scroll", "test_id": "<testId>", "scroll_into_view": true }
-{ "action": "ui.scroll", "delta_y": 600 }
+[
+  { "action": "ui.scroll", "test_id": "<testId>", "scroll_into_view": true },
+  { "action": "ui.scroll", "delta_y": 600 }
+]
 ```
 
 ### `ui.wait_for`
 
 ```json
-{ "action": "ui.wait_for", "test_id": "<testId>", "expected": "present", "timeout_ms": 30000 }
-{ "action": "ui.wait_for", "text": "Perps", "timeout_ms": 30000 }
+[
+  { "action": "ui.wait_for", "test_id": "<testId>", "expected": "present", "timeout_ms": 30000 },
+  { "action": "ui.wait_for", "text": "Perps", "timeout_ms": 30000 }
+]
 ```
 
 Prefer `ui.wait_for` over fixed sleeps for any settle/poll condition; fail loudly on timeout.

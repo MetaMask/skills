@@ -112,10 +112,12 @@ positions) so the human's consent is informed.
 
 ```bash
 S=.agents/skills/mms-recipe-evidence/scripts/upload-pr-evidence.js
-node "$S" --task <task-dir> --dry-run                       # plan, no writes
-node "$S" --task <task-dir> [--ensure-repo] [--create-pr]   # after consent
+node "$S" --task <task-dir> --dry-run                                              # plan, no writes
+node "$S" --task <task-dir> [--ensure-repo] --confirm-public-upload [--create-pr]  # after consent
 ```
 
+`--confirm-public-upload` is **required** to upload any screenshot to the public
+repo — without it the script refuses to upload (even if the repo already exists).
 `--ensure-repo` creates the public artifacts repo; `--create-pr` creates-or-edits the
-PR and fills `## Screenshots/Recordings`; without it, assets upload + a
+PR and fills `## Screenshots/Recordings`; without `--create-pr`, assets upload + a
 `pr-body.uploaded.md` draft is written. `gh` writes run with `GH_TOKEN` unset.

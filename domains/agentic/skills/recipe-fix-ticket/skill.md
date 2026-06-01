@@ -679,38 +679,33 @@ Hard ordering gates:
 - A runtime blocker is acceptable only after step 5 or the relevant recipe run was
   actually attempted and the exact failure is recorded.
 
-For every visual or mixed acceptance criterion, use the shared visual assertion
-protocol before screenshot evidence:
+For every visual or mixed acceptance criterion, bring the target into the
+viewport and wait for it to be visible before capturing screenshot evidence
+(scroll into view, then wait — the runner polls until `timeout_ms`):
 
 ```json
-{
-  "action": "ui.wait_for",
-  "test_id": "target-test-id",
-  "visibility": "viewport",
-  "scroll": { "strategy": "into_view", "settle_ms": 300 },
-  "timeout_ms": 10000,
-  "poll_ms": 500
-}
+[
+  { "action": "ui.scroll", "test_id": "target-test-id", "scroll_into_view": true },
+  { "action": "ui.wait_for", "test_id": "target-test-id", "visible": true, "timeout_ms": 10000 }
+]
 ```
 
-Then the `ui.screenshot` node must declare what the image is supposed to prove:
+Then capture the screenshot and describe what it must prove. Express any
+"must not show" condition as a real state assertion (`assert_json` over a
+`metamask.*` read, or `assert_output`), not a screenshot field:
 
 ```json
 {
   "action": "ui.screenshot",
-  "filename": "after-ac1-target-visible.png",
-  "note": "AC1: target component is visible with the expected text",
-  "claims": {
-    "must_show": [{ "test_id": "target-test-id", "visibility": "viewport" }],
-    "must_not_show": [{ "text_contains": "Fund your wallet" }]
-  }
+  "description": "AC1: target component is visible with the expected text",
+  "path": "screenshots/after-ac1-target-visible.png"
 }
 ```
 
-Do not treat `ui.wait_for` fiber-tree/DOM/native presence, `eval_sync`,
-controller state, or a passing recipe as proof that a user can see the element.
-Visual claims need viewport visibility plus screenshot claims, followed by
-human/quality review of the PNG/video.
+Do not treat `ui.wait_for` fiber-tree/DOM/native presence, controller state, or a
+passing recipe as proof that a user can see the element. Visual claims need
+viewport visibility (`ui.scroll` + `ui.wait_for` with `visible`) plus a
+reviewer-visible screenshot, followed by human/quality review of the PNG/video.
 
 ## Workflow
 

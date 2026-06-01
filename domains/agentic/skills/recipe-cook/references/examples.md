@@ -114,7 +114,7 @@ This pattern composes a real Mobile flow and adds a PR-specific assertion. It is
         "wait-market": {
           "action": "ui.wait_for",
           "description": "PT-2: after navigation settles, the BTC market detail content is present",
-          "text_contains": ["{{symbol}}"],
+          "text": "{{symbol}}",
           "expected": "present",
           "timeout_ms": 30000,
           "next": "capture-detail"
@@ -158,7 +158,7 @@ Use command assertions when the PR claim is not user-facing.
         "run-focused-test": {
           "action": "command",
           "description": "PT-1: focused unit test covers malformed metadata",
-          "cmd": "mkdir -p \"$RECIPE_ARTIFACT_DIR/reports\" && yarn test --runInBand app/core/token-service/metadata.test.ts --json --outputFile \"$RECIPE_ARTIFACT_DIR/reports/jest-token-metadata.json\"",
+          "cmd": "mkdir -p reports && yarn test --runInBand app/core/token-service/metadata.test.ts --json --outputFile reports/jest-token-metadata.json",
           "timeout_ms": 120000,
           "next": "assert-pass"
         },
@@ -166,7 +166,7 @@ Use command assertions when the PR claim is not user-facing.
           "action": "assert_json",
           "description": "PT-1: Jest reports zero failed tests",
           "path": "reports/jest-token-metadata.json",
-          "equals": { "numFailedTests": 0 },
+          "assert": { "path": "$.numFailedTests", "operator": "eq", "value": 0 },
           "next": "index-artifacts"
         },
         "index-artifacts": {
@@ -193,7 +193,7 @@ Use command assertions when the PR claim is not user-facing.
     "workflow": {
       "entry": "test",
       "nodes": {
-        "test": { "action": "wait", "ms": 10000, "next": "done" },
+        "test": { "action": "wait", "duration_ms": 10000, "next": "done" },
         "done": { "action": "end", "status": "pass" }
       }
     }

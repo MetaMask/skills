@@ -349,12 +349,14 @@ function patchAccountTree(data, accountRows, selected) {
 }
 
 async function generate(args) {
-  const target = path.resolve(args.target || process.cwd());
-  const fixturePath = path.resolve(args.fixture || '');
-  const outputPath = path.resolve(args.out || '');
-  if (!fixturePath || !outputPath) {
-    throw new Error('generate requires --fixture and --out');
+  // Validate raw arg VALUES before path.resolve — path.resolve('') returns the
+  // cwd, so a missing --fixture/--out would otherwise silently resolve to cwd.
+  if (!args.fixture || !args.out) {
+    throw new Error('generate requires --fixture <wallet-fixture.json> and --out <fixture-state.json>');
   }
+  const target = path.resolve(args.target || process.cwd());
+  const fixturePath = path.resolve(args.fixture);
+  const outputPath = path.resolve(args.out);
   const wallet = readJson(fixturePath);
   if (typeof wallet.password !== 'string' || wallet.password.length === 0) {
     throw new Error('wallet fixture must include password');
@@ -555,14 +557,15 @@ function versionedStorageState(fixtureState) {
 }
 
 async function prefillProfile(args) {
-  const target = path.resolve(args.target || process.cwd());
-  const statePath = path.resolve(args.state || '');
-  const profilePath = path.resolve(args.profile || '');
-  const extensionDir = path.resolve(args['extension-dir'] || '');
-  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
-  if (!statePath || !profilePath || !extensionDir) {
+  // Validate raw arg VALUES before path.resolve (path.resolve('') === cwd).
+  if (!args.state || !args.profile || !args['extension-dir']) {
     throw new Error('prefill-profile requires --state, --profile, and --extension-dir');
   }
+  const target = path.resolve(args.target || process.cwd());
+  const statePath = path.resolve(args.state);
+  const profilePath = path.resolve(args.profile);
+  const extensionDir = path.resolve(args['extension-dir']);
+  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
   const manifest = readJson(path.join(extensionDir, 'manifest.json'));
   const candidateIds = new Set();
   const manifestId = extensionIdFromManifestKey(manifest.key);
@@ -926,16 +929,17 @@ async function disconnectCdpBrowser(browser) {
 }
 
 async function seedCdp(args) {
-  const target = path.resolve(args.target || process.cwd());
-  const fixturePath = path.resolve(args.fixture || '');
-  const statePath = path.resolve(args.state || '');
-  const extensionDir = path.resolve(args['extension-dir'] || '');
-  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
-  const outPath = path.resolve(args.out || path.join(target, 'temp/runtime/fixture-state-validation.json'));
+  // Validate raw arg VALUES before path.resolve (path.resolve('') === cwd).
   const port = Number(args['cdp-port']);
-  if (!fixturePath || !statePath || !extensionDir || !port) {
+  if (!args.fixture || !args.state || !args['extension-dir'] || !port) {
     throw new Error('seed-cdp requires --fixture, --state, --extension-dir, and --cdp-port');
   }
+  const target = path.resolve(args.target || process.cwd());
+  const fixturePath = path.resolve(args.fixture);
+  const statePath = path.resolve(args.state);
+  const extensionDir = path.resolve(args['extension-dir']);
+  const extensionIdFile = args['extension-id-file'] ? path.resolve(args['extension-id-file']) : '';
+  const outPath = path.resolve(args.out || path.join(target, 'temp/runtime/fixture-state-validation.json'));
   const wallet = readJson(fixturePath);
   const fixtureState = readJson(statePath);
   const versionedState = versionedStorageState(fixtureState);

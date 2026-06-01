@@ -5,8 +5,9 @@
 // The artifacts owner is ALWAYS the logged-in `gh` user (never hard-coded), and
 // every outward action is explicit-flag gated so the calling skill can ask the
 // human first:
-//   --ensure-repo  create <owner>/mm-<adapter>-artifacts (public) if missing
-//   --create-pr    create the PR if none exists for the branch (else edit it)
+//   --ensure-repo            create <owner>/mm-<adapter>-artifacts (public) if missing
+//   --confirm-public-upload  REQUIRED to upload screenshots to the public repo (alias --upload)
+//   --create-pr              create the PR if none exists for the branch (else edit it)
 // Use --dry-run to print the plan (owner/repo/branch/URLs) without any writes.
 //
 // The owner is ALWAYS the logged-in gh user — there is no owner override, so
@@ -14,19 +15,19 @@
 //
 // Usage:
 //   upload-pr-evidence.js --task <task-dir> [--adapter extension|mobile]
-//     [--ensure-repo] [--create-pr] [--pr <number>] [--title <pr title>] [--dry-run]
+//     [--ensure-repo] [--confirm-public-upload] [--create-pr] [--pr <number>] [--title <pr title>] [--dry-run]
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 function usage() {
   console.error(
-    'Usage: upload-pr-evidence.js --task <task-dir> [--adapter extension|mobile] [--ensure-repo] [--create-pr] [--pr <n>] [--title <t>] [--dry-run]',
+    'Usage: upload-pr-evidence.js --task <task-dir> [--adapter extension|mobile] [--ensure-repo] [--confirm-public-upload] [--create-pr] [--pr <n>] [--title <t>] [--dry-run]',
   );
 }
 
 function parseArgs(argv) {
-  const a = { task: '', adapter: '', ensureRepo: false, createPr: false, pr: '', title: '', dryRun: false };
+  const a = { task: '', adapter: '', ensureRepo: false, createPr: false, upload: false, pr: '', title: '', dryRun: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--task') a.task = argv[++i] || '';
@@ -35,6 +36,7 @@ function parseArgs(argv) {
     else if (arg === '--title') a.title = argv[++i] || '';
     else if (arg === '--ensure-repo') a.ensureRepo = true;
     else if (arg === '--create-pr') a.createPr = true;
+    else if (arg === '--confirm-public-upload' || arg === '--upload') a.upload = true;
     else if (arg === '--dry-run') a.dryRun = true;
     else if (arg === '-h' || arg === '--help') { usage(); process.exit(0); }
     else throw new Error(`Unknown arg: ${arg}`);
@@ -171,6 +173,14 @@ function main() {
   console.error(`[upload] plan: ${JSON.stringify(plan, null, 2)}`);
 
   if (!images.length) console.error('[upload] WARN: no images under pr-package/images — only the PR text will be updated.');
+
+  // Upload consent gate: never push screenshots to the PUBLIC artifacts repo
+  // without an explicit per-run flag, even when the repo already exists (so a
+  // re-run can't silently re-upload). --ensure-repo only gates first-time repo
+  // creation; this gates the upload itself.
+  if (images.length && !args.dryRun && !args.upload) {
+    throw new Error(`Refusing to upload ${images.length} screenshot(s) to the PUBLIC repo ${artifactsRepo} without explicit consent. Re-run with --confirm-public-upload after confirming with the user (public repo; screenshots may show wallet state — addresses/balances/positions). Use --dry-run to preview without uploading.`);
+  }
 
   // 1. ensure artifacts repo
   const repoExists = ghRepoExists(artifactsRepo);

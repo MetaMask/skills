@@ -10,7 +10,7 @@ Use this vocabulary when composing `/recipe-cook` recipes or recording wallet va
 | `cdp.target` | optional `cdp_port`, `required` | Prove the automation channel is reachable before UI work. | target/probe metadata or a hard failure when required |
 | `app.hud` | `intent`, optional `status`, `progress`, `display` | Communicate the current recipe intent to a human reviewer. | HUD update result |
 | `ui.navigate` | `route` (raw app route), optional `params` | Open any app/wallet/perps destination by route. | previous/current route proof |
-| `ui.press` | `test_id`, `selector`, or `text` depending on adapter support | Drive a real visible press/tap/click. | pressed target proof |
+| `ui.press` | `target` | Drive a real visible press/tap/click. | pressed target proof |
 | `ui.scroll` | `test_id`/`selector`, `offset`, optional `scroll_into_view` | Reveal content or controls. | scroll result proof |
 | `ui.wait_for` | `test_id`/`selector`/`text`, `expected`, timeout | Wait for settled UI state before proof. | matched/visible proof |
 | `ui.screenshot` | `path` | Capture reviewer-visible proof after a settle condition. | registered screenshot artifact |
