@@ -70,6 +70,10 @@ For each, check the animated style prop: layout prop (`width`/`height`/`flex`/`t
 - Perf Monitor: **UI thread** FPS holds ~60 during the animation, even if you trigger JS work mid-animation.
 - React Native DevTools: the animation drives **no** React re-renders (shared values bypass React).
 
+## Designed / vector animations → Rive
+
+For complex *designed* animations (not value-driven UI motion), prefer **Rive** (`rive-react-native`, already installed) over Lottie — smaller files, GPU-driven, state-machine support. Usage + a real in-app example (`OnboardingAnimation.tsx`) are in [`docs/readme/animations.md`](../../../../docs/readme/animations.md).
+
 ## Related
 
 - [js-animations-reanimated.md](js-animations-reanimated.md) — full v3 API + patterns
