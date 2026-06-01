@@ -27,6 +27,11 @@ while [ "$#" -gt 0 ]; do
 done
 
 [ -n "$CDP_PORT" ] || { echo "Missing --cdp-port for Extension live validation" >&2; exit 2; }
+# Reject a non-numeric port before it is interpolated into the Chrome launch
+# command and the CDP HTTP probes.
+case "$CDP_PORT" in
+  *[!0-9]*) echo "Invalid --cdp-port (must be numeric): $CDP_PORT" >&2; exit 2 ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091

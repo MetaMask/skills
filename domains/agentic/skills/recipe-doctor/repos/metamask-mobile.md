@@ -10,7 +10,7 @@ For Mobile readiness, doctor must check:
 - `bash`, `node`, `git`, and `curl`;
 - iOS/Android host hints (`xcrun` on macOS, `adb` when Android validation is expected);
 - installed `mms-recipe-harness`, `mms-recipe-wallet-control`, `mms-recipe-cook`, `mms-recipe-evidence`, and one high-level workflow skill;
-- `scripts/perps/agentic/preflight.sh`, `app-state.sh`, `setup-wallet.sh`, and `validate-recipe.sh` after harness install;
+- the v1 runner bin `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe`, the installed `action-manifest.json`, and a successful `metamask-recipe manifest --adapter mobile --json` after harness install;
 - fixture status for `.agent/wallet-fixture.json`, falling back to `scripts/perps/agentic/wallet-fixture.json`;
 - static no-start harness verify output when `mms-recipe-harness` is available.
 

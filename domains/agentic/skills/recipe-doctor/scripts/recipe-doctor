@@ -277,20 +277,12 @@ elif [ -n "$HARNESS_SKILL_DIR" ]; then
   record_check FAIL "harness:command" "missing executable scripts/recipe-harness under $HARNESS_SKILL_DIR"
 fi
 
-if [ "$REPO" = "metamask-mobile" ]; then
-  for file in \
-    scripts/perps/agentic/preflight.sh \
-    scripts/perps/agentic/app-state.sh \
-    scripts/perps/agentic/setup-wallet.sh \
-    scripts/perps/agentic/validate-recipe.sh
-  do
-    if [ -f "$TARGET/$file" ]; then
-      record_check PASS "harness:file" "$file"
-    else
-      record_check WARN "harness:file" "$file missing; run mms-recipe-harness install before runtime proof"
-    fi
-  done
-fi
+# Mobile v1 readiness is reported by check_v1_runner below (the runner:* checks):
+# the installed runner bin, the action-manifest, and a real manifest validation
+# under the resolved harness root. The legacy scripts/perps/agentic/*.sh
+# existence checks were removed — under the v1 runner model the product checkout
+# no longer ships those scripts (they are bridge/harness-installed), so
+# WARN-on-missing was spurious on a correct install.
 
 if [ "$REPO" = "metamask-extension" ]; then
   # v1 manifest/runner presence + validation is covered once by check_v1_runner
@@ -533,10 +525,14 @@ check_v1_runner() {
   if [ -x "$runner_bin" ]; then
     record_check PASS "runner:v1-entrypoint" "$runner_bin"
     if [ -f "$manifest" ] && command_exists node; then
-      if "$runner_bin" manifest --adapter "$adapter" --action-manifest "$manifest" >/dev/null 2>&1; then
-        record_check PASS "runner:v1-manifest-validation" "installed manifest validates through metamask-recipe"
+      # Validate through the runner the way verify.sh does: `manifest --adapter
+      # <a> --json`. The old `--action-manifest <path>` flag is not a real runner
+      # flag — the runner ignores unknown flags and exits 0, so that check passed
+      # without validating anything.
+      if ( cd "$TARGET" && "$runner_bin" manifest --adapter "$adapter" --json ) >/dev/null 2>&1; then
+        record_check PASS "runner:v1-manifest-validation" "metamask-recipe manifest --adapter $adapter --json succeeds for the installed $adapter harness"
       else
-        record_check FAIL "runner:v1-manifest-validation" "metamask-recipe manifest failed for installed $adapter manifest"
+        record_check FAIL "runner:v1-manifest-validation" "metamask-recipe manifest --adapter $adapter --json failed for the installed $adapter harness"
       fi
     elif command_exists node; then
       record_check WARN "runner:v1-manifest-validation" "skipped because installed action manifest is missing"

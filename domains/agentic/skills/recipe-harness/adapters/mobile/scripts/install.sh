@@ -222,10 +222,9 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
   SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
   CLEANUP_COMMAND="RECIPE_HARNESS_ROOT=$HARNESS_ROOT $(printf '%q' "$SCRIPT_DIR/cleanup.sh") --target $(printf '%q' "$TARGET")"
   if [ "$GIT_EXCLUDE" = true ]; then
-    echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, temp/agentic/recipe-harness/"
+    echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/"
     add_git_exclude_entry "$HARNESS_ROOT/" "$HARNESS_DIR/added-git-exclude"
     add_git_exclude_entry ".skills-cache/" "$HARNESS_DIR/added-git-exclude"
-    add_git_exclude_entry "temp/agentic/recipe-harness/" "$HARNESS_DIR/added-git-exclude"
   else
     echo "[recipe-harness] --no-git-exclude: skipping .git/info/exclude updates; harness overlay paths may show as untracked in git status."
   fi
@@ -592,10 +591,9 @@ console.log(JSON.stringify({
 NODE
 
 if [ "$GIT_EXCLUDE" = true ]; then
-  echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, temp/agentic/recipe-harness/, scripts/perps/agentic/, app/core/AgenticService/"
+  echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, scripts/perps/agentic/, app/core/AgenticService/"
   add_git_exclude_entry "$HARNESS_ROOT/" "$BACKUP_DIR/added-git-exclude"
   add_git_exclude_entry ".skills-cache/" "$BACKUP_DIR/added-git-exclude"
-  add_git_exclude_entry "temp/agentic/recipe-harness/" "$BACKUP_DIR/added-git-exclude"
   add_git_exclude_entry "scripts/perps/agentic/" "$BACKUP_DIR/added-git-exclude"
   add_git_exclude_entry "app/core/AgenticService/" "$BACKUP_DIR/added-git-exclude"
 fi

@@ -72,7 +72,7 @@ Mobile-specific gates:
   Either add a better measurable target/scroll/navigation and rerun, or keep the
   verdict `PASS-WITH-GAPS` and rely on visually-read screenshots as weaker proof.
 - If preflight/verify succeeds but a later recipe loses Metro/CDP, try running
-  preflight and `validate-recipe.sh` in one shell so Metro remains alive, then
+  preflight and the v1 runner (`${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run ...`) in one shell so Metro remains alive, then
   record that command in the evidence package.
 - If the artifact manifest lists logical screenshot names but the runner writes
   timestamped PNGs, create/update an evidence manifest with the actual PNG paths

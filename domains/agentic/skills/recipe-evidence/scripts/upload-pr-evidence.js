@@ -191,7 +191,14 @@ function main() {
 
   // 3. build the Screenshots block (images hosted; videos stay local drag/drop)
   const block = urls.length
-    ? urls.map((u) => `![${u.name.replace(/\.[a-z0-9]+$/iu, '')}](${u.url})`).join('\n\n')
+    ? urls
+        .map((u) => {
+          // Escape Markdown link-text metacharacters so an odd artifact filename
+          // can't corrupt the PR body (e.g. `[`/`]`/`\` in the alt text).
+          const alt = u.name.replace(/\.[a-z0-9]+$/iu, '').replace(/([\\[\]])/gu, '\\$1');
+          return `![${alt}](${u.url})`;
+        })
+        .join('\n\n')
     : '_No hosted screenshots; attach any local recordings by drag-and-drop._';
 
   // 4. PR body from pr-desc.md (fallback to a minimal body)

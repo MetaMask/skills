@@ -62,11 +62,11 @@ function readExpectedExtensionId(target) {
   const idPath = path.join(target, 'temp/runtime/extension.id');
   if (!fs.existsSync(idPath)) return '';
   const id = fs.readFileSync(idPath, 'utf8').trim();
-  return /^[a-z]{32}$/.test(id) ? id : '';
+  return /^[a-p]{32}$/.test(id) ? id : '';
 }
 
 function writeExtensionId(target, extensionId) {
-  if (!/^[a-z]{32}$/.test(extensionId)) return false;
+  if (!/^[a-p]{32}$/.test(extensionId)) return false;
   const idPath = extensionIdPath(target);
   fs.mkdirSync(path.dirname(idPath), { recursive: true });
   const existing = fs.existsSync(idPath) ? fs.readFileSync(idPath, 'utf8').trim() : '';
@@ -180,7 +180,7 @@ async function cdpEvaluate(target, webSocketDebuggerUrl, expression, timeoutMs =
 
 function extensionIdFromTarget(target) {
   const url = String(target.url || '');
-  const match = url.match(/^chrome-extension:\/\/([a-z]{32})\//u);
+  const match = url.match(/^chrome-extension:\/\/([a-p]{32})\//u);
   return match ? match[1] : '';
 }
 

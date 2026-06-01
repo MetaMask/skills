@@ -133,18 +133,22 @@ install manifest also records an exact `cleanupCommand` (it honors
 refresh. Do not edit `.agents/skills/...`, `.claude/skills/...`, or harness
 source files during product validation.
 
-For Extension, prefer task-local harness output when writing new recipes so each
-run is isolated from shared installed runner recipe state:
+For Extension, keep task-local recipe artifacts isolated from shared installed
+runner recipe state by passing `--out` to `verify`/`live` (install does not take
+`--out`):
 
 ```bash
-.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install \
-  --target . \
-  --out temp/tasks/<this-run>/harness/recipes
+# Install normally (writes the harness under the resolved root):
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension install --target .
+# Task-local recipe artifacts: verify/live honor --out
+.agents/skills/mms-recipe-harness/scripts/recipe-harness.sh extension verify --target . --out temp/tasks/<this-run>/harness/recipes
 ```
 
-Use the same task-local `validate-recipe.sh` path for dry-run and live recipe
-runs. If an existing shared harness install must be reused, verify its manifest
-and content hash in `CHECKLIST.md`; do not silently reuse stale ignored files.
+Run and validate recipes through the v1 runner —
+`${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/runner/bin/metamask-recipe run ...`,
+then `farmslot-recipe validate ...` (see recipe-cook). If an existing shared
+harness install must be reused, verify its manifest and content hash in
+`CHECKLIST.md`; do not silently reuse stale ignored files.
 
 ## First Response to the Human
 

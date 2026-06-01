@@ -2,13 +2,11 @@
 set -euo pipefail
 
 TARGET="$PWD"
-FORCE=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; shift 2 ;;
-    --force) FORCE=true; shift ;;
-    -h|--help) echo "Usage: cleanup.sh [--target <metamask-extension>] [--force]"; exit 0 ;;
+    -h|--help) echo "Usage: cleanup.sh [--target <metamask-extension>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done

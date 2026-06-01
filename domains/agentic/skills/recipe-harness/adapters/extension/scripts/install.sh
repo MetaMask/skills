@@ -5,7 +5,7 @@ TARGET="$PWD"
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
-    --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; shift 2 ;;
+    --out) echo "install does not support --out (it never isolated recipes). Install normally, then pass --out to 'verify'/'live' for task-local recipe artifacts." >&2; exit 2 ;;
     -h|--help) echo "Usage: install.sh [--target <metamask-extension>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
@@ -120,9 +120,11 @@ add_git_exclude() {
   fi
 }
 
+# "$HARNESS_ROOT/" already covers the active root (the default IS
+# temp/agentic/recipe-harness); adding the default literal too would leave a stray
+# exclude entry when RECIPE_HARNESS_ROOT is customized, so it is not added here.
 add_git_exclude "$HARNESS_ROOT/"
 add_git_exclude ".skills-cache/"
-add_git_exclude "temp/agentic/recipe-harness/"
 
 SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 # Build the cleanup hint with shell-safe quoting here (target/script paths may

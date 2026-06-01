@@ -233,6 +233,10 @@ const missing = [];
 try {
   for (const entry of fs.readdirSync(overlayDir)) {
     if (!entry.endsWith('.patch')) continue;
+    // install.sh excludes *.test.* from the product copy, so these overlay test
+    // files are intentionally absent in the target — skip them or they WARN as
+    // spurious "absent in repo" drift on every verify.
+    if (/\.test\./u.test(entry)) continue;
     const base = entry.slice(0, -'.patch'.length);
     const targetFile = path.join(targetDir, base);
     if (!fs.existsSync(targetFile)) { missing.push(base); continue; }
@@ -395,6 +399,12 @@ if [ "$STATIC_ONLY" = false ]; then
   checks+=("$fixture_check_json")
 
   port="$(watcher_port)"
+  # Reject a non-numeric port before it is interpolated into a shell command
+  # (port_holder_json runs `lsof -iTCP:${port}`). The .env path is regex-guarded,
+  # but the WATCHER_PORT env path is not, so validate here.
+  case "$port" in
+    ""|*[!0-9]*) echo "Refusing mobile verify: resolved watcher port is not numeric: '$port' (check WATCHER_PORT)" >&2; exit 2 ;;
+  esac
   port_holder_json "$port" > "$ARTIFACTS/logs/port-holder.json"
 
   cat > "$ARTIFACTS/mobile-v1-live-smoke.recipe.json" <<'JSON'

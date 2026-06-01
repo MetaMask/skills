@@ -18,6 +18,14 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+# Reject a non-numeric --cdp-port before it is interpolated into shell/HTTP/CDP
+# strings. Empty is allowed (static-only verify needs no port).
+if [ -n "$CDP_PORT" ]; then
+  case "$CDP_PORT" in
+    *[!0-9]*) echo "Invalid --cdp-port (must be numeric): $CDP_PORT" >&2; exit 2 ;;
+  esac
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/path.sh"
