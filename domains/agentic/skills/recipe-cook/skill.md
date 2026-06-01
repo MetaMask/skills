@@ -66,46 +66,49 @@ Minimal Mobile smoke recipe shape:
 {
   "schema_version": 1,
   "title": "Mobile smoke — wallet view is reachable",
-  "description": "Proves the debug Mobile app is reachable and can execute a harmless UI adapter action.",
+  "description": "Proves the debug Mobile app is reachable and the v1 runner can drive the bridge to a settled wallet screen.",
   "validate": {
     "workflow": {
       "pre_conditions": ["mm-4 or another intended simulator is booted", "debug app is installed"],
       "entry": "status",
       "nodes": {
         "status": {
-          "action": "command",
-          "description": "PT-1: read app status through the Mobile agentic script",
-          "cmd": "bash scripts/perps/agentic/app-state.sh status",
+          "action": "app.status",
+          "description": "PT-1: read app status (device, platform, route) through the v1 app.status action",
           "timeout_ms": 30000,
-          "stdout": "logs/status.json",
-          "next": "assert-status"
+          "next": "ensure-unlocked"
         },
-        "assert-status": {
-          "action": "assert_json",
-          "description": "PT-1: status reports a device, platform, and current route",
-          "path": "logs/status.json",
-          "equals": { "platform": "ios" },
-          "next": "scroll"
+        "ensure-unlocked": {
+          "action": "metamask.wallet.ensure_unlocked",
+          "description": "PT-1: idempotently reach an unlocked wallet before navigating",
+          "timeout_ms": 45000,
+          "next": "navigate-wallet"
         },
-        "scroll": {
-          "action": "command",
-          "description": "PT-2: execute a harmless UI adapter scroll",
-          "cmd": "bash scripts/perps/agentic/app-state.sh scroll --offset 40",
+        "navigate-wallet": {
+          "action": "ui.navigate",
+          "description": "PT-2: open the wallet view through the UI/navigation layer",
+          "route": "WalletView",
           "timeout_ms": 30000,
-          "stdout": "logs/scroll.json",
-          "next": "assert-scroll"
+          "next": "wait-wallet"
         },
-        "assert-scroll": {
-          "action": "assert_json",
-          "description": "PT-2: scroll command reports ok=true",
-          "path": "logs/scroll.json",
-          "equals": { "ok": true },
+        "wait-wallet": {
+          "action": "ui.wait_for",
+          "description": "PT-3: after navigation settles, the wallet screen is present",
+          "test_id": "wallet-screen",
+          "expected": "present",
+          "timeout_ms": 30000,
+          "next": "capture"
+        },
+        "capture": {
+          "action": "ui.screenshot",
+          "description": "PT-4: reviewer-visible settled wallet screen",
+          "path": "screenshots/mobile-smoke-wallet.png",
           "next": "index-artifacts"
         },
         "index-artifacts": {
           "action": "index_artifacts",
-          "description": "Index status and scroll proof logs",
-          "artifacts": ["logs/status.json", "logs/scroll.json"],
+          "description": "Index the screenshot proof",
+          "artifacts": ["screenshots/"],
           "next": "done"
         },
         "done": { "action": "end", "status": "pass" }
@@ -115,7 +118,7 @@ Minimal Mobile smoke recipe shape:
 }
 ```
 
-For product recipes, replace the smoke nodes with existing Mobile flows where possible: navigate first, wait for settled state, assert state/UI, then capture evidence. See `references/examples.md` for concrete Mobile composition patterns.
+For product recipes, replace the smoke nodes with the v1 actions for the PR's claim: navigate first (`ui.navigate`), wait for settled state (`ui.wait_for`), assert state/UI (`assert_json`, or a `metamask.*` read + assert action), then capture evidence (`ui.screenshot`). Compose reusable `metamask.wallet.*` / `metamask.perps.*` setup/start-state actions where the installed manifest advertises them. See `references/examples.md` for concrete Mobile composition patterns.
 
 ## When to Use
 

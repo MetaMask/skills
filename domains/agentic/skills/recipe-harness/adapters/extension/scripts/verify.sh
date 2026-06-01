@@ -39,12 +39,19 @@ RUNNER_BIN="$HARNESS_DIR/runner/bin/metamask-recipe"
 # `live --out <dir>` does not silently fall back to the installed default.
 SMOKE_RECIPE="$HARNESS_DIR/runner/recipes/smoke.extension.recipe.json"
 if [ -n "$OUT" ]; then
+  # Fail fast on a task-local --out that does not contain the requested recipe.
+  # Silently falling back to the installed default would validate a different
+  # (possibly stale) recipe than the caller explicitly asked for.
   OUT_ABS="$(resolve_harness_out "$TARGET" "$OUT" 2>/dev/null || true)"
-  if [ -n "$OUT_ABS" ] && [ -f "$OUT_ABS/smoke.extension.recipe.json" ]; then
-    SMOKE_RECIPE="$OUT_ABS/smoke.extension.recipe.json"
-  else
-    echo "recipe-harness verify: --out '$OUT' unresolved or has no smoke.extension.recipe.json; using harness default smoke recipe." >&2
+  if [ -z "$OUT_ABS" ]; then
+    echo "recipe-harness verify: --out '$OUT' did not resolve to a safe path under the target." >&2
+    exit 2
   fi
+  if [ ! -f "$OUT_ABS/smoke.extension.recipe.json" ]; then
+    echo "recipe-harness verify: --out '$OUT' (resolved: $OUT_ABS) has no smoke.extension.recipe.json. Refusing to fall back to the installed default recipe; place the recipe under --out or omit --out." >&2
+    exit 2
+  fi
+  SMOKE_RECIPE="$OUT_ABS/smoke.extension.recipe.json"
 fi
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
@@ -186,7 +193,9 @@ function getJson(path) {
 }
 (async () => {
   const pid = run(`lsof -iTCP:${port} -sTCP:LISTEN -t | head -1`);
-  const command = pid ? run(`ps -p ${pid} -o command=`) : '';
+  // Validate pid is numeric before interpolating it into the `ps -p` shell string.
+  const safePid = /^[0-9]+$/.test(pid) ? pid : '';
+  const command = safePid ? run(`ps -p ${safePid} -o command=`) : '';
   const version = await getJson('/json/version');
   const targets = await getJson('/json/list');
   const extensionTargets = Array.isArray(targets)
@@ -231,6 +240,11 @@ check_file "$HARNESS_REL/runner/manifests/extension.action-manifest.json"
 "$RUNNER_BIN" runtime-decision --adapter extension --target "$TARGET" --json \
   > "$ARTIFACTS/logs/runtime-decision.json" 2>/dev/null \
   || printf '%s' '{}' > "$ARTIFACTS/logs/runtime-decision.json"
+# Surface an empty/{} decision loudly: without it, dist-freshness/build-health
+# silently degrade to WARN and the runtime-proof gate is effectively bypassed.
+if [ ! -s "$ARTIFACTS/logs/runtime-decision.json" ] || [ "$(cat "$ARTIFACTS/logs/runtime-decision.json")" = "{}" ]; then
+  echo "recipe-harness verify: runtime-decision returned empty/{} — dist-freshness and build-health cannot be derived from the runner and will degrade to WARN (runtime-proof gate NOT fully validated). Check the runner/build state." >&2
+fi
 node -e '
 const fs = require("fs");
 const dir = process.argv[1];
@@ -343,7 +357,7 @@ if [ "$STATIC_ONLY" = false ]; then
 fi
 
 if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$TARGET" status --short -- . ":(exclude)$HARNESS_ROOT" ":(exclude).skills-cache" ":(exclude)temp/agentic/recipe-harness" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
+  git -C "$TARGET" status --short -- . ":(exclude)$HARNESS_ROOT" ":(exclude).skills-cache" > "$ARTIFACTS/logs/product-diff-excluding-harness.log" 2>&1 || true
 fi
 
 RECIPE_HARNESS_LIVE_MODE="$live_mode" RECIPE_HARNESS_ROOT_EXCLUDE="$HARNESS_ROOT" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
@@ -370,7 +384,7 @@ function runGit(args) {
   }
 }
 const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || 'temp/agentic/recipe-harness';
-const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
+const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),
   head: runGit(['rev-parse', '--short', 'HEAD']),

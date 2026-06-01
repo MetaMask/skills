@@ -9,8 +9,11 @@
 //   --create-pr    create the PR if none exists for the branch (else edit it)
 // Use --dry-run to print the plan (owner/repo/branch/URLs) without any writes.
 //
+// The owner is ALWAYS the logged-in gh user — there is no owner override, so
+// uploads/public-repo creation cannot be retargeted at another account/org.
+//
 // Usage:
-//   upload-pr-evidence.js --task <task-dir> [--owner <login>] [--adapter extension|mobile]
+//   upload-pr-evidence.js --task <task-dir> [--adapter extension|mobile]
 //     [--ensure-repo] [--create-pr] [--pr <number>] [--title <pr title>] [--dry-run]
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,16 +21,15 @@ const { execFileSync } = require('node:child_process');
 
 function usage() {
   console.error(
-    'Usage: upload-pr-evidence.js --task <task-dir> [--owner <login>] [--adapter extension|mobile] [--ensure-repo] [--create-pr] [--pr <n>] [--title <t>] [--dry-run]',
+    'Usage: upload-pr-evidence.js --task <task-dir> [--adapter extension|mobile] [--ensure-repo] [--create-pr] [--pr <n>] [--title <t>] [--dry-run]',
   );
 }
 
 function parseArgs(argv) {
-  const a = { task: '', owner: '', adapter: '', ensureRepo: false, createPr: false, pr: '', title: '', dryRun: false };
+  const a = { task: '', adapter: '', ensureRepo: false, createPr: false, pr: '', title: '', dryRun: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--task') a.task = argv[++i] || '';
-    else if (arg === '--owner') a.owner = argv[++i] || '';
     else if (arg === '--adapter') a.adapter = argv[++i] || '';
     else if (arg === '--pr') a.pr = argv[++i] || '';
     else if (arg === '--title') a.title = argv[++i] || '';
@@ -149,7 +151,9 @@ function main() {
   if (adapter !== 'extension' && adapter !== 'mobile') {
     throw new Error(`Unsupported product repo for evidence upload: ${slug} (expected metamask-extension or metamask-mobile).`);
   }
-  const owner = args.owner || gh(['api', 'user', '--jq', '.login']);
+  // Owner is always the logged-in gh user — never overridable — so uploads and
+  // public-repo creation cannot be retargeted at another account/org.
+  const owner = gh(['api', 'user', '--jq', '.login']);
   if (!owner) throw new Error('Could not resolve the logged-in GitHub user (gh api user). Run `gh auth login` first.');
   const artifactsRepo = `${owner}/mm-${adapter}-artifacts`;
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
@@ -179,6 +183,11 @@ function main() {
   }
 
   // 2. upload images
+  // Note: the upload itself is not behind its own flag. It only runs when the
+  // artifacts repo already exists (created by a prior, consent-gated --ensure-repo
+  // run) or was just created via --ensure-repo this run. The recipe-evidence skill
+  // owns informed consent ("ASK before each outward step: repo create, upload, PR
+  // create/edit"), so the human approves the upload before this script is invoked.
   const branchDefault = repoExists || !args.dryRun ? defaultBranch(artifactsRepo) : 'main';
   const urls = [];
   const encodedBranch = encodePathSegments(branch);

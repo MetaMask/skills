@@ -551,10 +551,12 @@ check_v1_runner() {
       mode="bridge injectable"
     fi
   else
+    # Extension has no in-repo product bridge; the harness install dir only means
+    # the recipe harness is installed (not an in-repo bridge like mobile's).
     if [ -d "$TARGET/$HARNESS_ROOT/extension" ]; then
-      mode="bridge present"
+      mode="harness installed"
     else
-      mode="bridge injectable"
+      mode="harness installable"
     fi
   fi
   case "$mode" in

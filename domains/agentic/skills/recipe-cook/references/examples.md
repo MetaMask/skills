@@ -13,16 +13,13 @@ For MetaMask Mobile PRs, compose existing flows instead of inventing raw evals:
 5. **Capture** — screenshot/video/log only after the assertion proves the screen settled.
 6. **Teardown** — reset wallet/app state when a run changes balances, permissions, txs, or network.
 
-Good Mobile recipes usually reference existing checked-in flows such as:
+Good Mobile recipes compose the v1 manifest's semantic actions instead of shelling to scripts. Prefer, where the installed manifest advertises them:
 
-- `scripts/perps/agentic/teams/perps/flows/market-discovery.json`
-- `scripts/perps/agentic/teams/perps/flows/trade-open-market.json`
-- `scripts/perps/agentic/teams/perps/flows/trade-close-position.json`
-- `scripts/perps/agentic/teams/perps/flows/tpsl-create.json`
-- `scripts/perps/agentic/teams/perps/recipes/provider-smoke.json`
-- `scripts/perps/agentic/teams/perps/recipes/app-lifecycle.json`
+- `metamask.wallet.setup`, `metamask.wallet.ensure_unlocked`, `metamask.wallet.select_account`, `metamask.wallet.read_state` for wallet setup/start-state.
+- `metamask.perps.start_state`, `metamask.perps.ensure_positions`, `metamask.perps.ensure_orders`, `metamask.perps.place_order`, `metamask.perps.close_positions`, `metamask.perps.read_positions`, `metamask.perps.assert_positions` for Perps flows.
+- `ui.navigate`, `ui.wait_for`, `ui.press`, `ui.set_input`, `ui.scroll`, `ui.screenshot`, `app.status`, `app.hud` for the user path and evidence.
 
-When reusing a flow, state which proof target it covers and add only the nodes needed for the PR-specific claim.
+`call`/flow-catalog composition is valid only when the installed runner manifest advertises a flow catalog; do not point at in-repo flow files (the legacy `scripts/perps/agentic/teams/perps/flows/*` recipes are not part of the v1 model). When reusing an action or flow, state which proof target it covers and add only the nodes needed for the PR-specific claim.
 
 ## Mobile Direct Smoke Recipe
 
@@ -31,47 +28,50 @@ Use this for live-device validation of the recipe plumbing itself. It intentiona
 ```json
 {
   "schema_version": 1,
-  "title": "Mobile direct smoke — status and harmless scroll",
-  "description": "Proves the Mobile debug app is reachable and the UI adapter accepts a harmless scroll command.",
+  "title": "Mobile direct smoke — reach a settled wallet screen",
+  "description": "Proves the Mobile debug app is reachable and the v1 runner can drive the bridge to a settled wallet screen. Intentionally avoids wallet-specific assertions beyond reachability.",
   "validate": {
     "workflow": {
       "pre_conditions": ["Run from the metamask-mobile checkout", "Debug app is already running on the intended simulator"],
       "entry": "status",
       "nodes": {
         "status": {
-          "action": "command",
-          "description": "PT-1: read app route/device/account status",
-          "cmd": "bash scripts/perps/agentic/app-state.sh status",
+          "action": "app.status",
+          "description": "PT-1: read app route/device/platform through the v1 app.status action",
           "timeout_ms": 30000,
-          "stdout": "logs/status.json",
-          "next": "assert-status"
+          "next": "ensure-unlocked"
         },
-        "assert-status": {
-          "action": "assert_json",
-          "description": "PT-1: status includes platform and route",
-          "path": "logs/status.json",
-          "equals": { "platform": "ios" },
-          "next": "scroll"
+        "ensure-unlocked": {
+          "action": "metamask.wallet.ensure_unlocked",
+          "description": "PT-1: idempotently reach an unlocked wallet",
+          "timeout_ms": 45000,
+          "next": "navigate-wallet"
         },
-        "scroll": {
-          "action": "command",
-          "description": "PT-2: perform a harmless scroll through the UI adapter",
-          "cmd": "bash scripts/perps/agentic/app-state.sh scroll --offset 40",
+        "navigate-wallet": {
+          "action": "ui.navigate",
+          "description": "PT-2: open the wallet view through the navigation layer",
+          "route": "WalletView",
           "timeout_ms": 30000,
-          "stdout": "logs/scroll.json",
-          "next": "assert-scroll"
+          "next": "wait-wallet"
         },
-        "assert-scroll": {
-          "action": "assert_json",
-          "description": "PT-2: scroll reports ok=true",
-          "path": "logs/scroll.json",
-          "equals": { "ok": true },
+        "wait-wallet": {
+          "action": "ui.wait_for",
+          "description": "PT-2: the wallet screen is present after navigation settles",
+          "test_id": "wallet-screen",
+          "expected": "present",
+          "timeout_ms": 30000,
+          "next": "capture"
+        },
+        "capture": {
+          "action": "ui.screenshot",
+          "description": "PT-2: reviewer-visible settled wallet screen",
+          "path": "screenshots/mobile-direct-smoke-wallet.png",
           "next": "index-artifacts"
         },
         "index-artifacts": {
           "action": "index_artifacts",
-          "description": "Index command outputs used as proof",
-          "artifacts": ["logs/status.json", "logs/scroll.json"],
+          "description": "Index the screenshot proof",
+          "artifacts": ["screenshots/"],
           "next": "done"
         },
         "done": { "action": "end", "status": "pass" }

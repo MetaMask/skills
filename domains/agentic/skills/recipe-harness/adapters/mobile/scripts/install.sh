@@ -261,8 +261,7 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
       cleanupCommand: process.argv[12],
       productDiffExcludes: [
         ":(exclude)" + process.argv[10],
-        ":(exclude).skills-cache",
-        ":(exclude)temp/agentic/recipe-harness"
+        ":(exclude).skills-cache"
       ],
       note: "This checkout already contains the first-party Mobile agentic harness. Skill install only writes recipe-harness metadata and must not overwrite tracked product harness files."
     };

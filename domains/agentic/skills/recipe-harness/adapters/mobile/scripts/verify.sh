@@ -24,6 +24,10 @@ case "$PREFLIGHT_MODE" in
   fast|auto|default|rebuild-native|clean) ;;
   *) echo "Unknown --preflight-mode: $PREFLIGHT_MODE" >&2; exit 2 ;;
 esac
+case "$PLATFORM" in
+  ios|android) ;;
+  *) echo "Unknown --platform: $PLATFORM (expected ios or android)" >&2; exit 2 ;;
+esac
 
 case "$AUTO_START" in
   1|true|TRUE|True|yes|YES|Yes|on|ON|On) AUTO_START=true ;;
@@ -117,7 +121,8 @@ function run(cmd) {
 }
 const pid = run(`lsof -iTCP:${port} -sTCP:LISTEN -t | head -1`);
 let command = '';
-if (pid) command = run(`ps -p ${pid} -o command=`);
+// Validate pid is numeric before interpolating it into the `ps -p` shell string.
+if (/^[0-9]+$/.test(pid)) command = run(`ps -p ${pid} -o command=`);
 console.log(JSON.stringify({
   port,
   listening: Boolean(pid),
@@ -472,7 +477,7 @@ function runGit(args) {
   }
 }
 const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || 'temp/agentic/recipe-harness';
-const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
+const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),
   head: runGit(['rev-parse', '--short', 'HEAD']),

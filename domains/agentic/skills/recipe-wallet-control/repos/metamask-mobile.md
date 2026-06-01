@@ -5,7 +5,7 @@ parent: recipe-wallet-control
 
 # Recipe Wallet Control — MetaMask Mobile
 
-Use the agentic mobile scripts under `scripts/perps/agentic/` to drive a debug MetaMask Mobile app through wallet-semantic primitives. The shell wrappers call `scripts/perps/agentic/cdp-bridge.js` for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs. Reuse `simulator-control` or `agent-device` for generic device inspection when useful, but prefer this overlay for wallet setup, route navigation, screenshots, and controller state.
+Drive a debug MetaMask Mobile app through wallet-semantic **v1 manifest actions** (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*`) run by the recipe runner. The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Author recipes with the actions below; reach for raw bridge shell commands only for interactive debugging/inspection. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
 
 ## Harness Launch Requirement
 
@@ -54,52 +54,44 @@ bash scripts/perps/agentic/preflight.sh \
 
 ### `metamask.wallet.ensure_unlocked`
 
-Use the Recipe v1 wallet action to unlock an existing vault with the fixture password:
+Unlock an existing vault with the seeded fixture password. The action is idempotent — it inspects lock state and only unlocks if needed:
 
-```bash
-MM_PASSWORD="$WALLET_PASSWORD" bash scripts/perps/agentic/unlock-wallet.sh
-# or
-bash scripts/perps/agentic/unlock-wallet.sh "$WALLET_PASSWORD"
+```json
+{ "action": "metamask.wallet.ensure_unlocked", "timeout_ms": 45000 }
 ```
 
-Expected output prints the current route, unlock result, and route after unlock. Failure usually means the app is not on the login screen, the password is wrong, or CDP is disconnected.
+The password comes from the wallet fixture supplied to the run, not a node field. Failure usually means the app is not on the login screen, the fixture password is wrong, or CDP is disconnected.
 
 ### `metamask.wallet.setup`
 
-Use the Recipe v1 wallet setup action to seed a debug wallet from a JSON fixture:
+Seed a debug wallet from the run's JSON fixture:
 
-```bash
-bash scripts/perps/agentic/setup-wallet.sh --fixture .agent/wallet-fixture.json
+```json
+{ "action": "metamask.wallet.setup", "timeout_ms": 45000 }
 ```
 
-Expected output validates the fixture, creates or unlocks the vault, and prints an account summary. For validation evidence, start from clean state or capture a before/after account assertion because the script intentionally skips creation when a vault already exists.
+The fixture (accounts, password, settings) is provided to the run by the harness, not a node field. Setup validates the fixture, creates or unlocks the vault, and yields an account summary. For validation evidence, start from clean state or capture a before/after account assertion, because setup intentionally skips creation when a vault already exists.
 
 ### `ui.navigate`
 
 Use the official `ui.navigate` action with a raw app `route` (and optional `params`) for any app, wallet, or Perps destination. There is no wallet- or perps-specific navigate action:
 
-```bash
-bash scripts/perps/agentic/app-navigate.sh WalletTabHome
-bash scripts/perps/agentic/app-navigate.sh PerpsMarketDetails '{"market":{"symbol":"BTC","name":"BTC","price":"0","change24h":"0","change24hPercent":"0","volume":"0","maxLeverage":"100"}}'
+```json
+{ "action": "ui.navigate", "route": "WalletTabHome", "timeout_ms": 30000 }
+{ "action": "ui.navigate", "route": "PerpsMarketDetails", "params": { "market": { "symbol": "BTC", "name": "BTC", "price": "0", "change24h": "0", "change24hPercent": "0", "volume": "0", "maxLeverage": "100" } }, "timeout_ms": 30000 }
 ```
 
-Expected output prints the previous and current routes and, unless `--no-screenshot` is used, a verification screenshot path. If a route fails, list mounted routes first:
-
-```bash
-bash scripts/perps/agentic/app-navigate.sh --list
-```
-
-Some route aliases are idempotent when the app is already on the target tab/screen. Treat "previous route equals current route" as success only when the route/status evidence matches the intended destination.
+`ui.navigate` reports the previous and current routes; pair it with a `ui.wait_for` on a screen `test_id` to prove the destination settled. Some routes are idempotent when the app is already on the target tab/screen — treat "previous route equals current route" as success only when a following `ui.wait_for`/screenshot confirms the intended destination. If a route name is wrong the action fails with the attempted route; confirm route names against the app's navigation config.
 
 ### `ui.screenshot`
 
-Capture the current simulator/emulator screen through the Recipe v1 screenshot action:
+Capture the current simulator/emulator screen through the official screenshot action:
 
-```bash
-bash scripts/perps/agentic/screenshot.sh recipe-wallet-control-home
+```json
+{ "action": "ui.screenshot", "path": "screenshots/recipe-wallet-control-home.png" }
 ```
 
-Expected output is an absolute PNG path under `.agent/screenshots/`. Failure usually means no matching booted simulator or connected Android device was found.
+The runner writes the PNG under the run's artifacts dir. Failure usually means no matching booted simulator or connected Android device was found.
 
 ### `metamask.wallet.read_state`
 
@@ -117,39 +109,48 @@ Use these only to complete real UI flows around the wallet primitives. Do not in
 
 ### `ui.press`
 
-```bash
-bash scripts/perps/agentic/app-state.sh press <testId>
+```json
+{ "action": "ui.press", "target": "<testId>" }
 ```
 
-### text entry
+### `ui.set_input`
 
-```bash
-bash scripts/perps/agentic/app-state.sh set-input <testId> "text value"
+```json
+{ "action": "ui.set_input", "test_id": "<testId>", "value": "text value" }
 ```
 
 ### `ui.scroll`
 
-```bash
-bash scripts/perps/agentic/app-state.sh scroll --test-id <testId> --offset 600
-bash scripts/perps/agentic/app-state.sh scroll --offset 600
+```json
+{ "action": "ui.scroll", "test_id": "<testId>", "scroll_into_view": true }
+{ "action": "ui.scroll", "delta_y": 600 }
 ```
 
 ### `ui.wait_for`
 
-Prefer Recipe v1 `ui.wait_for` nodes for repeated polling. For a one-off check, poll a route or expression with `app-state.sh route` or `app-state.sh eval` in the shell and fail loudly on timeout.
+```json
+{ "action": "ui.wait_for", "test_id": "<testId>", "expected": "present", "timeout_ms": 30000 }
+{ "action": "ui.wait_for", "text": "Perps", "timeout_ms": 30000 }
+```
 
-### go back
+Prefer `ui.wait_for` over fixed sleeps for any settle/poll condition; fail loudly on timeout.
+
+### go back (bridge debug)
+
+There is no v1 "go back" action. In recipes, drive back-navigation through the real UI (`ui.press` a back control). For interactive debugging only, the installed bridge exposes:
 
 ```bash
 bash scripts/perps/agentic/app-state.sh can-go-back
 bash scripts/perps/agentic/app-state.sh go-back
 ```
 
-### guarded raw CDP inspection
+### guarded raw CDP inspection (bridge debug)
+
+There is no v1 eval action. For inspection or debug-only setup only, the installed bridge exposes raw eval:
 
 ```bash
 bash scripts/perps/agentic/app-state.sh eval 'JSON.stringify({route: globalThis.__AGENTIC__.getRoute().name})'
 bash scripts/perps/agentic/app-state.sh eval-async '(async function(){ return JSON.stringify(await someDebugCall()); })()'
 ```
 
-Use raw eval for inspection or debug-only setup, not to fabricate a passing assertion.
+Use raw eval for inspection or debug-only setup, not to fabricate a passing assertion. Recipes must prove state through manifest actions (`metamask.wallet.read_state`, `metamask.perps.read_*`, `assert_json`), never raw eval.

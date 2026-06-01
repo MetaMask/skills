@@ -152,7 +152,7 @@ node -e '
     recommendedCommandEnv: { unset: ["BUNDLED_DEBUGPY_PATH"] },
     backupDir: null,
     cleanupCommand: process.argv[12],
-    productDiffExcludes: [":(exclude)" + process.argv[10], ":(exclude).skills-cache", ":(exclude)temp/agentic/recipe-harness"]
+    productDiffExcludes: [":(exclude)" + process.argv[10], ":(exclude).skills-cache"]
   };
   fs.writeFileSync(process.argv[9], JSON.stringify(m, null, 2) + "\n");
 ' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json" "$HARNESS_ROOT" "$HARNESS_REL" "$CLEANUP_COMMAND"

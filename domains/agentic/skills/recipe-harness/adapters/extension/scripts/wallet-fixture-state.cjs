@@ -371,6 +371,12 @@ async function generate(args) {
   const hasExplicitMnemonic = getFixtureAccounts(wallet).some(
     (account) => account.type === 'mnemonic' && typeof account.value === 'string' && account.value.trim(),
   );
+  // NOTE: currently unreachable. getFixtureAccounts()/buildKeyringEntries() above
+  // require an explicit mnemonic and throw earlier when none is present, so
+  // `!hasExplicitMnemonic` is never true at this point. Retained as the intended
+  // future path for reusing an existing encrypted vault when a fixture supplies a
+  // `vault` blob instead of a mnemonic; relax the upstream mnemonic requirement
+  // before relying on it.
   if (!hasExplicitMnemonic && typeof wallet.vault === 'string' && wallet.vault.length > 0) {
     const existingKeyrings = await browserPassworder.decrypt(wallet.password, wallet.vault);
     const existingHd = existingKeyrings.find((keyring) => keyring?.type === 'HD Key Tree');
