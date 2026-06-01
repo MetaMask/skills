@@ -99,6 +99,11 @@ add_git_exclude() {
   if ! git_dir="$(git -C "$TARGET" rev-parse --git-dir 2>/dev/null)"; then
     return 0
   fi
+  # Skip if the path is already gitignored (e.g. a temp/-rooted harness under an
+  # existing temp/ rule) — no redundant info/exclude entry needed.
+  if git -C "$TARGET" check-ignore -q "${entry%/}" 2>/dev/null; then
+    return 0
+  fi
   case "$git_dir" in
     /*) ;;
     *) git_dir="$TARGET/$git_dir" ;;
