@@ -299,6 +299,61 @@ case "$df_status" in
   *)     checks+=("{\"name\":\"dist-freshness\",\"status\":\"warn\",\"detail\":\"${df_status:-unknown}; see logs/dist-freshness.json\"}") ;;
 esac
 
+# build-health: a broken webpack build (Module build failed / compiled with
+# errors) can come from the RIGHT commit (dist-freshness passes) yet fail to
+# render Perps at runtime. Read the watch log deterministically so the agent gets
+# "build broken -> clean+rebuild" instead of debugging it by hand.
+build_health_json() {
+  TARGET_FOR_BUILD="$TARGET" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const target = process.env.TARGET_FOR_BUILD;
+function emit(o) { process.stdout.write(JSON.stringify(o)); process.exit(0); }
+const logs = ['temp/runtime/webpack.log', 'temp/runtime/recipe-harness-webpack.log']
+  .map((rel) => path.join(target, rel)).filter((f) => fs.existsSync(f));
+if (!logs.length) emit({ status: 'no-watch', message: 'no webpack watch log; build-health n/a (e.g. one-shot build).' });
+const log = logs.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
+const lines = fs.readFileSync(log, 'utf8').split('\n');
+const ERR = /Module build failed|^ERROR in |compiled with [1-9][0-9]* error/;
+const OK = /compiled successfully|compiled with [0-9]+ warning|MetaMask .* compiled|Bundle end: service worker|Bundle end:.*app-init/i;
+let lastErr = -1, lastOk = -1;
+for (let i = 0; i < lines.length; i++) {
+  if (ERR.test(lines[i])) lastErr = i;
+  if (OK.test(lines[i])) lastOk = i;
+}
+if (lastErr > lastOk) {
+  const excerpt = lines.slice(lastErr, lastErr + 3).join(' | ').slice(0, 400);
+  const staleCache = /ENOENT/.test(excerpt) && /node_modules/.test(excerpt);
+  emit({ status: 'errors', reason: staleCache ? 'stale-cache' : 'build-error', excerpt,
+    message: staleCache
+      ? 'webpack build failing on a stale cache (ENOENT on a deduped module). Run `recipe-harness extension live --cdp-port <port> --start-watch` to auto-clear the cache and rebuild.'
+      : 'webpack build has errors; fix the source/build before validating.' });
+}
+if (lastOk >= 0) emit({ status: 'ok', message: 'webpack compiled.' });
+emit({ status: 'building', message: 'webpack has not reported a successful compile yet.' });
+NODE
+}
+
+build_health_json > "$ARTIFACTS/logs/build-health.json" 2>/dev/null \
+  || printf '%s' '{"status":"unknown","message":"build-health probe error"}' > "$ARTIFACTS/logs/build-health.json"
+bh_read() { node -e 'const fs=require("fs");try{process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[process.argv[2]]??""))}catch{process.stdout.write("")}' "$ARTIFACTS/logs/build-health.json" "$1"; }
+bh_status="$(bh_read status)"
+echo "build-health: ${bh_status:-unknown} — $(bh_read message)" >&2
+case "$bh_status" in
+  ok|no-watch) checks+=("{\"name\":\"build-health\",\"status\":\"pass\"}") ;;
+  errors)
+    # A broken build only fails a LIVE verify; in --static-only (install-shape only)
+    # it is a loud warning so install/idempotency checks aren't regressed.
+    if [ "$STATIC_ONLY" = false ]; then
+      checks+=("{\"name\":\"build-health\",\"status\":\"fail\",\"detail\":\"see logs/build-health.json\"}"); status="fail"
+    else
+      checks+=("{\"name\":\"build-health\",\"status\":\"warn\",\"detail\":\"build errors (static-only); see logs/build-health.json\"}")
+    fi
+    ;;
+  building) checks+=("{\"name\":\"build-health\",\"status\":\"warn\",\"detail\":\"still compiling; see logs/build-health.json\"}") ;;
+  *)        checks+=("{\"name\":\"build-health\",\"status\":\"warn\",\"detail\":\"${bh_status:-unknown}; see logs/build-health.json\"}") ;;
+esac
+
 read_fixture_password() {
   TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
 const fs = require('fs');
