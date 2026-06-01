@@ -89,6 +89,7 @@ done
 # installed adapter scripts are self-contained when run from .agent.
 mkdir -p "$HARNESS_DIR/scripts/lib"
 cp "$SKILL_DIR/scripts/lib/json-field.sh" "$HARNESS_DIR/scripts/lib/json-field.sh"
+cp "$SKILL_DIR/scripts/lib/harness-path.sh" "$HARNESS_DIR/scripts/lib/harness-path.sh"
 dir_content_hash "$HARNESS_DIR/scripts" > "$HARNESS_DIR/installed-scripts.sha256"
 
 add_git_exclude() {

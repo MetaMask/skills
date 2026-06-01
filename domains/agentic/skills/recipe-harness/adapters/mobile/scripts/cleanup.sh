@@ -16,7 +16,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET="$(cd "$TARGET" && pwd)"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/hash-helpers.sh"
-HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
+# shellcheck disable=SC1091
+for _hp in "$SCRIPT_DIR/lib/harness-path.sh" "$SCRIPT_DIR/../../../scripts/lib/harness-path.sh"; do
+  [ -f "$_hp" ] && { . "$_hp"; break; }
+done
+unset _hp
+if ! command -v harness_root >/dev/null 2>&1; then
+  echo "recipe-harness: shared lib scripts/lib/harness-path.sh not found; reinstall the harness." >&2
+  exit 1
+fi
+HARNESS_DIR="$(harness_dir "$TARGET" mobile)"
 if GIT_BACKUP_PATH="$(git -C "$TARGET" rev-parse --git-path recipe-harness/mobile/backup 2>/dev/null)"; then
   case "$GIT_BACKUP_PATH" in
     /*) BACKUP_DIR="$GIT_BACKUP_PATH" ;;

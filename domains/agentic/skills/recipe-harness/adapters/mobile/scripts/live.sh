@@ -25,8 +25,17 @@ case "$PLATFORM" in ios|android) ;; *) echo "Unknown --platform: $PLATFORM" >&2;
 case "$PREFLIGHT_MODE" in fast|auto|default|rebuild-native|clean) ;; *) echo "Unknown --preflight-mode: $PREFLIGHT_MODE" >&2; exit 2 ;; esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+for _hp in "$SCRIPT_DIR/lib/harness-path.sh" "$SCRIPT_DIR/../../../scripts/lib/harness-path.sh"; do
+  [ -f "$_hp" ] && { . "$_hp"; break; }
+done
+unset _hp
+if ! command -v harness_root >/dev/null 2>&1; then
+  echo "recipe-harness: shared lib scripts/lib/harness-path.sh not found; reinstall the harness." >&2
+  exit 1
+fi
 TARGET="$(cd "$TARGET" && pwd)"
-ARTIFACTS="${ARTIFACTS:-$TARGET/.agent/recipe-harness/mobile/live/$(date -u +%Y%m%dT%H%M%SZ)}"
+ARTIFACTS="${ARTIFACTS:-$(harness_dir "$TARGET" mobile)/live/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS"
 
 launch_args=(--target "$TARGET" --platform "$PLATFORM" --preflight-mode "$PREFLIGHT_MODE" --artifacts-dir "$ARTIFACTS/launch")

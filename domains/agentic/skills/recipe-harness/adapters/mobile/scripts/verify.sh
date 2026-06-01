@@ -31,8 +31,20 @@ case "$AUTO_START" in
   *) echo "Unknown RECIPE_HARNESS_MOBILE_AUTO_START value: $AUTO_START" >&2; exit 2 ;;
 esac
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+for _hp in "$SCRIPT_DIR/lib/harness-path.sh" "$SCRIPT_DIR/../../../scripts/lib/harness-path.sh"; do
+  [ -f "$_hp" ] && { . "$_hp"; break; }
+done
+unset _hp
+if ! command -v harness_root >/dev/null 2>&1; then
+  echo "recipe-harness: shared lib scripts/lib/harness-path.sh not found; reinstall the harness." >&2
+  exit 1
+fi
 TARGET="$(cd "$TARGET" && pwd)"
-HARNESS_DIR="$TARGET/.agent/recipe-harness/mobile"
+HARNESS_ROOT="$(harness_root)"
+HARNESS_REL="$HARNESS_ROOT/mobile"
+HARNESS_DIR="$(harness_dir "$TARGET" mobile)"
 RUNNER_BIN="$HARNESS_DIR/runner/bin/metamask-recipe"
 ARTIFACTS="${ARTIFACTS:-$HARNESS_DIR/verify/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
@@ -182,9 +194,9 @@ check_file() {
   fi
 }
 
-check_file ".agent/recipe-harness/mobile/manifest.json"
-check_file ".agent/recipe-harness/mobile/action-manifest.json"
-check_file ".agent/recipe-harness/mobile/runner/bin/metamask-recipe"
+check_file "$HARNESS_REL/manifest.json"
+check_file "$HARNESS_REL/action-manifest.json"
+check_file "$HARNESS_REL/runner/bin/metamask-recipe"
 check_file "package.json"
 check_file "scripts/perps/agentic/cdp-bridge.js"
 check_file "app/core/AgenticService/AgenticService.ts"
@@ -383,7 +395,7 @@ JSON
   fi
 fi
 
-RECIPE_HARNESS_PREFLIGHT_MODE="$PREFLIGHT_MODE" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
+RECIPE_HARNESS_PREFLIGHT_MODE="$PREFLIGHT_MODE" RECIPE_HARNESS_ROOT_EXCLUDE="$HARNESS_ROOT" node - "$ARTIFACTS" "$TARGET" "$status" "${checks[@]}" <<'NODE'
 const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
@@ -404,7 +416,8 @@ function runGit(args) {
     return null;
   }
 }
-const statusShort = runGit(['status', '--short', '--', '.', ':(exclude).agent/recipe-harness', ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
+const harnessRootExclude = process.env.RECIPE_HARNESS_ROOT_EXCLUDE || '.agent/recipe-harness';
+const statusShort = runGit(['status', '--short', '--', '.', `:(exclude)${harnessRootExclude}`, ':(exclude).skills-cache', ':(exclude)temp/agentic/recipe-harness']);
 const gitStatus = {
   branch: runGit(['branch', '--show-current']),
   head: runGit(['rev-parse', '--short', 'HEAD']),
