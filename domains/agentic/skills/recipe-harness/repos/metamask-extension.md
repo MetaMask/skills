@@ -31,6 +31,17 @@ domains/agentic/skills/recipe-harness/scripts/recipe-harness.sh extension verify
 
 Use `mme-4` for Extension validation when available.
 
+## Runtime readiness (deterministic)
+
+Slots run `watch=off` (frozen, no watcher). Don't hand-debug — the runner decides.
+Full reference: `<harness>/extension/runner/docs/extension-runtime-commands.md`.
+
+- need? → `runtime-decision … --cdp-port <port> --json`; branch `.decision` (`install`|`build`|`relaunch`|`ready`). Don't re-parse webpack logs.
+- id? → `resolve-extension …` (deterministic from dist `key`; never `serviceWorkers()[0]`).
+- one healthy tab → `ensure-ready … --cdp-port <port>` after launch/reopen.
+
+After editing source: `runtime-decision → build? → refresh-build.sh` (one-shot, no watcher) `→ ensure-ready`. Human hot-reload instead: relaunch `--watch on`.
+
 ## Runtime Dependencies
 
 The copied Extension runner expects the target checkout to provide its normal Node dependency set, including `@playwright/test`, `@metamask/client-mcp-core`, and `ws`. If verify fails with module-resolution errors, run the repo's package install/bootstrap first; do not treat that as product behavior failure.

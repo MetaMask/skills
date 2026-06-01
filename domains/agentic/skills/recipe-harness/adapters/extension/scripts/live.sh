@@ -32,6 +32,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/path.sh"
 TARGET="$(cd "$TARGET" && pwd)"
+# Runner bin (installed wrapper → source runner). Used by the watch prepare path
+# to defer the cache-clear DECISION to `runtime-decision` (single source) and to
+# record the deps/cache baseline after a confirmed-good build.
+RUNNER_BIN="$(harness_dir "$TARGET" extension)/runner/bin/metamask-recipe"
 OUT="${OUT:-$(harness_root)/extension/runner/recipes}"
 ARTIFACTS="${ARTIFACTS:-$(harness_dir "$TARGET" extension)/live/$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$ARTIFACTS/logs"
@@ -72,6 +76,7 @@ if $LAUNCH_EXISTING_DIST && [ -z "$PREPARE_CMD" ]; then
   quoted_fixture_validation="$(printf '%q' "$FIXTURE_VALIDATION_ABS")"
   quoted_extension_id_file="$(printf '%q' "$TARGET/temp/runtime/extension.id")"
   quoted_target="$(printf '%q' "$TARGET")"
+  quoted_runner="$(printf '%q' "$RUNNER_BIN")"
   if [ -n "${RECIPE_HARNESS_CHROME_BIN:-}" ]; then
     CHROME_BIN="$RECIPE_HARNESS_CHROME_BIN"
     if [ ! -f "$CHROME_BIN" ] || [ ! -x "$CHROME_BIN" ]; then
@@ -127,17 +132,17 @@ NODE
   prepare_parts=()
   if $START_WATCH; then
     prepare_parts+=("mkdir -p temp/runtime")
-    # Deterministic self-heal: if the webpack cache predates the last dependency
-    # install it can reference deduped/removed nested module paths and fail every
-    # build with "Module build failed (ENOENT ... node_modules ...)". Clear it (and
-    # any watch built on the poisoned cache) so the rebuild is clean — no agent
-    # debugging required. Cheap mtime check, no-op when the cache is current.
-    prepare_parts+=("cache=node_modules/.cache/webpack; stale=false; if [ -d \"\$cache\" ]; then for dep in yarn.lock node_modules/.yarn-state.yml .yarn/install-state.gz; do if [ -e \"\$dep\" ] && [ \"\$dep\" -nt \"\$cache\" ]; then stale=true; break; fi; done; fi; if [ \"\$stale\" = true ]; then echo '[recipe-harness] deps changed since last build; clearing stale webpack cache + restarting watch'; rm -rf \"\$cache\"; if [ -f temp/runtime/recipe-harness-webpack.pid ]; then kill \"\$(cat temp/runtime/recipe-harness-webpack.pid 2>/dev/null)\" >/dev/null 2>&1 || true; rm -f temp/runtime/recipe-harness-webpack.pid; fi; fi")
+    # Deterministic self-heal, single-source: ask the runner whether the webpack
+    # cache is poisoned (a post-install dedup leaves ENOENT-on-a-deduped-module
+    # builds). `runtime-decision` owns this logic now (matching farmslot
+    # preflight's fingerprint), so the skill no longer hand-rolls an mtime check.
+    # `clean:true` means clear the cache + restart any watch built on it.
+    prepare_parts+=("clean=\$(${quoted_runner} runtime-decision --adapter extension --target . --json 2>/dev/null | node -e 'let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{try{process.stdout.write(JSON.parse(d).clean?\"1\":\"0\")}catch{process.stdout.write(\"0\")}})'); if [ \"\$clean\" = \"1\" ]; then echo '[recipe-harness] runtime-decision: webpack cache stale — clearing + restarting watch'; rm -rf node_modules/.cache/webpack; if [ -f temp/runtime/recipe-harness-webpack.pid ]; then kill \"\$(cat temp/runtime/recipe-harness-webpack.pid 2>/dev/null)\" >/dev/null 2>&1 || true; rm -f temp/runtime/recipe-harness-webpack.pid; fi; fi")
     # Scope watcher reuse to this checkout. A machine-global pgrep can match an
     # unrelated repo and leave this target validating stale dist/chrome output.
     prepare_parts+=("watch_pid_file=temp/runtime/recipe-harness-webpack.pid; watch_log=temp/runtime/recipe-harness-webpack.log; if [ -f \"\$watch_pid_file\" ]; then watch_pid=\$(cat \"\$watch_pid_file\" 2>/dev/null || true); else watch_pid=; fi; if [ -z \"\$watch_pid\" ] || ! kill -0 \"\$watch_pid\" >/dev/null 2>&1; then rm -f \"\$watch_pid_file\"; : > \"\$watch_log\"; echo '[recipe-harness] Starting yarn start; streaming temp/runtime/recipe-harness-webpack.log'; nohup env -u BUNDLED_DEBUGPY_PATH yarn start > \"\$watch_log\" 2>&1 & echo \$! > \"\$watch_pid_file\"; else echo \"[recipe-harness] Reusing existing yarn start pid \$watch_pid; streaming temp/runtime/recipe-harness-webpack.log\"; fi")
     prepare_parts+=("tail -n +1 -F temp/runtime/recipe-harness-webpack.log & watch_tail_pid=\$!")
-    prepare_parts+=("compiled=false; for i in {1..240}; do if grep -Eq 'Module build failed|^ERROR in |compiled with [1-9][0-9]* error' temp/runtime/recipe-harness-webpack.log 2>/dev/null; then kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; echo '[recipe-harness] webpack BUILD FAILED (not waiting for timeout):' >&2; grep -E -A3 'Module build failed|^ERROR in ' temp/runtime/recipe-harness-webpack.log 2>/dev/null | tail -30 >&2; echo '[recipe-harness] If it is a stale-cache ENOENT it should have been auto-cleared; a recurring error here is a real source/build issue to fix.' >&2; exit 1; fi; if grep -Eq 'compiled successfully|compiled with [0-9]+ warning|MetaMask .* compiled|Bundle end: service worker|Bundle end:.*app-init' temp/runtime/recipe-harness-webpack.log 2>/dev/null; then compiled=true; break; fi; sleep 2; done; kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start compilation marker' >&2; tail -80 temp/runtime/recipe-harness-webpack.log >&2 || true; exit 1; fi; echo '[recipe-harness] yarn start compiled successfully'")
+    prepare_parts+=("compiled=false; for i in {1..240}; do if grep -Eq 'Module build failed|^ERROR in |compiled with [1-9][0-9]* error' temp/runtime/recipe-harness-webpack.log 2>/dev/null; then kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; echo '[recipe-harness] webpack BUILD FAILED (not waiting for timeout):' >&2; grep -E -A3 'Module build failed|^ERROR in ' temp/runtime/recipe-harness-webpack.log 2>/dev/null | tail -30 >&2; echo '[recipe-harness] If it is a stale-cache ENOENT it should have been auto-cleared; a recurring error here is a real source/build issue to fix.' >&2; exit 1; fi; if grep -Eq 'compiled successfully|compiled with [0-9]+ warning|MetaMask .* compiled|Bundle end: service worker|Bundle end:.*app-init' temp/runtime/recipe-harness-webpack.log 2>/dev/null; then compiled=true; break; fi; sleep 2; done; kill \"\$watch_tail_pid\" >/dev/null 2>&1 || true; wait \"\$watch_tail_pid\" 2>/dev/null || true; if [ \"\$compiled\" != true ]; then echo 'Timed out waiting for target-scoped yarn start compilation marker' >&2; tail -80 temp/runtime/recipe-harness-webpack.log >&2 || true; exit 1; fi; echo '[recipe-harness] yarn start compiled successfully'; ${quoted_runner} runtime-decision --adapter extension --target . --record --json >/dev/null 2>&1 || true; echo '[recipe-harness] recorded deps/cache baseline (runtime-decision --record)'")
   fi
   prepare_parts+=("for i in {1..180}; do [ -f ${quoted_dist}/manifest.json ] && break; sleep 2; done")
   prepare_parts+=("test -f ${quoted_dist}/manifest.json || exit 1")

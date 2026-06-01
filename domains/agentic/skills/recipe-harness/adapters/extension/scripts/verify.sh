@@ -213,74 +213,41 @@ check_file "$HARNESS_REL/action-manifest.json"
 check_file "$HARNESS_REL/runner/bin/metamask-recipe"
 check_file "$HARNESS_REL/runner/manifests/extension.action-manifest.json"
 
-# dist-freshness: compare git id stamped in manifest.description
-# (development/build/manifest.js) to HEAD; flag validating a build that does not
-# match current source. git+fs only; no-op when ids match.
-dist_freshness_json() {
-  TARGET_FOR_DIST="$TARGET" node <<'NODE'
-const fs = require('fs');
-const path = require('path');
-const cp = require('child_process');
-const target = process.env.TARGET_FOR_DIST;
-const manifestPath = path.join(target, 'dist/chrome/manifest.json');
-function git(args) {
-  try { return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
-  catch { return null; }
-}
-// Untrimmed: porcelain path starts at col 3; trimming drops the leading
-// space of " M file" and misaligns the slice.
-function gitRaw(args) {
-  try { return cp.execFileSync('git', ['-C', target, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); }
-  catch { return ''; }
-}
-function emit(obj) { process.stdout.write(JSON.stringify(obj)); process.exit(0); }
-if (!fs.existsSync(manifestPath)) {
-  emit({ status: 'no-build', message: 'no dist/chrome/manifest.json.' });
-}
-let manifest;
-try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
-catch { emit({ status: 'no-build', message: 'manifest.json unreadable.' }); }
-const match = String(manifest.description || '').match(/from git id:\s*([0-9a-f]{7,40})/i);
-const head = (git(['rev-parse', 'HEAD']) || '').toLowerCase();
-const headShort = head ? head.slice(0, 8) : null;
-if (!match) {
-  emit({ status: 'unknown', head: headShort, message: 'no git id in dist (prod/unknown build); cannot prove parity.' });
-}
-// Compare on the stamped id's length (manifest stamps 8, format allows 7-40) so a
-// differently-sized stamp never spuriously mismatches.
-const distGitId = match[1].toLowerCase();
-const distShort = distGitId.slice(0, 8);
-if (!head) {
-  emit({ status: 'unknown', distGitId: distShort, message: 'target not a git checkout; cannot compare.' });
-}
-if (head.slice(0, distGitId.length) !== distGitId) {
-  emit({ status: 'stale', reason: 'commit-mismatch', distGitId: distShort, head: headShort,
-    message: `dist id ${distShort} != HEAD ${headShort}; rebuild.` });
-}
-// Same commit: any uncommitted source change means the working tree differs from
-// what was built. -z gives NUL-separated, unquoted paths (spaces/unicode/renames
-// parse correctly); mtime is unreliable since checkout/rsync rewrite it.
-const dirs = ['ui', 'app', 'shared', 'development'].filter((d) => fs.existsSync(path.join(target, d)));
-const SRC = /\.(ts|tsx|js|jsx|cjs|mjs|json|scss|css)$/i;
-const dirty = [];
-if (dirs.length) {
-  const records = gitRaw(['-c', 'core.quotePath=false', 'status', '--porcelain', '-z', '--', ...dirs]).split('\0').filter(Boolean);
-  for (const record of records) {
-    const file = /^.. /.test(record) ? record.slice(3) : record; // strip XY prefix; a rename's old-path record has none
-    if (SRC.test(file)) dirty.push(file);
-  }
-}
-if (dirty.length) {
-  emit({ status: 'stale', reason: 'uncommitted-source', distGitId: distShort, head: headShort,
-    modified: dirty.slice(0, 10),
-    message: `${dirty.length} uncommitted source file(s); rebuild or commit.` });
-}
-emit({ status: 'fresh', distGitId: distShort, head: headShort, message: 'dist id matches HEAD; no uncommitted source.' });
-NODE
-}
-
-dist_freshness_json > "$ARTIFACTS/logs/dist-freshness.json" 2>/dev/null \
-  || printf '%s' '{"status":"unknown","message":"dist-freshness probe error"}' > "$ARTIFACTS/logs/dist-freshness.json"
+# dist-freshness + build-health now come from the runner's single source of
+# truth (`runtime-decision`), which subsumes the probes this skill used to
+# hand-roll — so the dist-id/source-dirty + webpack-log logic lives in ONE place
+# (matching farmslot preflight's algorithm) and the three layers cannot disagree.
+# git/fs only (no --cdp-port) so this stays harness-independent. The derived
+# dist-freshness.json / build-health.json keep the same status vocab the case
+# mappings + summary below already consume, so behavior is unchanged.
+"$RUNNER_BIN" runtime-decision --adapter extension --target "$TARGET" --json \
+  > "$ARTIFACTS/logs/runtime-decision.json" 2>/dev/null \
+  || printf '%s' '{}' > "$ARTIFACTS/logs/runtime-decision.json"
+node -e '
+const fs = require("fs");
+const dir = process.argv[1];
+let r = {};
+try { r = JSON.parse(fs.readFileSync(dir + "/runtime-decision.json", "utf8")); } catch {}
+const c = r.checks || {};
+const dist = c.dist || { status: "unknown" };
+const distMsg = dist.status === "fresh" ? "dist id matches HEAD; no uncommitted source."
+  : dist.status === "stale" ? (dist.reason === "uncommitted-source"
+      ? ((dist.modified ? dist.modified.length : "some") + " uncommitted source file(s); rebuild or commit.")
+      : ("dist id " + (dist.distGitId || "?") + " != HEAD " + (dist.head || "?") + "; rebuild."))
+  : dist.status === "no-build" ? "no dist/chrome build."
+  : "no git id in dist or not a git checkout; cannot prove parity.";
+fs.writeFileSync(dir + "/dist-freshness.json", JSON.stringify({ ...dist, message: distMsg }));
+const bl = c.buildLog || { status: "unknown" };
+const blMsg = bl.status === "ok" ? "webpack compiled."
+  : bl.status === "no-watch" ? "no webpack watch log; build-health n/a (e.g. one-shot build)."
+  : bl.status === "building" ? "webpack has not reported a successful compile yet."
+  : bl.status === "errors" ? (bl.reason === "stale-cache"
+      ? "webpack build failing on a stale cache (ENOENT on a deduped module). Run `recipe-harness extension live --cdp-port <port> --start-watch` to auto-clear the cache and rebuild."
+      : "webpack build has errors; fix the source/build before validating.")
+  : "build-health unknown.";
+fs.writeFileSync(dir + "/build-health.json", JSON.stringify({ status: bl.status, reason: bl.reason, excerpt: bl.excerpt, message: blMsg }));
+' "$ARTIFACTS/logs" 2>/dev/null \
+  || { printf '%s' '{"status":"unknown","message":"dist-freshness probe error"}' > "$ARTIFACTS/logs/dist-freshness.json"; printf '%s' '{"status":"unknown","message":"build-health probe error"}' > "$ARTIFACTS/logs/build-health.json"; }
 df_read() { node -e 'const fs=require("fs");try{const v=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(String(v[process.argv[2]]??""))}catch{process.stdout.write("")}' "$ARTIFACTS/logs/dist-freshness.json" "$1"; }
 df_status="$(df_read status)"
 echo "dist-freshness: ${df_status:-unknown} — $(df_read message)" >&2
@@ -299,43 +266,8 @@ case "$df_status" in
   *)     checks+=("{\"name\":\"dist-freshness\",\"status\":\"warn\",\"detail\":\"${df_status:-unknown}; see logs/dist-freshness.json\"}") ;;
 esac
 
-# build-health: a broken webpack build (Module build failed / compiled with
-# errors) can come from the RIGHT commit (dist-freshness passes) yet fail to
-# render Perps at runtime. Read the watch log deterministically so the agent gets
-# "build broken -> clean+rebuild" instead of debugging it by hand.
-build_health_json() {
-  TARGET_FOR_BUILD="$TARGET" node <<'NODE'
-const fs = require('fs');
-const path = require('path');
-const target = process.env.TARGET_FOR_BUILD;
-function emit(o) { process.stdout.write(JSON.stringify(o)); process.exit(0); }
-const logs = ['temp/runtime/webpack.log', 'temp/runtime/recipe-harness-webpack.log']
-  .map((rel) => path.join(target, rel)).filter((f) => fs.existsSync(f));
-if (!logs.length) emit({ status: 'no-watch', message: 'no webpack watch log; build-health n/a (e.g. one-shot build).' });
-const log = logs.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
-const lines = fs.readFileSync(log, 'utf8').split('\n');
-const ERR = /Module build failed|^ERROR in |compiled with [1-9][0-9]* error/;
-const OK = /compiled successfully|compiled with [0-9]+ warning|MetaMask .* compiled|Bundle end: service worker|Bundle end:.*app-init/i;
-let lastErr = -1, lastOk = -1;
-for (let i = 0; i < lines.length; i++) {
-  if (ERR.test(lines[i])) lastErr = i;
-  if (OK.test(lines[i])) lastOk = i;
-}
-if (lastErr > lastOk) {
-  const excerpt = lines.slice(lastErr, lastErr + 3).join(' | ').slice(0, 400);
-  const staleCache = /ENOENT/.test(excerpt) && /node_modules/.test(excerpt);
-  emit({ status: 'errors', reason: staleCache ? 'stale-cache' : 'build-error', excerpt,
-    message: staleCache
-      ? 'webpack build failing on a stale cache (ENOENT on a deduped module). Run `recipe-harness extension live --cdp-port <port> --start-watch` to auto-clear the cache and rebuild.'
-      : 'webpack build has errors; fix the source/build before validating.' });
-}
-if (lastOk >= 0) emit({ status: 'ok', message: 'webpack compiled.' });
-emit({ status: 'building', message: 'webpack has not reported a successful compile yet.' });
-NODE
-}
-
-build_health_json > "$ARTIFACTS/logs/build-health.json" 2>/dev/null \
-  || printf '%s' '{"status":"unknown","message":"build-health probe error"}' > "$ARTIFACTS/logs/build-health.json"
+# build-health.json was produced by the runtime-decision derivation above (the
+# runner reads the webpack watch log; same status vocab as before).
 bh_read() { node -e 'const fs=require("fs");try{process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8"))[process.argv[2]]??""))}catch{process.stdout.write("")}' "$ARTIFACTS/logs/build-health.json" "$1"; }
 bh_status="$(bh_read status)"
 echo "build-health: ${bh_status:-unknown} — $(bh_read message)" >&2
