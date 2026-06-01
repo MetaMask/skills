@@ -185,19 +185,23 @@ function main() {
   // 1. ensure artifacts repo
   const repoExists = ghRepoExists(artifactsRepo);
   if (!repoExists) {
-    if (!args.ensureRepo) {
+    // dry-run previews without writes and never requires repo-creation consent.
+    if (!args.ensureRepo && !args.dryRun) {
       throw new Error(`Artifacts repo ${artifactsRepo} does not exist. Re-run with --ensure-repo ONLY after the user gives informed consent: this creates a PUBLIC GitHub repo and uploads the evidence screenshots there, and those screenshots may show wallet state (addresses, balances, positions). Anyone can view a public repo.`);
     }
-    console.error(`[upload] creating PUBLIC artifacts repo ${artifactsRepo} (screenshots may show wallet state — addresses/balances/positions — and are world-readable)`);
-    if (!args.dryRun) gh(['repo', 'create', artifactsRepo, '--public', '--description', `MetaMask ${adapter} farm validation artifacts`]);
+    if (args.dryRun) {
+      console.error(`[upload] dry-run: artifacts repo ${artifactsRepo} does not exist${args.ensureRepo ? ' (would be created with --ensure-repo)' : ' (creating it needs --ensure-repo)'} — no writes.`);
+    } else {
+      console.error(`[upload] creating PUBLIC artifacts repo ${artifactsRepo} (screenshots may show wallet state — addresses/balances/positions — and are world-readable)`);
+      gh(['repo', 'create', artifactsRepo, '--public', '--description', `MetaMask ${adapter} farm validation artifacts`]);
+    }
   }
 
   // 2. upload images
-  // Note: the upload itself is not behind its own flag. It only runs when the
-  // artifacts repo already exists (created by a prior, consent-gated --ensure-repo
-  // run) or was just created via --ensure-repo this run. The recipe-evidence skill
-  // owns informed consent ("ASK before each outward step: repo create, upload, PR
-  // create/edit"), so the human approves the upload before this script is invoked.
+  // The upload is gated above by --confirm-public-upload: it never runs without
+  // that explicit per-run flag (or --dry-run, which writes nothing), even when the
+  // artifacts repo already exists. The recipe-evidence skill also requires human
+  // consent before invoking this script. Do not remove the gate.
   const branchDefault = repoExists || !args.dryRun ? defaultBranch(artifactsRepo) : 'main';
   const urls = [];
   const encodedBranch = encodePathSegments(branch);

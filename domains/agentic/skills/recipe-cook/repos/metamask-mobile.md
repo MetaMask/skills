@@ -47,7 +47,7 @@ Use only action names declared by the installed v1 action manifest. Typical Mobi
 - Tap: `ui.press` with a stable `test_id`, text, or page-object target.
 - Enter text: use a domain action that owns the flow unless the installed manifest declares a text-entry UI action.
 - Scroll: `ui.scroll` with direction/target parameters.
-- Wait: `ui.wait_for` with `test_id`, `text`, `text_contains`, or a manifest-supported predicate.
+- Wait: `ui.wait_for` with `test_id`, `text`, `expected`, or `visible` (manifest-declared fields).
 - Assert wallet/app/domain state: manifest-declared actions such as `metamask.wallet.read_state`, `metamask.perps.assert_positions`, or `assert_json` over a real artifact/output.
 - Capture proof: `ui.screenshot` after `ui.wait_for` or a domain assertion.
 - Index proof: `index_artifacts` for screenshots/logs not automatically registered by the runner.

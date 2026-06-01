@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+'use strict';
+
+// gen-action-vocab.js — regenerate recipe-action-vocab.fixture.json from the
+// MetaMask v1 runner manifests (+ the runner's shipped recipes/*.json).
+//
+// The fixture is the offline source of truth for validate-recipe-docs.js. Action
+// NAMES and field SHAPES come from the runner; per-action field sets are the union
+// of action_metadata.schema.properties, action_metadata.examples node keys, and the
+// fields actually used in the runner's shipped recipes (the manifest examples alone
+// are minimal). Two things are CURATED (not derived) and kept in this generator:
+//   1) app.hud excludes `text` — the manifest action_metadata declares
+//      intent/status/progress/sub_intent/display; `text` is undeclared drift.
+//   2) prose.forbiddenFieldPatterns — removed/never-valid field tokens that must
+//      never appear in recipe docs (prose isn't fully field-validated; see the
+//      validator header). Add new removed-field tokens here when actions change.
+//
+// Usage:
+//   node domains/agentic/skills/recipe-harness/scripts/gen-action-vocab.js \
+//     --runner /path/to/metamask-recipe-runner [--out <fixture.json>]
+//   (RUNNER may also be given via METAMASK_RECIPE_RUNNER_DIR.)
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const UNIVERSAL = ['action', 'next', 'cases', 'default', 'description', 'id', 'phase', 'proofTarget', 'record', 'timeout_ms', 'intent', 'detail', 'flow'];
+
+// Curated denylist of stale/removed field tokens (regex source strings) that must
+// not appear in recipe docs. Kept here so regeneration preserves it.
+const FORBIDDEN_FIELD_PATTERNS = [
+  'text_contains',
+  'must_show',
+  'must_not_show',
+  'poll_ms',
+  'eval_sync',
+  'claims\\.must',
+  '`claims`',
+  '`visibility`',
+  'visibility"?\\s*:\\s*"?viewport',
+  '"strategy"\\s*:\\s*"into_view"',
+];
+
+function parseArgs(argv) {
+  const a = { runner: process.env.METAMASK_RECIPE_RUNNER_DIR || '', out: '' };
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--runner') a.runner = argv[++i] || '';
+    else if (argv[i] === '--out') a.out = argv[++i] || '';
+  }
+  if (!a.runner) {
+    // default to a sibling checkout next to this repo
+    const guess = path.resolve(__dirname, '../../../../../../metamask-recipe-runner');
+    if (fs.existsSync(guess)) a.runner = guess;
+  }
+  if (!a.runner || !fs.existsSync(a.runner)) {
+    throw new Error('gen-action-vocab: pass --runner <metamask-recipe-runner checkout> (or set METAMASK_RECIPE_RUNNER_DIR).');
+  }
+  a.out = a.out || path.join(__dirname, 'recipe-action-vocab.fixture.json');
+  return a;
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const manifestPath = (adapter) => path.join(args.runner, 'manifests', `${adapter}.action-manifest.json`);
+  const m = JSON.parse(fs.readFileSync(manifestPath('mobile'), 'utf8'));
+  const me = JSON.parse(fs.readFileSync(manifestPath('extension'), 'utf8'));
+
+  const official = m.supported_official_actions || [];
+  const officialE = me.supported_official_actions || [];
+  if (JSON.stringify(official) !== JSON.stringify(officialE)) {
+    throw new Error('gen-action-vocab: mobile/extension official action lists differ — review before regenerating.');
+  }
+  const custom = (m.custom_actions || []).map((c) => c.name);
+
+  const md = { ...(m.action_metadata || {}) };
+  for (const c of (m.custom_actions || [])) md[c.name] = c;
+
+  // field usage from the runner's shipped recipes
+  const shipped = {};
+  const recipesDir = path.join(args.runner, 'recipes');
+  for (const f of fs.readdirSync(recipesDir).filter((x) => x.endsWith('.json'))) {
+    const r = JSON.parse(fs.readFileSync(path.join(recipesDir, f), 'utf8'));
+    const nodes = (r.validate && r.validate.workflow && r.validate.workflow.nodes) || {};
+    for (const k of Object.keys(nodes)) {
+      const n = nodes[k];
+      shipped[n.action] = shipped[n.action] || new Set();
+      Object.keys(n).forEach((x) => shipped[n.action].add(x));
+    }
+  }
+
+  const U = new Set(UNIVERSAL);
+  const nameOnly = [];
+  const actionFields = {};
+  for (const a of [...official, ...custom]) {
+    const d = md[a];
+    const hasMeta = d && (d.schema || (Array.isArray(d.examples) && d.examples.length));
+    if (!hasMeta) nameOnly.push(a); // no action_metadata — fields known only from shipped recipes
+    const set = new Set();
+    if (d && d.schema && d.schema.properties) Object.keys(d.schema.properties).forEach((x) => set.add(x));
+    if (d && Array.isArray(d.examples)) for (const e of d.examples) if (e.node) Object.keys(e.node).forEach((x) => set.add(x));
+    if (shipped[a]) shipped[a].forEach((x) => set.add(x));
+    actionFields[a] = [...set].filter((x) => !U.has(x)).sort();
+  }
+  // CURATION: app.hud canonical fields are intent/status/progress/sub_intent/display — NOT text.
+  actionFields['app.hud'] = (actionFields['app.hud'] || []).filter((x) => x !== 'text');
+
+  const fixture = {
+    _provenance: `Generated by gen-action-vocab.js from metamask-recipe-runner manifests (mobile+extension, identical official action sets) and the runner's shipped recipes/*.json. runner_protocol_version=${m.runner_protocol_version}, action_registry_version=${m.action_registry_version}. Per-action fields = union(action_metadata.schema.properties, action_metadata.examples node keys, shipped-recipe node keys) minus universalFields. CURATION: app.hud excludes 'text'. nameOnlyActions have no action_metadata, so their field sets come only from shipped-recipe usage (a new-but-valid field not yet used in a shipped recipe could be flagged — regenerate if so).`,
+    _regenerate: 'node domains/agentic/skills/recipe-harness/scripts/gen-action-vocab.js --runner /path/to/metamask-recipe-runner',
+    protocolVersion: m.runner_protocol_version,
+    registryVersion: m.action_registry_version,
+    officialActions: official,
+    customActions: custom,
+    nameOnlyActions: nameOnly.slice().sort(),
+    universalFields: UNIVERSAL.slice().sort(),
+    actionFields,
+    prose: {
+      _note: 'Prose is not fully field-validated; only fenced ```json recipe blocks and embedded recipes are schema-checked. This denylist (regex sources) catches specific stale/removed field tokens that must never appear in recipe docs.',
+      forbiddenFieldPatterns: FORBIDDEN_FIELD_PATTERNS,
+    },
+  };
+  fs.writeFileSync(args.out, `${JSON.stringify(fixture, null, 2)}\n`);
+  console.error(`gen-action-vocab: wrote ${args.out} (official=${official.length}, custom=${custom.length}, nameOnly=${nameOnly.length}).`);
+}
+
+main();

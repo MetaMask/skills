@@ -18,9 +18,23 @@
 // against it and fails on divergence — that is the "prefer the installed
 // manifest" drift guard. Field schemas always come from the fixture.
 //
-// Checks (exit nonzero on any): (1) a ```json recipe block that does not parse as
-// a single JSON value; (2) an unknown action name; (3) a node field that
-// contradicts the action's known field set. Reports file:line for each.
+// Checks (exit nonzero on any): (1) a fenced json recipe block that does not parse
+// as a single JSON value; (2) an unknown action name; (3) a node field that
+// contradicts the action's known field set; (4) a removed/stale field token in
+// PROSE (denylist in the fixture's prose.forbiddenFieldPatterns). Reports
+// file:line for each.
+//
+// When a manifest is available it is reconciled BOTH ways (fail on actions only in
+// the manifest AND only in the fixture) and hard-fails on an unreadable/empty
+// manifest — a stale fixture or drifted/empty manifest can never report OK.
+//
+// SCOPE LIMIT: only fenced json recipe blocks + the adapter verify.sh embedded
+// recipes are fully field-validated. Free prose is checked ONLY against the
+// stale-field denylist, not the full schema, so a brand-new wrong field in prose
+// (not on the denylist) can still slip through. Keep authoring field guidance in
+// fenced json examples; add removed fields to the denylist via gen-action-vocab.js.
+// nameOnly actions (no action_metadata) are validated against universal + their
+// shipped-recipe field set; a valid-but-never-yet-shipped field could be flagged.
 //
 // Usage:
 //   validate-recipe-docs.js [--manifest <action-manifest.json>] [--target <repo>]
@@ -59,20 +73,30 @@ function loadFixture(fixturePath) {
     nameOnly: new Set(v.nameOnlyActions || []),
     universal: new Set(v.universalFields || []),
     actionFields: v.actionFields || {},
+    forbidden: (v.prose && v.prose.forbiddenFieldPatterns) || [],
     meta: { protocolVersion: v.protocolVersion, registryVersion: v.registryVersion },
   };
 }
 
-// "prefer installed manifest" drift guard: if a manifest is available, ensure the
-// fixture's name lists still match it; mismatch => the fixture must be regenerated.
+// Two-way "prefer installed manifest" drift guard. Hard-fails on an
+// unreadable/empty manifest, and on action sets that diverge in EITHER direction
+// (only-in-manifest = stale fixture; only-in-fixture = removed from manifest), so a
+// stale fixture or a drifted/empty manifest can never report OK.
 function reconcileNames(vocab, manifestPath) {
   let m;
-  try { m = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch { return []; }
+  try { m = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+  catch (e) { return [`manifest ${manifestPath} is unreadable/unparseable: ${e.message}`]; }
   const official = m.supported_official_actions || [];
   const custom = (m.custom_actions || []).map((c) => (typeof c === 'string' ? c : c && c.name)).filter(Boolean);
+  if (!official.length) return [`manifest ${manifestPath} has an empty/absent supported_official_actions list`];
+  if (!custom.length) return [`manifest ${manifestPath} has an empty/absent custom_actions list`];
+  const mOff = new Set(official);
+  const mCus = new Set(custom);
   const errs = [];
-  for (const n of official) if (!vocab.official.has(n)) errs.push(`manifest official action '${n}' missing from fixture — regenerate recipe-action-vocab.fixture.json`);
-  for (const n of custom) if (!vocab.custom.has(n)) errs.push(`manifest custom action '${n}' missing from fixture — regenerate recipe-action-vocab.fixture.json`);
+  for (const n of official) if (!vocab.official.has(n)) errs.push(`official action '${n}' is in the manifest but missing from the fixture — regenerate recipe-action-vocab.fixture.json`);
+  for (const n of custom) if (!vocab.custom.has(n)) errs.push(`custom action '${n}' is in the manifest but missing from the fixture — regenerate recipe-action-vocab.fixture.json`);
+  for (const n of vocab.official) if (!mOff.has(n)) errs.push(`official action '${n}' is in the fixture but not in the manifest (removed/renamed?) — regenerate recipe-action-vocab.fixture.json`);
+  for (const n of vocab.custom) if (!mCus.has(n)) errs.push(`custom action '${n}' is in the fixture but not in the manifest (removed/renamed?) — regenerate recipe-action-vocab.fixture.json`);
   return errs;
 }
 
@@ -85,17 +109,16 @@ function findInstalledManifest(target) {
   return '';
 }
 
-// Collect recipe nodes from a parsed fence value. Returns [] if it is not a recipe.
-function nodesFromValue(value) {
-  if (Array.isArray(value)) return value.filter((v) => v && typeof v === 'object' && typeof v.action === 'string');
+// Deep-collect every object with a string `action` anywhere in the value tree.
+// This covers full recipes (validate.workflow.nodes), single nodes, node arrays,
+// AND inline action nodes nested under cases/default/setup/teardown branches.
+function collectActionNodes(value, out = []) {
+  if (Array.isArray(value)) { for (const v of value) collectActionNodes(v, out); return out; }
   if (value && typeof value === 'object') {
-    const wf = value.validate && value.validate.workflow;
-    if (wf && wf.nodes && typeof wf.nodes === 'object') {
-      return Object.values(wf.nodes).filter((v) => v && typeof v === 'object' && typeof v.action === 'string');
-    }
-    if (typeof value.action === 'string') return [value];
+    if (typeof value.action === 'string') out.push(value);
+    for (const v of Object.values(value)) if (v && typeof v === 'object') collectActionNodes(v, out);
   }
-  return [];
+  return out;
 }
 
 function validateNode(node, vocab, where, violations) {
@@ -104,7 +127,8 @@ function validateNode(node, vocab, where, violations) {
     violations.push(`${where}: unknown action "${action}" (not in supported_official_actions or custom_actions)`);
     return;
   }
-  if (vocab.nameOnly.has(action)) return; // no action_metadata — validate name only
+  // Every action (including nameOnly actions, whose field set is derived from
+  // shipped-recipe usage) is checked against universal + its known field set.
   const allowed = new Set([...vocab.universal, ...(vocab.actionFields[action] || [])]);
   for (const field of Object.keys(node)) {
     if (!allowed.has(field)) {
@@ -118,7 +142,7 @@ function jsonFences(src) {
   const lines = src.split('\n');
   const out = [];
   for (let i = 0; i < lines.length; i += 1) {
-    if (/^\s*```json\s*$/.test(lines[i])) {
+    if (/^\s*```json\s*$/i.test(lines[i])) {
       const startLine = i + 1;
       const buf = [];
       i += 1;
@@ -139,9 +163,23 @@ function validateMarkdown(file, vocab, violations) {
       violations.push(`${where}: json recipe block does not parse as a single JSON value (${e.message}). Wrap multiple node examples in a JSON array.`);
       continue;
     }
-    const nodes = nodesFromValue(value);
+    const nodes = collectActionNodes(value);
     if (!nodes.length) continue; // parsed JSON but not a recipe/node shape
     for (const node of nodes) validateNode(node, vocab, where, violations);
+  }
+}
+
+// Prose isn't fully field-validated; this catches the curated denylist of
+// stale/removed field tokens (fixture prose.forbiddenFieldPatterns) anywhere in a
+// doc — code or prose — so removed fields can't silently linger in guidance.
+function scanProseForbidden(file, vocab, violations) {
+  if (!vocab.forbidden.length) return;
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+  const res = vocab.forbidden.map((p) => ({ src: p, re: new RegExp(p) }));
+  for (let i = 0; i < lines.length; i += 1) {
+    for (const { src, re } of res) {
+      if (re.test(lines[i])) violations.push(`${file}:${i + 1}: stale/removed field token matching /${src}/ in prose — reconcile to the manifest field set`);
+    }
   }
 }
 
@@ -161,7 +199,7 @@ function validateEmbeddedRecipe(file, vocab, violations) {
         violations.push(`${where}: embedded recipe does not parse (${e.message})`);
         continue;
       }
-      for (const node of nodesFromValue(value)) validateNode(node, vocab, where, violations);
+      for (const node of collectActionNodes(value)) validateNode(node, vocab, where, violations);
     }
   }
 }
@@ -195,7 +233,7 @@ function main() {
   }
 
   const mdTargets = args.files.length ? args.files.filter((f) => f.endsWith('.md')) : defaultMarkdownTargets();
-  for (const f of mdTargets) validateMarkdown(f, vocab, violations);
+  for (const f of mdTargets) { validateMarkdown(f, vocab, violations); scanProseForbidden(f, vocab, violations); }
 
   const verifyScripts = args.files.length
     ? args.files.filter((f) => f.endsWith('verify.sh'))

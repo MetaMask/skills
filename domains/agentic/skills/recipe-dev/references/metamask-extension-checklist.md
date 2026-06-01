@@ -44,11 +44,12 @@ Extension-specific gates:
 - Direct app/browser scripts, DOM evals, or screenshots are supporting evidence only. They do not satisfy recipe gates unless `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, and `/mms-recipe-evidence` were explicitly invoked/followed and produced the recipe package artifacts.
 - Do not claim recipe infrastructure is absent just because a repo-root `validate-recipe.js` is missing. Check installed skill delegate paths first (`.claude/skills/mms-recipe-harness`, `.agents/skills/mms-recipe-harness`, `.cursor/rules/mms-recipe-harness`) and follow their scripts/adapters. If no executable `recipe.json` plus harness-produced `summary.json` and `trace.json` exists, classify runtime/visual proof as `FAIL`/`BLOCKED: no recipe protocol`; ad-hoc CDP probes, manual evidence markdown, black screenshots, or human-to-confirm notes do not satisfy the recipe gates.
 - Do not manufacture proof by mutating app state: no `window.stateHooks`, `stateHooks.submitRequestToBackground`, Redux/store writes, React/fiber mutation, DOM injection, controller/provider mutation, or helper that directly creates, closes, clears, seeds, or inserts the target position/value/banner. Use a real user flow or harness-owned pre-start fixture; otherwise mark the affected AC as a fixture/runtime gap.
-- Use viewport visibility + screenshot `claims` for visible UI/copy/layout claims.
+- Use viewport visibility (`ui.scroll` `scroll_into_view` + `ui.wait_for` `visible`) plus a screenshot for visible UI/copy/layout claims.
 - Do not claim success from DOM/controller state alone when ACs describe user-visible behavior.
 - For visual/mixed ACs, never mark an AC `code-proven`. If no runtime PNG/video exists because CDP/browser is unavailable, the visual AC is `BLOCKED: no runtime visual evidence`.
-- Fix schema warnings before packaging visual proof. Screenshot nodes need
-  `note` and `claims`; warning-only schema output is not a clean final state.
+- Fix schema warnings before packaging visual proof. Give `ui.screenshot` nodes a
+  `description` and assert "must (not) show" with `assert_json`/`assert_output`;
+  warning-only schema output is not a clean final state.
 - If the runner/harness does not emit `artifact-manifest.json`, create an
   explicit evidence manifest that lists recipe path, exact command,
   `summary.json`, `trace.json`, logs, screenshots/videos, quality verdict, and

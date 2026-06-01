@@ -63,8 +63,8 @@ Return `fail` or `pass-with-gaps` (never clean `pass`) when any of these apply:
   show the wrong screen/tab/panel;
 - a visual/mixed acceptance criterion relies only on fiber-tree/DOM presence,
   `manifest-declared state assertions`, controller state, or recipe pass status without a viewport
-  assertion (`wait_for` with `visibility: "viewport"`) and screenshot
-  `claims.must_show`;
+  assertion (`ui.scroll` `scroll_into_view` + `ui.wait_for` `visible`) and a
+  screenshot backed by a state assertion;
 - DOM-rendered fallback screenshots may satisfy reviewer-visible evidence only
   when they are labelled as fallback artifacts and derived from the live page in
   the same recipe run;
@@ -99,17 +99,19 @@ Always return these sections:
 
 Use `references/rubric.md` for the full bar. In short, a good recipe is executable, covers each proof target, uses documented repo actions, waits on state rather than time, produces artifacts that prove the claims, and states any unrun gap.
 
+Recipe action/field shapes are mechanically checked by `mms-recipe-harness/scripts/validate-recipe-docs.js` (run in the harness safety contracts) against the committed manifest vocabulary fixture. Note its scope limit: it fully validates fenced ` ```json ` recipe blocks and the adapter embedded recipes, but free prose is only checked against a denylist of removed field tokens. When you cite an action's fields in prose, mirror a fenced JSON example and use only manifest-declared fields (e.g. `ui.wait_for` → `test_id`/`text`/`expected`/`visible`; `ui.screenshot` → `path`/`description`).
+
 For each screenshot/video artifact, read the image/video itself before giving a
 clean pass. Do not infer visual evidence from filename, recipe status, trace
 status, fiber tree, DOM query, or controller assertions. If the caption or
 coverage matrix claims a visible component, the component must be visibly
 present in the artifact and backed by the shared recipe protocol:
 
-- preceding `wait_for` for the target uses `visibility: "viewport"` when a user
-  is supposed to see it;
-- screenshot nodes declare `claims.must_show` for the target and optional
-  `claims.must_not_show` for misleading generic states such as empty funding
-  banners;
+- the preceding `ui.wait_for` for the target uses `visible` (with `ui.scroll`
+  `scroll_into_view` when below the fold) when a user is supposed to see it;
+- screenshot nodes carry a `description`, and "must (not) show" conditions are
+  proven with `assert_json`/`assert_output` (e.g. absence of a misleading generic
+  state such as empty funding banners);
 - if the target is off-screen, the recipe scrolls/navigates first and reruns the
   capture instead of shipping a caveat.
 

@@ -47,12 +47,13 @@ Extension-specific gates:
 - Direct app/browser scripts, DOM evals, or screenshots are supporting evidence only. They do not satisfy gates 5–15 unless `/mms-recipe-harness`, `/mms-recipe-cook`, `/mms-recipe-quality`, and `/mms-recipe-evidence` were explicitly invoked/followed and produced the recipe package artifacts.
 - Do not claim recipe infrastructure is absent just because a repo-root `validate-recipe.js` is missing. Check installed skill delegate paths first (`.claude/skills/mms-recipe-harness`, `.agents/skills/mms-recipe-harness`, `.cursor/rules/mms-recipe-harness`) and follow their scripts/adapters. If no executable `recipe.json` plus harness-produced `summary.json` and `trace.json` exists, classify runtime/visual proof as `FAIL`/`BLOCKED: no recipe protocol`; ad-hoc CDP probes, manual evidence markdown, black screenshots, or human-to-confirm notes do not satisfy the recipe gates.
 - Do not manufacture proof by mutating app state: no `window.stateHooks`, `stateHooks.submitRequestToBackground`, Redux/store writes, React/fiber mutation, DOM injection, controller/provider mutation, or helper that directly creates, closes, clears, seeds, or inserts the target position/value/banner. Use a real user flow or harness-owned pre-start fixture; otherwise mark the affected AC as a fixture/runtime gap.
-- If visual proof is needed, screenshot after a `wait_for` with `visibility: "viewport"` and `claims.must_show`.
+- If visual proof is needed, screenshot after a `ui.wait_for` with `visible` (the target is present and on-screen); use `ui.scroll` with `scroll_into_view` first if it can be below the fold.
 - DOM query or controller eval success is not enough for UI claims; inspect the PNG.
 - For visual/mixed ACs, never mark an AC `code-proven`. If no runtime PNG/video exists because CDP/browser is unavailable, the visual AC is `BLOCKED: no runtime visual evidence`.
 - If CDP/browser state cannot be prepared and runtime-start approval exists, run harness recovery once before declaring `BLOCKED`. If runtime-start approval has not been granted, do not run prepare/watch/Chrome-launch or any command that starts a runtime process; record `BLOCKED: pending runtime-start approval` with the needed command and wait.
-- Fix schema warnings before packaging visual proof. Screenshot nodes need
-  `note` and `claims`; warning-only schema output is not a clean final state.
+- Fix schema warnings before packaging visual proof. Give `ui.screenshot` nodes a
+  `description` and assert "must (not) show" with `assert_json`/`assert_output`;
+  warning-only schema output is not a clean final state.
 - If the runner/harness does not emit `artifact-manifest.json`, create an
   explicit evidence manifest that lists recipe path, exact command,
   `summary.json`, `trace.json`, logs, screenshots/videos, quality verdict, and

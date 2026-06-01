@@ -254,11 +254,14 @@ assert_recipe_docs_validate_clean() {
 }
 
 assert_recipe_docs_validator_catches_bad_recipe() {
-  # Negative test: prove the validator actually catches drift (unknown action +
-  # an invalid assert_json field), so a green run means something.
+  # Negative test: prove the validator actually catches drift (unknown action,
+  # an invalid assert_json field, and a stale field token in PROSE), so a green
+  # run means something.
   local bad="$tmpdir/bad-recipe-doc.md"
   cat > "$bad" <<'MD'
 # deliberately broken recipe doc (negative test fixture)
+
+Wait with `ui.wait_for` using `text_contains` (stale prose field).
 
 ```json
 { "action": "assert_json", "path": "x.json", "equals": { "a": 1 } }
@@ -275,6 +278,32 @@ MD
   [ "$rc" -ne 0 ] || fail "validator did not fail on a deliberately-broken recipe doc"
   grep -q 'equals' /tmp/recipe-harness-validate-bad.log || fail "validator did not flag the invalid assert_json 'equals' field"
   grep -q 'unknown action' /tmp/recipe-harness-validate-bad.log || fail "validator did not flag the unknown action name"
+  grep -q 'text_contains' /tmp/recipe-harness-validate-bad.log || fail "validator did not flag the stale prose field token"
+}
+
+assert_recipe_docs_validator_catches_vocab_drift() {
+  # Two-way reconcile regression: the real fixture vs a minimal manifest must FAIL
+  # on fixture-only (stale/removed) actions; an empty manifest must hard-fail.
+  local cleanmd="$tmpdir/clean-recipe-doc.md"
+  : > "$cleanmd"
+  local minman="$tmpdir/min-action-manifest.json"
+  printf '{"supported_official_actions":["command"],"custom_actions":[{"name":"metamask.wallet.setup"}]}\n' > "$minman"
+  set +e
+  node "$SKILL_DIR/scripts/validate-recipe-docs.js" --manifest "$minman" "$cleanmd" >/tmp/recipe-harness-validate-drift.log 2>&1
+  local rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "validator did not fail on a fixture-vs-minimal-manifest divergence"
+  grep -q 'in the fixture but not in the manifest' /tmp/recipe-harness-validate-drift.log \
+    || fail "validator did not report fixture-only (stale) action divergence"
+
+  local emptyman="$tmpdir/empty-action-manifest.json"
+  printf '{}\n' > "$emptyman"
+  set +e
+  node "$SKILL_DIR/scripts/validate-recipe-docs.js" --manifest "$emptyman" "$cleanmd" >/tmp/recipe-harness-validate-empty.log 2>&1
+  rc=$?
+  set -e
+  [ "$rc" -ne 0 ] || fail "validator did not hard-fail on an empty manifest"
+  grep -qi 'empty/absent' /tmp/recipe-harness-validate-empty.log || fail "validator did not report empty manifest action list"
 }
 
 assert_extension_verify_does_not_autostart_by_default
@@ -288,5 +317,6 @@ assert_mobile_adapter_scripts_parse_with_macos_bash
 assert_extension_start_test_watch_is_target_scoped
 assert_recipe_docs_validate_clean
 assert_recipe_docs_validator_catches_bad_recipe
+assert_recipe_docs_validator_catches_vocab_drift
 
 echo "recipe-harness safety contracts OK"

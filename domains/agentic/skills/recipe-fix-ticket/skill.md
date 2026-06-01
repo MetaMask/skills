@@ -666,8 +666,9 @@ Hard ordering gates:
 - Visual or mixed ACs require screenshot/video evidence tied to that AC.
 - State-only assertions cannot prove visible copy/color/layout claims.
 - Schema warnings on screenshot nodes are quality failures for visual tickets.
-  Add `note` and `claims` to screenshots, then rerun validation instead of
-  treating warning-only schema output as clean.
+  Give the `ui.screenshot` node a `description` and back any "must (not) show"
+  condition with a real assertion (`assert_json`/`assert_output`), then rerun
+  validation instead of treating warning-only schema output as clean.
 - The evidence package must contain `artifact-manifest.json` from the harness or
   an explicit evidence manifest you create that lists `summary.json`,
   `trace.json`, logs, screenshots/videos, quality verdict, and recipe path.
