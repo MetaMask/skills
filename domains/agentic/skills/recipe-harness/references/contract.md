@@ -2,7 +2,7 @@
 
 ## Manifest
 
-Each install writes `.agent/recipe-harness/<adapter>/manifest.json` in the target checkout.
+Each install writes `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/manifest.json` in the target checkout.
 
 Required fields:
 
@@ -22,7 +22,7 @@ Mobile app overlay templates under `adapters/mobile/app-overlay/` use `.patch` s
 
 ## Verification
 
-Verification writes artifacts under `.agent/recipe-harness/<adapter>/verify/`.
+Verification writes artifacts under `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/verify/`.
 
 Every live verification must classify the runtime before trusting evidence:
 

@@ -48,7 +48,7 @@ The copied Extension runner expects the target checkout to provide its normal No
 
 ## Adapter Behavior
 
-Install copies the current Extension recipe runtime under the ignored `temp/agentic/**` harness path and writes `.agent/recipe-harness/extension/manifest.json`.
+Install copies the current Extension recipe runtime under the ignored `temp/agentic/**` harness path and writes `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/manifest.json`.
 
 ## Validation
 

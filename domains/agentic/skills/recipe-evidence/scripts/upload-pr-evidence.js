@@ -5,7 +5,7 @@
 // The artifacts owner is ALWAYS the logged-in `gh` user (never hard-coded), and
 // every outward action is explicit-flag gated so the calling skill can ask the
 // human first:
-//   --ensure-repo  create <owner>/mm-<adapter>-farm-artifacts (public) if missing
+//   --ensure-repo  create <owner>/mm-<adapter>-artifacts (public) if missing
 //   --create-pr    create the PR if none exists for the branch (else edit it)
 // Use --dry-run to print the plan (owner/repo/branch/URLs) without any writes.
 //
@@ -69,6 +69,15 @@ function adapterFromSlug(slug) {
   if (/metamask-extension$/u.test(slug)) return 'extension';
   if (/metamask-mobile$/u.test(slug)) return 'mobile';
   return '';
+}
+
+// Percent-encode each path segment so branch names with `/` (kept as separators)
+// or spaces/special chars don't break the GitHub contents URL or the raw URL.
+function encodePathSegments(p) {
+  return String(p)
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
 }
 
 function listImages(prPackage) {
@@ -142,7 +151,7 @@ function main() {
   }
   const owner = args.owner || gh(['api', 'user', '--jq', '.login']);
   if (!owner) throw new Error('Could not resolve the logged-in GitHub user (gh api user). Run `gh auth login` first.');
-  const artifactsRepo = `${owner}/mm-${adapter}-farm-artifacts`;
+  const artifactsRepo = `${owner}/mm-${adapter}-artifacts`;
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
   const images = listImages(prPackage);
 
@@ -163,19 +172,21 @@ function main() {
   const repoExists = ghRepoExists(artifactsRepo);
   if (!repoExists) {
     if (!args.ensureRepo) {
-      throw new Error(`Artifacts repo ${artifactsRepo} does not exist. Re-run with --ensure-repo AFTER confirming with the user to create it (public).`);
+      throw new Error(`Artifacts repo ${artifactsRepo} does not exist. Re-run with --ensure-repo ONLY after the user gives informed consent: this creates a PUBLIC GitHub repo and uploads the evidence screenshots there, and those screenshots may show wallet state (addresses, balances, positions). Anyone can view a public repo.`);
     }
-    console.error(`[upload] creating public artifacts repo ${artifactsRepo}`);
+    console.error(`[upload] creating PUBLIC artifacts repo ${artifactsRepo} (screenshots may show wallet state — addresses/balances/positions — and are world-readable)`);
     if (!args.dryRun) gh(['repo', 'create', artifactsRepo, '--public', '--description', `MetaMask ${adapter} farm validation artifacts`]);
   }
 
   // 2. upload images
   const branchDefault = repoExists || !args.dryRun ? defaultBranch(artifactsRepo) : 'main';
   const urls = [];
+  const encodedBranch = encodePathSegments(branch);
+  const encodedDefaultBranch = encodeURIComponent(branchDefault);
   for (const img of images) {
-    const repoPath = `evidence/${branch}/${img.name}`;
+    const repoPath = `evidence/${encodedBranch}/${encodeURIComponent(img.name)}`;
     uploadImage(artifactsRepo, repoPath, img.abs, branchDefault, args.dryRun);
-    urls.push({ name: img.name, url: `https://raw.githubusercontent.com/${artifactsRepo}/${branchDefault}/${repoPath}` });
+    urls.push({ name: img.name, url: `https://raw.githubusercontent.com/${artifactsRepo}/${encodedDefaultBranch}/${repoPath}` });
   }
 
   // 3. build the Screenshots block (images hosted; videos stay local drag/drop)

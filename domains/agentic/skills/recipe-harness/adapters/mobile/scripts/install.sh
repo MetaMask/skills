@@ -97,11 +97,17 @@ install_v1_runner_assets() {
   # manifest/recipe snapshots, and execute the reviewed external runner source
   # recorded in manifest.json. This preserves the injection contract without
   # making the skills repo or the watched product checkout own the runtime.
+  # Emit shell-safe lines: %q-quote the interpolated paths (like CLEANUP_COMMAND
+  # below) so a FARMSLOT_ROOT/runner path containing a space — or $()/backtick/
+  # quote — cannot break the generated wrapper or inject at runtime.
+  local runner_farmslot_root_q runner_exec_q
+  runner_farmslot_root_q="$(printf '%q' "$METAMASK_RUNNER_FARMSLOT_ROOT")"
+  runner_exec_q="$(printf '%q' "$METAMASK_RUNNER_DIR/bin/metamask-recipe")"
   cat > "$HARNESS_DIR/runner/bin/metamask-recipe" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$METAMASK_RUNNER_FARMSLOT_ROOT}
-exec "$METAMASK_RUNNER_DIR/bin/metamask-recipe" "\$@"
+export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$runner_farmslot_root_q}
+exec $runner_exec_q "\$@"
 EOF
   chmod +x "$HARNESS_DIR/runner/bin/metamask-recipe"
   printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
@@ -493,7 +499,10 @@ while IFS= read -r -d '' overlay_file; do
   dest_rel="${rel%.patch}"
   mkdir -p "$TARGET/app/core/AgenticService/$(dirname "$dest_rel")"
   cp "$overlay_file" "$TARGET/app/core/AgenticService/$dest_rel"
-done < <(find "$ADAPTER_DIR/app-overlay/app/core/AgenticService" -type f -print0)
+  # Exclude overlay *.test.* files: they are skills-repo tests for the overlay
+  # templates and must not ship into the product checkout, where the product's
+  # jest could pick them up on local runs.
+done < <(find "$ADAPTER_DIR/app-overlay/app/core/AgenticService" -type f ! -name '*.test.*' -print0)
 
 node - "$TARGET" <<'NODE'
 const fs = require('fs');

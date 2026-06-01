@@ -8,7 +8,7 @@ maturity: experimental
 
 `recipe-harness` makes a product checkout recipe-capable without making the product repo permanently own the runtime files.
 
-The skill is a thin UX wrapper. It does **not** define the graph executor or final runtime source. Install resolves a MetaMask recipe runner package/source, copies that runner into the ignored checkout overlay, and records the resolved source in `.agent/recipe-harness/<adapter>/manifest.json`.
+The skill is a thin UX wrapper. It does **not** define the graph executor or final runtime source. Install resolves a MetaMask recipe runner package/source, copies that runner into the ignored checkout overlay, and records the resolved source in `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/manifest.json`.
 
 Runner source resolution order:
 
@@ -17,7 +17,7 @@ Runner source resolution order:
 3. `METAMASK_RECIPE_RUNNER_PACKAGE_DIR`
 4. sibling checkout `../metamask-recipe-runner` next to `metamask-skills`
 
-The runner is a separate project. It only resolves a runner source, copies it into `.agent/recipe-harness/<adapter>/runner/`, and records the source path/revision in the install manifest.
+The runner is a separate project. It only resolves a runner source, copies it into `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/runner/`, and records the source path/revision in the install manifest.
 
 ## Rules
 
@@ -35,7 +35,7 @@ The runner is a separate project. It only resolves a runner source, copies it in
 `recipe-harness` runs headless and never prompts. Two install actions change local state outside the ignored overlay and **require explicit user confirmation before you invoke them** — surface exactly what will change and wait for a yes:
 
 1. **Overwriting the in-repo agentic bridge/HUD** (`install --force-overlay`). This replaces tracked product files (`scripts/perps/agentic`, `app/core/AgenticService`, `package.json`, `app/core/NavigationService/NavigationService.ts`, `app/components/Nav/App/App.tsx`) with the skills overlay. It is the intended way to refresh a stale or older-commit checkout to the current bridge/HUD, but it mutates product-owned source — confirm first. Files are backed up and restored by `cleanup`.
-2. **Adding local `.git/info/exclude` entries.** Install appends harness paths (`.agent/recipe-harness/`, `.skills-cache/`, `temp/agentic/recipe-harness/`, and on a full install `scripts/perps/agentic/`, `app/core/AgenticService/`) to the checkout's local exclude so overlay files don't surface as untracked. Entries are tracked and removed by `cleanup`. Pass `--no-git-exclude` to skip. Confirm before mutating a checkout's git config.
+2. **Adding local `.git/info/exclude` entries.** Install appends harness paths (`${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/`, `.skills-cache/`, `temp/agentic/recipe-harness/`, and on a full install `scripts/perps/agentic/`, `app/core/AgenticService/`) to the checkout's local exclude so overlay files don't surface as untracked. Entries are tracked and removed by `cleanup`. Pass `--no-git-exclude` to skip. Confirm before mutating a checkout's git config.
 
 Default (no `--force-overlay`) is non-destructive: a product-owned checkout keeps its own source and install writes only ignored metadata. Prefer that path unless the human approved an overwrite.
 

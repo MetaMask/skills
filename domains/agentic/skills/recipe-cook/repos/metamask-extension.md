@@ -18,7 +18,7 @@ Before claiming live Extension recipe proof, install and verify `/recipe-harness
 
 The same `scripts/recipe-harness.sh` path is mirrored under `.claude/skills/mms-recipe-harness/` and `.cursor/rules/mms-recipe-harness/`; examples use `.agents/skills` because Codex reads that tree.
 
-Use `mme-4` when available. Record `.agent/recipe-harness/extension/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.
+Use `mme-4` when available. Record `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/manifest.json` and the verify artifacts. Exclude harness overlay paths from product diffs and PR evidence.
 
 ## Discovery
 

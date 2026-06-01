@@ -114,12 +114,14 @@ paths for the current target repo unless the caller explicitly asks to preserve
 runtime state for debugging:
 
 ```bash
-rm -rf .agent/recipe-harness/extension .agent/recipe-harness/mobile
+rm -rf "${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension" "${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile"
 rm -rf temp/tasks/<this-run>/harness
 ```
 
-Then reinstall the lower-level harness from the currently installed skill. Do
-not use `--force`; deleting known generated outputs first is the idempotent
+Then reinstall the lower-level harness from the currently installed skill. The
+install manifest also records an exact `cleanupCommand` (it honors
+`RECIPE_HARNESS_ROOT`) for the full backup-aware cleanup. Do not pass
+`--force-overlay`; deleting known generated outputs first is the idempotent
 refresh. Do not edit `.agents/skills/...`, `.claude/skills/...`, or harness
 source files during product validation.
 
@@ -204,7 +206,7 @@ This high-level skill owns product code, recipes, and evidence. It does **not**
 own the lower-level harness implementation during a product/ticket run. Do not
 edit installed delegate files such as `.agents/skills/mms-recipe-harness`,
 `.claude/skills/mms-recipe-harness`, `.cursor/rules/mms-recipe-harness`,
-`.agent/recipe-harness`, or copied harness adapter scripts while fixing a
+`${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}`, or copied harness adapter scripts while fixing a
 product ticket or validating this high-level workflow.
 
 If the harness fails, inspect only enough logs/summaries to classify the failure

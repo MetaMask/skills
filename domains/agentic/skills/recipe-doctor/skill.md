@@ -35,7 +35,7 @@ domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target <metamask-mo
 domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target <metamask-extension-checkout>
 ```
 
-Use `--no-static-verify` only when the caller explicitly wants a pure read-only scan. The default static verify is no-start/no-live; it may write ignored `.agent/recipe-harness/.../summary.json` artifacts.
+Use `--no-static-verify` only when the caller explicitly wants a pure read-only scan. The default static verify is no-start/no-live; it may write ignored `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/.../summary.json` artifacts.
 
 ## What It Checks
 

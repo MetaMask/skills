@@ -65,7 +65,7 @@ refresh_extension_id() {
 CONTEXT_PATH="${RECIPE_RUNTIME_CONTEXT:-$TARGET/temp/runtime/agentic-runtime.json}"
 if [ -f "$CONTEXT_PATH" ]; then
   CONTEXT_EXTENSION_ID="$(read_runtime_context_field "$CONTEXT_PATH" extensionId || true)"
-  if [[ "$CONTEXT_EXTENSION_ID" =~ ^[a-z]{32}$ ]]; then
+  if [[ "$CONTEXT_EXTENSION_ID" =~ ^[a-p]{32}$ ]]; then
     mkdir -p "$(dirname "$EXTENSION_ID_FILE")"
     printf '%s\n' "$CONTEXT_EXTENSION_ID" > "$EXTENSION_ID_FILE"
     RECIPE_HARNESS_EXTENSION_ID="$CONTEXT_EXTENSION_ID"
@@ -286,27 +286,6 @@ case "$bh_status" in
   *)        checks+=("{\"name\":\"build-health\",\"status\":\"warn\",\"detail\":\"${bh_status:-unknown}; see logs/build-health.json\"}") ;;
 esac
 
-read_fixture_password() {
-  TARGET_FOR_FIXTURE="$TARGET" node <<'NODE'
-const fs = require('fs');
-const path = require('path');
-const target = process.env.TARGET_FOR_FIXTURE;
-const candidates = [
-  path.join(target, 'temp/runtime/wallet-fixture.json'),
-  path.join(target, '.agent/wallet-fixture.json'),
-];
-for (const candidate of candidates) {
-  if (!fs.existsSync(candidate)) continue;
-  const fixture = JSON.parse(fs.readFileSync(candidate, 'utf8'));
-  if (fixture.password) {
-    process.stdout.write(String(fixture.password));
-    process.exit(0);
-  }
-}
-process.exit(1);
-NODE
-}
-
 live_mode="static-only"
 if [ "$STATIC_ONLY" = false ]; then
   fixture_status_json > "$ARTIFACTS/logs/fixture-status.json"
@@ -395,7 +374,7 @@ const extensionIdPath = path.join(target, 'temp/runtime/extension.id');
 let markerExtensionId = null;
 try {
   const value = fs.readFileSync(extensionIdPath, 'utf8').trim();
-  if (/^[a-z]{32}$/.test(value)) markerExtensionId = value;
+  if (/^[a-p]{32}$/.test(value)) markerExtensionId = value;
 } catch {}
 const cdpTarget = readinessReport?.cdp ? {
   selectedExtensionId: readinessReport.cdp.selectedExtensionId || null,

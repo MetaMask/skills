@@ -1,5 +1,11 @@
 #!/bin/sh
 set -eu
+# Enable pipefail when the shell supports it (bash/ksh invoked as /bin/sh) for
+# parity with the adapter scripts; POSIX dash lacks it, so guard to keep this
+# script portable — it is invoked via `sh` and verified with `sh -n`.
+if ( set -o pipefail ) 2>/dev/null; then
+  set -o pipefail
+fi
 
 SCRIPT_NAME="recipe-doctor"
 TARGET="."
@@ -57,6 +63,30 @@ if [ ! -d "$TARGET" ]; then
 fi
 
 TARGET="$(cd "$TARGET" && pwd -P)"
+
+# Resolve the configurable harness install root the same way the adapters do
+# (recipe-harness scripts/lib/harness-path.sh): honor RECIPE_HARNESS_ROOT, else
+# default to temp/agentic/recipe-harness. Validate it (relative, safe charset, no
+# '.'/'..' components) so a hostile/typo'd value can't point checks outside the
+# target. Replicated here so the doctor stays self-contained and does not depend
+# on the harness skill being installed.
+resolve_harness_root() {
+  root="${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}"
+  case "$root" in
+    ""|/*) echo "RECIPE_HARNESS_ROOT must be a non-empty relative path: '$root'" >&2; return 1 ;;
+    *[!A-Za-z0-9._/-]*) echo "RECIPE_HARNESS_ROOT may only contain A-Za-z0-9 and . _ / - : '$root'" >&2; return 1 ;;
+  esac
+  oldifs="$IFS"
+  IFS=/
+  for part in $root; do
+    case "$part" in
+      .|..) IFS="$oldifs"; echo "RECIPE_HARNESS_ROOT must not contain '.' or '..' path components: '$root'" >&2; return 1 ;;
+    esac
+  done
+  IFS="$oldifs"
+  printf '%s' "$root"
+}
+HARNESS_ROOT="$(resolve_harness_root)"
 
 escape_json() {
   awk 'BEGIN { ORS = "" } {
@@ -263,18 +293,11 @@ if [ "$REPO" = "metamask-mobile" ]; then
 fi
 
 if [ "$REPO" = "metamask-extension" ]; then
-  if [ -f "$TARGET/.agent/recipe-harness/extension/action-manifest.json" ]; then
-    record_check PASS "harness:v1-manifest" ".agent/recipe-harness/extension/action-manifest.json"
-  else
-    record_check WARN "harness:v1-manifest" ".agent/recipe-harness/extension/action-manifest.json missing; run mms-recipe-harness install before runtime proof"
-  fi
-  if [ -x "$TARGET/.agent/recipe-harness/extension/runner/bin/metamask-recipe" ]; then
-    record_check PASS "harness:v1-runner" ".agent/recipe-harness/extension/runner/bin/metamask-recipe"
-  else
-    record_check WARN "harness:v1-runner" ".agent/recipe-harness/extension/runner/bin/metamask-recipe missing; run mms-recipe-harness install before runtime proof"
-  fi
+  # v1 manifest/runner presence + validation is covered once by check_v1_runner
+  # below (the runner:* checks); only the browser-isolation hint is extension-only
+  # here, so the manifest/runner existence checks are not duplicated.
   if [ -n "${playwright_chromium:-}" ]; then
-    record_check PASS "browser:isolation" "isolated isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
+    record_check PASS "browser:isolation" "isolated Chromium is available; use mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; add --start-test-watch only after accepting build/watch cost"
   else
     record_check WARN "browser:isolation" "best local match to the local recipe workflow needs Playwright Chromium with a dedicated profile, e.g. mms-recipe-harness live --cdp-port <free-port> --launch-existing-dist --chrome-user-data-dir temp/runtime/chrome-profile-recipe; if Chromium is missing, ask the user before installing the Playwright Chromium browser cache with yarn exec playwright install chromium"
   fi
@@ -499,7 +522,7 @@ check_v1_runner() {
     metamask-extension) adapter="extension" ;;
     *) return 0 ;;
   esac
-  v1_dir="$TARGET/.agent/recipe-harness/$adapter"
+  v1_dir="$TARGET/$HARNESS_ROOT/$adapter"
   manifest="$v1_dir/action-manifest.json"
   runner_bin="$v1_dir/runner/bin/metamask-recipe"
   if [ -f "$manifest" ]; then
@@ -532,7 +555,7 @@ check_v1_runner() {
       mode="bridge injectable"
     fi
   else
-    if [ -d "$TARGET/.agent/recipe-harness/extension" ]; then
+    if [ -d "$TARGET/$HARNESS_ROOT/extension" ]; then
       mode="bridge present"
     else
       mode="bridge injectable"

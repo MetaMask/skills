@@ -22,7 +22,7 @@ Use available files:
 - `trace.json`
 - `artifact-manifest.json`
 - screenshots, videos, logs, reports
-- `.agent/recipe-harness/<adapter>/manifest.json` and verify artifacts when runtime proof is claimed
+- `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/manifest.json` and verify artifacts when runtime proof is claimed
 - command output
 - PR acceptance criteria or proof targets
 
@@ -104,8 +104,11 @@ Gaps:
 ## Create PR + upload evidence (opt-in, consent-gated)
 
 Offer after packaging. Artifacts owner = logged-in user (`gh api user`), never
-hard-coded; images → `<owner>/mm-<adapter>-farm-artifacts` at `evidence/<branch>/`,
+hard-coded; images → `<owner>/mm-<adapter>-artifacts` at `evidence/<branch>/`,
 videos stay local. ASK before each outward step (repo create, upload, PR create/edit).
+When asking to create the artifacts repo, state plainly that it is a **public**
+repo and the uploaded screenshots **may show wallet state** (addresses, balances,
+positions) so the human's consent is informed.
 
 ```bash
 S=.agents/skills/mms-recipe-evidence/scripts/upload-pr-evidence.js

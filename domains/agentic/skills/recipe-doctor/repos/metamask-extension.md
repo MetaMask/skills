@@ -10,7 +10,7 @@ For Extension readiness, doctor must check:
 - `bash`, `node`, `git`, and `curl`;
 - a reachable browser command hint when live validation is expected;
 - installed `mms-recipe-harness`, `mms-recipe-wallet-control`, `mms-recipe-cook`, `mms-recipe-evidence`, and one high-level workflow skill;
-- `.agent/recipe-harness/extension/runner/bin/metamask-recipe`, `.agent/recipe-harness/extension/action-manifest.json`, and `.agent/recipe-harness/extension/runner/recipes` after harness install;
+- `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/runner/bin/metamask-recipe`, `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/action-manifest.json`, and `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/runner/recipes` after harness install;
 - `temp/runtime/agentic-runtime.json` for caller-provided CDP/runtime context;
 - fixture/profile hints such as `temp/runtime/wallet-fixture.json`, `.agent/wallet-fixture.json`, `temp/runtime/extension.id`, `test/e2e/fixtures`, or `fixtures`;
 - Playwright Chromium availability from the Extension checkout; this is the closest portable equivalent to an isolated Playwright Chromium launch;

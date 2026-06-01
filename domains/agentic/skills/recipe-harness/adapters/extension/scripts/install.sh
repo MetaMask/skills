@@ -2,13 +2,11 @@
 set -euo pipefail
 
 TARGET="$PWD"
-FORCE=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --out) [ "$#" -ge 2 ] || { echo "Missing value for $1" >&2; exit 2; }; shift 2 ;;
-    --force) FORCE=true; shift ;;
-    -h|--help) echo "Usage: install.sh [--target <metamask-extension>] [--force]"; exit 0 ;;
+    -h|--help) echo "Usage: install.sh [--target <metamask-extension>]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -64,11 +62,16 @@ mkdir -p "$HARNESS_DIR"
 
 rm -rf "$HARNESS_DIR/runner"
 mkdir -p "$HARNESS_DIR/runner/bin" "$HARNESS_DIR/runner/manifests" "$HARNESS_DIR/runner/recipes"
+# Emit shell-safe lines: %q-quote the interpolated paths (like CLEANUP_COMMAND
+# below) so a FARMSLOT_ROOT/runner path containing a space — or $()/backtick/quote
+# — cannot break the generated wrapper or inject at runtime.
+runner_farmslot_root_q="$(printf '%q' "$METAMASK_RUNNER_FARMSLOT_ROOT")"
+runner_exec_q="$(printf '%q' "$METAMASK_RUNNER_DIR/bin/metamask-recipe")"
 cat > "$HARNESS_DIR/runner/bin/metamask-recipe" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$METAMASK_RUNNER_FARMSLOT_ROOT}
-exec "$METAMASK_RUNNER_DIR/bin/metamask-recipe" "\$@"
+export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$runner_farmslot_root_q}
+exec $runner_exec_q "\$@"
 EOF
 printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
 printf '%s\n' "$METAMASK_RUNNER_DIR" > "$HARNESS_DIR/runner/.runner-source"

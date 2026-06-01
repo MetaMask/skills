@@ -15,8 +15,8 @@ Load only the files needed for the target repo:
 - Mobile-first recipe examples and composition patterns: `references/examples.md`
 - Evidence package shape: `references/evidence-package.md`
 - Runtime harness: use `/recipe-harness` before claiming live Mobile or Extension recipe proof.
-- Action catalog: after `/recipe-harness install`, read `.agent/recipe-harness/<adapter>/action-manifest.json`; use only manifest-declared v1 action names.
-- Runner CLI: run recipes through `.agent/recipe-harness/<adapter>/runner/bin/metamask-recipe run ...`, then validate artifacts with `farmslot-recipe validate ...`.
+- Action catalog: after `/recipe-harness install`, read `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/action-manifest.json`; use only manifest-declared v1 action names.
+- Runner CLI: run recipes through `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/runner/bin/metamask-recipe run ...`, then validate artifacts with `farmslot-recipe validate ...`.
 - Target-repo instructions are appended below when installed.
 
 
