@@ -99,8 +99,12 @@ describe('AgentStepHud', () => {
 
     expect(getByText(/Complete the validation checkpoint/)).toBeOnTheScreen();
     expect(getByText('Prepare scenario')).toBeOnTheScreen();
-    expect(getByText('error: Timed out waiting for checkpoint')).toBeOnTheScreen();
-    expect(queryByText('Duplicate metadata line should stay hidden')).toBeNull();
+    expect(
+      getByText('error: Timed out waiting for checkpoint'),
+    ).toBeOnTheScreen();
+    expect(
+      queryByText('Duplicate metadata line should stay hidden'),
+    ).toBeNull();
   });
 
   it('hides overlay when callback fires with null', () => {

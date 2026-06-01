@@ -215,6 +215,51 @@ else
   checks+=("{\"name\":\"App AgentStepHud patch\",\"status\":\"pass\"}")
 fi
 
+# Drift detection (read-only): a product-owned checkout keeps its own
+# app/core/AgenticService source; install never overwrites it. Compare the
+# in-repo AgenticService/HUD against the bundled overlay and WARN when the
+# branch is behind the skills version, so a stale HUD is visible at verify
+# time. Never fails the run and never mutates product source.
+overlay_drift_check="$(
+  SCRIPT_DIR_FOR_DRIFT="$SCRIPT_DIR" TARGET_FOR_DRIFT="$TARGET" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const name = 'agentic overlay matches skills (HUD freshness)';
+const overlayDir = path.join(process.env.SCRIPT_DIR_FOR_DRIFT, '..', 'app-overlay', 'app', 'core', 'AgenticService');
+const targetDir = path.join(process.env.TARGET_FOR_DRIFT, 'app', 'core', 'AgenticService');
+let checked = 0;
+const drifted = [];
+const missing = [];
+try {
+  for (const entry of fs.readdirSync(overlayDir)) {
+    if (!entry.endsWith('.patch')) continue;
+    const base = entry.slice(0, -'.patch'.length);
+    const targetFile = path.join(targetDir, base);
+    if (!fs.existsSync(targetFile)) { missing.push(base); continue; }
+    checked += 1;
+    if (fs.readFileSync(path.join(overlayDir, entry), 'utf8') !== fs.readFileSync(targetFile, 'utf8')) {
+      drifted.push(base);
+    }
+  }
+} catch (error) {
+  process.stdout.write(JSON.stringify({ name, status: 'warn', detail: 'overlay compare skipped: ' + String((error && error.message) || error) }));
+  process.exit(0);
+}
+// checked === 0 means the in-repo harness is absent; install/presence checks own that case.
+if (checked === 0) {
+  process.stdout.write(JSON.stringify({ name, status: 'pass' }));
+} else if (drifted.length || missing.length) {
+  const parts = [];
+  if (drifted.length) parts.push('behind skills: ' + drifted.join(', '));
+  if (missing.length) parts.push('absent in repo: ' + missing.join(', '));
+  process.stdout.write(JSON.stringify({ name, status: 'warn', detail: parts.join('; ') + ' — merge latest or run recipe-harness install --force-overlay to refresh the in-repo HUD/AgenticService' }));
+} else {
+  process.stdout.write(JSON.stringify({ name, status: 'pass' }));
+}
+NODE
+)"
+checks+=("$overlay_drift_check")
+
 if node - "$TARGET/package.json" <<'NODE'
 const fs = require('fs');
 const file = process.argv[2];
