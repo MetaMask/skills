@@ -649,6 +649,10 @@ The evidence package should include: task URL or prompt, product diff summary, h
 
 If runtime state cannot be created, report the gap. Do not claim success from code inspection alone.
 
+## PR creation (offer)
+
+Once evidence is packaged, ASK the human whether to create a PR + upload evidence. If yes → `/mms-recipe-evidence` "Create PR + upload" (artifacts owner is dynamic via `gh api user`, never hard-coded; consent-gate every outward step: repo create, upload, PR create/edit).
+
 ## Output
 
 1. `Change` — files changed and why.

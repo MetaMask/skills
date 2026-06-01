@@ -725,6 +725,10 @@ human/quality review of the PNG/video.
 15. Call `/mms-recipe-evidence` or package equivalent PR-ready evidence.
 16. Return the patch summary and evidence only after the Mandatory Continuation Gate and checklist are satisfied.
 
+## PR creation (offer)
+
+Once evidence is packaged, ASK the human whether to create a PR + upload evidence. If yes → `/mms-recipe-evidence` "Create PR + upload" (artifacts owner is dynamic via `gh api user`, never hard-coded; consent-gate every outward step: repo create, upload, PR create/edit).
+
 ## Output
 
 1. `Root Cause` — concise explanation.

@@ -100,3 +100,19 @@ Gaps:
 
 - Treat blank/black screenshots as missing visual evidence unless the artifact includes an explicit explanation and alternate reviewer-visible proof.
 - DOM-rendered screenshot fallbacks are acceptable when native CDP/Playwright screenshots are blank or time out, but label them as fallbacks and keep the original blank-capture gap visible.
+
+## Create PR + upload evidence (opt-in, consent-gated)
+
+Offer after packaging. Artifacts owner = logged-in user (`gh api user`), never
+hard-coded; images → `<owner>/mm-<adapter>-farm-artifacts` at `evidence/<branch>/`,
+videos stay local. ASK before each outward step (repo create, upload, PR create/edit).
+
+```bash
+S=.agents/skills/mms-recipe-evidence/scripts/upload-pr-evidence.js
+node "$S" --task <task-dir> --dry-run                       # plan, no writes
+node "$S" --task <task-dir> [--ensure-repo] [--create-pr]   # after consent
+```
+
+`--ensure-repo` creates the public artifacts repo; `--create-pr` creates-or-edits the
+PR and fills `## Screenshots/Recordings`; without it, assets upload + a
+`pr-body.uploaded.md` draft is written. `gh` writes run with `GH_TOKEN` unset.
