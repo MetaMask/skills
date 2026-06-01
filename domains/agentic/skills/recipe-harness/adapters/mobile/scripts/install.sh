@@ -4,12 +4,14 @@ set -euo pipefail
 TARGET="$PWD"
 ALLOW_DIRTY=false
 FORCE_OVERLAY=false
+GIT_EXCLUDE=true
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --allow-dirty-harness-paths) ALLOW_DIRTY=true; shift ;;
     --force-overlay) FORCE_OVERLAY=true; shift ;;
-    -h|--help) echo "Usage: install.sh [--target <metamask-mobile>] [--allow-dirty-harness-paths] [--force-overlay]"; exit 0 ;;
+    --no-git-exclude) GIT_EXCLUDE=false; shift ;;
+    -h|--help) echo "Usage: install.sh [--target <metamask-mobile>] [--allow-dirty-harness-paths] [--force-overlay] [--no-git-exclude]"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 2 ;;
   esac
 done
@@ -213,9 +215,14 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
   install_v1_runner_assets
   SOURCE_REV="$(git -C "$SKILL_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
   CLEANUP_COMMAND="RECIPE_HARNESS_ROOT=$HARNESS_ROOT $(printf '%q' "$SCRIPT_DIR/cleanup.sh") --target $(printf '%q' "$TARGET")"
-  add_git_exclude_entry "$HARNESS_ROOT/" "$HARNESS_DIR/added-git-exclude"
-  add_git_exclude_entry ".skills-cache/" "$HARNESS_DIR/added-git-exclude"
-  add_git_exclude_entry "temp/agentic/recipe-harness/" "$HARNESS_DIR/added-git-exclude"
+  if [ "$GIT_EXCLUDE" = true ]; then
+    echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, temp/agentic/recipe-harness/"
+    add_git_exclude_entry "$HARNESS_ROOT/" "$HARNESS_DIR/added-git-exclude"
+    add_git_exclude_entry ".skills-cache/" "$HARNESS_DIR/added-git-exclude"
+    add_git_exclude_entry "temp/agentic/recipe-harness/" "$HARNESS_DIR/added-git-exclude"
+  else
+    echo "[recipe-harness] --no-git-exclude: skipping .git/info/exclude updates; harness overlay paths may show as untracked in git status."
+  fi
   node -e '
     const fs = require("fs");
     const m = {
@@ -258,6 +265,17 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
   ' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json" "$HARNESS_ROOT" "$HARNESS_REL" "$CLEANUP_COMMAND"
   echo "Installed mobile recipe harness metadata only (product-owned harness detected): $HARNESS_DIR/manifest.json"
   exit 0
+fi
+
+# Full-install path: reached when the checkout lacks the bridge, or when
+# --force-overlay was passed to deliberately overwrite a product-owned bridge.
+if [ "$FORCE_OVERLAY" = true ] && has_product_owned_mobile_harness; then
+  echo "[recipe-harness] --force-overlay: OVERWRITING tracked product harness files with the skills overlay:"
+  echo "    scripts/perps/agentic, app/core/AgenticService, package.json, app/core/NavigationService/NavigationService.ts, app/components/Nav/App/App.tsx"
+  echo "[recipe-harness] Files are backed up and restorable via cleanup. This replaces the checkout's in-repo agentic bridge/HUD (intended for stale or older-commit checkouts)."
+fi
+if [ "$GIT_EXCLUDE" = false ]; then
+  echo "[recipe-harness] --no-git-exclude: skipping .git/info/exclude updates; harness overlay paths may show as untracked in git status."
 fi
 
 INSTALLED=false
@@ -564,11 +582,14 @@ console.log(JSON.stringify({
 }));
 NODE
 
-add_git_exclude_entry "$HARNESS_ROOT/" "$BACKUP_DIR/added-git-exclude"
-add_git_exclude_entry ".skills-cache/" "$BACKUP_DIR/added-git-exclude"
-add_git_exclude_entry "temp/agentic/recipe-harness/" "$BACKUP_DIR/added-git-exclude"
-add_git_exclude_entry "scripts/perps/agentic/" "$BACKUP_DIR/added-git-exclude"
-add_git_exclude_entry "app/core/AgenticService/" "$BACKUP_DIR/added-git-exclude"
+if [ "$GIT_EXCLUDE" = true ]; then
+  echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, temp/agentic/recipe-harness/, scripts/perps/agentic/, app/core/AgenticService/"
+  add_git_exclude_entry "$HARNESS_ROOT/" "$BACKUP_DIR/added-git-exclude"
+  add_git_exclude_entry ".skills-cache/" "$BACKUP_DIR/added-git-exclude"
+  add_git_exclude_entry "temp/agentic/recipe-harness/" "$BACKUP_DIR/added-git-exclude"
+  add_git_exclude_entry "scripts/perps/agentic/" "$BACKUP_DIR/added-git-exclude"
+  add_git_exclude_entry "app/core/AgenticService/" "$BACKUP_DIR/added-git-exclude"
+fi
 
 write_managed_hashes() {
   local hash_file="$BACKUP_DIR/managed-hashes.tsv"
