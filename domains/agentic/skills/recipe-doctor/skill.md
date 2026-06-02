@@ -18,6 +18,22 @@ It does not prove product behavior. It answers: "Can this checkout run the recip
 - Do not print raw fixture passwords, mnemonics, private keys, or full account material. Report counts, file paths, and schema status only.
 - Doctor may run static harness verification. It must not start Metro, Chrome, simulators, emulators, builds, or live CDP sessions.
 
+## Agent Execution
+
+**Run the bash script directly — do not re-implement the checks manually as individual commands.**
+
+When invoked by an agent, locate and execute the script:
+
+```bash
+# Installed in a consumer repo:
+.agents/skills/mms-recipe-doctor/scripts/recipe-doctor --target .
+
+# Source checkout (developing this skill):
+domains/agentic/skills/recipe-doctor/scripts/recipe-doctor --target <checkout>
+```
+
+The script is self-contained and handles all checks sequentially. Running checks as individual parallel bash calls is wrong: a failed CDP/curl probe (exit 7 = browser not running) will cancel sibling parallel calls and produce spurious "Cancelled" errors. Let the script manage sequencing.
+
 ## Command Shape
 
 From a consumer repo after installing agentic skills:
@@ -67,7 +83,7 @@ cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json
 #   skipPerpsTutorial=true, autoLockNever=true, deviceAuthEnabled=true
 ```
 
-For Extension, use the same human-authored account roles as Mobile. A shared-fixture-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `accounts[0]` mnemonic named `Primary`, optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this shape before live launch.
+For Extension, use the same human-authored account roles as Mobile. A shared-fixture-compatible Extension fixture is `temp/runtime/wallet-fixture.json` or `.agent/wallet-fixture.json` with `password`, `accounts[0]` mnemonic (name conventionally `Primary` for cross-platform shared fixture parity — any name is valid for single-platform setups; only warn if harness uses name-based account lookup), optional private-key accounts named `Trading` / `MYXTrading`, optional `selectedAccount`, and `settings.skipPerpsTutorial=true`, `settings.autoLockNever=true`. The Extension harness generates `address`, `vault`, and persisted controller state from this shape before live launch.
 
 ## Shared Wallet Fixture Contract
 
