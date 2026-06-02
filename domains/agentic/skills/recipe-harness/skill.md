@@ -16,6 +16,13 @@ Runner source resolution order:
 2. `RECIPE_RUNNER_SOURCE`
 3. `METAMASK_RECIPE_RUNNER_PACKAGE_DIR`
 4. sibling checkout `../metamask-recipe-runner` next to `metamask-skills`
+5. cached public git fallback: `https://github.com/deeeed/metamask-recipe-runner.git` at `main`
+
+Override the fallback with `METAMASK_RECIPE_RUNNER_GIT_URL`,
+`METAMASK_RECIPE_RUNNER_GIT_REF`, or `METAMASK_RECIPE_RUNNER_CACHE_DIR`.
+Set `METAMASK_RECIPE_RUNNER_GIT_DISABLED=1` to require an explicit local source.
+Set `METAMASK_RECIPE_RUNNER_SIBLING_DISABLED=1` to ignore a sibling checkout and
+force the cached public git fallback.
 
 The runner is a separate project. It only resolves a runner source, copies it into `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/runner/`, and records the source path/revision in the install manifest.
 
