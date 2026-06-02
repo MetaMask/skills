@@ -287,6 +287,54 @@ if (manifest.source.runnerSourceKind !== 'env:METAMASK_RECIPE_RUNNER_SOURCE') {
 NODE
 }
 
+assert_public_git_runner_fallback_installs_without_farmslot_root() {
+  local source_repo="$tmpdir/public-runner-source"
+  local target="$tmpdir/public-runner-target"
+  local cache="$tmpdir/public-runner-cache"
+  mkdir -p "$source_repo/bin" "$source_repo/manifests" "$target"
+  printf '{"name":"@metamask/recipe-runner-fixture"}\n' > "$source_repo/package.json"
+  printf '#!/usr/bin/env bash\nprintf "public fixture runner\\n"\n' > "$source_repo/bin/metamask-recipe"
+  chmod +x "$source_repo/bin/metamask-recipe"
+  printf '{"runner_protocol_version":1,"action_registry_version":1,"supported_official_actions":[],"action_metadata":{}}\n' \
+    > "$source_repo/manifests/mobile.action-manifest.json"
+  printf '{"runner_protocol_version":1,"action_registry_version":1,"supported_official_actions":[],"action_metadata":{}}\n' \
+    > "$source_repo/manifests/extension.action-manifest.json"
+  (
+    cd "$source_repo"
+    git init -q
+    git checkout -q -b main
+    git add .
+    git -c user.email=fixture@example.com -c user.name=Fixture commit -q -m 'fixture runner'
+  )
+  (
+    cd "$target"
+    git init -q
+  )
+
+  env -u FARMSLOT_ROOT -u METAMASK_RECIPE_RUNNER_SOURCE -u RECIPE_RUNNER_SOURCE -u METAMASK_RECIPE_RUNNER_PACKAGE_DIR \
+    METAMASK_RECIPE_RUNNER_GIT_URL="file://$source_repo" \
+    METAMASK_RECIPE_RUNNER_GIT_REF=main \
+    METAMASK_RECIPE_RUNNER_CACHE_DIR="$cache" \
+    METAMASK_RECIPE_RUNNER_SIBLING_DISABLED=1 \
+    "$SKILL_DIR/adapters/extension/scripts/install.sh" --target "$target" \
+      >/tmp/recipe-harness-public-runner-fallback.log 2>&1
+
+  node - "$target/.agent/recipe-harness/extension/manifest.json" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+if (!manifest.source.runnerSourceKind.startsWith('git:file://')) {
+  throw new Error(`expected git fallback source kind, got ${manifest.source.runnerSourceKind}`);
+}
+const runnerDir = path.dirname(path.dirname(manifest.runnerEntrypoint));
+if (fs.existsSync(path.join(runnerDir, '.farmslot-root'))) {
+  throw new Error('git fallback should not record a FARMSLOT_ROOT when published packages are used');
+}
+NODE
+  "$target/.agent/recipe-harness/extension/runner/bin/metamask-recipe" | grep -qxF 'public fixture runner' \
+    || fail "installed git fallback delegate did not execute the cached runner"
+}
+
 assert_mobile_adapter_scripts_parse_with_macos_bash() {
   local bash_bin="${BASH_SYNTAX_BIN:-/bin/bash}"
   if [ ! -x "$bash_bin" ]; then
@@ -386,6 +434,7 @@ assert_install_cleanup_restores_exclude_baseline_byte_identical
 assert_cleanup_removes_only_one_copy_per_recorded_exclude_entry
 assert_installer_refuses_symlinked_runner_destinations
 assert_runner_source_precedence_allows_stale_lower_priority_env
+assert_public_git_runner_fallback_installs_without_farmslot_root
 assert_mobile_adapter_scripts_parse_with_macos_bash
 assert_extension_start_test_watch_is_target_scoped
 assert_recipe_docs_validate_clean

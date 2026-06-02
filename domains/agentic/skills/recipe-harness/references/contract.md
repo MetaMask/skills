@@ -8,7 +8,7 @@ Required fields:
 
 - `adapter`: `mobile` or `extension`
 - `installedAt`
-- `source`: skill UX wrapper path/revision plus resolved runner source path/revision/kind when available. Prefer `METAMASK_RECIPE_RUNNER_SOURCE`; local development may use a sibling `metamask-recipe-runner` checkout. The skills repo does not own the runner runtime.
+- `source`: skill UX wrapper path/revision plus resolved runner source path/revision/kind when available. Prefer `METAMASK_RECIPE_RUNNER_SOURCE` for local development; otherwise the skill may use the cached public `deeeed/metamask-recipe-runner` fallback. That personal-account fallback is temporary for ADR-58 proof-of-concept testing until the runner is fully validated and migrated to the MetaMask organization. The skills repo does not own the runner runtime.
 - `target`
 - `installedPaths`
 - `patchedFiles` (may be an empty array for adapters that only copy ignored runtime files)

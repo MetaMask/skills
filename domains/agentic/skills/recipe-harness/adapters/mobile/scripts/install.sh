@@ -103,14 +103,18 @@ install_v1_runner_assets() {
   local runner_farmslot_root_q runner_exec_q
   runner_farmslot_root_q="$(printf '%q' "$METAMASK_RUNNER_FARMSLOT_ROOT")"
   runner_exec_q="$(printf '%q' "$METAMASK_RUNNER_DIR/bin/metamask-recipe")"
-  cat > "$HARNESS_DIR/runner/bin/metamask-recipe" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-export FARMSLOT_ROOT=\${FARMSLOT_ROOT:-$runner_farmslot_root_q}
-exec $runner_exec_q "\$@"
-EOF
+  {
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'set -euo pipefail'
+    if [ -n "$METAMASK_RUNNER_FARMSLOT_ROOT" ]; then
+      printf 'export FARMSLOT_ROOT=${FARMSLOT_ROOT:-%s}\n' "$runner_farmslot_root_q"
+    fi
+    printf 'exec %s "$@"\n' "$runner_exec_q"
+  } > "$HARNESS_DIR/runner/bin/metamask-recipe"
   chmod +x "$HARNESS_DIR/runner/bin/metamask-recipe"
-  printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
+  if [ -n "$METAMASK_RUNNER_FARMSLOT_ROOT" ]; then
+    printf '%s\n' "$METAMASK_RUNNER_FARMSLOT_ROOT" > "$HARNESS_DIR/runner/.farmslot-root"
+  fi
   printf '%s\n' "$METAMASK_RUNNER_DIR" > "$HARNESS_DIR/runner/.runner-source"
   cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/action-manifest.json"
   cp "$METAMASK_RUNNER_DIR/manifests/mobile.action-manifest.json" "$HARNESS_DIR/runner/manifests/mobile.action-manifest.json"
