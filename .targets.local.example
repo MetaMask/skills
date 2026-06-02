@@ -2,7 +2,7 @@
 # Format: <consumer-repo-name>=<path-or-glob>
 #
 # - LHS is the value passed to `tools/install --repo`. Must match a name
-#   the install CLI knows (e.g. metamask-extension, metamask-mobile).
+#   the install CLI knows (e.g. metamask-extension, metamask-mobile, core).
 # - RHS is a path to the consumer checkout. Globs are expanded, so one
 #   line can hit many worktrees at once.
 # - $HOME and ~ are expanded.
@@ -11,7 +11,9 @@
 # Worktree fan-out (one line, matches all checkouts of that repo):
 metamask-extension=$HOME/dev/metamask/metamask-extension*
 metamask-mobile=$HOME/dev/metamask/metamask-mobile*
+core=$HOME/dev/metamask/core*
 
 # Or list individual paths explicitly (e.g. only one worktree, or non-default name):
 # metamask-extension=$HOME/dev/metamask/metamask-extension-4
 # metamask-mobile=$HOME/work/mobile
+# core=$HOME/dev/metamask/core-4

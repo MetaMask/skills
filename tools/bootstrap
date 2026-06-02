@@ -13,6 +13,9 @@
 #   curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap \
 #     | bash -s -- --repo metamask-mobile --domain perps,testing
 #
+#   curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap \
+#     | bash -s -- --repo core --domain perps
+#
 # Env:
 #   SKILLS_CACHE_DIR  Where to clone (default: $HOME/.cache/metamask-skills).
 #   SKILLS_REF        Git ref to checkout (default: main).
@@ -36,7 +39,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$REPO" ]]; then
-  echo "Error: --repo <name> required (e.g. metamask-extension, metamask-mobile)" >&2
+  echo "Error: --repo <name> required (e.g. metamask-extension, metamask-mobile, core)" >&2
   exit 1
 fi
 

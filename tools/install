@@ -16,6 +16,7 @@
 # Usage:
 #   tools/install --repo metamask-extension --target ~/dev/metamask/metamask-extension
 #   tools/install --repo metamask-mobile --target ~/dev/metamask/metamask-mobile --dry-run
+#   tools/install --repo core --target ~/dev/metamask/core --domain perps --dry-run
 #   tools/install --repo metamask-extension --target /path --domain perps,testing
 #   tools/install --repo metamask-extension --target /path --maturity experimental
 #   tools/install --repo metamask-extension --target /path \
@@ -44,7 +45,7 @@ Required:
 Optional:
   --repo <name>       GitHub repo name (auto-detected from <target>/package.json
                       name field, falling back to basename of --target).
-                      Override e.g., --repo metamask-extension.
+                      Override e.g., --repo metamask-extension or --repo core.
   --source <dir>      Skill source repo (repeatable, ordered). Later sources
                       override earlier ones on name conflict. Defaults to the
                       repo containing this script.
@@ -66,6 +67,7 @@ Optional:
 Examples:
   $(basename "$0") --repo metamask-extension --target ~/dev/metamask/metamask-extension
   $(basename "$0") --repo metamask-mobile --target ~/dev/metamask/metamask-mobile --domain perps --dry-run
+  $(basename "$0") --repo core --target ~/dev/metamask/core --domain perps --dry-run
   $(basename "$0") --repo metamask-extension --target . \\
     --source ~/dev/metamask/skills --source ~/dev/Consensys/skills
 EOF
@@ -130,9 +132,38 @@ action() { if $DRY_RUN; then echo "  [dry-run] $1"; else echo "  $1"; fi; }
 frontmatter_value() {
   local file="$1" key="$2"
   awk -v k="$key" '
-    /^---$/ { n++; next }
-    n==1 && $0 ~ "^"k": " { sub("^"k": ", ""); print; exit }
+    /^---$/ {
+      n++
+      if (n >= 2 && in_block) { print out; printed=1; exit }
+      next
+    }
+    n==1 {
+      if (in_block) {
+        if ($0 ~ /^[[:space:]]+/) {
+          line=$0
+          sub(/^[[:space:]]+/, "", line)
+          if (line != "") out = out (out == "" ? "" : " ") line
+          next
+        }
+        print out
+        printed=1
+        exit
+      }
+
+      prefix="^" k ":[[:space:]]*"
+      if ($0 ~ prefix) {
+        sub(prefix, "")
+        if ($0 ~ /^[>|][+-]?$/) {
+          in_block=1
+          out=""
+          next
+        }
+        print
+        exit
+      }
+    }
     n>=2 { exit }
+    END { if (in_block && !printed) print out }
   ' "$file"
 }
 

@@ -28,6 +28,7 @@
 # Usage (via `yarn skills`):
 #   tools/sync --repo metamask-extension --target /path/to/repo
 #   tools/sync --repo metamask-mobile --target . --domain perps,testing --dry-run
+#   tools/sync --repo core --target . --domain perps --dry-run
 #   tools/sync --repo metamask-mobile --target . --reset      # forget saved selection
 
 set -euo pipefail

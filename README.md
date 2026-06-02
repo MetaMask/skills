@@ -10,7 +10,7 @@ Two audiences share this repo:
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
    `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
-   and review heuristics for `metamask-extension` and `metamask-mobile`.
+   and review heuristics for `metamask-extension`, `metamask-mobile`, and `core`.
    These install into consumer repos via a small CLI.
 
 Single source of truth, multi-operator output (Claude Code, Cursor,
@@ -45,22 +45,25 @@ Or use the installer to drop all `web3-tools/` skills at once:
   --repo metamask-extension --target . --domain web3-tools
 ```
 
-### For engineers in `metamask-extension` / `metamask-mobile`
+### For engineers in `metamask-extension` / `metamask-mobile` / `core`
+
+From inside an integrated consumer repo:
 
 ```bash
-# One time:
-git clone https://github.com/MetaMask/skills ~/dev/metamask/skills
-export METAMASK_SKILLS_DIR=~/dev/metamask/skills
-
-# Then, from inside the consumer repo:
 yarn skills
 
 # To opt into experimental ADR-58 recipe skills:
 yarn skills --domain agentic --maturity experimental
 ```
 
-`yarn skills` runs `tools/sync`, which pulls the latest skills and writes
-them into `.claude/skills/`, `.cursor/rules/`, and `.agents/skills/`.
+The consumer repo wrapper keeps a public `MetaMask/skills` checkout in
+`.skills-cache/metamask-skills` (via `yarn install`/`yarn setup` integration,
+and Core also auto-clones it on `yarn skills` if missing). `yarn skills` then
+runs `tools/sync`, pulls the latest skills, and writes them into
+`.claude/skills/`, `.cursor/rules/`, and `.agents/skills/`.
+
+Optional: set `METAMASK_SKILLS_DIR=~/dev/metamask/skills` in `.skills.local` or
+your shell if you want to use a separate local checkout instead of the cache.
 
 ### For cloud agents (Cursor cloud, Codex cloud, etc.)
 
@@ -69,6 +72,10 @@ No SSH key, no env var — one curl pipe to bash inside the consumer repo:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
   bash -s -- --repo metamask-extension
+curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
+  bash -s -- --repo metamask-mobile
+curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
+  bash -s -- --repo core
 
 # To opt into experimental ADR-58 recipe skills:
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
@@ -124,6 +131,8 @@ consumer checkouts.
 
 ```bash
 tools/install --repo metamask-extension --target ~/dev/metamask/metamask-extension
+# Core monorepo:
+tools/install --repo core --target ~/dev/metamask/core
 ```
 
 **All configured targets:**
@@ -154,11 +163,14 @@ SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity 
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
-`yarn skills` calls `tools/sync`, which pulls the source repos, then
-execs `tools/install` with each as `--source`.
+`yarn skills` calls the consumer repo wrapper, which locates a configured source
+(or the repo-local `.skills-cache/metamask-skills` cache), then delegates to
+`tools/sync`. `tools/sync` pulls the source repos and execs `tools/install` with
+each as `--source`.
 
-If neither env var is set, the script prints setup instructions and exits.
-**No silent auto-clone** — engineers see the path they're opting into.
+When calling `tools/sync` directly, at least one source env var is still
+required. Integrated consumer repos provide the zero-config cache wrapper so
+engineers do not need a manual clone for the default public skills.
 
 ## Manual install (the primitive)
 
@@ -295,6 +307,7 @@ domains/<area>/
     adapters/                     # optional runtime payloads used by scripts
     repos/metamask-extension.md   # optional repo overlay
     repos/metamask-mobile.md      # optional repo overlay
+    repos/core.md                 # optional Core monorepo overlay
 ```
 
 ### `skill.md` frontmatter
@@ -315,7 +328,7 @@ homepage) are preserved through install — only `name`, `description`,
 
 ```yaml
 ---
-repo: metamask-extension
+repo: metamask-extension  # or metamask-mobile / core
 parent: <skill-name>
 ---
 ```
