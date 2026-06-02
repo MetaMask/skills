@@ -18,6 +18,11 @@ Runner source resolution order:
 4. sibling checkout `../metamask-recipe-runner` next to `metamask-skills`
 5. cached public git fallback: `https://github.com/deeeed/metamask-recipe-runner.git` at `main`
 
+The public fallback is temporary for the ADR-58 proof-of-concept period: the
+runner is hosted under Arthur's personal `deeeed` account so engineers and cloud
+agents can test the experimental skills before the runner is fully validated
+and migrated to the MetaMask organization.
+
 Override the fallback with `METAMASK_RECIPE_RUNNER_GIT_URL`,
 `METAMASK_RECIPE_RUNNER_GIT_REF`, or `METAMASK_RECIPE_RUNNER_CACHE_DIR`.
 Set `METAMASK_RECIPE_RUNNER_GIT_DISABLED=1` to require an explicit local source.
