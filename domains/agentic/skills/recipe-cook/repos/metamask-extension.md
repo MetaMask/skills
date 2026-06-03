@@ -40,7 +40,7 @@ Prefer repo-owned browser, extension, fixture, and mock helpers over raw CDP sni
 
 ## Common Action Mapping
 
-Use only action names declared by the installed v1 action manifest. Typical Extension mappings are:
+Use only action names declared by the installed action manifest. Typical Extension mappings are:
 
 - Launch extension: `/recipe-harness` live/verify flow or runner setup with `--launch-existing-dist`.
 - Open route/popup: `ui.navigate` with a raw extension `hash` route, e.g. `{ "hash": "#/?tab=perps" }`.

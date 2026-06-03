@@ -127,6 +127,7 @@ function validateNode(node, vocab, where, violations) {
     violations.push(`${where}: unknown action "${action}" (not in supported_official_actions or custom_actions)`);
     return;
   }
+  validateIntent(node, where, violations);
   // Every action (including nameOnly actions, whose field set is derived from
   // shipped-recipe usage) is checked against universal + its known field set.
   const allowed = new Set([...vocab.universal, ...(vocab.actionFields[action] || [])]);
@@ -135,6 +136,51 @@ function validateNode(node, vocab, where, violations) {
       violations.push(`${where}: action "${action}" has field "${field}" not in its manifest field set [${[...allowed].sort().join(', ')}]`);
     }
   }
+}
+
+function validateIntent(node, where, violations) {
+  if (node.action === 'end') return;
+  if (typeof node.intent !== 'string' || !node.intent.trim()) {
+    violations.push(`${where}: action "${node.action}" must include human-facing node.intent`);
+    return;
+  }
+  const normalized = normalizeIntent(node.intent);
+  const blocked = [
+    'executing recipe step',
+    'run',
+    'setup',
+    'ui',
+    'wallet',
+    'perps',
+    'test',
+    'step',
+    'execute',
+    'click',
+    'press',
+    'wait',
+    'screenshot',
+    'capture',
+    'assert',
+    'command',
+    'selector',
+    'test id',
+    'node id',
+    node.action,
+    node.id,
+    node.ref,
+    node.selector,
+    node.test_id,
+    node.testID,
+  ]
+    .filter((value) => typeof value === 'string' && value.trim())
+    .map(normalizeIntent);
+  if (blocked.includes(normalized)) {
+    violations.push(`${where}: action "${node.action}" has generic/debug-ish node.intent "${node.intent}"`);
+  }
+}
+
+function normalizeIntent(value) {
+  return String(value).trim().toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
 }
 
 // Extract ```json ... ``` fences with their starting line numbers.

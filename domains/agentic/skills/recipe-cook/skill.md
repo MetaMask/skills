@@ -15,7 +15,7 @@ Load only the files needed for the target repo:
 - Mobile-first recipe examples and composition patterns: `references/examples.md`
 - Evidence package shape: `references/evidence-package.md`
 - Runtime harness: use `/recipe-harness` before claiming live Mobile or Extension recipe proof.
-- Action catalog: after `/recipe-harness install`, read `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/action-manifest.json`; use only manifest-declared v1 action names.
+- Action catalog: discover the installed runner manifest/schema first (for MetaMask, `metamask-recipe actions --adapter <mobile|extension> --json` or the installed `action-manifest.json`); use only manifest-declared action names.
 - Runner CLI: run recipes through `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/<adapter>/runner/bin/metamask-recipe run ...`, then validate artifacts with `farmslot-recipe validate ...`.
 - Target-repo instructions are appended below when installed.
 
@@ -44,8 +44,15 @@ For MetaMask Perps, prefer the installed manifest's current executable actions. 
   "provider": "hyperliquid",
   "page": "positions",
   "market": "BTC",
-  "positions": { "state": "none", "mode": "matching" },
-  "orders": { "state": "none", "mode": "matching" }
+  "positions": {
+    "state": "none",
+    "mode": "matching"
+  },
+  "orders": {
+    "state": "none",
+    "mode": "matching"
+  },
+  "intent": "Converge Perps to the requested start state before proof"
 }
 ```
 
@@ -65,8 +72,6 @@ Minimal Mobile smoke recipe shape:
 ```json
 {
   "schema_version": 1,
-  "title": "Mobile smoke — wallet view is reachable",
-  "description": "Proves the debug Mobile app is reachable and the v1 runner can drive the bridge to a settled wallet screen.",
   "validate": {
     "workflow": {
       "pre_conditions": ["mm-4 or another intended simulator is booted", "debug app is installed"],
@@ -74,26 +79,26 @@ Minimal Mobile smoke recipe shape:
       "nodes": {
         "status": {
           "action": "app.status",
-          "description": "PT-1: read app status (device, platform, route) through the v1 app.status action",
+          "intent": "PT-1: read app status (device, platform, route) through the app.status action",
           "timeout_ms": 30000,
           "next": "ensure-unlocked"
         },
         "ensure-unlocked": {
           "action": "metamask.wallet.ensure_unlocked",
-          "description": "PT-1: idempotently reach an unlocked wallet before navigating",
+          "intent": "PT-1: idempotently reach an unlocked wallet before navigating",
           "timeout_ms": 45000,
           "next": "navigate-wallet"
         },
         "navigate-wallet": {
           "action": "ui.navigate",
-          "description": "PT-2: open the wallet view through the UI/navigation layer",
+          "intent": "PT-2: open the wallet view through the UI/navigation layer",
           "route": "WalletView",
           "timeout_ms": 30000,
           "next": "wait-wallet"
         },
         "wait-wallet": {
           "action": "ui.wait_for",
-          "description": "PT-3: after navigation settles, the wallet screen is present",
+          "intent": "PT-3: after navigation settles, the wallet screen is present",
           "test_id": "wallet-screen",
           "expected": "present",
           "timeout_ms": 30000,
@@ -101,13 +106,13 @@ Minimal Mobile smoke recipe shape:
         },
         "capture": {
           "action": "ui.screenshot",
-          "description": "PT-4: reviewer-visible settled wallet screen",
+          "intent": "PT-4: reviewer-visible settled wallet screen",
           "path": "screenshots/mobile-smoke-wallet.png",
           "next": "index-artifacts"
         },
         "index-artifacts": {
           "action": "index_artifacts",
-          "description": "Index the screenshot proof",
+          "intent": "Index the screenshot proof",
           "artifacts": ["screenshots/"],
           "next": "done"
         },
@@ -118,7 +123,7 @@ Minimal Mobile smoke recipe shape:
 }
 ```
 
-For product recipes, replace the smoke nodes with the v1 actions for the PR's claim: navigate first (`ui.navigate`), wait for settled state (`ui.wait_for`), assert state/UI (`assert_json`, or a `metamask.*` read + assert action), then capture evidence (`ui.screenshot`). Compose reusable `metamask.wallet.*` / `metamask.perps.*` setup/start-state actions where the installed manifest advertises them. See `references/examples.md` for concrete Mobile composition patterns.
+For product recipes, replace the smoke nodes with runner-supported actions for the PR's claim: navigate first (`ui.navigate`), wait for settled state (`ui.wait_for`), assert state/UI (`assert_json`, or a manifest-declared read/assert action), then capture evidence (`ui.screenshot`). Compose reusable `metamask.wallet.*` / `metamask.perps.*` setup/start-state actions only where the installed manifest advertises them. See `references/examples.md` for concrete Mobile composition patterns.
 
 ## When to Use
 
@@ -149,19 +154,20 @@ Use this skill for PRs that need runtime proof, reproducible evidence, or a repe
    - Mark any manual or environment-only target explicitly; do not hide untestable claims.
 
 2. **Choose the execution surface**
-   - Prefer the MetaMask v1 runner manifest installed by `/recipe-harness`.
-   - Use the installed repo overlay before inventing actions; recipe graph execution should go through the v1 runner.
+   - Prefer the MetaMask runner manifest/schema installed by `/recipe-harness`.
+   - Use the installed repo overlay before inventing actions; recipe graph execution should go through the runner.
    - Use UI/mobile/browser actions only for user-facing behavior.
    - Use command and JSON assertions for backend, static, or artifact-only behavior.
 
 3. **Author the recipe graph**
-   - Use the v1 envelope in `references/recipe-v1.md`.
+   - Use the schema envelope in `references/recipe-v1.md`.
    - Start with reusable `ensure_*` flows for setup/start-state when the runner publishes them.
    - Keep setup/start-state/proof/assert/teardown boundaries explicit.
-   - Give every node a stable `id`, an `action`, and a human-readable `description`.
+   - Give every non-terminal node a stable id, an `action`, and a human-readable `intent`.
    - Every non-terminal node must transition with `next`, `cases`, or `default`.
    - Every assertion should point back to a proof target.
    - Put proof recording/screenshots around the AC interaction, not around generic setup unless setup is the claim.
+   - For screenshots/videos, `note` is optional artifact caption text only. It is not the HUD text; captions may fall back to node `intent` when `note` is absent.
    - For `assert_exit_code`, use `"expected": 0` or another numeric expected code. Do not use `"code"`.
    - Add `timeout_ms` to commands that can hang, such as focused Jest, build, simulator, or browser checks.
 

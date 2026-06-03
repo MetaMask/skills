@@ -5,7 +5,7 @@ parent: recipe-wallet-control
 
 # Recipe Wallet Control — MetaMask Mobile
 
-Drive a debug MetaMask Mobile app through wallet-semantic **v1 manifest actions** (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*`) run by the recipe runner. The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Author recipes with the actions below; reach for raw bridge shell commands only for interactive debugging/inspection. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
+Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Discover the active manifest/schema before authoring; reach for raw bridge shell commands only for interactive debugging/inspection. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
 
 ## Harness Launch Requirement
 
@@ -57,7 +57,11 @@ bash scripts/perps/agentic/preflight.sh \
 Unlock an existing vault with the seeded fixture password. The action is idempotent — it inspects lock state and only unlocks if needed:
 
 ```json
-{ "action": "metamask.wallet.ensure_unlocked", "timeout_ms": 45000 }
+{
+  "action": "metamask.wallet.ensure_unlocked",
+  "timeout_ms": 45000,
+  "intent": "Ensure the wallet is unlocked before proof"
+}
 ```
 
 The password comes from the wallet fixture supplied to the run, not a node field. Failure usually means the app is not on the login screen, the fixture password is wrong, or CDP is disconnected.
@@ -67,7 +71,11 @@ The password comes from the wallet fixture supplied to the run, not a node field
 Seed a debug wallet from the run's JSON fixture:
 
 ```json
-{ "action": "metamask.wallet.setup", "timeout_ms": 45000 }
+{
+  "action": "metamask.wallet.setup",
+  "timeout_ms": 45000,
+  "intent": "Prepare the wallet fixture for recipe proof"
+}
 ```
 
 The fixture (accounts, password, settings) is provided to the run by the harness, not a node field. Setup validates the fixture, creates or unlocks the vault, and yields an account summary. For validation evidence, start from clean state or capture a before/after account assertion, because setup intentionally skips creation when a vault already exists.
@@ -78,8 +86,29 @@ Use the official `ui.navigate` action with a raw app `route` (and optional `para
 
 ```json
 [
-  { "action": "ui.navigate", "route": "WalletTabHome", "timeout_ms": 30000 },
-  { "action": "ui.navigate", "route": "PerpsMarketDetails", "params": { "market": { "symbol": "BTC", "name": "BTC", "price": "0", "change24h": "0", "change24hPercent": "0", "volume": "0", "maxLeverage": "100" } }, "timeout_ms": 30000 }
+  {
+    "action": "ui.navigate",
+    "route": "WalletTabHome",
+    "timeout_ms": 30000,
+    "intent": "Open the target screen through UI navigation"
+  },
+  {
+    "action": "ui.navigate",
+    "route": "PerpsMarketDetails",
+    "params": {
+      "market": {
+        "symbol": "BTC",
+        "name": "BTC",
+        "price": "0",
+        "change24h": "0",
+        "change24hPercent": "0",
+        "volume": "0",
+        "maxLeverage": "100"
+      }
+    },
+    "timeout_ms": 30000,
+    "intent": "Open the target screen through UI navigation"
+  }
 ]
 ```
 
@@ -90,7 +119,11 @@ Use the official `ui.navigate` action with a raw app `route` (and optional `para
 Capture the current simulator/emulator screen through the official screenshot action:
 
 ```json
-{ "action": "ui.screenshot", "path": "screenshots/recipe-wallet-control-home.png" }
+{
+  "action": "ui.screenshot",
+  "path": "screenshots/recipe-wallet-control-home.png",
+  "intent": "Capture reviewer-visible proof of the current screen"
+}
 ```
 
 The runner writes the PNG under the run's artifacts dir. Failure usually means no matching booted simulator or connected Android device was found.
@@ -101,9 +134,20 @@ Read wallet/controller state through manifest-backed state actions where availab
 
 ```json
 [
-  { "action": "metamask.wallet.read_state" },
-  { "action": "metamask.perps.read_positions", "market": "ETH" },
-  { "action": "metamask.perps.read_orders", "market": "ETH" }
+  {
+    "action": "metamask.wallet.read_state",
+    "intent": "Read wallet state for recipe evidence"
+  },
+  {
+    "action": "metamask.perps.read_positions",
+    "market": "ETH",
+    "intent": "Read Perps positions for recipe evidence"
+  },
+  {
+    "action": "metamask.perps.read_orders",
+    "market": "ETH",
+    "intent": "Read Perps open orders for recipe evidence"
+  }
 ]
 ```
 
@@ -114,21 +158,39 @@ Use these only to complete real UI flows around the wallet primitives. Do not in
 ### `ui.press`
 
 ```json
-{ "action": "ui.press", "target": "<testId>" }
+{
+  "action": "ui.press",
+  "target": "<testId>",
+  "intent": "Press the target control through the UI"
+}
 ```
 
 ### `ui.set_input`
 
 ```json
-{ "action": "ui.set_input", "test_id": "<testId>", "value": "text value" }
+{
+  "action": "ui.set_input",
+  "test_id": "<testId>",
+  "value": "text value",
+  "intent": "Enter text through the real UI input path"
+}
 ```
 
 ### `ui.scroll`
 
 ```json
 [
-  { "action": "ui.scroll", "test_id": "<testId>", "scroll_into_view": true },
-  { "action": "ui.scroll", "delta_y": 600 }
+  {
+    "action": "ui.scroll",
+    "test_id": "<testId>",
+    "scroll_into_view": true,
+    "intent": "Scroll until the target UI area is visible"
+  },
+  {
+    "action": "ui.scroll",
+    "delta_y": 600,
+    "intent": "Scroll until the target UI area is visible"
+  }
 ]
 ```
 
@@ -136,8 +198,19 @@ Use these only to complete real UI flows around the wallet primitives. Do not in
 
 ```json
 [
-  { "action": "ui.wait_for", "test_id": "<testId>", "expected": "present", "timeout_ms": 30000 },
-  { "action": "ui.wait_for", "text": "Perps", "timeout_ms": 30000 }
+  {
+    "action": "ui.wait_for",
+    "test_id": "<testId>",
+    "expected": "present",
+    "timeout_ms": 30000,
+    "intent": "Wait until the target UI state is present"
+  },
+  {
+    "action": "ui.wait_for",
+    "text": "Perps",
+    "timeout_ms": 30000,
+    "intent": "Wait until the target UI state is present"
+  }
 ]
 ```
 

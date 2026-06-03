@@ -421,15 +421,15 @@ if [ "$STATIC_ONLY" = false ]; then
     "workflow": {
       "entry": "status",
       "nodes": {
-        "status": { "action": "app.status", "next": "cdp-probe" },
-        "cdp-probe": { "action": "cdp.target", "required": true, "timeout_ms": 15000, "next": "wallet-setup" },
-        "wallet-setup": { "action": "metamask.wallet.setup", "timeout_ms": 45000, "next": "wallet-unlock" },
-        "wallet-unlock": { "action": "metamask.wallet.ensure_unlocked", "timeout_ms": 45000, "next": "wallet-read" },
-        "wallet-read": { "action": "metamask.wallet.read_state", "timeout_ms": 45000, "next": "navigate-wallet" },
-        "navigate-wallet": { "action": "ui.navigate", "route": "WalletView", "timeout_ms": 45000, "next": "wait-wallet" },
-        "wait-wallet": { "action": "ui.wait_for", "test_id": "wallet-screen", "expected": "present", "timeout_ms": 45000, "next": "hud-smoke" },
-        "hud-smoke": { "action": "app.hud", "status": "running", "intent": "Mobile v1 live bridge smoke", "progress": { "current": 1, "total": 1 }, "timeout_ms": 45000, "next": "screenshot" },
-        "screenshot": { "action": "ui.screenshot", "path": "screenshots/mobile-v1-live-smoke.png", "timeout_ms": 45000, "next": "done" },
+        "status": { "action": "app.status", "intent": "Read Mobile app status through the v1 runner", "next": "cdp-probe" },
+        "cdp-probe": { "action": "cdp.target", "intent": "Verify the React Native debug bridge target is reachable", "required": true, "timeout_ms": 15000, "next": "wallet-setup" },
+        "wallet-setup": { "action": "metamask.wallet.setup", "intent": "Prepare the wallet fixture for the live bridge smoke", "timeout_ms": 45000, "next": "wallet-unlock" },
+        "wallet-unlock": { "action": "metamask.wallet.ensure_unlocked", "intent": "Unlock the wallet through the manifest-declared action", "timeout_ms": 45000, "next": "wallet-read" },
+        "wallet-read": { "action": "metamask.wallet.read_state", "intent": "Read wallet state before navigating to the wallet view", "timeout_ms": 45000, "next": "navigate-wallet" },
+        "navigate-wallet": { "action": "ui.navigate", "intent": "Open the wallet view through the UI navigation action", "route": "WalletView", "timeout_ms": 45000, "next": "wait-wallet" },
+        "wait-wallet": { "action": "ui.wait_for", "intent": "Wait until the wallet screen is present", "test_id": "wallet-screen", "expected": "present", "timeout_ms": 45000, "next": "hud-smoke" },
+        "hud-smoke": { "action": "app.hud", "status": "running", "intent": "Show the Mobile live bridge smoke HUD", "progress": { "current": 1, "total": 1 }, "timeout_ms": 45000, "next": "screenshot" },
+        "screenshot": { "action": "ui.screenshot", "intent": "Capture proof that the wallet screen is visible", "path": "screenshots/mobile-v1-live-smoke.png", "timeout_ms": 45000, "next": "done" },
         "done": { "action": "end", "status": "pass" }
       }
     }
