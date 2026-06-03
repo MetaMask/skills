@@ -10,7 +10,7 @@ Use this workflow when the session account is a smart account. If the session ac
 ## Install dependencies
 
 ```bash
-npm install @metamask/smart-accounts-kit permissionless
+npm install permissionless
 ```
 
 ## Set up clients

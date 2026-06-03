@@ -10,7 +10,7 @@ Use this workflow when the delegate is a smart account. If the delegate is an EO
 ## Install dependencies
 
 ```bash
-npm install @metamask/smart-accounts-kit permissionless
+npm install permissionless
 ```
 
 ## Set up clients
