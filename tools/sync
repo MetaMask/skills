@@ -17,8 +17,8 @@
 # Skills with `scope: user` install at user-level (~/.claude, ~/.codex).
 #
 # Env (at least one required):
-#   METAMASK_SKILLS_DIR   Path to local MetaMask/skills checkout (public, no auth).
-#   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills checkout (private overlay).
+#   METAMASK_SKILLS_DIR   Path to local MetaMask/skills source (checkout, cache, or package).
+#   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills source (private overlay).
 #                         When both set, private overrides public on name conflict.
 #   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
 #   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
@@ -109,30 +109,27 @@ done
 SOURCES=()
 PRIMARY_SKILLS_DIR=""
 
-if [[ -n "${METAMASK_SKILLS_DIR:-}" ]]; then
-  if [[ ! -d "$METAMASK_SKILLS_DIR/.git" ]]; then
+validate_source() {
+  local name="$1" dir="$2" clone_hint="$3"
+  if [[ ! -d "$dir/domains" || ! -d "$dir/tools" ]]; then
     cat >&2 <<EOF
-METAMASK_SKILLS_DIR points to "$METAMASK_SKILLS_DIR", but that's not a git checkout.
+$name points to "$dir", but that's not a MetaMask skills source.
 
 Either fix the path or clone the source repo there:
-  git clone https://github.com/MetaMask/skills.git "$METAMASK_SKILLS_DIR"
+  git clone $clone_hint "$dir"
 EOF
     exit 1
   fi
+}
+
+if [[ -n "${METAMASK_SKILLS_DIR:-}" ]]; then
+  validate_source "METAMASK_SKILLS_DIR" "$METAMASK_SKILLS_DIR" "https://github.com/MetaMask/skills.git"
   SOURCES+=("$METAMASK_SKILLS_DIR")
   PRIMARY_SKILLS_DIR="$METAMASK_SKILLS_DIR"
 fi
 
 if [[ -n "${CONSENSYS_SKILLS_DIR:-}" ]]; then
-  if [[ ! -d "$CONSENSYS_SKILLS_DIR/.git" ]]; then
-    cat >&2 <<EOF
-CONSENSYS_SKILLS_DIR points to "$CONSENSYS_SKILLS_DIR", but that's not a git checkout.
-
-Either fix the path or clone the source repo there:
-  git clone git@github.com:Consensys/skills.git "$CONSENSYS_SKILLS_DIR"
-EOF
-    exit 1
-  fi
+  validate_source "CONSENSYS_SKILLS_DIR" "$CONSENSYS_SKILLS_DIR" "git@github.com:Consensys/skills.git"
   SOURCES+=("$CONSENSYS_SKILLS_DIR")
   [[ -z "$PRIMARY_SKILLS_DIR" ]] && PRIMARY_SKILLS_DIR="$CONSENSYS_SKILLS_DIR"
 fi
@@ -180,6 +177,11 @@ EOF
 fi
 
 for src in "${SOURCES[@]}"; do
+  if [[ ! -d "$src/.git" ]]; then
+    echo "Using packaged skills source: $src"
+    continue
+  fi
+
   echo "Updating $src"
   if ! pull_output=$(git -C "$src" pull --ff-only 2>&1); then
     printf '%s\n' "$pull_output" | sed 's/^/  /' >&2

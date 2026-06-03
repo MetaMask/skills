@@ -45,6 +45,22 @@ Or use the installer to drop all `web3-tools/` skills at once:
   --repo metamask-extension --target . --domain web3-tools
 ```
 
+### Package CLI
+
+`@metamask/skills` is also an npm package and exposes the shared consumer CLI:
+
+```bash
+metamask-skills sync          # infer repo + target, refresh cache, install skills
+metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
+metamask-skills install       # lower-level installer wrapper
+```
+
+Consumer repos should prefer this CLI over copying sync/postinstall scripts.
+That keeps cache behavior, `.skills.local` parsing, maturity filtering, and
+experimental skill opt-in semantics uniform across Mobile, Extension, Core, and
+future org packages.
+
+
 ### For engineers in `metamask-extension` / `metamask-mobile` / `core`
 
 From inside an integrated consumer repo:
@@ -56,11 +72,12 @@ yarn skills
 yarn skills --domain agentic --maturity experimental
 ```
 
-The consumer repo wrapper keeps a public `MetaMask/skills` checkout in
-`.skills-cache/metamask-skills` (via `yarn install`/`yarn setup` integration,
-and Core also auto-clones it on `yarn skills` if missing). `yarn skills` then
-runs `tools/sync`, pulls the latest skills, and writes them into
-`.claude/skills/`, `.cursor/rules/`, and `.agents/skills/`.
+The integrated consumer script is intentionally small: `yarn skills` calls the
+published `@metamask/skills` CLI. The CLI infers the current repo from git
+remote/package metadata, keeps a public `MetaMask/skills` checkout in
+`.skills-cache/metamask-skills`, and falls back to the package's bundled skills
+snapshot when offline. It writes managed skills into `.claude/skills/`,
+`.cursor/rules/`, and `.agents/skills/`.
 
 Optional: set `METAMASK_SKILLS_DIR=~/dev/metamask/skills` in `.skills.local` or
 your shell if you want to use a separate local checkout instead of the cache.
@@ -163,14 +180,33 @@ SKILLS_MATURITY=experimental yarn skills             # non-interactive maturity 
 METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
-`yarn skills` calls the consumer repo wrapper, which locates a configured source
-(or the repo-local `.skills-cache/metamask-skills` cache), then delegates to
-`tools/sync`. `tools/sync` pulls the source repos and execs `tools/install` with
-each as `--source`.
+`yarn skills` should be wired to the shared `@metamask/skills` CLI:
 
-When calling `tools/sync` directly, at least one source env var is still
-required. Integrated consumer repos provide the zero-config cache wrapper so
-engineers do not need a manual clone for the default public skills.
+```json
+{
+  "scripts": {
+    "skills": "metamask-skills sync",
+    "skills:postinstall": "metamask-skills postinstall"
+  },
+  "devDependencies": {
+    "@metamask/skills": "^0.1.0"
+  }
+}
+```
+
+The CLI infers the repo name by default (`metamask-mobile`,
+`metamask-extension`, or `core`) from `git remote get-url origin`, with
+package-name fallbacks. Pass `--repo` only for unusual repos or debugging.
+
+Source selection is centralized for consistency across org packages:
+
+1. `METAMASK_SKILLS_DIR` / `CONSENSYS_SKILLS_DIR` when configured.
+2. The repo-local `.skills-cache/metamask-skills` checkout maintained by the CLI.
+3. The bundled skills snapshot inside the installed `@metamask/skills` package.
+
+`tools/sync` then delegates to `tools/install` with the selected sources. This
+keeps every consumer repo on the same parser, cache refresh, maturity filter,
+and `SKILLS_AUTO_UPDATE` behavior instead of duplicating setup scripts.
 
 ## Manual install (the primitive)
 
@@ -284,8 +320,9 @@ is additive and intended to be `.gitignore`'d in consuming repos.
 ## Federation (public + private)
 
 When both env vars are set, `tools/sync` walks both sources and the
-private overlay overrides the public skill on name conflict. This matches
-the "most-local wins" priority below.
+private overlay overrides the public skill on name conflict. The shared
+`@metamask/skills` CLI passes these sources through while still providing the
+repo-local public cache and bundled package snapshot as zero-config fallbacks.
 
 ```bash
 export METAMASK_SKILLS_DIR=~/dev/metamask/skills        # public, this repo

@@ -1,0 +1,20 @@
+{
+  "name": "@metamask/skills",
+  "version": "0.1.0",
+  "description": "Shared MetaMask agent skills installer and sync CLI.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "metamask-skills": "bin/metamask-skills.mjs"
+  },
+  "files": [
+    "bin/",
+    "domains/",
+    "tools/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "smoke": "node bin/metamask-skills.mjs --help"
+  }
+}
