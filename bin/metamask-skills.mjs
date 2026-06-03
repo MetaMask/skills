@@ -332,11 +332,15 @@ function pickBash() {
     if (result.status !== 0) {
       continue;
     }
-    const match = `${result.stdout ?? ''}${result.stderr ?? ''}`.match(/version\s+(\d+)\./iu);
+    const match = `${result.stdout ?? ''}${result.stderr ?? ''}`.match(/version\s+(\d+)\.(\d+)/iu);
     // macOS ships Bash 3.2; the tools/ scripts are deliberately 3.2-compatible,
-    // so accept any Bash 3+ rather than forcing `brew install bash`.
-    if (match && Number(match[1]) >= 3) {
-      return candidate;
+    // so accept Bash 3.2+ rather than forcing `brew install bash`.
+    if (match) {
+      const major = Number(match[1]);
+      const minor = Number(match[2]);
+      if (major > 3 || (major === 3 && minor >= 2)) {
+        return candidate;
+      }
     }
   }
   return undefined;
