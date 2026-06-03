@@ -10,15 +10,11 @@ const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const PUBLIC_REPO = 'https://github.com/MetaMask/skills.git';
 const CACHE_RELATIVE_DIR = path.join('.skills-cache', 'metamask-skills');
 const SOURCE_ENV_KEYS = ['METAMASK_SKILLS_DIR', 'CONSENSYS_SKILLS_DIR'];
-const PACKAGE_NAME_TO_REPO = new Map([
-  ['metamask', 'metamask-mobile'],
-  ['metamask-crx', 'metamask-extension'],
-  ['@metamask/core-monorepo', 'core'],
-]);
+const TARGET_REPO_ENV_KEY = 'METAMASK_SKILLS_TARGET_REPO';
 
 function usage(exitCode = 0) {
   const out = exitCode === 0 ? process.stdout : process.stderr;
-  out.write(`MetaMask skills CLI\n\nUsage:\n  metamask-skills sync [options]\n  metamask-skills postinstall [options]\n  metamask-skills install [options]\n\nOptions:\n  --target <path>   Consumer repo path (default: cwd)\n  --repo <name>     Consumer repo name (default: infer from git remote/package.json)\n\nCommon sync options are passed through to the shared installer:\n  --domain <list> --maturity <level> --include <list> --exclude <list> --save --dry-run\n\nSource order:\n  1. METAMASK_SKILLS_DIR / CONSENSYS_SKILLS_DIR when configured\n  2. <target>/.skills-cache/metamask-skills\n  3. bundled @metamask/skills package snapshot\n`);
+  out.write(`MetaMask skills CLI\n\nUsage:\n  metamask-skills sync [options]\n  metamask-skills postinstall [options]\n  metamask-skills install [options]\n\nOptions:\n  --target <path>   Consumer repo path (default: cwd)\n  --repo <name>     Consumer repo name (default: infer from git/repository URL)\n\nCommon sync options are passed through to the shared installer:\n  --domain <list> --maturity <level> --include <list> --exclude <list> --save --dry-run\n\nRepo inference:\n  1. --repo <name>\n  2. METAMASK_SKILLS_TARGET_REPO from env or .skills.local\n  3. git remote origin / package.json repository URL\n\nSource order:\n  1. METAMASK_SKILLS_DIR / CONSENSYS_SKILLS_DIR when configured\n  2. <target>/.skills-cache/metamask-skills\n  3. bundled @metamask/skills package snapshot\n`);
   process.exit(exitCode);
 }
 
@@ -151,27 +147,40 @@ function run(cmd, args, options = {}) {
   return spawnSync(cmd, args, { stdio: options.stdio ?? 'pipe', encoding: 'utf8', ...options });
 }
 
+function repoNameFromGitHubUrl(url) {
+  const match = /(?:github\.com[:/])(?:[^/]+)\/([^/#]+?)(?:\.git)?(?:[#/].*)?$/u.exec(url);
+  return match?.[1];
+}
+
 function inferRepoFromRemote(target) {
   const result = run('git', ['-C', target, 'remote', 'get-url', 'origin']);
   if (result.status !== 0) {
     return undefined;
   }
-  const remote = `${result.stdout ?? ''}`.trim();
-  const match = /(?:github\.com[:/])(?:[^/]+)\/([^/#]+?)(?:\.git)?(?:[#/].*)?$/u.exec(remote);
-  return match?.[1];
+  return repoNameFromGitHubUrl(`${result.stdout ?? ''}`.trim());
 }
 
 function inferRepoFromPackage(target) {
   try {
     const pkg = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
-    return PACKAGE_NAME_TO_REPO.get(pkg.name) ?? pkg.name;
+    const repository = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url;
+    return repoNameFromGitHubUrl(repository ?? '');
   } catch {
     return undefined;
   }
 }
 
-function inferRepo(target) {
-  return inferRepoFromRemote(target) ?? inferRepoFromPackage(target) ?? path.basename(target);
+function resolveRepo(target, repoOverride) {
+  if (repoOverride) {
+    return repoOverride;
+  }
+  const localConfig = readSkillsLocal(target);
+  return (
+    getConfigValue(process.env, localConfig, TARGET_REPO_ENV_KEY) ||
+    inferRepoFromRemote(target) ||
+    inferRepoFromPackage(target) ||
+    path.basename(target)
+  );
 }
 
 function cacheDir(target) {
@@ -296,13 +305,13 @@ function sync(args) {
   if (!getConfigValue(process.env, localConfig, 'METAMASK_SKILLS_DIR')) {
     ensurePublicSkillsCache(target);
   }
-  const repo = repoOverride || inferRepo(target);
+  const repo = resolveRepo(target, repoOverride);
   return delegate('sync', target, repo, passthrough);
 }
 
 function install(args) {
   const { target, repo: repoOverride, passthrough } = parseGlobalArgs(args);
-  const repo = repoOverride || inferRepo(target);
+  const repo = resolveRepo(target, repoOverride);
   return delegate('install', target, repo, passthrough);
 }
 
@@ -330,7 +339,7 @@ function postinstall(args) {
       warn('auto-update skipped because no skills source is available');
       return 0;
     }
-    const repo = repoOverride || inferRepo(target);
+    const repo = resolveRepo(target, repoOverride);
     const result = delegate('sync', target, repo, passthrough);
     return result === 0 ? 0 : 0;
   } catch (error) {
