@@ -32,7 +32,10 @@ If harness verify fails, report wallet-control proof as blocked by runtime readi
 Use when a vault/profile already exists and may be locked:
 
 ```json
-{ "action": "metamask.wallet.ensure_unlocked" }
+{
+  "action": "metamask.wallet.ensure_unlocked",
+  "intent": "Ensure the wallet is unlocked before proof"
+}
 ```
 
 Expected proof: the unlock form is absent after the action and wallet state can be read.
@@ -42,7 +45,11 @@ Expected proof: the unlock form is absent after the action and wallet state can 
 Use with a deterministic fixture address:
 
 ```json
-{ "action": "metamask.wallet.select_account", "address": "0x..." }
+{
+  "action": "metamask.wallet.select_account",
+  "address": "0x...",
+  "intent": "Select the wallet account needed for proof"
+}
 ```
 
 Expected proof: `metamask.wallet.read_state` reports the selected account/address expected by the recipe.
@@ -50,7 +57,11 @@ Expected proof: `metamask.wallet.read_state` reports the selected account/addres
 ### `ui.navigate`
 
 ```json
-{ "action": "ui.navigate", "hash": "#/?tab=perps" }
+{
+  "action": "ui.navigate",
+  "hash": "#/?tab=perps",
+  "intent": "Open the target screen through UI navigation"
+}
 ```
 
 ### `metamask.wallet.read_state`
@@ -58,7 +69,10 @@ Expected proof: `metamask.wallet.read_state` reports the selected account/addres
 Read wallet state without mutating UI:
 
 ```json
-{ "action": "metamask.wallet.read_state" }
+{
+  "action": "metamask.wallet.read_state",
+  "intent": "Read wallet state for recipe evidence"
+}
 ```
 
 Use this as internal-state proof alongside visible UI proof. Do not use raw page/service-worker evaluation to fabricate a visible result.
@@ -68,7 +82,11 @@ Use this as internal-state proof alongside visible UI proof. Do not use raw page
 Capture visual proof after a route, selector, or state settle condition:
 
 ```json
-{ "action": "ui.screenshot", "path": "screenshots/wallet-state.png" }
+{
+  "action": "ui.screenshot",
+  "path": "screenshots/wallet-state.png",
+  "intent": "Capture reviewer-visible proof of the current screen"
+}
 ```
 
 Do not screenshot a loading or transitional page as proof.

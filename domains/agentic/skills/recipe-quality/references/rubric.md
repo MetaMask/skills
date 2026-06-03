@@ -19,7 +19,8 @@ Every acceptance criterion or proof target needs:
 
 For v1 recipes, check:
 
-- `schema_version: 1`, `title`, `description`, `validate.workflow.entry`, and `validate.workflow.nodes`;
+- `schema_version: 1`, `validate.workflow.entry`, and `validate.workflow.nodes`; top-level `title`/`description` are optional metadata only;
+- every non-terminal executable node has specific human-facing `intent`;
 - entry node exists;
 - every non-terminal node has `next`, `cases`, or `default`;
 - transition targets exist;
@@ -27,7 +28,7 @@ For v1 recipes, check:
 - `assert_exit_code` nodes use numeric `expected`, not ambiguous fields such as `code`;
 - setup, action, assertion, evidence, and teardown are not collapsed into one opaque node.
 
-`must-fix`: the graph cannot execute or can pass unconditionally.
+`must-fix`: the graph cannot execute, can pass unconditionally, or uses missing/generic/debug-ish `intent` such as action names, node ids, selectors, test ids, recipe title/description, screenshot notes, or labels like `run`, `setup`, `ui`, `wallet`, or `perps`.
 
 
 ## Composition and Start State
@@ -49,7 +50,7 @@ A production recipe should behave like a composed program:
 Recipes may use project-specific actions, but the contract must be explicit. Flag:
 
 - undocumented local helpers;
-- implicit skill-only actions with no action intent;
+- implicit skill-only actions with no manifest-declared behavior or no human-facing node intent;
 - raw eval when a named project action exists;
 - duplicated setup that existing fixtures or `ensure_*` flows already solve;
 - `/recipe-wallet-control` used as a hard dependency instead of an optional mobile implementation layer.

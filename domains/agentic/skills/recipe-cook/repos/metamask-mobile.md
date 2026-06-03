@@ -41,7 +41,7 @@ Do this especially on historical commits, where the checked-out runner may be st
 
 ## Common Action Mapping
 
-Use only action names declared by the installed v1 action manifest. Typical Mobile mappings are:
+Use only action names declared by the installed action manifest. Typical Mobile mappings are:
 
 - Open app area/screen: `ui.navigate` with a raw `route` (and optional `params`), e.g. `{ "route": "PerpsMarketListView" }` or `{ "route": "PerpsMarketDetails", "params": { "market": { "symbol": "ETH" } } }`.
 - Tap: `ui.press` with a stable `test_id`, text, or page-object target.

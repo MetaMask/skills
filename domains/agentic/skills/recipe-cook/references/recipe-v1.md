@@ -7,8 +7,6 @@ Use this shape unless the target repo already publishes a stricter schema.
 ```json
 {
   "schema_version": 1,
-  "title": "Human-readable validation title",
-  "description": "What this recipe proves",
   "inputs": {},
   "proofTargets": [
     { "id": "PT-1", "claim": "The changed behavior is visible and settled." }
@@ -21,20 +19,20 @@ Use this shape unless the target repo already publishes a stricter schema.
       "nodes": {
         "start": {
           "action": "command",
-          "description": "Run a project-native check",
+          "intent": "Run a project-native check",
           "cmd": "mkdir -p logs && yarn test --runInBand path/to/test > logs/test.log 2>&1; status=$?; cat logs/test.log; exit $status",
           "timeout_ms": 120000,
           "next": "assert-result"
         },
         "assert-result": {
           "action": "assert_exit_code",
-          "description": "Check the project-native check passed",
+          "intent": "Check the project-native check passed",
           "expected": 0,
           "next": "assert-output"
         },
         "assert-output": {
           "action": "assert_output",
-          "description": "Check the project-native output looked successful",
+          "intent": "Check the project-native output looked successful",
           "source": "start",
           "stream": "stdout",
           "contains": "PASS",
@@ -42,7 +40,7 @@ Use this shape unless the target repo already publishes a stricter schema.
         },
         "index-artifacts": {
           "action": "index_artifacts",
-          "description": "Write the artifact manifest",
+          "intent": "Write the artifact manifest",
           "artifacts": ["logs/test.log"],
           "next": "done"
         },
@@ -57,7 +55,7 @@ Use this shape unless the target repo already publishes a stricter schema.
 
 ## Composition and start-state fields
 
-Recipe v1 authoring should support reusable flow composition. When the installed runner publishes flow catalogs, prefer `call` nodes over repeated raw setup.
+Recipe authoring should support reusable flow composition. When the installed runner publishes flow catalogs, prefer `call` nodes over repeated raw setup.
 
 Recommended metadata:
 
@@ -71,6 +69,7 @@ Recommended current MetaMask setup action shape:
 ```json
 {
   "action": "metamask.perps.start_state",
+  "intent": "Converge Perps to the requested baseline before proof",
   "phase": "start_state",
   "network": "testnet",
   "provider": "hyperliquid",
@@ -86,20 +85,21 @@ An `ensure_*` or `start_state` action/flow is idempotent: it inspects the curren
 Minimum required fields:
 
 - `schema_version: 1`
-- `title`
-- `description`
 - `validate.workflow.entry`
 - non-empty `validate.workflow.nodes`
+- `intent` on every non-terminal executable node
 
 Node rules:
 
 - Every node key is a stable id.
-- Every node has `action` and `description`, except a minimal terminal `end` node.
+- Every non-terminal node has `action` and `intent`, except a minimal terminal `end` node.
 - Every non-terminal node has `next`, `cases`, or `default`.
 - Transition targets exist.
 - At least one node reaches `action: "end"`.
-- Assertions name the proof target they validate, either in `description` or a `proofTarget` field.
+- Assertions name the proof target they validate with `proofTarget`.
 - Setup/start-state flows should be declared separately from proof nodes so evidence can focus on the AC interaction.
+
+Every non-terminal recipe node needs `intent`: one short HUD/trace line for what the agent is doing now. Do not use generic/action/node/selector/test-id/title/description/note text, and do not author sub-intent/HUD fields.
 
 Action classes:
 

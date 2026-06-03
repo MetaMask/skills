@@ -520,7 +520,7 @@ check_v1_runner() {
   if [ -f "$manifest" ]; then
     record_check PASS "runner:v1-manifest" "$manifest"
   else
-    record_check WARN "runner:v1-manifest" "missing; run mms-recipe-harness install to install Farmslot v1 action manifest"
+    record_check WARN "runner:v1-manifest" "missing; run mms-recipe-harness install to install the runner action manifest"
   fi
   if [ -x "$runner_bin" ]; then
     record_check PASS "runner:v1-entrypoint" "$runner_bin"
