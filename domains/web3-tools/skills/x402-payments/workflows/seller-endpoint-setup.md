@@ -26,54 +26,53 @@ app.use(cors({
 }))
 ```
 
-## Configure the facilitator client
+## Configure the facilitator client and resource server
 
-Initialize an `HTTPFacilitatorClient` pointing to the MetaMask facilitator for your network:
+Initialize an `HTTPFacilitatorClient` pointing to the MetaMask facilitator for your network, then create an `x402ResourceServer` and register the ERC-7710 server scheme so the middleware can parse and validate delegation-based payment payloads:
 
 ```typescript
-import { HTTPFacilitatorClient } from '@x402/core'
+import { HTTPFacilitatorClient } from '@x402/core/server'
+import { paymentMiddleware, x402ResourceServer } from '@x402/express'
+import { x402ExactEvmErc7710ServerScheme } from '@metamask/x402'
 
-const facilitatorClient = new HTTPFacilitatorClient('<FACILITATOR_URL>')
+const facilitatorClient = new HTTPFacilitatorClient({
+  url: '<FACILITATOR_URL>',
+})
+
+const resourceServer = new x402ResourceServer(facilitatorClient).register(
+  'eip155:84532',
+  new x402ExactEvmErc7710ServerScheme(),
+)
 ```
 
 MetaMask facilitator URLs by network:
-- Base Sepolia: `https://x402-facilitator-base-sepolia.metamask.io`
-- Base: `https://x402-facilitator-base.metamask.io`
-- Monad: `https://x402-facilitator-monad.metamask.io`
-
-## Register the ERC-7710 server scheme
-
-Register the ERC-7710 server scheme so the payment middleware can parse and validate delegation-based payment payloads from buyers:
-
-```typescript
-import { x402ResourceServer } from '@x402/core'
-import { x402ExactEvmErc7710ServerScheme } from '@metamask/x402'
-
-x402ResourceServer.registerScheme(x402ExactEvmErc7710ServerScheme)
-```
+- Base Sepolia: `https://tx-sentinel-base-sepolia.dev-api.cx.metamask.io/platform/v2/x402`
+- Base: `https://tx-sentinel-monad-mainnet.dev-api.cx.metamask.io/platform/v2/x402`
+- Monad: `https://tx-sentinel-base-mainnet.dev-api.cx.metamask.io/platform/v2/x402`
 
 ## Add payment middleware to protected routes
 
-Define the payment requirements for each route and apply the middleware:
+Define the payment requirements for each route and apply the middleware with the resource server:
 
 ```typescript
-import { paymentMiddleware } from '@x402/express'
-
-const paymentConfig = {
-  'GET /api/hello': {
-    accepts: [{
-      scheme: 'exact',
-      price: '$0.01',
-      network: 'eip155:84532',
-      payTo: ['<SELLER_ADDRESS>'],
-      extra: { assetTransferMethod: 'erc7710' },
-    }],
-    description: 'A paid hello endpoint',
-    mimeType: 'application/json',
-  },
-}
-
-app.use(paymentMiddleware(facilitatorClient, paymentConfig))
+app.use(
+  paymentMiddleware(
+    {
+      'GET /api/hello': {
+        accepts: [{
+          scheme: 'exact',
+          price: '$0.01',
+          network: 'eip155:84532',
+          payTo: '<SELLER_ADDRESS>',
+          extra: { assetTransferMethod: 'erc7710' },
+        }],
+        description: 'A paid hello endpoint',
+        mimeType: 'application/json',
+      },
+    },
+    resourceServer,
+  ),
+)
 ```
 
 ## Add the protected route handler

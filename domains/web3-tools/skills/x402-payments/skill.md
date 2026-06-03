@@ -18,13 +18,13 @@ x402 is an open payment protocol that uses the HTTP 402 status code to enable pr
 ## Installation
 
 ```bash
-npm install @x402/core @x402/fetch @metamask/x402
+npm install @x402/core @x402/fetch @metamask/x402 @metamask/smart-accounts-kit
 ```
 
 For seller endpoints:
 
 ```bash
-npm install @x402/express @metamask/x402
+npm install @x402/core @x402/express @metamask/x402
 ```
 
 ## How x402 works
@@ -57,9 +57,9 @@ If the user hasn't specified which payment method they need, present the options
 
 | Network | Chain ID | Facilitator URL |
 |---------|----------|-----------------|
-| Base | eip155:8453 | `https://x402-facilitator-base.metamask.io` |
-| Base Sepolia | eip155:84532 | `https://x402-facilitator-base-sepolia.metamask.io` |
-| Monad | eip155:143 | `https://x402-facilitator-monad.metamask.io` |
+| Base | eip155:8453 | `https://tx-sentinel-monad-mainnet.dev-api.cx.metamask.io/platform/v2/x402` |
+| Base Sepolia | eip155:84532 | `https://tx-sentinel-base-sepolia.dev-api.cx.metamask.io/platform/v2/x402` |
+| Monad | eip155:143 | `https://tx-sentinel-base-mainnet.dev-api.cx.metamask.io/platform/v2/x402` |
 
 ## Resources
 

@@ -73,11 +73,17 @@ const grantedPermissions = await walletClient.requestExecutionPermissions([
 Use `createx402DelegationProvider` with the granted permission context. This sets up open redelegation so facilitators can redeem payments within the granted budget:
 
 ```typescript
-import { createx402DelegationProvider } from '@metamask/x402'
+import { createx402DelegationProvider } from '@metamask/smart-accounts-kit/experimental'
+import { x402Erc7710Client } from '@metamask/x402'
 
-const erc7710Client = createx402DelegationProvider({
-  account: sessionAccount,
-  parentPermissionContext: grantedPermissions[0].context,
+const permission = grantedPermissions[0]
+
+const erc7710Client = new x402Erc7710Client({
+  delegationProvider: createx402DelegationProvider({
+    account: sessionAccount,
+    parentPermissionContext: permission.context,
+    from: permission.from,
+  }),
 })
 ```
 
@@ -85,17 +91,15 @@ For API reference, see [`createx402DelegationProvider`](https://docs.metamask.io
 
 ## Register and wrap fetch
 
-Register the delegation provider for all EVM networks, then wrap `fetch` with automatic payment handling. When a server responds with HTTP 402, the wrapped fetch creates a payment within the granted budget and retries the request:
+Register the ERC-7710 client for all EVM networks, then create an HTTP client and wrap `fetch` with automatic payment handling. When a server responds with HTTP 402, the wrapped fetch creates a payment within the granted budget and retries the request:
 
 ```typescript
-import { x402Client } from '@x402/core'
+import { x402Client, x402HTTPClient } from '@x402/core/client'
 import { wrapFetchWithPayment } from '@x402/fetch'
 
-x402Client.registerSchemeClient('eip155:*', erc7710Client)
-
-const fetchWithPayment = wrapFetchWithPayment(fetch, {
-  x402Client,
-})
+const coreClient = new x402Client().register('eip155:*', erc7710Client)
+const httpClient = new x402HTTPClient(coreClient)
+const fetchWithPayment = wrapFetchWithPayment(fetch, httpClient)
 ```
 
 ## Make recurring paid requests

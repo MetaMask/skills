@@ -42,10 +42,13 @@ const buyerSmartAccount = await toMetaMaskSmartAccount({
 Use `createx402DelegationProvider` to create an ERC-7710 client that automatically creates, signs, and encodes open root delegations with the required caveats:
 
 ```typescript
-import { createx402DelegationProvider } from '@metamask/x402'
+import { createx402DelegationProvider } from '@metamask/smart-accounts-kit/experimental'
+import { x402Erc7710Client } from '@metamask/x402'
 
-const erc7710Client = createx402DelegationProvider({
-  account: buyerSmartAccount,
+const erc7710Client = new x402Erc7710Client({
+  delegationProvider: createx402DelegationProvider({
+    account: buyerSmartAccount,
+  }),
 })
 ```
 
@@ -53,17 +56,15 @@ For API reference, see [`createx402DelegationProvider`](https://docs.metamask.io
 
 ## Register the client and wrap fetch
 
-Register the delegation provider for all EVM networks, then wrap `fetch` with automatic payment handling:
+Register the ERC-7710 client for all EVM networks, then create an HTTP client and wrap `fetch` with automatic payment handling:
 
 ```typescript
-import { x402Client } from '@x402/core'
+import { x402Client, x402HTTPClient } from '@x402/core/client'
 import { wrapFetchWithPayment } from '@x402/fetch'
 
-x402Client.registerSchemeClient('eip155:*', erc7710Client)
-
-const fetchWithPayment = wrapFetchWithPayment(fetch, {
-  x402Client,
-})
+const coreClient = new x402Client().register('eip155:*', erc7710Client)
+const httpClient = new x402HTTPClient(coreClient)
+const fetchWithPayment = wrapFetchWithPayment(fetch, httpClient)
 ```
 
 ## Make paid requests
