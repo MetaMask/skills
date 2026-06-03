@@ -12,9 +12,17 @@
     "domains/",
     "tools/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "smoke": "node bin/metamask-skills.mjs --help"
+    "smoke": "node bin/metamask-skills.mjs --help",
+    "build": "node bin/metamask-skills.mjs --help",
+    "test": "node bin/metamask-skills.mjs --help",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
