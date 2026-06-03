@@ -7,8 +7,6 @@ on:
         required: false
       SLACK_WEBHOOK_URL:
         required: true
-      PUBLISH_DOCS_TOKEN:
-        required: true
 
 permissions:
   contents: read
