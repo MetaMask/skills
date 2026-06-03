@@ -4,12 +4,63 @@ Complete command reference for the `mm` CLI. For core workflow and getting start
 
 ## Contents
 
+- [Syntax Rules](#syntax-rules)
 - [Lifecycle](#lifecycle)
 - [Interaction](#interaction)
 - [Navigation & Tabs](#navigation--tabs)
 - [Context](#context)
 - [State, Knowledge & Seeding](#state-knowledge--seeding)
 - [Advanced](#advanced)
+
+## Syntax Rules
+
+The CLI is strict about flag names and argument positions. Mistyped flags are silently treated as element targets, producing confusing timeout errors.
+
+### Flag spelling is exact — lowercase, no variants
+
+```bash
+# CORRECT
+mm click --testid unlock-submit
+mm type --testid unlock-password "correct horse battery staple"
+
+# WRONG — all of these silently fail with a timeout
+mm click --testId unlock-submit     # capital I — treated as testId "--testId"
+mm click --test-id unlock-submit    # hyphenated — treated as testId "--test-id"
+mm click --TestId unlock-submit     # PascalCase — same problem
+```
+
+The only recognized interaction flags are: `--testid`, `--selector`, `--timeout`, `--within`. Anything else (including `--testId` with a capital I) is parsed as a positional argument and used as a literal testId value, producing a locator like `[data-testid="--testId"]` which always times out.
+
+### a11yRefs are positional arguments — no `--ref` flag
+
+```bash
+# CORRECT — ref is the first positional arg
+mm click e5
+mm type e2 "correct horse battery staple"
+
+# WRONG — no --ref flag exists; "--ref" becomes the testId value
+mm click --ref e5
+```
+
+### One targeting method per call
+
+Each interaction command accepts exactly one of: positional a11yRef, `--testid`, or `--selector`. Do not combine them.
+
+```bash
+mm click e5                             # a11yRef (positional)
+mm click --testid unlock-submit         # testId (flag)
+mm click --selector "#connectButton"    # CSS selector (flag)
+```
+
+### Quick reference
+
+| What you want | Correct syntax | Common mistake |
+|---|---|---|
+| Click by testId | `mm click --testid X` | `mm click --testId X` (capital I) |
+| Click by a11y ref | `mm click e5` | `mm click --ref e5` (no such flag) |
+| Click by CSS | `mm click --selector ".btn"` | `mm click --css ".btn"` (no such flag) |
+| Type by testId | `mm type --testid X "text"` | `mm type --testId X "text"` |
+| Type by a11y ref | `mm type e2 "text"` | `mm type --ref e2 "text"` |
 
 ## Lifecycle
 

@@ -29,6 +29,11 @@ For architecture details, see `test/e2e/playwright/llm-workflow/README.md`.
 - The default password for built-in fixtures is `correct horse battery staple`.
 - Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them.
 - `mm mock-network` **cannot** intercept requests during extension startup before the session is fully active.
+- There is **no `mm scroll` command**. If an element is below the viewport and `mm click` times out, scroll it into view via CDP before retrying:
+  ```bash
+  mm cdp Runtime.evaluate '{"expression":"document.querySelector(\"[data-testid=import-token-button]\").scrollIntoView({block:\"center\"})"}'
+  mm click --testid import-token-button
+  ```
 
 ## Prerequisites
 
@@ -114,9 +119,22 @@ mm click --selector "role=button[name='Submit']"
 ```bash
 mm click --testid end-accessory --within "testid:account-list-item/0"
 mm click e3 --within "testid:dialog-container"
+mm click --selector ".popover-menu-item" --within "selector:.account-list-item:first-child"
 ```
 
 `--within` accepts an a11yRef, `testid:<id>`, or `selector:<css>`.
+
+**List views (account list, token list, network list):** These screens contain many elements with identical names and testIds. The a11y tree will show dozens of entries like `"Open multichain account address menu"` with no distinguishing context. You must scope with `--within` to target the correct item:
+
+```bash
+# Target the 3-dot menu on the first account in the account list
+mm click --testid account-list-item-menu-button --within "testid:account-list-item/0"
+
+# Target an element inside a specific dialog or popover
+mm click --selector "text=Rename" --within "testid:popover-content"
+```
+
+If `--within` isn't working or you can't identify the right parent testId, use a CSS selector with `:nth-child()` or other structural selectors as a fallback.
 
 #### Timeouts
 
