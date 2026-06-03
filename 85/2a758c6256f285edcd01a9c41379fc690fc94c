@@ -1,0 +1,25 @@
+domains/testing/skills/visual-testing/repos/metamask-extension.md
+  s_7fa5d3256af6e9::t_ef0a54ca238ba2 142-151
+  s_7fa5d3256af6e9::t_ad02b943635c8f 17
+domains/testing/skills/visual-testing/references/state-manipulation.md
+  s_7fa5d3256af6e9::t_3f29d3470d0736 212
+  s_7fa5d3256af6e9::t_de634178b7823a 32,40,45
+  s_7fa5d3256af6e9::t_75582421313600 120-192
+  s_7fa5d3256af6e9::t_f6ff2a6fcff65f 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "852a758c6256f285edcd01a9c41379fc690fc94c",
+  "prompts": {},
+  "sessions": {
+    "s_7fa5d3256af6e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_17373b062ffeXBT97uFQEgljGM",
+        "model": "unknown"
+      },
+      "human_author": "cryptotavares <joao.tavares@consensys.net>"
+    }
+  }
+}
