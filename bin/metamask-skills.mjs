@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
@@ -737,31 +737,61 @@ function postinstall(args) {
   }
 }
 
-const [command, ...args] = process.argv.slice(2);
-if (!command || command === '-h' || command === '--help') {
-  usage(0);
-}
+export {
+  bodyAfterFrontmatter,
+  collectSkills,
+  domainMatches,
+  expandHome,
+  filterSkills,
+  findSkill,
+  formatSkillTable,
+  getConfigValue,
+  hasArg,
+  isTruthy,
+  maturityMatches,
+  parseDiscoveryArgs,
+  parseFrontmatter,
+  parseGlobalArgs,
+  parseSkillsLocal,
+  repoNameFromGitHubUrl,
+  repoOverlays,
+  hasSkillsSource,
+  shouldSkipPostinstall,
+  splitList,
+  stripInlineComment,
+  unquote,
+};
 
-let exitCode;
-try {
-  if (command === 'list') {
-    exitCode = listSkills(args);
-  } else if (command === 'search') {
-    exitCode = searchSkills(args);
-  } else if (command === 'describe') {
-    exitCode = describeSkill(args);
-  } else if (command === 'sync') {
-    exitCode = sync(args);
-  } else if (command === 'postinstall') {
-    exitCode = postinstall(args);
-  } else if (command === 'install') {
-    exitCode = install(args);
-  } else {
-    process.stderr.write(`Unknown command: ${command}\n\n`);
-    usage(1);
+const invokedDirectly =
+  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (invokedDirectly) {
+  const [command, ...args] = process.argv.slice(2);
+  if (!command || command === '-h' || command === '--help') {
+    usage(0);
   }
-} catch (error) {
-  process.stderr.write(`metamask-skills: ${error instanceof Error ? error.message : String(error)}\n`);
-  exitCode = 1;
+
+  let exitCode;
+  try {
+    if (command === 'list') {
+      exitCode = listSkills(args);
+    } else if (command === 'search') {
+      exitCode = searchSkills(args);
+    } else if (command === 'describe') {
+      exitCode = describeSkill(args);
+    } else if (command === 'sync') {
+      exitCode = sync(args);
+    } else if (command === 'postinstall') {
+      exitCode = postinstall(args);
+    } else if (command === 'install') {
+      exitCode = install(args);
+    } else {
+      process.stderr.write(`Unknown command: ${command}\n\n`);
+      usage(1);
+    }
+  } catch (error) {
+    process.stderr.write(`metamask-skills: ${error instanceof Error ? error.message : String(error)}\n`);
+    exitCode = 1;
+  }
+  process.exit(exitCode);
 }
-process.exit(exitCode);

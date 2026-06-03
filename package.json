@@ -18,7 +18,7 @@
   "scripts": {
     "smoke": "node bin/metamask-skills.mjs --help",
     "build": "node bin/metamask-skills.mjs --help",
-    "test": "node bin/metamask-skills.mjs --help",
+    "test": "node --test test/*.test.mjs",
     "pack:dry-run": "npm pack --dry-run",
     "changelog:validate": "bash scripts/validate-changelog.sh",
     "create-release-branch": "create-release-branch --formatter oxfmt"
