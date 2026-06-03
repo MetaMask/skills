@@ -50,9 +50,21 @@ Or use the installer to drop all `web3-tools/` skills at once:
 `@metamask/skills` is also an npm package and exposes the shared consumer CLI:
 
 ```bash
+metamask-skills list          # discover installable skills for the current repo
+metamask-skills search test   # search skill names and descriptions
+metamask-skills describe testing/unit-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
 metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
 metamask-skills install       # lower-level installer wrapper
+```
+
+The discovery commands make opt-in selection self-serve. Developers can find a
+skill, inspect it, then save their selection:
+
+```bash
+metamask-skills list --domain testing
+metamask-skills describe testing/unit-testing
+metamask-skills sync --include testing/unit-testing --save
 ```
 
 Consumer repos should prefer this CLI over copying sync/postinstall scripts.
