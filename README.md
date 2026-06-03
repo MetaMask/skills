@@ -61,15 +61,6 @@ experimental skill opt-in semantics uniform across Mobile, Extension, Core, and
 future org packages.
 
 
-
-### Publishing
-
-`@metamask/skills` should be published through the existing MetaMask npm publish
-path used for org packages. Do not publish under a personal account and do not
-make consumer repos depend on a git URL or local tarball. For pre-publish review,
-use `npm pack` to validate the package locally; final consumers should depend on
-the published `@metamask/skills` version.
-
 ### For engineers in `metamask-extension` / `metamask-mobile` / `core`
 
 From inside an integrated consumer repo:
