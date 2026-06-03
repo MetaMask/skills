@@ -195,8 +195,10 @@ METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
 The CLI infers the repo name by default (`metamask-mobile`,
-`metamask-extension`, or `core`) from `git remote get-url origin`, with
-package-name fallbacks. Pass `--repo` only for unusual repos or debugging.
+`metamask-extension`, or `core`) from `git remote get-url origin` or the
+`package.json` repository URL. Use `METAMASK_SKILLS_TARGET_REPO` in
+`.skills.local` for forks or unusual remotes; pass `--repo` for one-off
+overrides/debugging.
 
 Source selection is centralized for consistency across org packages:
 
@@ -226,7 +228,7 @@ tools/install \
 | Flag             | Default  | Purpose                                                                          |
 | ---------------- | -------- | -------------------------------------------------------------------------------- |
 | `--target`       | required | Path to consuming repo                                                           |
-| `--repo`         | auto     | Consuming repo name. Auto-detected from `<target>/package.json` `name` (fallback: target dirname). |
+| `--repo`         | auto     | Consuming repo name. Auto-detected from git/repository URL (fallback: target dirname). |
 | `--source`       | this repo | Skill source dir (repeatable, ordered; later overrides earlier on name collision) |
 | `--domain`       | all      | Comma-separated domain filter. Default installs **all** domains; pass to opt out. |
 | `--maturity`     | `stable` | Min maturity: `experimental`, `stable`, `deprecated`                             |
