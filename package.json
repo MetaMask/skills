@@ -19,10 +19,25 @@
     "smoke": "node bin/metamask-skills.mjs --help",
     "build": "node bin/metamask-skills.mjs --help",
     "test": "node bin/metamask-skills.mjs --help",
-    "pack:dry-run": "npm pack --dry-run"
+    "pack:dry-run": "npm pack --dry-run",
+    "changelog:validate": "bash scripts/validate-changelog.sh",
+    "create-release-branch": "create-release-branch --formatter oxfmt"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MetaMask/skills.git"
+  },
+  "engines": {
+    "node": "^18.18 || >=20"
+  },
+  "packageManager": "yarn@4.14.1",
+  "devDependencies": {
+    "@metamask/auto-changelog": "^6.1.1",
+    "@metamask/create-release-branch": "^4.2.1",
+    "oxfmt": "^0.45.0"
   }
 }

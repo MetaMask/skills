@@ -1,0 +1,64 @@
+name: Publish Release
+
+on:
+  workflow_call:
+    secrets:
+      NPM_TOKEN:
+        required: true
+      SLACK_WEBHOOK_URL:
+        required: true
+
+concurrency:
+  group: publish-release
+  queue: max
+
+jobs:
+  publish-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout and setup environment
+        uses: MetaMask/action-checkout-and-setup@v2
+        with:
+          is-high-risk-environment: true
+          node-version: 24.x
+      - name: Publish GitHub release
+        uses: MetaMask/action-publish-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: yarn build
+
+  publish-npm-dry-run:
+    name: Dry run publish to NPM
+    runs-on: ubuntu-latest
+    needs: publish-release
+    steps:
+      - name: Checkout and setup environment
+        uses: MetaMask/action-checkout-and-setup@v2
+        with:
+          is-high-risk-environment: true
+          ref: ${{ github.sha }}
+          node-version: 24.x
+      - name: Dry run publish to NPM
+        uses: MetaMask/action-npm-publish@v5
+        with:
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          subteam: S042S7RE4AE # @metamask-npm-publishers
+
+  publish-npm:
+    name: Publish to NPM
+    environment: npm-publish
+    runs-on: ubuntu-latest
+    needs: publish-npm-dry-run
+    steps:
+      - name: Checkout and setup environment
+        uses: MetaMask/action-checkout-and-setup@v2
+        with:
+          is-high-risk-environment: true
+          ref: ${{ github.sha }}
+          node-version: 24.x
+      - name: Publish to NPM
+        uses: MetaMask/action-npm-publish@v5
+        with:
+          npm-token: ${{ secrets.NPM_TOKEN }}

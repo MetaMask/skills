@@ -1,0 +1,5 @@
+paths:
+  .github/workflows/publish-release.yml:
+    ignore:
+      # Queue option is not supported by actionlint yet.
+      - 'unexpected key "queue" for "concurrency" section. expected one of "cancel-in-progress", "group"'
