@@ -182,7 +182,7 @@ Or specify files with side effects:
 ## Verification
 
 1. Build production bundle (see [bundle-analyze-js.md](./bundle-analyze-js.md))
-2. Analyze with source-map-explorer (see [bundle-analyze-js.md](./bundle-analyze-js.md))
+2. Analyze with Expo Atlas (see [bundle-analyze-js.md](./bundle-analyze-js.md))
 3. Search for functions you know are unused
 4. If found → tree shaking not working
 

@@ -1,28 +1,29 @@
 ---
 title: Analyze JS Bundle Size
 impact: CRITICAL
-tags: bundle, analysis, source-map-explorer, expo-atlas
+tags: bundle, analysis, expo-atlas
 ---
 
 # Skill: Analyze JS Bundle Size
 
-Use source-map-explorer and Expo Atlas to visualize what's in your JavaScript bundle.
+Use **Expo Atlas** to visualize what's in your JavaScript bundle. metamask-mobile
+is an Expo project (Metro bundler), and Atlas is the Expo-first-party analyzer —
+its hooks are built into the Expo CLI, so you enable it on the `expo export` you
+already run.
 
 ## Quick Command
 
 ```bash
-# React Native CLI
-npx react-native bundle \
-  --entry-file index.js \
-  --bundle-output output.js \
-  --platform ios \
-  --sourcemap-output output.js.map \
-  --dev false --minify true && \
-npx source-map-explorer output.js --no-border-checks
+# One-time: add the Atlas viewer (Expo pins the SDK-compatible version)
+yarn expo install expo-atlas
 
-# Expo
-EXPO_UNSTABLE_ATLAS=true npx expo export --platform ios && npx expo-atlas
+# Emit bundle data, then open the treemap viewer
+EXPO_ATLAS=1 yarn expo export --platform ios
+yarn expo-atlas
 ```
+
+> Don't `npx expo-atlas` — `npx` fetches and runs an unpinned remote version on
+> every call. `yarn expo install` pins the SDK-compatible version once.
 
 ## When to Use
 
@@ -31,140 +32,48 @@ EXPO_UNSTABLE_ATLAS=true npx expo export --platform ios && npx expo-atlas
 - Investigating startup time issues
 - Before/after optimization comparison
 
-> **Note**: This skill involves visual treemap output (source-map-explorer, Expo Atlas). When regression checks include device flows, use `agent-device` for app evidence; install it through the environment's approved/trusted path or ask the user if verification needs it and it is missing. Treemap analysis itself may still require exported reports, browser screenshots, or human review.
+> **Note**: Atlas produces a visual treemap (browser UI). Treemap analysis may
+> require exported reports, browser screenshots, or human review.
 
 ## Understanding Hermes Bytecode
 
 Modern React Native (0.70+) uses Hermes bytecode, not raw JavaScript:
+
 - Skips parsing at runtime
 - Still benefits from smaller bundles
 - Heavy imports still execute on startup
 
 **Impact of bundle size:**
+
 - Larger bytecode = longer download from store
 - More imports on init path = slower TTI
 
-## Method 1: source-map-explorer
+## Expo Atlas
 
-### Generate Bundle with Source Map
+The Atlas **data emission** is built into the Expo CLI (the `EXPO_ATLAS` env var
+on `expo export` / `expo start`); the `expo-atlas` package provides the
+**viewer**. Add it once with `yarn expo install expo-atlas`.
 
-**React Native CLI:**
-
-```bash
-npx react-native bundle \
-  --entry-file index.js \
-  --bundle-output output.js \
-  --platform ios \
-  --sourcemap-output output.js.map \
-  --dev false \
-  --minify true
-```
-
-**Expo (SDK 51+):**
+### Generate + view
 
 ```bash
-npx expo export --platform ios --source-maps --output-dir dist
-# Bundle at: dist/ios/_expo/static/js/ios/*.js
-# Source map at: dist/ios/_expo/static/js/ios/*.map
+# Export with Atlas enabled
+EXPO_ATLAS=1 yarn expo export --platform ios
+
+# Or while running the dev server
+EXPO_ATLAS=1 yarn expo start
+
+# Open the treemap viewer (reads .expo/atlas.jsonl)
+yarn expo-atlas
 ```
 
-### Analyze
-
-```bash
-npx source-map-explorer output.js --no-border-checks
-```
-
-**Note**: `--no-border-checks` needed due to Metro's non-standard source maps.
-
-Opens browser with treemap visualization:
-
-![Bundle Treemap from source-map-explorer](images/bundle-treemap-source-map-explorer.png)
-
-The treemap shows:
-- **Hierarchy**: `node_modules/` → `react-native/` → `Libraries/` → individual files
-- **Size**: Box area proportional to file size (KB shown in labels)
-- **Major components visible**: 
-  - `react-native` (724.18 KB, 80.5%)
-  - `Renderer` (208.44 KB) - ReactNativeRenderer-prod.js, ReactFabric-prod.js
-  - `Components` (125.29 KB) - Touchable, ScrollView, etc.
-  - `Animated` (79.48 KB) - Animation system
-  - `virtualized-lists` (57.57 KB) - FlatList internals
-
-Click on any section to drill down into that directory.
-
-**Limitation**: May lose ~30% info due to mapping issues.
-
-## Method 2: Expo Atlas
-
-More accurate for Expo projects (or with workaround for bare RN).
-
-### For Expo Projects
-
-```bash
-# Start with Atlas enabled
-EXPO_UNSTABLE_ATLAS=true npx expo start --no-dev
-
-# Or export
-EXPO_UNSTABLE_ATLAS=true npx expo export
-```
-
-Then launch UI:
-
-```bash
-npx expo-atlas
-```
+(The older env var name `EXPO_UNSTABLE_ATLAS=true` still works on some versions.)
 
 ![Expo Atlas Treemap](images/expo-atlas-treemap.png)
 
-Expo Atlas provides more accurate visualization for Expo projects, with similar treemap interface showing module sizes and dependencies.
-
-### For Non-Expo Projects
-
-Use `expo-atlas-without-expo` package.
-
-## Method 3: Re.Pack Bundle Analysis (Webpack/Rspack)
-
-If using Re.Pack:
-
-### webpack-bundle-analyzer
-
-```bash
-rspack build --analyze
-```
-
-### bundle-stats / statoscope
-
-```bash
-# Generate stats
-npx react-native bundle \
-  --platform android \
-  --entry-file index.js \
-  --dev false \
-  --minify true \
-  --json stats.json
-
-# Analyze
-npx bundle-stats --html --json stats.json
-```
-
-### Rsdoctor
-
-```javascript
-// rspack.config.js
-const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin');
-
-module.exports = {
-  plugins: [
-    process.env.RSDOCTOR && new RsdoctorRspackPlugin(),
-  ].filter(Boolean),
-};
-```
-
-Run with:
-
-```bash
-RSDOCTOR=true npx react-native start
-```
+The treemap shows module sizes and dependencies — box area is proportional to
+size. Drill into `node_modules/` to find the heaviest packages (e.g.
+`react-native` core, renderer, `Animated`, `virtualized-lists`).
 
 ## What to Look For
 
@@ -173,17 +82,17 @@ RSDOCTOR=true npx react-native start
 | Finding | Problem | Solution |
 |---------|---------|----------|
 | Entire library imported | Barrel exports | Use direct imports |
-| Duplicate packages | Multiple versions | Dedupe in package.json |
+| Duplicate packages | Multiple versions | Dedupe in `package.json` |
 | Dev dependencies in bundle | Incorrect imports | Check conditional imports |
-| Large polyfills | Unnecessary for Hermes | Remove (see native-sdks-over-polyfills.md) |
-| Moment.js with locales | Bloated date library | Switch to date-fns or dayjs |
+| Large polyfills | Unnecessary for Hermes | Remove (see [native-sdks-over-polyfills.md](./native-sdks-over-polyfills.md)) |
+| Moment.js with locales | Bloated date library | Switch to `dayjs` (already installed) |
 
 ### Common Offenders
 
-- **Lodash full import**: Use `lodash-es` or specific imports
-- **Moment.js**: Replace with `date-fns` or `dayjs`
-- **Intl polyfills**: Check Hermes API and method coverage before removing them
-- **AWS SDK**: Import specific services only
+- **Lodash full import**: use specific submodule imports (`import x from 'lodash/x'`)
+- **Moment.js**: replace with `dayjs` (already installed)
+- **Intl polyfills**: check Hermes API and method coverage before removing them
+- **AWS SDK**: import specific services only
 
 ## Code Examples
 
@@ -192,68 +101,17 @@ RSDOCTOR=true npx react-native start
 ```tsx
 // BAD: Imports entire library through barrel
 import { format } from 'date-fns';
-
-// In bundle: All of date-fns loaded
+// In bundle: all of date-fns loaded
 
 // GOOD: Direct import
 import format from 'date-fns/format';
-
-// In bundle: Only format function
+// In bundle: only the format function
 ```
 
 ## Comparing Bundles
 
-### source-map-explorer
-
-```bash
-# Generate baseline
-npx react-native bundle ... --bundle-output baseline.js --sourcemap-output baseline.js.map
-
-# Make changes, generate new bundle
-npx react-native bundle ... --bundle-output current.js --sourcemap-output current.js.map
-
-# Compare manually in browser
-```
-
-### Re.Pack (automated)
-
-```bash
-npx bundle-stats compare baseline-stats.json current-stats.json
-```
-
-## Quick Commands
-
-**React Native CLI:**
-
-```bash
-# iOS bundle analysis
-npx react-native bundle \
-  --entry-file index.js \
-  --bundle-output ios-bundle.js \
-  --platform ios \
-  --sourcemap-output ios-bundle.js.map \
-  --dev false \
-  --minify true && \
-npx source-map-explorer ios-bundle.js --no-border-checks
-
-# Android bundle analysis  
-npx react-native bundle \
-  --entry-file index.js \
-  --bundle-output android-bundle.js \
-  --platform android \
-  --sourcemap-output android-bundle.js.map \
-  --dev false \
-  --minify true && \
-npx source-map-explorer android-bundle.js --no-border-checks
-```
-
-**Expo:**
-
-```bash
-# Use Expo Atlas (recommended for Expo projects)
-EXPO_UNSTABLE_ATLAS=true npx expo export --platform ios
-npx expo-atlas
-```
+Run Atlas before and after a change (or on two branches) and compare the
+treemaps — the heaviest boxes that grew/shrank show where the change landed.
 
 ## Related Skills
 

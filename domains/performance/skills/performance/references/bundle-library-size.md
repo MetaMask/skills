@@ -17,11 +17,8 @@ Evaluate third-party library size impact before adding to your project.
 ## Quick Command
 
 ```bash
-# Check size before installing
+# Check size before installing — no install needed:
 # Visit: https://bundlephobia.com/package/[package-name]
-
-# Or use CLI
-npx bundle-phobia-cli <package-name>
 ```
 
 ## When to Use
@@ -142,14 +139,14 @@ import get from 'lodash/get';        // 8K (gzipped: 2.9K)
 | aws-sdk (full) | 200+ KB | @aws-sdk/client-* |
 | crypto-js | ~15 KB | react-native-quick-crypto |
 
-## Quick Size Check Script
+## Quick Size Check
 
 ```bash
-# Check size before installing
-npx bundle-phobia-cli <package-name>
+# Check size before installing — no install needed:
+# https://bundlephobia.com/package/<package-name>
 
-# Or use npm directly (less accurate)
-npm pack <package-name> --dry-run 2>&1 | grep "total files"
+# Or inspect the published tarball metadata via the package manager:
+yarn npm info <package-name> dist.unpackedSize
 ```
 
 ## Decision Matrix

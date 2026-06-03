@@ -46,13 +46,17 @@ const handler = () => doSomething();
 
 ### Step 1: Check Compatibility
 
-Before enabling the compiler, verify your project is compatible:
+Before enabling the compiler, verify the code follows the Rules of React — the
+compiler silently skips components that don't. In this repo the
+already-installed ESLint plugin runs those checks:
 
 ```bash
-npx react-compiler-healthcheck@latest
+yarn eslint <path>   # react-compiler/react-compiler warnings = components the compiler would skip
 ```
 
-This checks if your app follows the Rules of React and identifies potential issues.
+(The standalone `react-compiler-healthcheck` CLI gives a repo-wide count but
+isn't installed; see [mm-react-compiler.md](mm-react-compiler.md) for the
+MetaMask opt-in workflow.)
 
 ### Step 2: Install React Compiler
 
@@ -61,13 +65,13 @@ This checks if your app follows the Rules of React and identifies potential issu
 **SDK 54 and later** (simplified setup):
 
 ```bash
-npx expo install babel-plugin-react-compiler
+yarn expo install babel-plugin-react-compiler
 ```
 
 **SDK 52-53**:
 
 ```bash
-npx expo install babel-plugin-react-compiler@beta react-compiler-runtime@beta
+yarn expo install babel-plugin-react-compiler@beta react-compiler-runtime@beta
 ```
 
 Then enable in your app config:
@@ -126,8 +130,8 @@ The ESLint plugin helps identify code that can't be optimized and enforces the R
 #### Expo Projects
 
 ```bash
-npx expo lint  # Ensures ESLint is set up
-npx expo install eslint-plugin-react-compiler -- -D
+yarn expo lint  # Ensures ESLint is set up
+yarn expo install eslint-plugin-react-compiler -- -D
 ```
 
 Configure ESLint:
@@ -187,7 +191,7 @@ You can incrementally adopt React Compiler using two strategies:
 
 Configure the Babel plugin to only run on specific files, e.g. `src/path/to/dir` in the following examples:
 
-**Expo** (create `babel.config.js` with `npx expo customize babel.config.js`):
+**Expo** (create `babel.config.js` with `yarn expo customize babel.config.js`):
 
 ```javascript
 // babel.config.js
@@ -234,10 +238,10 @@ After changing `babel.config.js`, restart Metro with cache cleared:
 
 ```bash
 # Expo
-npx expo start --clear
+yarn expo start --clear
 
 # React Native CLI
-npx react-native start --reset-cache
+yarn react-native start --reset-cache
 ```
 
 ### Strategy 2: Opt Out Specific Components
@@ -364,7 +368,7 @@ Already heavily optimized apps may see marginal gains.
 - **Not fixing ESLint errors first**: When ESLint reports an error, the compiler skips that component—this is safe but means you miss optimization
 - **Expecting it to fix bad patterns**: Compiler optimizes good code, doesn't fix bad code
 - **Forgetting shallow comparison**: Like `memo`, compiler uses shallow comparison for objects/arrays
-- **Not running healthcheck**: Always run `npx react-compiler-healthcheck@latest` before enabling
+- **Not checking Rules-of-React first**: fix the ESLint `react-compiler` warnings on a path before opting it in (the compiler silently skips violating components)
 
 ## Related Skills
 

@@ -25,11 +25,15 @@ React Compiler auto-memoizes components, callbacks, and computed values at build
 
 ## Opt a new feature in
 
-1. **Health-check the code first:**
+1. **Check for Rules-of-React violations first.** The compiler silently skips
+   components that break the rules (safe, but you lose the optimization).
+   Surface them with the already-installed ESLint plugin:
    ```bash
-   npx react-compiler-healthcheck@latest
+   yarn eslint <path>   # react-compiler/react-compiler warnings = what the compiler would skip
    ```
-   It reports Rules-of-React violations that would make the compiler skip a component (silently — safe, but you miss the optimization).
+   (The standalone `react-compiler-healthcheck` CLI gives a repo-wide count, but
+   it isn't installed; the ESLint plugin runs the same Rules-of-React checks on
+   the paths you're opting in.)
 2. **Add the path** to `pathsToInclude` in `babel.config.js` (a directory prefix or a specific file path; `filename.includes` matches substrings).
 3. **Clear Metro's cache** — it caches compiled output aggressively:
    ```bash

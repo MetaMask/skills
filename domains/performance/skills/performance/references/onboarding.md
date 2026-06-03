@@ -63,7 +63,8 @@ endTrace({ name: TraceName.AssetDetails });
 ### Analyze the bundle (no script wired — run manually)
 ```bash
 # Expo Atlas (recommended for this SDK 54 project)
-EXPO_UNSTABLE_ATLAS=true npx expo export --platform ios && npx expo-atlas
+yarn expo install expo-atlas                                     # one-time, pinned
+EXPO_ATLAS=1 yarn expo export --platform ios && yarn expo-atlas
 ```
 
 ### Add a directory to React Compiler

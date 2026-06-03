@@ -173,9 +173,10 @@ const x = trace({ name: TraceName.Tokens, op: TraceOperation.UIStartup }, () => 
 ### Bundle analysis (no script wired — run manually)
 ```bash
 # Expo Atlas (this is an Expo SDK 54 project)
-EXPO_UNSTABLE_ATLAS=true npx expo export --platform ios && npx expo-atlas
+yarn expo install expo-atlas                                     # one-time, pinned
+EXPO_ATLAS=1 yarn expo export --platform ios && yarn expo-atlas
 ```
-- Or `source-map-explorer` per [bundle-analyze-js.md](bundle-analyze-js.md). Look for barrel-imported libs, lodash main-package, dayjs+luxon overlap.
+- See [bundle-analyze-js.md](bundle-analyze-js.md). Look for barrel-imported libs, lodash main-package, dayjs+luxon overlap.
 
 ### Sentry (production)
 - Dashboards + `#metamask-mobile-release-monitoring` alerts. `trace()` spans/measurements already flow here. Correlate regressions with release tags.

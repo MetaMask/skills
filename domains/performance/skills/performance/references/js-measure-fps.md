@@ -100,14 +100,14 @@ flashlight measure
 **iOS (React Native CLI):**
 ```bash
 # Run Metro in production mode
-npx react-native start --reset-cache
+yarn react-native start --reset-cache
 # Then build release variant
 ```
 
 **Expo:**
 ```bash
 # Start Metro without dev mode
-npx expo start --no-dev --minify
+yarn expo start --no-dev --minify
 # For accurate measurements, use EAS Build for release testing
 ```
 
