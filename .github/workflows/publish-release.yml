@@ -14,30 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout and setup environment
-        uses: MetaMask/action-checkout-and-setup@v3
-        with:
-          is-high-risk-environment: true
-          ref: ${{ github.sha }}
-      - name: Build
-        run: yarn build
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: publish-release-artifacts-${{ github.sha }}
-          retention-days: 4
-          include-hidden-files: true
-          path: |
-            ./dist
-            ./node_modules/.yarn-state.yml
-
   publish-npm-dry-run:
     name: Publish to NPM (dry run)
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout and setup environment
@@ -83,42 +61,6 @@ jobs:
           # token in the `npm-publish` environment, and delete it after the
           # initial publish.
           npm-token: ${{ secrets.NPM_TOKEN }}
-
-  get-release-version:
-    name: Get release version
-    needs: publish-npm
-    runs-on: ubuntu-latest
-    outputs:
-      RELEASE_VERSION: ${{ steps.get-release-version.outputs.RELEASE_VERSION }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
-      - id: get-release-version
-        shell: bash
-        run: ./scripts/get.sh ".version" "RELEASE_VERSION"
-
-  publish-release-to-gh-pages:
-    name: Publish docs to `${{ needs.get-release-version.outputs.RELEASE_VERSION }}` directory of `gh-pages` branch
-    needs: get-release-version
-    permissions:
-      contents: write
-    uses: ./.github/workflows/publish-docs.yml
-    with:
-      destination_dir: ${{ needs.get-release-version.outputs.RELEASE_VERSION }}
-    secrets:
-      PUBLISH_DOCS_TOKEN: ${{ secrets.PUBLISH_DOCS_TOKEN }}
-
-  publish-release-to-latest-gh-pages:
-    name: Publish docs to `latest` directory of `gh-pages` branch
-    needs: publish-npm
-    permissions:
-      contents: write
-    uses: ./.github/workflows/publish-docs.yml
-    with:
-      destination_dir: latest
-    secrets:
-      PUBLISH_DOCS_TOKEN: ${{ secrets.PUBLISH_DOCS_TOKEN }}
 
   publish-release:
     name: Publish to GitHub
