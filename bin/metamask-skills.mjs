@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
@@ -333,7 +333,9 @@ function pickBash() {
       continue;
     }
     const match = `${result.stdout ?? ''}${result.stderr ?? ''}`.match(/version\s+(\d+)\./iu);
-    if (match && Number(match[1]) >= 4) {
+    // macOS ships Bash 3.2; the tools/ scripts are deliberately 3.2-compatible,
+    // so accept any Bash 3+ rather than forcing `brew install bash`.
+    if (match && Number(match[1]) >= 3) {
       return candidate;
     }
   }
@@ -374,7 +376,7 @@ function buildDelegatedEnv(target) {
 function delegate(script, target, repo, args, options = {}) {
   const bash = pickBash();
   if (!bash) {
-    process.stderr.write('metamask-skills requires Bash 4+. Install current Bash, then retry.\n');
+    process.stderr.write('metamask-skills requires Bash 3.2+ (macOS /bin/bash works). Install Bash, then retry.\n');
     return 1;
   }
 
@@ -762,10 +764,22 @@ export {
   unquote,
 };
 
-const invokedDirectly =
-  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+// Compare resolved real paths: npm installs the bin as a symlink in
+// node_modules/.bin, so process.argv[1] (the symlink) won't match import.meta.url
+// (the realpath) directly. realpathSync resolves both to the same file.
+function invokedDirectly() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (invokedDirectly()) {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === '-h' || command === '--help') {
     usage(0);

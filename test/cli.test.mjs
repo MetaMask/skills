@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,16 @@ describe('CLI entrypoint', () => {
     const result = runCli(['frobnicate']);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Unknown command: frobnicate/u);
+  });
+
+  test('runs when invoked through a symlinked bin (npm install layout)', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'mms-bin-'));
+    const link = path.join(dir, 'metamask-skills');
+    symlinkSync(BIN, link);
+    const result = spawnSync(process.execPath, [link, '--help'], { encoding: 'utf8' });
+    rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /MetaMask skills CLI/u);
   });
 });
 
