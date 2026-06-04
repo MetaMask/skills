@@ -30,7 +30,7 @@ under it.
 Extension notes:
 
 - Because fix-ticket was invoked, do not switch to the dev protocol or mark baseline/repro `N/A` just because the ticket says POC/debug. Author a before/no-state recipe or record the concrete `/mms-recipe-cook` blocker. Name the fixture/flow used to create no-position/open-position state — don't rely on inherited browser/wallet state.
-- Runtime start (webpack/dev server/Chrome/CDP) is approval-gated: without approval, record `BLOCKED: pending runtime-start approval` with the exact command and wait; with approval, start through `/mms-recipe-harness`, not raw builds. A live recipe that can't reach CDP (`/json/version` unreachable, no extension target, no summary.json) is `BLOCKED: CDP bootstrap failed` — fix the root cause, don't downgrade to pass-with-gaps.
+- Runtime: default auto. Start/recover only via `/mms-recipe-harness`; `--interactive` asks first. If harness/policy blocks, record `BLOCKED` with command/artifact. CDP bootstrap failure stays `BLOCKED`.
 - Visual/mixed ACs need a viewport-visible screenshot (`ui.scroll` + `ui.wait_for visible`), not DOM/controller state or a passing recipe alone; without a runtime PNG it is `BLOCKED: no runtime visual evidence`, never `code-proven`.
 - No manufactured state: don't inject via `stateHooks`, store/controller writes, or DOM mutation. Use a real UI flow or harness pre-start fixture, else mark the AC a fixture/runtime gap.
 - A fallback screenshot (`DOM-rendered fallback` / `fallbackReason` in trace.json) keeps that visual AC at `PASS-WITH-GAPS` even if summary.json says pass.

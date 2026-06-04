@@ -43,15 +43,14 @@ field `UNKNOWN` and ask rather than guess.
 Each gate must actually invoke or follow the named skill; ad-hoc scripts, controller evals,
 or screenshots do not satisfy it. Record the delegate output path or blocker in `CHECKLIST.md`.
 
-1. `/mms-recipe-doctor` — setup/fixture readiness. A malformed fixture or missing tool/harness
-   is `BLOCKED`; fix before product edits.
-2. `/mms-recipe-harness` — install/verify the runtime when live proof applies.
+1. `/mms-recipe-doctor` — setup/fixture readiness. A malformed fixture or missing tool is
+   `BLOCKED`; fix before edits. Missing runner/action manifest ⇒ run `/mms-recipe-harness install` (no runtime start), then rerun doctor/verify.
+2. `/mms-recipe-harness` — install/verify runtime. Record install root/manifest. Ignore old artifact paths.
 3. `/mms-recipe-cook` — author the baseline/no-state recipe that captures the failure first,
    then the after/with-state recipe that proves the fix. recipe-cook owns recipe format, proof
    modes, reuse, and the no-fake-state rule.
 4. Implement the **smallest** fix that satisfies the ACs (every changed line traces to an AC;
-   no adjacent refactors). Run focused lint/type/unit checks — passing only unlocks proof, it
-   is not a stop point.
+   no adjacent refactors). Run focused lint/type/unit checks — passing unlocks proof, not completion.
 5. Run the recipe live and read the screenshots yourself before trusting `status: pass`.
 6. `/mms-recipe-quality` — critique against the AC matrix; apply one improve/rerun cycle or
    record that none is needed.
@@ -60,10 +59,7 @@ or screenshots do not satisfy it. Record the delegate output path or blocker in 
 
 ## Safety invariants
 
-- **Runtime start is approval-gated.** Do not start or restart Metro, a simulator, webpack,
-  or Chrome/CDP — including wrappers, aliases, `nohup`, or background tmux that do — without
-  approval. Missing approval → record `BLOCKED: pending runtime-start approval` with the exact
-  command and wait. With approval, drive starts through `/mms-recipe-harness`, not raw builds.
+- **Runtime.** Default auto: start/recover only via `/mms-recipe-harness`. With `--interactive`, ask before runtime/heavy steps. If harness/policy blocks, record `BLOCKED` with command/artifact.
 - **No manufactured state.** Do not prove a user-visible AC by injecting state (`stateHooks`,
   Redux/store writes, fiber/DOM mutation, controller/background calls). Valid proof is a real
   UI-flow recipe or a harness-loaded pre-start fixture; otherwise mark the AC

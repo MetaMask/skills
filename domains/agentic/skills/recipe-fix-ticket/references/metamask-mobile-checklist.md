@@ -29,8 +29,9 @@ under it.
 
 Mobile notes:
 
+- Mobile lint: never run `yarn lint <files>`; it runs repo-wide ESLint. Use direct `./node_modules/.bin/eslint <changed files> --cache --quiet --max-warnings=0` or mark lint `N/A: broad lint deferred`.
 - Because fix-ticket was invoked, do not switch to the dev protocol or mark baseline/repro `N/A` just because the ticket says POC/debug. Author a before/no-state recipe or record the concrete `/mms-recipe-cook` blocker. Name the fixture/flow used to create no-position/open-position state — don't rely on inherited simulator state.
-- Runtime start (Metro/simulator) is approval-gated: without approval, record `BLOCKED: pending runtime-start approval` with the exact command and wait; with approval, start through `/mms-recipe-harness`, not raw `yarn`/native rebuilds.
+- Runtime: default auto. Start/recover only via `/mms-recipe-harness`; `--interactive` asks first. If harness/policy blocks, record `BLOCKED` with command/artifact.
 - Visual/mixed ACs need a viewport-visible screenshot (`ui.scroll` + `ui.wait_for visible`), not fiber-tree/controller state or a passing recipe alone; without a runtime PNG it is `BLOCKED: no runtime visual evidence`, never `code-proven`.
 - Recipe-controllable UI needs stable testIDs on the interactive/value-owning element (`TextInput`, `Pressable`, `Button`, visible value text). Prefer exported constants; wrapper-only or inline testIDs make recipes brittle.
 - No manufactured state: don't inject via `stateHooks`, store/controller writes, or DOM/fiber mutation. Use a real UI flow or harness pre-start fixture, else mark the AC a fixture/runtime gap.

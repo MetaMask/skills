@@ -14,10 +14,10 @@ under it.
 - [ ] 3. Extension target selected — popup, sidepanel, fullscreen, dapp tab, or service-worker/controller + rationale.
 - [ ] 4. Proof plan written before implementation — fixture/profile, route/tab, selectors/testIDs, expected after evidence; before evidence or `Baseline: N/A`.
 - [ ] 5. /mms-recipe-doctor setup readiness recorded — fixtures/tools; malformed fixture or missing tool = BLOCKED.
-- [ ] 6. /mms-recipe-harness install/verify when runtime proof applies — manifest + verify path, or `N/A: <non-runtime reason>`.
-- [ ] 7. /mms-recipe-cook drafted recipe — path + exact command covering ACs.
-- [ ] 8. Minimal implementation — product diff summary; every changed line maps to an AC, no unrelated refactor.
-- [ ] 9. Focused checks run — changed-file typecheck/Jest/lint. Not a stop gate.
+- [ ] 6. /mms-recipe-harness install/verify when runtime proof applies — install root + manifest + verify path. Missing runner ⇒ install first; no runtime start.
+- [ ] 7. /mms-recipe-cook drafted recipe — path + exact command covering ACs; mandatory for visual/mixed ACs.
+- [ ] 8. Minimal implementation — AC-mapped diff only; no unrelated refactor; no tests unless asked.
+- [ ] 9. Focused checks run — type/Jest/direct-eslint only; not proof for visual/mixed ACs.
 - [ ] 10. Runtime recipe run when applicable — summary.json, trace.json, manifest, screenshots/video.
 - [ ] 11. Visual evidence gate — read PNGs; claimed UI visible in viewport for visual/mixed ACs.
 - [ ] 12. /mms-recipe-quality critique — verdict + gaps.
@@ -28,7 +28,7 @@ under it.
 Extension notes:
 
 - Name the browser context and UI target (`popup`, `sidepanel`, `fullscreen`, dapp tab, or service worker/controller).
-- Runtime start (webpack/dev server/Chrome/CDP) is approval-gated: without approval, record `BLOCKED: pending runtime-start approval` with the exact command and wait; with approval, start through `/mms-recipe-harness`, not raw builds. A live recipe that can't reach CDP (`/json/version` unreachable, no extension target, no summary.json) is `BLOCKED: CDP bootstrap failed` — fix the root cause, don't downgrade to pass-with-gaps.
+- Runtime: default auto. Start/recover only via `/mms-recipe-harness`; `--interactive` asks first. If harness/policy blocks, record `BLOCKED` with command/artifact. CDP bootstrap failure stays `BLOCKED`.
 - Visual/mixed ACs need a viewport-visible screenshot (`ui.scroll` + `ui.wait_for visible`), not DOM/controller state or a passing recipe alone; without a runtime PNG it is `BLOCKED: no runtime visual evidence`, never `code-proven`.
 - No manufactured state: don't inject via `stateHooks`, store/controller writes, or DOM mutation. Use a real UI flow or harness pre-start fixture, else mark the AC a fixture/runtime gap.
 - A fallback screenshot (`DOM-rendered fallback` / `fallbackReason` in trace.json) keeps that visual AC at `PASS-WITH-GAPS` even if summary.json says pass.

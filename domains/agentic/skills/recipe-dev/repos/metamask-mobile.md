@@ -10,3 +10,8 @@ For Mobile dev tasks, prove visible changes on the intended simulator/device whe
 Prefer existing fixtures, page objects, and wallet-control primitives before adding new runtime helpers. If the simulator/app cannot be prepared, mark runtime proof blocked with the verify/preflight artifact path.
 
 Load `references/metamask-mobile-checklist.md` and execute it as the ordered checklist for Mobile dev work. Runtime proof should avoid inherited simulator state and name the fixture/setup flow used.
+
+
+## MetaMask Mobile focused checks
+
+Mobile lint: never run `yarn lint <files>`; it runs repo-wide ESLint. Use direct `./node_modules/.bin/eslint <changed files> --cache --quiet --max-warnings=0` or mark lint `N/A: broad lint deferred`.
