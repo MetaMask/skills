@@ -187,6 +187,7 @@ Then `mm describe-screen` and `mm screenshot` to verify the component updated.
 | Symptom | Cause | Solution |
 |---------|-------|----------|
 | Redux dispatch updated state but component shows stale data | Component reads from in-memory source, not Redux | Fiber injection (this section) |
+| `mm mock-websocket` shows 0 connections for a feature's WebSocket | WebSocket originates from MV3 service worker | Fiber injection — push data directly into the channel |
 | Feature needs live streaming data but no preset provides it | Data comes from external service via WebSocket/polling | Disconnect source + push mock data via fiber |
 | Component shows loading skeleton despite state being set | The in-memory channel's `isInitialLoading` is still true | Push data via `pushData()` — it marks the channel as loaded |
 

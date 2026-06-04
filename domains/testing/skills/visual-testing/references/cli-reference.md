@@ -128,13 +128,18 @@ Two contexts: `e2e` (default — local Anvil, fixtures, seeding) and `prod` (no 
 
 ## Advanced
 
-| Command                                           | Description                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------- |
-| `mm mock-network add '<json-rule-or-config>'`     | Add Playwright route mocks during active session            |
-| `mm mock-network clear`                           | Clear network mocks and recorded requests                   |
-| `mm mock-network list`                            | List active network mock rules                              |
-| `mm mock-network requests [--limit <n>]`          | Show recorded matched and missed mocked-origin requests     |
-| `mm cdp <method> [params-json] [--timeout <ms>]`  | Send raw Chrome DevTools Protocol command against active page|
+| Command                                               | Description                                                  |
+| ----------------------------------------------------- | ------------------------------------------------------------ |
+| `mm mock-network add '<json-rule-or-config>'`         | Add Playwright route mocks during active session             |
+| `mm mock-network clear`                               | Clear network mocks and recorded requests                    |
+| `mm mock-network list`                                | List active network mock rules                               |
+| `mm mock-network requests [--limit <n>]`              | Show recorded matched and missed mocked-origin requests      |
+| `mm mock-websocket add '<json-mock-definition>'`      | Add WebSocket interception mocks during active session       |
+| `mm mock-websocket clear`                             | Clear WebSocket mocks, message history, and close connections|
+| `mm mock-websocket list`                              | List active WebSocket mock definitions                       |
+| `mm mock-websocket messages [--limit <n>]`            | Show recorded WebSocket message hits and misses              |
+| `mm cdp <method> [params-json] [--timeout <ms>]`      | Send raw Chrome DevTools Protocol command against active page|
 
 For mock network details, see [mock-network.md](mock-network.md).
+For mock WebSocket details, see [mock-websocket.md](mock-websocket.md).
 For CDP state manipulation, see [state-manipulation.md](state-manipulation.md).

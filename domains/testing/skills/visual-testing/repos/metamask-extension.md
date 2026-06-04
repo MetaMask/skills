@@ -29,6 +29,9 @@ For architecture details, see `test/e2e/playwright/llm-workflow/README.md`.
 - The default password for built-in fixtures is `correct horse battery staple`.
 - Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them.
 - `mm mock-network` **cannot** intercept requests during extension startup before the session is fully active.
+- WebSocket mocks are also session-scoped. Add mocks after `mm launch` and before the UI action that opens the WebSocket. Replacing a mock for the same URL closes existing connections for that URL.
+- `mm mock-websocket` supports two modes: full mock (`passthrough: false`, default — no real server) and passthrough (`passthrough: true` — intercept matching messages, forward the rest).
+- `mm mock-websocket` uses Playwright's `browserContext.routeWebSocket()`, which **cannot intercept WebSocket connections initiated from the MV3 service worker**. Page-originated WebSockets are intercepted; service worker WebSockets are not. If a feature's data comes from a service worker WebSocket, use the [React fiber data injection pattern](references/state-manipulation.md#5-inject-into-in-memory-data-sources-react-fiber-walk) instead.
 - There is **no `mm scroll` command**. If an element is below the viewport and `mm click` times out, scroll it into view via CDP before retrying:
   ```bash
   mm cdp Runtime.evaluate '{"expression":"document.querySelector(\"[data-testid=import-token-button]\").scrollIntoView({block:\"center\"})"}'
@@ -255,4 +258,5 @@ Load these on demand — not required for standard visual testing:
 - **[CLI Command Reference](references/cli-reference.md)** — full command tables for all `mm` commands
 - **[State Manipulation](references/state-manipulation.md)** — read/write Redux and persisted state via CDP when fixtures don't cover your scenario
 - **[Mock Network](references/mock-network.md)** — stub network requests for deterministic API responses
+- **[Mock WebSocket](references/mock-websocket.md)** — intercept and stub WebSocket connections for deterministic real-time data
 - **[Error Recovery](references/error-recovery.md)** — error codes, common failures, and troubleshooting
