@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0]
-
 ### Added
 
 - Add CLI discovery commands: `list`, `search`, and `describe`.
@@ -16,5 +14,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `metamask-skills` CLI with `sync`, `postinstall`, and `install` commands.
 - Add repo inference, repo-local skills cache support, bundled package fallback, and `SKILLS_AUTO_UPDATE=1` handling for consumer repos.
 
-[Unreleased]: https://github.com/MetaMask/skills/compare/@metamask/skills@0.1.0...HEAD
-[0.1.0]: https://github.com/MetaMask/skills/releases/tag/@metamask/skills@0.1.0
+[Unreleased]: https://github.com/MetaMask/skills/

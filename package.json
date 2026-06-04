@@ -1,6 +1,6 @@
 {
   "name": "@metamask/skills",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Shared MetaMask agent skills installer and sync CLI.",
   "license": "MIT",
   "type": "module",
