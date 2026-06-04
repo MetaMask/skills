@@ -7,7 +7,16 @@ parent: recipe-wallet-control
 
 Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Discover the active manifest/schema before authoring; reach for raw bridge shell commands only for interactive debugging/inspection. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
 
-## Harness Launch Requirement
+## Harness Requirement
+
+Before authoring or running manifest-backed recipe actions, install and verify the recipe harness for this checkout:
+
+```bash
+.claude/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile install --target .
+.claude/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
+```
+
+The product bridge under `scripts/perps/agentic/` is not the recipe runner. If `.agent/recipe-harness/mobile/runner/bin/metamask-recipe` is missing, run the install command above instead of looking for `validate-recipe.sh` or declaring recipe support absent.
 
 Launch via harness only (`recipe-harness launch` / `preflight.sh --mode fast`). Non-harness launch lacks Metro/CDP wiring and fixtures. Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps. Prefer `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
 
@@ -25,7 +34,7 @@ If not met, interrupt and ask the user to fix via the recovery table below.
 bash scripts/perps/agentic/app-state.sh status
 ```
 
-**Status succeeds** → proceed. **Status fails** → diagnose and recover:
+**Status succeeds** → bridge/CDP control is available. For recipe proof, also verify the installed runner exists with `.agent/recipe-harness/mobile/runner/bin/metamask-recipe actions --adapter mobile --json`. **Status fails** → diagnose and recover:
 
 | State | Detection | Recovery |
 |---|---|---|
