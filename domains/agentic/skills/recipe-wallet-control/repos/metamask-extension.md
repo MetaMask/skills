@@ -19,6 +19,8 @@ Before any primitive:
 
 If harness verify fails, report wallet-control proof as blocked by runtime readiness, not as product failure.
 
+For recipe proof, confirm the installed runner exists at `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/extension/runner/bin/metamask-recipe`; browser/CDP availability alone is not the runner install.
+
 **Dist-freshness gate.** Verify's `dist-freshness` check compares the git id in `dist/chrome/manifest.json` to HEAD:
 
 - `stale` (verify fails) — dist built from another commit, or source edited since build. Stop; ask: reuse / `yarn start` (watch) / rebuild. (`build:test` = e2e baseline only.)
