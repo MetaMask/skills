@@ -1,0 +1,35 @@
+domains/testing/skills/visual-testing/references/state-manipulation.md
+  s_7fa5d3256af6e9::t_75582421313600 190
+domains/testing/skills/visual-testing/references/mock-websocket.md
+  s_39301eab28009c::t_023552c0e5bb40 1-114
+domains/testing/skills/visual-testing/repos/metamask-extension.md
+  s_39301eab28009c::t_64a1a6c343cb70 261
+  s_39301eab28009c::t_f72e9cc16af6da 32-33
+  s_7fa5d3256af6e9::t_9336a73963321a 34
+domains/testing/skills/visual-testing/references/cli-reference.md
+  s_39301eab28009c::t_a573a299ebfe92 131-141,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "1577de25be90dd8477569e9ce392050d931b3378",
+  "prompts": {},
+  "sessions": {
+    "s_39301eab28009c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1773750acffep6nkEn5QboW6qq",
+        "model": "unknown"
+      },
+      "human_author": "cryptotavares <joao.tavares@consensys.net>"
+    },
+    "s_7fa5d3256af6e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_17373b062ffeXBT97uFQEgljGM",
+        "model": "unknown"
+      },
+      "human_author": "cryptotavares <joao.tavares@consensys.net>"
+    }
+  }
+}
