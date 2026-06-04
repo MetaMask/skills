@@ -46,6 +46,7 @@ cat > "$ARTIFACTS/mobile-launch-status.recipe.json" <<'JSON'
 {
   "schema_version": 1,
   "title": "Mobile runner runtime status",
+  "description": "Checks that the installed runner can read Mobile app status through the runner-owned bridge.",
   "validate": {
     "workflow": {
       "entry": "status",

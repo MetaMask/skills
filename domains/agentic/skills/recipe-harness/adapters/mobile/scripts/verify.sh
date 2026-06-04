@@ -297,6 +297,7 @@ live_status_ok() {
 {
   "schema_version": 1,
   "title": "Mobile runner status smoke",
+  "description": "Checks that the installed runner can read Mobile app status before live verification.",
   "validate": {
     "workflow": {
       "entry": "status",
