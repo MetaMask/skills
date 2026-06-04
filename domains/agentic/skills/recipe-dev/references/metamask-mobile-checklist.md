@@ -30,5 +30,6 @@ Mobile notes:
 - Name the target (`ios`/`android`/`both`). Prefer after evidence for new UI; use before/after only when a meaningful prior state exists.
 - Runtime start (Metro/simulator) is approval-gated: without approval, record `BLOCKED: pending runtime-start approval` with the exact command and wait; with approval, start through `/mms-recipe-harness`, not raw `yarn`/native rebuilds.
 - Visual/mixed ACs need a viewport-visible screenshot (`ui.scroll` + `ui.wait_for visible`), not fiber-tree/controller state or a passing recipe alone; without a runtime PNG it is `BLOCKED: no runtime visual evidence`, never `code-proven`.
+- Recipe-controllable UI needs stable testIDs on the interactive/value-owning element (`TextInput`, `Pressable`, `Button`, visible value text). Prefer exported constants; wrapper-only or inline testIDs make recipes brittle.
 - No manufactured state: don't inject via `stateHooks`, store/controller writes, or DOM/fiber mutation. Use a real UI flow or harness pre-start fixture, else mark the AC a fixture/runtime gap.
 - A fallback screenshot (`DOM-rendered fallback` / `fallbackReason` in trace.json) keeps that visual AC at `PASS-WITH-GAPS` even if summary.json says pass.
