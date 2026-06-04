@@ -38,9 +38,8 @@ Build/reuse rule: verification must not silently kick off an expensive native/fu
 
 Mobile verification should prove, when a live app is available:
 
-- `scripts/perps/agentic/**` backing scripts are present from the product checkout or an explicit external Mobile bridge source; they are not bundled in the skills repo.
+- `scripts/perps/agentic/**` backing scripts are present from the product checkout or an explicit external Mobile bridge source, excluding test/spec files; they are not bundled in the skills repo.
 - direct script entrypoints work; harness automation must not depend on `yarn a:*`.
-- `package.json` exposes optional `a:*` aliases that point at the product/external backing scripts when overlay install is used.
 - CDP connects.
 - `globalThis.__AGENTIC__` exists.
 - route read works.

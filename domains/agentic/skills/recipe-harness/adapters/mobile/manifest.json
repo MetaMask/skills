@@ -7,7 +7,6 @@
     "app/core/AgenticService/**"
   ],
   "patches": [
-    "package.json",
     "app/core/NavigationService/NavigationService.ts",
     "app/components/Nav/App/App.tsx"
   ]

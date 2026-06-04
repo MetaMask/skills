@@ -290,7 +290,6 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
       productOwnedPaths: [
         "scripts/perps/agentic",
         "app/core/AgenticService",
-        "package.json",
         "app/core/NavigationService/NavigationService.ts",
         "app/components/Nav/App/App.tsx"
       ],
@@ -312,7 +311,7 @@ fi
 # --force-overlay was passed to deliberately overwrite a product-owned bridge.
 if [ "$FORCE_OVERLAY" = true ] && has_product_owned_mobile_harness; then
   echo "[recipe-harness] --force-overlay: OVERWRITING tracked product harness files with the skills overlay:"
-  echo "    scripts/perps/agentic, app/core/AgenticService, package.json, app/core/NavigationService/NavigationService.ts, app/components/Nav/App/App.tsx"
+  echo "    scripts/perps/agentic, app/core/AgenticService, app/core/NavigationService/NavigationService.ts, app/components/Nav/App/App.tsx"
   echo "[recipe-harness] Files are backed up and restorable via cleanup. This replaces the checkout's in-repo agentic bridge/HUD (intended for stale or older-commit checkouts)."
 fi
 if [ "$GIT_EXCLUDE" = false ]; then
@@ -377,7 +376,7 @@ if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = true ]; then
 fi
 
 if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = false ] && git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  DIRTY_PATHS="$(git -C "$TARGET" status --porcelain -- package.json scripts/perps/agentic app/core/AgenticService app/core/NavigationService/NavigationService.ts app/components/Nav/App/App.tsx)"
+  DIRTY_PATHS="$(git -C "$TARGET" status --porcelain -- scripts/perps/agentic app/core/AgenticService app/core/NavigationService/NavigationService.ts app/components/Nav/App/App.tsx)"
   if [ -n "$DIRTY_PATHS" ]; then
     cat >&2 <<EOF
 Refusing to install mobile recipe harness over dirty harness paths.
@@ -457,7 +456,7 @@ rollback_failed_install() {
       [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
       _key="${_line%%=*}"; _val="${_line#*=}"
       case "$_key" in
-        SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|PACKAGE_JSON_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
+        SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
         *) continue ;;
       esac
       export "$_key=$_val"
@@ -465,7 +464,6 @@ rollback_failed_install() {
     unset _line _key _val
     rollback_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
     rollback_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
-    rollback_path "package.json" "${PACKAGE_JSON_EXISTED:-0}"
     rollback_path "app/core/NavigationService/NavigationService.ts" "${NAVIGATION_SERVICE_EXISTED:-0}"
     rollback_path "app/components/Nav/App/App.tsx" "${APP_TSX_EXISTED:-0}"
     rollback_git_exclude
@@ -490,7 +488,6 @@ if [ ! -f "$STATE_FILE" ] || [ "$REBASE_BACKUP" = true ]; then
   : > "$ACTIVE_STATE_FILE"
   backup_path "scripts/perps/agentic" "SCRIPTS_EXISTED"
   backup_path "app/core/AgenticService" "AGENTIC_SERVICE_EXISTED"
-  backup_path "package.json" "PACKAGE_JSON_EXISTED"
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
   if [ "$REBASE_BACKUP" = true ] && [ -e "$BACKUP_DIR" ]; then
@@ -513,7 +510,6 @@ else
   : > "$ACTIVE_STATE_FILE"
   backup_path "scripts/perps/agentic" "SCRIPTS_EXISTED"
   backup_path "app/core/AgenticService" "AGENTIC_SERVICE_EXISTED"
-  backup_path "package.json" "PACKAGE_JSON_EXISTED"
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
   ROLLBACK_BACKUP_DIR="$REFRESH_BACKUP_DIR"
@@ -526,7 +522,12 @@ resolve_mobile_agentic_source
 install_v1_runner_assets
 
 mkdir -p "$TARGET/scripts/perps" "$TARGET/app/core"
-rsync -a --delete "$MOBILE_AGENTIC_SOURCE/" "$TARGET/scripts/perps/agentic/"
+rsync -a --delete \
+  --exclude '*.test.*' \
+  --exclude '*.spec.*' \
+  --exclude 'test-*' \
+  --exclude '__tests__/' \
+  "$MOBILE_AGENTIC_SOURCE/" "$TARGET/scripts/perps/agentic/"
 rm -rf "$TARGET/app/core/AgenticService"
 mkdir -p "$TARGET/app/core/AgenticService"
 while IFS= read -r -d '' overlay_file; do
@@ -544,36 +545,6 @@ const fs = require('fs');
 const path = require('path');
 
 const target = process.argv[2];
-
-function patchPackageJson() {
-  const file = path.join(target, 'package.json');
-  if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
-  const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
-  pkg.scripts = pkg.scripts || {};
-  const desired = {
-    'a:start': 'scripts/perps/agentic/start-metro.sh',
-    'a:watch': 'scripts/perps/agentic/interactive-start.sh',
-    'a:stop': 'scripts/perps/agentic/stop-metro.sh',
-    'a:status': 'scripts/perps/agentic/app-state.sh status',
-    'a:reload': 'scripts/perps/agentic/reload-metro.sh',
-    'a:navigate': 'scripts/perps/agentic/app-navigate.sh',
-    'a:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup',
-    'a:android': 'scripts/perps/agentic/preflight.sh --platform android --mode fast --wallet-setup',
-    'a:setup:ios': 'scripts/perps/agentic/preflight.sh --platform ios --mode clean --wallet-setup',
-    'a:setup:android': 'scripts/perps/agentic/preflight.sh --platform android --mode clean --wallet-setup',
-  };
-  let changed = false;
-  for (const [key, value] of Object.entries(desired)) {
-    if (pkg.scripts[key] !== value) {
-      pkg.scripts[key] = value;
-      changed = true;
-    }
-  }
-  if (changed) {
-    fs.writeFileSync(file, `${JSON.stringify(pkg, null, 2)}\n`);
-  }
-  return changed ? 'patched' : 'already-present';
-}
 
 function patchNavigation() {
   const file = path.join(target, 'app/core/NavigationService/NavigationService.ts');
@@ -620,7 +591,6 @@ function patchApp() {
 }
 
 console.log(JSON.stringify({
-  packageJson: patchPackageJson(),
   navigation: patchNavigation(),
   app: patchApp(),
 }));
@@ -641,7 +611,6 @@ write_managed_hashes() {
   for rel in \
     "scripts/perps/agentic" \
     "app/core/AgenticService" \
-    "package.json" \
     "app/core/NavigationService/NavigationService.ts" \
     "app/components/Nav/App/App.tsx"; do
     printf '%s\t%s\n' "$rel" "$(hash_path "$rel")" >> "$hash_file"
@@ -674,7 +643,7 @@ node -e '
     actionManifestPath: process.argv[13] + "/action-manifest.json",
     runnerEntrypoint: process.argv[13] + "/runner/bin/metamask-recipe",
     installedPaths: [process.argv[13] + "/runner", process.argv[13] + "/action-manifest.json", "scripts/perps/agentic", "app/core/AgenticService"],
-    patchedFiles: ["package.json", "app/core/NavigationService/NavigationService.ts", "app/components/Nav/App/App.tsx"],
+    patchedFiles: ["app/core/NavigationService/NavigationService.ts", "app/components/Nav/App/App.tsx"],
     backupDir: process.argv[8],
     managedHashes: process.argv[8] + "/managed-hashes.tsv",
     cleanupCommand: process.argv[14],

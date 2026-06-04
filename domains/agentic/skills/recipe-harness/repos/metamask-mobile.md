@@ -39,8 +39,7 @@ to a reviewed product/farm checkout or directly to its `scripts/perps/agentic`
 directory. The skills repo does not bundle that product harness. Overlay install
 then idempotently patches:
 
-- `scripts/perps/agentic/**`, copied from the external Mobile bridge source. The CDP bridge should support structured `show-step-json` HUD payloads for runner/HUD updates.
-- `package.json` with optional `a:*` aliases pointing at injected scripts.
+- `scripts/perps/agentic/**`, copied from the external Mobile bridge source, excluding test/spec files. The CDP bridge should support structured `show-step-json` HUD payloads for runner/HUD updates.
 - `app/core/NavigationService/NavigationService.ts` to install `AgenticService`.
 - `app/components/Nav/App/App.tsx` to render `AgentStepHud`.
 
