@@ -100,12 +100,45 @@ install_v1_runner_assets() {
   # Emit shell-safe lines: %q-quote the interpolated paths (like CLEANUP_COMMAND
   # below) so a FARMSLOT_ROOT/runner path containing a space — or $()/backtick/
   # quote — cannot break the generated wrapper or inject at runtime.
-  local runner_farmslot_root_q runner_exec_q
+  local runner_farmslot_root_q runner_exec_q target_q
   runner_farmslot_root_q="$(printf '%q' "$METAMASK_RUNNER_FARMSLOT_ROOT")"
   runner_exec_q="$(printf '%q' "$METAMASK_RUNNER_DIR/bin/metamask-recipe")"
+  target_q="$(printf '%q' "$TARGET")"
   {
     printf '%s\n' '#!/usr/bin/env bash'
     printf '%s\n' 'set -euo pipefail'
+    printf 'TARGET_DIR=%s\n' "$target_q"
+    printf '%s\n' 'if [ -f "$TARGET_DIR/.js.env" ]; then'
+    printf '%s\n' '  set +u'
+    printf '%s\n' '  set -a'
+    printf '%s\n' '  . "$TARGET_DIR/.js.env"'
+    printf '%s\n' '  set +a'
+    printf '%s\n' '  set -u'
+    printf '%s\n' 'fi'
+    printf '%s\n' 'detect_ios_simulator() {'
+    printf '%s\n' '  command -v xcrun >/dev/null 2>&1 || return 0'
+    printf '%s\n' '  node <<'"'"'NODE'"'"''
+    printf '%s\n' "const cp = require('node:child_process');"
+    printf '%s\n' 'let report;'
+    printf '%s\n' "try { report = JSON.parse(cp.execFileSync('xcrun', ['simctl', 'list', 'devices', 'booted', '-j'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })); } catch { process.exit(0); }"
+    printf '%s\n' "const devices = Object.values(report.devices || {}).flat().filter((device) => device && device.state === 'Booted');"
+    printf '%s\n' "const bundleIds = ['io.metamask', 'io.metamask.flask', 'io.metamask.qa'];"
+    printf '%s\n' 'const withMetaMask = devices.filter((device) => {'
+    printf '%s\n' '  try {'
+    printf '%s\n' "    const apps = cp.execFileSync('xcrun', ['simctl', 'listapps', device.udid], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });"
+    printf '%s\n' '    return bundleIds.some((bundleId) => apps.includes(bundleId));'
+    printf '%s\n' '  } catch { return false; }'
+    printf '%s\n' '});'
+    printf '%s\n' 'const candidates = withMetaMask.length > 0 ? withMetaMask : devices;'
+    printf '%s\n' "if (candidates.length === 1) process.stdout.write(candidates[0].udid || candidates[0].name || '');"
+    printf '%s\n' 'NODE'
+    printf '%s\n' '}'
+    printf '%s\n' 'if [ -z "${IOS_SIMULATOR:-}" ] && [ -z "${ANDROID_DEVICE:-}" ] && [ -z "${ADB_SERIAL:-}" ] && [ -z "${ANDROID_SERIAL:-}" ]; then'
+    printf '%s\n' '  detected_simulator="$(detect_ios_simulator || true)"'
+    printf '%s\n' '  if [ -n "$detected_simulator" ]; then'
+    printf '%s\n' '    export IOS_SIMULATOR="$detected_simulator"'
+    printf '%s\n' '  fi'
+    printf '%s\n' 'fi'
     if [ -n "$METAMASK_RUNNER_FARMSLOT_ROOT" ]; then
       printf 'export FARMSLOT_ROOT=${FARMSLOT_ROOT:-%s}\n' "$runner_farmslot_root_q"
     fi

@@ -49,7 +49,7 @@ Use only action names declared by the installed action manifest. Typical Mobile 
 - Scroll: `ui.scroll` with direction/target parameters.
 - Wait: `ui.wait_for` with `test_id`, `text`, `expected`, or `visible` (manifest-declared fields).
 - Assert wallet/app/domain state: manifest-declared actions such as `metamask.wallet.read_state`, `metamask.perps.assert_positions`, or `assert_json` over a real artifact/output.
-- Capture proof: `ui.screenshot` after `ui.wait_for` or a domain assertion.
+- Capture proof: `ui.screenshot` after `ui.wait_for` or a domain assertion; the installed runner loads `.js.env` and can auto-select one booted MetaMask simulator, otherwise set `IOS_SIMULATOR` or node `simulator`/`ios_simulator`.
 - Index proof: `index_artifacts` for screenshots/logs not automatically registered by the runner.
 - Reset state: fixture setup, app relaunch, or manifest-declared project cleanup action.
 

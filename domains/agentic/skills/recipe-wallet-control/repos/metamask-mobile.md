@@ -149,7 +149,7 @@ Capture the current simulator/emulator screen through the official screenshot ac
 }
 ```
 
-The runner writes the PNG under the run's artifacts dir. Failure usually means no matching booted simulator or connected Android device was found.
+The installed Mobile runner loads `.js.env` and, when no device env is set, can select a single booted simulator with MetaMask installed. If several devices match, set `IOS_SIMULATOR`, `ANDROID_DEVICE`/`ADB_SERIAL`, or add `simulator`/`ios_simulator` to the node. The runner writes the PNG under the run's artifacts dir.
 
 ### `metamask.wallet.read_state`
 
