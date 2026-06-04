@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Backward-compatible low-level dispatcher. Prefer scripts/recipe-harness for human use.
 set -euo pipefail
 
 usage() {
@@ -18,28 +19,6 @@ Examples:
 EOF
 }
 
-has_arg() {
-  local needle="$1"
-  shift
-  local arg
-  for arg in "$@"; do
-    [ "$arg" = "$needle" ] && return 0
-  done
-  return 1
-}
-
-arg_value() {
-  local needle="$1"
-  shift
-  while [ "$#" -gt 0 ]; do
-    if [ "$1" = "$needle" ]; then
-      [ "$#" -ge 2 ] && printf '%s\n' "$2"
-      return 0
-    fi
-    shift
-  done
-  return 1
-}
 
 if [ "$#" -lt 2 ]; then
   usage >&2
@@ -51,18 +30,17 @@ ACTION="$2"
 shift 2
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/cli-common.sh"
 SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ADAPTER_SCRIPT="${SKILL_DIR}/adapters/${ADAPTER}/scripts/${ACTION}.sh"
 # shellcheck disable=SC1091
 . "$SCRIPT_DIR/lib/json-field.sh"
 
-case "${ADAPTER}:${ACTION}" in
-  mobile:install|mobile:launch|mobile:live|mobile:verify|mobile:cleanup|extension:install|extension:launch|extension:live|extension:verify|extension:cleanup) ;;
-  *)
-    usage >&2
-    exit 2
-    ;;
-esac
+if ! valid_adapter_action "$ADAPTER" "$ACTION"; then
+  usage >&2
+  exit 2
+fi
 
 if [ ! -x "$ADAPTER_SCRIPT" ]; then
   echo "Missing adapter script: $ADAPTER_SCRIPT" >&2
