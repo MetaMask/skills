@@ -5,7 +5,21 @@ parent: recipe-wallet-control
 
 # Recipe Wallet Control — MetaMask Mobile
 
-Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Discover the active manifest/schema before authoring; reach for raw bridge shell commands only for interactive debugging/inspection. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
+Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
+
+## Recipe Authoring Loop
+
+For any request to make/write/create a recipe, load `mms-recipe-cook` and author Recipe v1 only. Before choosing fields, discover the installed runner capabilities:
+
+```bash
+RUNNER="${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe"
+"$RUNNER" actions --adapter mobile --json
+"$RUNNER" actions --adapter mobile --action <action-name> --json
+```
+
+Use the action schemas/examples returned by the runner as the source of truth. Draft with `schema_version: 1`, `validate.workflow.entry`, `validate.workflow.nodes`, and manifest-declared actions such as `app.status`, `metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `assert_json`, `index_artifacts`, and `end`. Run through the same runner and update the recipe from its exact validation/runtime feedback. Raw bridge shell commands are for live inspection only, not recipe nodes.
+
+Mainnet, order, transfer, and balance-changing recipes require explicit user approval before execution. Authoring the recipe is safe; running it is not.
 
 ## Harness Requirement
 
@@ -16,7 +30,7 @@ Before authoring or running manifest-backed recipe actions, install and verify t
 .claude/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
 ```
 
-The product bridge under `scripts/perps/agentic/` is not the recipe runner. If `.agent/recipe-harness/mobile/runner/bin/metamask-recipe` is missing, run the install command above instead of looking for `validate-recipe.sh` or declaring recipe support absent.
+The product bridge under `scripts/perps/agentic/` is not the recipe runner. The runner path is `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe`; if it is missing, run the install command above before authoring or running recipes.
 
 Launch via harness only (`recipe-harness launch` / `preflight.sh --mode fast`). Non-harness launch lacks Metro/CDP wiring and fixtures. Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps. Prefer `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
 
@@ -34,7 +48,7 @@ If not met, interrupt and ask the user to fix via the recovery table below.
 bash scripts/perps/agentic/app-state.sh status
 ```
 
-**Status succeeds** → bridge/CDP control is available. For recipe proof, also verify the installed runner exists with `.agent/recipe-harness/mobile/runner/bin/metamask-recipe actions --adapter mobile --json`. **Status fails** → diagnose and recover:
+**Status succeeds** → bridge/CDP control is available. For recipe proof, also verify the installed runner exists with `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe actions --adapter mobile --json`. **Status fails** → diagnose and recover:
 
 | State | Detection | Recovery |
 |---|---|---|

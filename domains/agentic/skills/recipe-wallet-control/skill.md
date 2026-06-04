@@ -14,6 +14,8 @@ maturity: experimental
 
 Stack: device tools → recipe-wallet-control → /recipe-cook recipes.
 
+When asked to make, write, create, run, or refine a recipe, load `mms-recipe-cook` and use Recipe v1 with the installed runner's manifest/action schemas. Use wallet-control as the runtime/action vocabulary layer only.
+
 Load the repo overlay for the checkout you are controlling:
 
 - MetaMask Mobile: `repos/metamask-mobile.md`

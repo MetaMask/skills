@@ -19,7 +19,7 @@ Good Mobile recipes compose the runner manifest's semantic actions instead of sh
 - `metamask.perps.start_state`, `metamask.perps.ensure_positions`, `metamask.perps.ensure_orders`, `metamask.perps.place_order`, `metamask.perps.close_positions`, `metamask.perps.read_positions`, `metamask.perps.assert_positions` for Perps flows.
 - `ui.navigate`, `ui.wait_for`, `ui.press`, `ui.set_input`, `ui.scroll`, `ui.screenshot`, `app.status`, `app.hud` for the user path and evidence.
 
-`call`/flow-catalog composition is valid only when the installed runner manifest advertises a flow catalog; do not point at in-repo flow files (the legacy `scripts/perps/agentic/teams/perps/flows/*` recipes are not part of the runner model). When reusing an action or flow, state which proof target it covers and add only the nodes needed for the PR-specific claim.
+`call`/flow-catalog composition is valid only when the installed runner manifest advertises a flow catalog. Use runner-published flows/actions only, state which proof target each covers, and add only the nodes needed for the PR-specific claim.
 
 ## Mobile Direct Smoke Recipe
 

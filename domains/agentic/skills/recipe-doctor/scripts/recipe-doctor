@@ -279,10 +279,9 @@ fi
 
 # Mobile v1 readiness is reported by check_v1_runner below (the runner:* checks):
 # the installed runner bin, the action-manifest, and a real manifest validation
-# under the resolved harness root. The legacy scripts/perps/agentic/*.sh
-# existence checks were removed — under the v1 runner model the product checkout
-# no longer ships those scripts (they are bridge/harness-installed), so
-# WARN-on-missing was spurious on a correct install.
+# under the resolved harness root. Product bridge script presence is validated by
+# harness install/verify, so this doctor avoids separate bridge-file checks that
+# can warn on a correct runner install.
 
 if [ "$REPO" = "metamask-extension" ]; then
   # v1 manifest/runner presence + validation is covered once by check_v1_runner

@@ -353,7 +353,7 @@ ensure_live_runtime() {
     if ! preflight_supports_mode_flag; then
       cat >&2 <<'EOF'
 Refusing mobile auto-start in fast mode: target scripts/perps/agentic/preflight.sh does not support --mode.
-Running it would silently fall back to legacy/default behavior and may mutate package.json,
+Running it without an explicit fast-mode contract may mutate package.json,
 tsconfig.json, ios/Podfile.lock, Pods, or native build state. Start the app manually or install
 a product-owned harness preflight that supports --mode fast.
 EOF
@@ -416,7 +416,7 @@ if [ "$STATIC_ONLY" = false ]; then
 {
   "schema_version": 1,
   "title": "Mobile v1 runner live bridge smoke",
-  "description": "Verifies the installed MetaMask runner can drive the React Native debug bridge without using the legacy recipe graph.",
+  "description": "Verifies the installed MetaMask runner can drive the React Native debug bridge through Recipe v1 actions.",
   "validate": {
     "workflow": {
       "entry": "status",
