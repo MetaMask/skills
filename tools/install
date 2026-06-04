@@ -209,6 +209,24 @@ is_truthy() {
   esac
 }
 
+yaml_field() {
+  local key="$1" value="$2" indent=""
+  if [[ "$key" =~ ^([[:space:]]*) ]]; then
+    indent="${BASH_REMATCH[1]}"
+  fi
+  printf '%s: >-\n' "$key"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    printf '%s  %s\n' "$indent" "$line"
+  done <<< "$value"
+}
+
+yaml_quoted() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//"/\\"}"
+  printf '"%s"' "$value"
+}
+
 maturity_allowed() {
   local skill_maturity="${1:-stable}"
   case "$MATURITY_FILTER" in
@@ -229,14 +247,14 @@ write_claude() {
   action "claude: .claude/skills/$out_name/SKILL.md"
   $DRY_RUN && return
   mkdir -p "$dir"
-  cat > "$file" <<HEREDOC
----
-name: ${name}
-description: ${description}
----
-${MANAGED_BANNER}
-${content}
-HEREDOC
+  {
+    echo '---'
+    echo "name: ${name}"
+    yaml_field description "$description"
+    echo '---'
+    echo "${MANAGED_BANNER}"
+    echo "${content}"
+  } > "$file"
 }
 
 write_cursor() {
@@ -246,14 +264,14 @@ write_cursor() {
   action "cursor: .cursor/rules/$out_name/RULE.md"
   $DRY_RUN && return
   mkdir -p "$dir"
-  cat > "$file" <<HEREDOC
----
-description: ${description}
-alwaysApply: false
----
-${MANAGED_BANNER}
-${content}
-HEREDOC
+  {
+    echo '---'
+    yaml_field description "$description"
+    echo 'alwaysApply: false'
+    echo '---'
+    echo "${MANAGED_BANNER}"
+    echo "${content}"
+  } > "$file"
 }
 
 write_agents() {
@@ -266,20 +284,20 @@ write_agents() {
   action "agents: .agents/skills/$out_name/agents/openai.yaml"
   $DRY_RUN && return
   mkdir -p "$yaml_dir"
-  cat > "$file" <<HEREDOC
----
-name: ${name}
-description: ${description}
----
-${MANAGED_BANNER}
-${content}
-HEREDOC
-  cat > "$yaml" <<HEREDOC
-interface:
-  display_name: '${name}'
-  short_description: '${description}'
-  default_prompt: 'Use \$${out_name} for this task.'
-HEREDOC
+  {
+    echo '---'
+    echo "name: ${name}"
+    yaml_field description "$description"
+    echo '---'
+    echo "${MANAGED_BANNER}"
+    echo "${content}"
+  } > "$file"
+  {
+    echo 'interface:'
+    printf '  display_name: '; yaml_quoted "$name"; echo
+    yaml_field '  short_description' "$description"
+    printf '  default_prompt: '; yaml_quoted "Use \$${out_name} for this task."; echo
+  } > "$yaml"
 }
 
 # User-scope writers — write to the engineer's home dirs instead of the
@@ -293,14 +311,14 @@ write_user_claude() {
   action "user-claude: ~/.claude/skills/$out_name/SKILL.md"
   $DRY_RUN && return
   mkdir -p "$dir"
-  cat > "$file" <<HEREDOC
----
-name: ${name}
-description: ${description}
----
-${MANAGED_BANNER}
-${content}
-HEREDOC
+  {
+    echo '---'
+    echo "name: ${name}"
+    yaml_field description "$description"
+    echo '---'
+    echo "${MANAGED_BANNER}"
+    echo "${content}"
+  } > "$file"
 }
 
 write_user_codex() {
@@ -311,14 +329,14 @@ write_user_codex() {
   action "user-codex:  ~/.codex/skills/$out_name/SKILL.md"
   $DRY_RUN && return
   mkdir -p "$dir"
-  cat > "$file" <<HEREDOC
----
-name: ${name}
-description: ${description}
----
-${MANAGED_BANNER}
-${content}
-HEREDOC
+  {
+    echo '---'
+    echo "name: ${name}"
+    yaml_field description "$description"
+    echo '---'
+    echo "${MANAGED_BANNER}"
+    echo "${content}"
+  } > "$file"
 }
 
 copy_bundle_dirs() {

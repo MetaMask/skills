@@ -4,43 +4,28 @@ on:
   workflow_call:
     secrets:
       NPM_TOKEN:
-        required: true
+        required: false
       SLACK_WEBHOOK_URL:
         required: true
 
-concurrency:
-  group: publish-release
-  queue: max
+permissions:
+  contents: read
 
 jobs:
-  publish-release:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout and setup environment
-        uses: MetaMask/action-checkout-and-setup@v2
-        with:
-          is-high-risk-environment: true
-          node-version: 24.x
-      - name: Publish GitHub release
-        uses: MetaMask/action-publish-release@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: yarn build
-
   publish-npm-dry-run:
-    name: Dry run publish to NPM
+    name: Publish to NPM (dry run)
     runs-on: ubuntu-latest
-    needs: publish-release
     steps:
       - name: Checkout and setup environment
-        uses: MetaMask/action-checkout-and-setup@v2
+        uses: MetaMask/action-checkout-and-setup@v3
         with:
           is-high-risk-environment: true
           ref: ${{ github.sha }}
-          node-version: 24.x
-      - name: Dry run publish to NPM
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: publish-release-artifacts-${{ github.sha }}
+      - name: Dry Run Publish
         uses: MetaMask/action-npm-publish@v5
         with:
           slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -48,17 +33,44 @@ jobs:
 
   publish-npm:
     name: Publish to NPM
-    environment: npm-publish
-    runs-on: ubuntu-latest
     needs: publish-npm-dry-run
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout and setup environment
-        uses: MetaMask/action-checkout-and-setup@v2
+        uses: MetaMask/action-checkout-and-setup@v3
         with:
           is-high-risk-environment: true
           ref: ${{ github.sha }}
-          node-version: 24.x
-      - name: Publish to NPM
-        uses: MetaMask/action-npm-publish@v5
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v8
         with:
+          name: publish-release-artifacts-${{ github.sha }}
+      - name: Publish
+        uses: MetaMask/action-npm-publish@v6
+        with:
+          # This `NPM_TOKEN` needs to be manually set to publish a package for
+          # the first time only.
+          # Look in the repository settings under "Environments", and set this
+          # token in the `npm-publish` environment, and delete it after the
+          # initial publish.
           npm-token: ${{ secrets.NPM_TOKEN }}
+
+  publish-release:
+    name: Publish to GitHub
+    needs: publish-npm
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout and setup environment
+        uses: MetaMask/action-checkout-and-setup@v3
+        with:
+          is-high-risk-environment: true
+          ref: ${{ github.sha }}
+      - uses: MetaMask/action-publish-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
