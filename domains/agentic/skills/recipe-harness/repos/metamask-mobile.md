@@ -31,27 +31,26 @@ domains/agentic/skills/recipe-harness/scripts/recipe-harness mobile live --targe
 ## Adapter Behavior
 
 Install is conservative by default. On Mobile commits that already track the
-first-party agentic harness, it writes metadata only and does not overwrite
-tracked product files unless `--force-overlay` is explicit. On older commits
-without a product-owned harness, install overlays the recipe runtime only when
-`METAMASK_MOBILE_AGENTIC_SOURCE` (or `METAMASK_RECIPE_MOBILE_BRIDGE_SOURCE`) points
-to a reviewed product/farm checkout or directly to its `scripts/perps/agentic`
-directory. The skills repo does not bundle that product harness. Overlay install
-then idempotently patches:
+in-app bridge/HUD, it writes metadata only and does not overwrite tracked
+product files unless `--force-overlay` is explicit. On newer commits without a
+product-owned bridge, install writes the runner into the ignored harness root
+and overlays only the minimal in-app bridge/HUD needed for React Native runtime
+control:
 
-- `scripts/perps/agentic/**`, copied from the external Mobile bridge source, excluding test/spec files. The CDP bridge should support structured `show-step-json` HUD payloads for runner/HUD updates.
+- `app/core/AgenticService/**` from the skills overlay, excluding test/spec files.
 - `app/core/NavigationService/NavigationService.ts` to install `AgenticService`.
 - `app/components/Nav/App/App.tsx` to render `AgentStepHud`.
 
+Mobile CDP, wallet setup, fixture handling, screenshot, and recipe execution run
+from the installed runner, not from Mobile-owned `scripts/` entries.
+
 ## Validation
 
-See references/contract.md for the full verification checklist. Mobile-specific: `scripts/perps/agentic/**` backing scripts must be present from the product checkout or an explicit external Mobile bridge source (not bundled in the skills repo); direct script entrypoints must work independently of `yarn a:*`.
+See references/contract.md for the full verification checklist. Mobile-specific: the runner-owned bridge must be present through `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe`; the Mobile checkout must not own harness control scripts.
 
 Use `--static-only` only for install/idempotency checks when the simulator, Metro, or CDP is unavailable.
 
 ```bash
-bash scripts/perps/agentic/preflight.sh --platform ios --mode fast
-bash scripts/perps/agentic/preflight.sh --platform ios --mode fast --wallet-setup --wallet-fixture .agent/wallet-fixture.json
-bash scripts/perps/agentic/app-state.sh status
-<external-runner>/bin/metamask-recipe run <recipe> --target <metamask-mobile>
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe actions --adapter mobile --action app.status --json
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <recipe> --adapter mobile --project-root <metamask-mobile>
 ```

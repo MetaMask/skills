@@ -3,7 +3,6 @@
   "runtime": "MetaMask Mobile recipe runtime",
   "version": 1,
   "installs": [
-    "scripts/perps/agentic/**",
     "app/core/AgenticService/**"
   ],
   "patches": [

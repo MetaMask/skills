@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 DEFAULT_METAMASK_RECIPE_RUNNER_GIT_URL="https://github.com/deeeed/metamask-recipe-runner.git"
-DEFAULT_METAMASK_RECIPE_RUNNER_GIT_REF="main"
+DEFAULT_METAMASK_RECIPE_RUNNER_GIT_REF="refactor/farmslot-v0-api"
 
 resolve_metamask_recipe_runner_source() {
   local skill_dir="$1"

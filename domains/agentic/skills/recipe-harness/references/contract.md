@@ -38,12 +38,12 @@ Build/reuse rule: verification must not silently kick off an expensive native/fu
 
 Mobile verification should prove, when a live app is available:
 
-- `scripts/perps/agentic/**` backing scripts are present from the product checkout or an explicit external Mobile bridge source, excluding test/spec files; they are not bundled in the skills repo.
-- direct script entrypoints work; harness automation must not depend on `yarn a:*`.
+- runner-owned Mobile bridge/runtime files are available through the installed runner.
+- harness automation must not depend on Mobile `package.json` scripts or Mobile-owned `scripts/` entries.
 - CDP connects.
 - `globalThis.__AGENTIC__` exists.
 - route read works.
-- `scripts/perps/agentic/app-state.sh status` works.
+- `app.status` works through the installed runner.
 - wallet fixture setup/unlock works when fixture data exists.
 - screenshot capture works.
 - a tiny recipe can emit summary, trace, and artifact manifest.

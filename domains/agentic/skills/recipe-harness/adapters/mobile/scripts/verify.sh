@@ -68,17 +68,14 @@ const path = require('path');
 const target = process.env.TARGET_FOR_FIXTURE;
 const candidates = [
   '.agent/wallet-fixture.json',
-  'scripts/perps/agentic/wallet-fixture.json',
+  'temp/runtime/wallet-fixture.json',
 ].map((rel) => path.join(target, rel));
 const fixture = candidates.find((file) => fs.existsSync(file));
 if (!fixture) {
-  const example = path.join(target, 'scripts/perps/agentic/wallet-fixture.example.json');
   console.log(JSON.stringify({
     status: 'MISSING_FIXTURES',
-    message: 'No wallet fixture found. This run may spend time repairing wallet/perps state manually. For a clean isolated sandbox, create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json.',
-    setupCommand: fs.existsSync(example)
-      ? 'cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json'
-      : null,
+    message: 'No wallet fixture found. This run may spend time repairing wallet/perps state manually. For a clean isolated sandbox, create .agent/wallet-fixture.json or temp/runtime/wallet-fixture.json.',
+    setupCommand: 'mkdir -p .agent && edit .agent/wallet-fixture.json with password + accounts',
   }));
   process.exit(0);
 }
@@ -203,7 +200,6 @@ check_file "$HARNESS_REL/manifest.json"
 check_file "$HARNESS_REL/action-manifest.json"
 check_file "$HARNESS_REL/runner/bin/metamask-recipe"
 check_file "package.json"
-check_file "scripts/perps/agentic/cdp-bridge.js"
 check_file "app/core/AgenticService/AgenticService.ts"
 
 if ! grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null; then
@@ -269,23 +265,6 @@ NODE
 )"
 checks+=("$overlay_drift_check")
 
-if node - "$TARGET/package.json" <<'NODE'
-const fs = require('fs');
-const file = process.argv[2];
-const pkg = JSON.parse(fs.readFileSync(file, 'utf8'));
-const scripts = pkg.scripts || {};
-const required = ['a:start', 'a:status', 'a:ios', 'a:android'];
-const hasRequired = required.every((name) => scripts[name]);
-const safeLaunch = String(scripts['a:ios'] || '').includes('--mode fast')
-  && String(scripts['a:android'] || '').includes('--mode fast');
-process.exit(hasRequired && safeLaunch ? 0 : 1);
-NODE
-then
-  checks+=("{\"name\":\"package a:* ergonomic aliases use fast mode\",\"status\":\"pass\"}")
-else
-  checks+=("{\"name\":\"package a:* ergonomic aliases use fast mode\",\"status\":\"warn\"}")
-fi
-
 run_with_timeout() {
   local log_path="$1"
   local timeout_s="$2"
@@ -314,84 +293,44 @@ run_with_timeout() {
 
 live_status_ok() {
   local log_path="$1"
-  run_with_timeout "$log_path" 20 bash -lc 'cd "$1" && bash scripts/perps/agentic/app-state.sh status' bash "$TARGET" && node - "$log_path" <<'NODE'
-const fs = require('fs');
-const raw = fs.readFileSync(process.argv[2], 'utf8').trim();
-const start = raw.search(/[\[{]/);
-if (start < 0) process.exit(1);
-const value = JSON.parse(raw.slice(start));
-if (!value || Array.isArray(value) || !value.route || !value.route.name) process.exit(1);
-NODE
+  cat > "$ARTIFACTS/mobile-status-smoke.recipe.json" <<'JSON'
+{
+  "schema_version": 1,
+  "title": "Mobile runner status smoke",
+  "validate": {
+    "workflow": {
+      "entry": "status",
+      "nodes": {
+        "status": { "action": "app.status", "intent": "Read Mobile app status through the runner-owned bridge", "next": "done" },
+        "done": { "action": "end", "status": "pass" }
+      }
+    }
+  }
 }
-
-preflight_supports_mode_flag() {
-  grep -q -- '--mode)' "$TARGET/scripts/perps/agentic/preflight.sh" 2>/dev/null
-}
-
-managed_native_config_hash() {
+JSON
   (
     cd "$TARGET"
-    for rel in package.json tsconfig.json ios/Podfile.lock; do
-      if [ -e "$rel" ]; then
-        shasum -a 256 "$rel"
-      else
-        printf 'missing  %s\n' "$rel"
-      fi
-    done
-  )
+    "$RUNNER_BIN" run "$ARTIFACTS/mobile-status-smoke.recipe.json" --adapter mobile --project-root "$TARGET" --artifacts-dir "$ARTIFACTS/runner-status-smoke" --json
+  ) > "$log_path" 2>&1
 }
 
 ensure_live_runtime() {
-  live_status_ok "$ARTIFACTS/logs/app-state-precheck.log" && return 0
-  if [ "$AUTO_START" != true ]; then
-    echo "Mobile runtime is not recipe-controllable and auto-start is disabled; use recipe-harness live/launch, pass --auto-start, or set RECIPE_HARNESS_MOBILE_AUTO_START=1 after explicit runtime-start approval." >&2
-    return 1
+  if live_status_ok "$ARTIFACTS/logs/app-status-precheck.log"; then
+    return 0
   fi
-
-  echo "Mobile runtime is not recipe-controllable; starting ${PLATFORM} app via harness preflight (--mode ${PREFLIGHT_MODE})..." >&2
-  if [ "$PREFLIGHT_MODE" = "fast" ]; then
-    if ! preflight_supports_mode_flag; then
-      cat >&2 <<'EOF'
-Refusing mobile auto-start in fast mode: target scripts/perps/agentic/preflight.sh does not support --mode.
-Running it without an explicit fast-mode contract may mutate package.json,
-tsconfig.json, ios/Podfile.lock, Pods, or native build state. Start the app manually or install
-a product-owned harness preflight that supports --mode fast.
+  if [ "$AUTO_START" = true ]; then
+    cat >&2 <<'EOF'
+Mobile auto-start is not allowed from product-local scripts. Start or prepare the app through the runner/slot runtime, then rerun verify with --no-auto-start.
 EOF
-      return 1
-    fi
-    echo "  Build policy: fast reuses an installed matching app or shared cache and fails before a native rebuild." >&2
-    echo "  To permit a rebuild, rerun with --preflight-mode auto or RECIPE_HARNESS_MOBILE_PREFLIGHT_MODE=auto after explicit caller/human approval." >&2
-  else
-    echo "  Build policy: ${PREFLIGHT_MODE} may run native build/setup work; use only after explicit caller/human approval." >&2
   fi
-  managed_native_config_hash > "$ARTIFACTS/logs/native-config-before-autostart.sha256"
-  preflight_args=(scripts/perps/agentic/preflight.sh --platform "$PLATFORM" --mode "$PREFLIGHT_MODE")
-  if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
-    preflight_args+=(--wallet-setup --wallet-fixture .agent/wallet-fixture.json)
-  else
-    echo "  Fixture status: MISSING_FIXTURES. Starting without wallet setup; state repair may be slower/flakier." >&2
-  fi
-  if (
-    cd "$TARGET"
-    EXPO_NO_TYPESCRIPT_SETUP=1 bash "${preflight_args[@]}"
-  ) 2>&1 | tee "$ARTIFACTS/logs/auto-start.log"; then
-    managed_native_config_hash > "$ARTIFACTS/logs/native-config-after-autostart.sha256"
-    if ! cmp -s "$ARTIFACTS/logs/native-config-before-autostart.sha256" "$ARTIFACTS/logs/native-config-after-autostart.sha256"; then
-      echo "Mobile auto-start mutated package/native config; refusing to treat runtime as verified. See logs/native-config-*-autostart.sha256." >&2
-      return 1
-    fi
-    : > "$ARTIFACTS/logs/harness-started-runtime"
-  else
-    managed_native_config_hash > "$ARTIFACTS/logs/native-config-after-autostart.sha256"
-    return 1
-  fi
+  return 1
 }
 
 if [ "$STATIC_ONLY" = false ]; then
   if ensure_live_runtime; then
     checks+=('{"name":"mobile runtime controllable precheck","status":"pass"}')
   else
-    checks+=('{"name":"mobile runtime controllable precheck","status":"fail","detail":"see logs/app-state-precheck.log or logs/auto-start.log"}')
+    checks+=('{"name":"mobile runtime controllable precheck","status":"fail","detail":"see logs/app-status-precheck.log"}')
     status="fail"
   fi
 
@@ -511,8 +450,8 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   runtimePolicy: {
     preflightMode: process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast',
     nativeBuildPolicy: (process.env.RECIPE_HARNESS_PREFLIGHT_MODE || 'fast') === 'fast'
-      ? 'fast mode reuses an installed matching app or shared cache and fails before native rebuild; use --preflight-mode auto/default only after explicit approval'
-      : 'this mode may run native build/setup work; caller must have recorded explicit approval before using it',
+      ? 'verify does not start product-local Mobile scripts; start/reuse a runner-owned or slot-owned runtime before live proof'
+      : 'verify did not start product-local Mobile scripts',
   },
   fixtureStatus,
   portHolder,

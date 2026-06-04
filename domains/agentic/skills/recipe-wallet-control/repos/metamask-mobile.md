@@ -5,7 +5,7 @@ parent: recipe-wallet-control
 
 # Recipe Wallet Control — MetaMask Mobile
 
-Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The mobile bridge under `scripts/perps/agentic/` (e.g. `cdp-bridge.js`) is the runtime those actions call for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
+Drive a debug MetaMask Mobile app through actions declared by the installed runner manifest (`metamask.wallet.*`, `metamask.perps.*`, `ui.*`, `app.*` when present). The installed runner owns the Mobile bridge runtime for Hermes/CDP evaluation, route changes, presses, inputs, scrolling, unlock, and eval refs — it is a runtime implementation detail, not the authoring surface. Reuse `simulator-control` or `agent-device` for generic device inspection when useful.
 
 ## Recipe Authoring Loop
 
@@ -30,13 +30,13 @@ Before authoring or running manifest-backed recipe actions, install and verify t
 .claude/skills/mms-recipe-harness/scripts/recipe-harness.sh mobile verify --target .
 ```
 
-The product bridge under `scripts/perps/agentic/` is not the recipe runner. The runner path is `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe`; if it is missing, run the install command above before authoring or running recipes.
+The runner path is `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe`; if it is missing, run the install command above before authoring or running recipes.
 
-Launch via harness only (`recipe-harness launch` / `preflight.sh --mode fast`). Non-harness launch lacks Metro/CDP wiring and fixtures. Never use `yarn start:ios`, `xcrun simctl launch`, or manual taps. Prefer `--mode fast`; if it reports a cache miss, stop and ask for explicit approval before escalating to `auto`, `rebuild-native`, or `clean`.
+Use a prepared slot/runtime or `recipe-harness launch` to confirm runner connectivity. Do not call Mobile-owned harness scripts; they should not exist in the product checkout. If a runtime is missing, ask before starting Metro/native work through the approved runner/slot path.
 
 ## Prerequisites
 
-1. `metamask-mobile` checkout with `scripts/perps/agentic/` present.
+1. `metamask-mobile` checkout with the recipe harness installed.
 2. Simulator/emulator booted, matching `.js.env` (`IOS_SIMULATOR`, `WATCHER_PORT`).
 3. Fixture files contain only throwaway test wallets.
 
@@ -45,16 +45,16 @@ If not met, interrupt and ask the user to fix via the recovery table below.
 ## Status and Recovery
 
 ```bash
-bash scripts/perps/agentic/app-state.sh status
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <status-recipe> --adapter mobile --project-root .
 ```
 
 **Status succeeds** → bridge/CDP control is available. For recipe proof, also verify the installed runner exists with `${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe actions --adapter mobile --json`. **Status fails** → diagnose and recover:
 
 | State | Detection | Recovery |
 |---|---|---|
-| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user to approve: `preflight.sh --platform <plat> --mode fast`. |
-| Installed, not launched | Home screen visible, "0 targets" | Ask user to approve: `preflight.sh --platform <plat> --mode fast` or `start-metro.sh --platform <plat> --launch`. |
-| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user before killing/relaunching: kill app + kill stale Metro (`lsof -i :<port>`) + `preflight.sh --platform <plat> --mode fast`. |
+| Not installed | `xcrun simctl listapps <sim> \| grep io.metamask` empty | Ask user to approve preparing a runner/slot runtime for the selected device. |
+| Installed, not launched | Home screen visible, "0 targets" | Ask user to approve preparing a runner/slot runtime for the selected device. |
+| Running, wrong port/no CDP | App visible but status fails ("0 targets" / "Cannot reach Metro") | Ask user before killing/relaunching stale app or Metro processes; restart through the runner/slot path. |
 
 ### Preflight modes
 
@@ -64,14 +64,7 @@ bash scripts/perps/agentic/app-state.sh status
 | `--mode auto` | Fingerprint-gated reuse; builds on cache miss. Use only after explicit runtime/rebuild approval or in a dedicated cache-warming lane. |
 | `--mode clean` | Full: `yarn setup` → `pod install --repo-update` → build → Metro → CDP. Use only after explicit clean-rebuild approval for corrupted state. |
 
-Fresh wallet validation (bypasses existing vault):
-
-```bash
-bash scripts/perps/agentic/preflight.sh \
-  --platform ios --mode fast \
-  --wallet-setup --wallet-fixture .agent/wallet-fixture.json
-# If fast reports a missing/stale cache, stop and ask before rerunning with auto/clean.
-```
+Fresh wallet validation (bypasses existing vault): create `.agent/wallet-fixture.json`, prepare/reuse a runner-owned or slot-owned runtime, then run a Recipe v1 wallet setup/unlock recipe through the installed runner.
 
 ## Core Wallet Primitives
 
@@ -244,8 +237,8 @@ Prefer `ui.wait_for` over fixed sleeps for any settle/poll condition; fail loudl
 There is no v1 "go back" action. In recipes, drive back-navigation through the real UI (`ui.press` a back control). For interactive debugging only, the installed bridge exposes:
 
 ```bash
-bash scripts/perps/agentic/app-state.sh can-go-back
-bash scripts/perps/agentic/app-state.sh go-back
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <recipe> --adapter mobile --project-root .
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <recipe> --adapter mobile --project-root .
 ```
 
 ### guarded raw CDP inspection (bridge debug)
@@ -253,8 +246,8 @@ bash scripts/perps/agentic/app-state.sh go-back
 There is no v1 eval action. For inspection or debug-only setup only, the installed bridge exposes raw eval:
 
 ```bash
-bash scripts/perps/agentic/app-state.sh eval 'JSON.stringify({route: globalThis.__AGENTIC__.getRoute().name})'
-bash scripts/perps/agentic/app-state.sh eval-async '(async function(){ return JSON.stringify(await someDebugCall()); })()'
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <recipe> --adapter mobile --project-root .
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe run <recipe> --adapter mobile --project-root .
 ```
 
 Use raw eval for inspection or debug-only setup, not to fabricate a passing assertion. Recipes must prove state through manifest actions (`metamask.wallet.read_state`, `metamask.perps.read_*`, `assert_json`), never raw eval.

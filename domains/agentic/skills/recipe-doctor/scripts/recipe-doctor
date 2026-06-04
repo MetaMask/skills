@@ -296,19 +296,15 @@ fi
 
 validate_mobile_fixture() {
   fixture=""
-  mobile_fixture_setup="create .agent/wallet-fixture.json from scripts/perps/agentic/wallet-fixture.example.json; include password, accounts[0] as a local development mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and shared-fixture-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true (applied by the Mobile harness on Android)"
+  mobile_fixture_setup="create .agent/wallet-fixture.json; include password, accounts[0] as a local development mnemonic for first vault setup, optional privateKey accounts named Trading/MYXTrading for funded trading flows, and shared-fixture-compatible settings metametrics=true skipGtmModals=true skipPerpsTutorial=true autoLockNever=true deviceAuthEnabled=true"
   if [ -f "$TARGET/.agent/wallet-fixture.json" ]; then
     fixture=".agent/wallet-fixture.json"
-  elif [ -f "$TARGET/scripts/perps/agentic/wallet-fixture.json" ]; then
-    fixture="scripts/perps/agentic/wallet-fixture.json"
+  elif [ -f "$TARGET/temp/runtime/wallet-fixture.json" ]; then
+    fixture="temp/runtime/wallet-fixture.json"
   fi
 
   if [ -z "$fixture" ]; then
-    if [ -f "$TARGET/scripts/perps/agentic/wallet-fixture.example.json" ]; then
-      record_check WARN "fixture:mobile" "missing; run: mkdir -p .agent && cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json; then edit it: $mobile_fixture_setup"
-    else
-      record_check WARN "fixture:mobile" "missing and no example found; $mobile_fixture_setup"
-    fi
+    record_check WARN "fixture:mobile" "missing; $mobile_fixture_setup"
     return
   fi
 
@@ -544,7 +540,7 @@ check_v1_runner() {
   if [ "$adapter" = "mobile" ]; then
     if [ -f "$TARGET/app/core/AgenticService/AgenticService.ts" ]; then
       mode="bridge present"
-    elif [ -d "$TARGET/scripts/perps/agentic" ]; then
+    elif [ -x "$TARGET/${root:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe" ]; then
       mode="product-local harness present"
     elif [ "$REPO" = "metamask-mobile" ]; then
       mode="bridge injectable"

@@ -62,7 +62,7 @@ Use `--no-static-verify` only when the caller explicitly wants a pure read-only 
 - static harness verification through `mms-recipe-harness` when available;
 - runtime context hints in `temp/runtime/agentic-runtime.json`;
 - Extension browser isolation: prefer Playwright Chromium, or Chrome/Chromium with a dedicated `--user-data-dir`, never the user's normal profile;
-- Mobile wallet fixture schema at `.agent/wallet-fixture.json` or `scripts/perps/agentic/wallet-fixture.json`;
+- Mobile wallet fixture schema at `.agent/wallet-fixture.json` or `temp/runtime/wallet-fixture.json`;
 - Extension wallet fixture/profile hints at `temp/runtime/wallet-fixture.json`, `.agent/wallet-fixture.json`, `temp/runtime/extension.id`, `test/e2e/fixtures`, or `fixtures`.
 
 ## Expected Output
@@ -75,7 +75,7 @@ For Mobile, a missing fixture should produce the exact setup hint:
 
 ```bash
 mkdir -p .agent
-cp scripts/perps/agentic/wallet-fixture.example.json .agent/wallet-fixture.json
+mkdir -p .agent && edit .agent/wallet-fixture.json
 # edit .agent/wallet-fixture.json with local development password/accounts only:
 # - accounts[0]: mnemonic for first vault setup
 # - optional privateKey accounts named "Trading"/"MYXTrading" for funded flows

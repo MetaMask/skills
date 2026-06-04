@@ -55,7 +55,7 @@ Fixtures are for local MetaMask Mobile and Extension debug runs only. Keep them 
 - Never commit fixture files or raw secret material.
 - Redact raw `password`, `mnemonic`, and `privateKey` values from command transcripts and PR bodies.
 - Fixture seeding is setup/reset only. It is not a valid way to fabricate a mid-test state or bypass the user flow under validation.
-- Existing mobile template: `scripts/perps/agentic/wallet-fixture.example.json` in MetaMask Mobile.
+- Create `.agent/wallet-fixture.json` in the target checkout, or use `temp/runtime/wallet-fixture.json` from a prepared slot.
 
 ## Extension Parity
 

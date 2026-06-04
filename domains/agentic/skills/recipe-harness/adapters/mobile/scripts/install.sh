@@ -56,9 +56,6 @@ HARNESS_DIR="$(harness_dir "$TARGET" mobile)"
 # refuse_symlink_destination walks every path component, so the deepest path also
 # guards its parents ($HARNESS_REL covers the root segments).
 refuse_symlink_destination "$HARNESS_REL"
-refuse_symlink_destination "scripts"
-refuse_symlink_destination "scripts/perps"
-refuse_symlink_destination "scripts/perps/agentic"
 refuse_symlink_destination "app"
 refuse_symlink_destination "app/core"
 refuse_symlink_destination "app/core/AgenticService"
@@ -170,60 +167,11 @@ has_product_owned_mobile_harness() {
   # skill overlay must be metadata-only by default. Requiring every marker to be
   # present is unsafe for older/partial Mobile commits: falling through would
   # rsync --delete tracked product-owned files without --force-overlay.
-  git_tracks_any_under "scripts/perps/agentic" && return 0
   git_tracks_any_under "app/core/AgenticService" && return 0
 
   # Marker fallback for checkouts where the harness was patched but not tracked.
   grep -q "AgenticService.install" "$TARGET/app/core/NavigationService/NavigationService.ts" 2>/dev/null \
     && grep -q "AgentStepHud" "$TARGET/app/components/Nav/App/App.tsx" 2>/dev/null
-}
-
-validate_mobile_agentic_source() {
-  local source="$1"
-  local rel
-  for rel in \
-    "cdp-bridge.js" \
-    "preflight.sh" \
-    "start-metro.sh" \
-    "interactive-start.sh" \
-    "stop-metro.sh" \
-    "reload-metro.sh" \
-    "app-state.sh" \
-    "app-navigate.sh" \
-    "screenshot.sh" \
-    "setup-wallet.sh" \
-    "lib/safe-env-parser.sh"; do
-    if [ ! -f "$source/$rel" ]; then
-      echo "METAMASK_MOBILE_AGENTIC_SOURCE is missing required Mobile bridge entrypoint: $source/$rel" >&2
-      return 1
-    fi
-  done
-}
-
-resolve_mobile_agentic_source() {
-  local raw="${METAMASK_MOBILE_AGENTIC_SOURCE:-${METAMASK_RECIPE_MOBILE_BRIDGE_SOURCE:-}}"
-  local candidate=""
-  if [ -n "$raw" ]; then
-    if [ -d "$raw/scripts/perps/agentic" ]; then
-      candidate="$raw/scripts/perps/agentic"
-    elif [ -d "$raw" ] && [ -f "$raw/cdp-bridge.js" ]; then
-      candidate="$raw"
-    else
-      echo "METAMASK_MOBILE_AGENTIC_SOURCE must point at scripts/perps/agentic or a repo containing scripts/perps/agentic: $raw" >&2
-      return 1
-    fi
-    validate_mobile_agentic_source "$candidate"
-    MOBILE_AGENTIC_SOURCE="$(cd "$candidate" && pwd)"
-    return 0
-  fi
-
-  cat >&2 <<EOF
-Mobile bridge overlay source is not bundled in metamask-skills.
-Set METAMASK_MOBILE_AGENTIC_SOURCE to a reviewed product/farm checkout path
-(or directly to its scripts/perps/agentic directory) when installing into a
-checkout that does not already own scripts/perps/agentic.
-EOF
-  return 1
 }
 
 add_git_exclude_entry() {
@@ -278,7 +226,6 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
         runnerRevision: process.argv[4],
         runnerSourceKind: process.argv[5],
         adapterRuntime: process.argv[6],
-        mobileAgenticSource: null
       },
       target: process.argv[7],
       protocolVersion: "v1",
@@ -288,7 +235,6 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
       harnessInstalledPaths: [process.argv[11] + "/runner", process.argv[11] + "/action-manifest.json"],
       patchedFiles: [],
       productOwnedPaths: [
-        "scripts/perps/agentic",
         "app/core/AgenticService",
         "app/core/NavigationService/NavigationService.ts",
         "app/components/Nav/App/App.tsx"
@@ -299,19 +245,19 @@ if [ "$FORCE_OVERLAY" = false ] && has_product_owned_mobile_harness; then
         ":(exclude)" + process.argv[10],
         ":(exclude).skills-cache"
       ],
-      note: "This checkout already contains the first-party Mobile agentic harness. Skill install only writes recipe-harness metadata and must not overwrite tracked product harness files."
+      note: "This checkout already contains the Mobile in-app bridge. Skill install only writes recipe-harness metadata and must not overwrite tracked in-app bridge files."
     };
     fs.writeFileSync(process.argv[9], JSON.stringify(m, null, 2) + "\n");
   ' "$SKILL_DIR" "$SOURCE_REV" "$METAMASK_RUNNER_DIR" "$METAMASK_RUNNER_REVISION" "$METAMASK_RUNNER_SOURCE_KIND" "$ADAPTER_DIR" "$TARGET" "$SCRIPT_DIR" "$HARNESS_DIR/manifest.json" "$HARNESS_ROOT" "$HARNESS_REL" "$CLEANUP_COMMAND"
-  echo "Installed mobile recipe harness metadata only (product-owned harness detected): $HARNESS_DIR/manifest.json"
+  echo "Installed mobile recipe harness metadata only (in-app bridge detected): $HARNESS_DIR/manifest.json"
   exit 0
 fi
 
 # Full-install path: reached when the checkout lacks the bridge, or when
 # --force-overlay was passed to deliberately overwrite a product-owned bridge.
 if [ "$FORCE_OVERLAY" = true ] && has_product_owned_mobile_harness; then
-  echo "[recipe-harness] --force-overlay: OVERWRITING tracked product harness files with the skills overlay:"
-  echo "    scripts/perps/agentic, app/core/AgenticService, app/core/NavigationService/NavigationService.ts, app/components/Nav/App/App.tsx"
+  echo "[recipe-harness] --force-overlay: OVERWRITING tracked in-app bridge files with the skills overlay:"
+  echo "    app/core/AgenticService, app/core/NavigationService/NavigationService.ts, app/components/Nav/App/App.tsx"
   echo "[recipe-harness] Files are backed up and restorable via cleanup. This replaces the checkout's in-repo agentic bridge/HUD (intended for stale or older-commit checkouts)."
 fi
 if [ "$GIT_EXCLUDE" = false ]; then
@@ -376,7 +322,7 @@ if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = true ]; then
 fi
 
 if [ "$ALLOW_DIRTY" = false ] && [ "$INSTALLED" = false ] && git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
-  DIRTY_PATHS="$(git -C "$TARGET" status --porcelain -- scripts/perps/agentic app/core/AgenticService app/core/NavigationService/NavigationService.ts app/components/Nav/App/App.tsx)"
+  DIRTY_PATHS="$(git -C "$TARGET" status --porcelain -- app/core/AgenticService app/core/NavigationService/NavigationService.ts app/components/Nav/App/App.tsx)"
   if [ -n "$DIRTY_PATHS" ]; then
     cat >&2 <<EOF
 Refusing to install mobile recipe harness over dirty harness paths.
@@ -456,13 +402,12 @@ rollback_failed_install() {
       [[ "$_line" =~ ^[[:space:]]*(#|$) ]] && continue
       _key="${_line%%=*}"; _val="${_line#*=}"
       case "$_key" in
-        SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
+        AGENTIC_SERVICE_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
         *) continue ;;
       esac
       export "$_key=$_val"
     done < "$ROLLBACK_STATE_FILE"
     unset _line _key _val
-    rollback_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
     rollback_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
     rollback_path "app/core/NavigationService/NavigationService.ts" "${NAVIGATION_SERVICE_EXISTED:-0}"
     rollback_path "app/components/Nav/App/App.tsx" "${APP_TSX_EXISTED:-0}"
@@ -486,7 +431,6 @@ if [ ! -f "$STATE_FILE" ] || [ "$REBASE_BACKUP" = true ]; then
   ACTIVE_BACKUP_DIR="$TMP_BACKUP_DIR"
   ACTIVE_STATE_FILE="$TMP_BACKUP_DIR/state.env"
   : > "$ACTIVE_STATE_FILE"
-  backup_path "scripts/perps/agentic" "SCRIPTS_EXISTED"
   backup_path "app/core/AgenticService" "AGENTIC_SERVICE_EXISTED"
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
@@ -508,7 +452,6 @@ else
   ACTIVE_BACKUP_DIR="$REFRESH_BACKUP_DIR"
   ACTIVE_STATE_FILE="$REFRESH_BACKUP_DIR/state.env"
   : > "$ACTIVE_STATE_FILE"
-  backup_path "scripts/perps/agentic" "SCRIPTS_EXISTED"
   backup_path "app/core/AgenticService" "AGENTIC_SERVICE_EXISTED"
   backup_path "app/core/NavigationService/NavigationService.ts" "NAVIGATION_SERVICE_EXISTED"
   backup_path "app/components/Nav/App/App.tsx" "APP_TSX_EXISTED"
@@ -518,16 +461,9 @@ fi
 
 INSTALL_MUTATING=true
 
-resolve_mobile_agentic_source
 install_v1_runner_assets
 
-mkdir -p "$TARGET/scripts/perps" "$TARGET/app/core"
-rsync -a --delete \
-  --exclude '*.test.*' \
-  --exclude '*.spec.*' \
-  --exclude 'test-*' \
-  --exclude '__tests__/' \
-  "$MOBILE_AGENTIC_SOURCE/" "$TARGET/scripts/perps/agentic/"
+mkdir -p "$TARGET/app/core"
 rm -rf "$TARGET/app/core/AgenticService"
 mkdir -p "$TARGET/app/core/AgenticService"
 while IFS= read -r -d '' overlay_file; do
@@ -597,10 +533,9 @@ console.log(JSON.stringify({
 NODE
 
 if [ "$GIT_EXCLUDE" = true ]; then
-  echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, scripts/perps/agentic/, app/core/AgenticService/"
+  echo "[recipe-harness] Adding local .git/info/exclude entries (removed on cleanup): $HARNESS_ROOT/, .skills-cache/, app/core/AgenticService/"
   add_git_exclude_entry "$HARNESS_ROOT/" "$BACKUP_DIR/added-git-exclude"
   add_git_exclude_entry ".skills-cache/" "$BACKUP_DIR/added-git-exclude"
-  add_git_exclude_entry "scripts/perps/agentic/" "$BACKUP_DIR/added-git-exclude"
   add_git_exclude_entry "app/core/AgenticService/" "$BACKUP_DIR/added-git-exclude"
 fi
 
@@ -609,7 +544,6 @@ write_managed_hashes() {
   local rel
   : > "$hash_file"
   for rel in \
-    "scripts/perps/agentic" \
     "app/core/AgenticService" \
     "app/core/NavigationService/NavigationService.ts" \
     "app/components/Nav/App/App.tsx"; do
@@ -636,20 +570,19 @@ node -e '
       runnerRevision: process.argv[4],
       runnerSourceKind: process.argv[5],
       adapterRuntime: process.argv[6],
-      mobileAgenticSource: process.argv[11]
     },
     target: process.argv[7],
     protocolVersion: "v1",
     actionManifestPath: process.argv[13] + "/action-manifest.json",
     runnerEntrypoint: process.argv[13] + "/runner/bin/metamask-recipe",
-    installedPaths: [process.argv[13] + "/runner", process.argv[13] + "/action-manifest.json", "scripts/perps/agentic", "app/core/AgenticService"],
+    installedPaths: [process.argv[13] + "/runner", process.argv[13] + "/action-manifest.json", "app/core/AgenticService"],
     patchedFiles: ["app/core/NavigationService/NavigationService.ts", "app/components/Nav/App/App.tsx"],
     backupDir: process.argv[8],
     managedHashes: process.argv[8] + "/managed-hashes.tsv",
     cleanupCommand: process.argv[14],
     productDiffExcludes: [
       ":(exclude)" + process.argv[12], ":(exclude).skills-cache",
-      ":(exclude)scripts/perps/agentic", ":(exclude)app/core/AgenticService"
+      ":(exclude)app/core/AgenticService"
     ]
   };
   fs.writeFileSync(process.argv[10], JSON.stringify(m, null, 2) + "\n");

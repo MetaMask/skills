@@ -13,7 +13,7 @@ Before authoring new actions, inspect what the checkout already exposes:
 
 ```sh
 find scripts test e2e -iname '*agentic*' -o -iname '*recipe*' -o -iname '*fixture*'
-yarn --silent a:status 2>/dev/null || true
+${RECIPE_HARNESS_ROOT:-temp/agentic/recipe-harness}/mobile/runner/bin/metamask-recipe actions --adapter mobile --action app.status --json 2>/dev/null || true
 ```
 
 If `/recipe-wallet-control` is installed, read its Mobile overlay and action vocabulary. Treat it as an implementation layer for wallet primitives, not as the recipe contract.

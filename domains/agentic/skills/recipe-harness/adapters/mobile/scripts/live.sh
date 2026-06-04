@@ -83,7 +83,7 @@ fs.writeFileSync(path.join(artifacts, 'summary.json'), `${JSON.stringify({
   launch: { exitCode: launchStatus, summaryPath: fs.existsSync(launchSummary) ? launchSummary : null },
   verify: { exitCode: verifyStatus, summaryPath: fs.existsSync(verifySummary) ? verifySummary : null },
   easyCommand: `<skill-dir>/scripts/recipe-harness live --platform ${process.env.PLATFORM_FOR_SUMMARY} --preflight-mode ${process.env.MODE_FOR_SUMMARY}`,
-  note: 'Runs launch then live verify so a developer can validate app startup, CDP/app-state bridge, screenshot capture, and tiny recipe control from one skill-owned command.',
+  note: 'Runs launch then live verify so a developer can validate app startup, runner-owned CDP bridge, screenshot capture, and tiny recipe control from one skill-owned command.',
   generatedAt: new Date().toISOString(),
 }, null, 2)}\n`);
 NODE

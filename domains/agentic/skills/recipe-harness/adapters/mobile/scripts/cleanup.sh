@@ -72,7 +72,7 @@ if [ -f "$HARNESS_DIR/manifest.json" ] && node -e '
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
   remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
   rm -rf "$HARNESS_DIR"
-  echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
+  echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned in-app bridge files left untouched)"
   exit 0
 fi
 
@@ -84,7 +84,7 @@ if [ ! -f "$STATE_FILE" ]; then
   ' "$HARNESS_DIR/manifest.json" 2>/dev/null; then
     remove_recorded_git_exclude_entries "$HARNESS_DIR/added-git-exclude"
     rm -rf "$HARNESS_DIR"
-    echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned harness files left untouched)"
+    echo "Cleaned mobile recipe harness metadata from $TARGET (product-owned in-app bridge files left untouched)"
     exit 0
   fi
   echo "No mobile harness backup found at $STATE_FILE" >&2
@@ -96,7 +96,7 @@ while IFS= read -r _line || [ -n "$_line" ]; do
   _key="${_line%%=*}"
   _val="${_line#*=}"
   case "$_key" in
-    SCRIPTS_EXISTED|AGENTIC_SERVICE_EXISTED|PACKAGE_JSON_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
+    AGENTIC_SERVICE_EXISTED|PACKAGE_JSON_EXISTED|NAVIGATION_SERVICE_EXISTED|APP_TSX_EXISTED) ;;
     *) continue ;;
   esac
   export "$_key=$_val"
@@ -157,7 +157,6 @@ restore_path() {
   fi
 }
 
-restore_path "scripts/perps/agentic" "${SCRIPTS_EXISTED:-0}"
 restore_path "app/core/AgenticService" "${AGENTIC_SERVICE_EXISTED:-0}"
 if [ "${PACKAGE_JSON_EXISTED+x}" = "x" ]; then
   restore_path "package.json" "$PACKAGE_JSON_EXISTED"
