@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `performance` skills: `data-analysis`, web-vitals + metrics-pipeline knowledge, and `effect-anti-pattern-review` / `selector-anti-pattern-review` (review-time complements to the `perf-*` optimization skills) with `render-cascade` / anti-pattern knowledge
+
 ## [0.1.0]
 
 ### Added
