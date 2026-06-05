@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `pr-workflow` skills (commit-discipline, diff-audit, pr-review-discipline + knowledge), `coding` skills (ts2589-workaround + TypeScript knowledge), and `general` skills (scope-lock, specifications-as-guardrails, diagnose-blockers)
+
 ## [0.1.0]
 
 ### Added
