@@ -17,16 +17,15 @@ Always prioritize `@metamask/design-system-react` components and Tailwind CSS pa
 **Before writing any new component or choosing what to use, ask: "Does `@metamask/design-system-react` have this?"**
 
 1. **FIRST**: Use `@metamask/design-system-react` components
-   - **Always use for**: Box (layout), Text (typography), Button/ButtonIcon, Icon, Checkbox
-   - **Always use for**: Avatar variants (AvatarAccount, AvatarBase, AvatarFavicon, AvatarGroup, AvatarIcon, AvatarNetwork, AvatarToken)
-   - **Always use for**: Badge variants (BadgeCount, BadgeIcon, BadgeNetwork, BadgeStatus, BadgeWrapper)
+   - **Availability is dynamic**: read the installed package export index before deciding a component is unavailable.
+   - **Rule**: If the installed package exports the component, you MUST use it.
+   - **Common examples**: Box, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Avatar variants, Badge variants, ModalOverlay, ModalBody, ModalFocus, ModalFooter, BannerAlert/BannerBase, ButtonFilter, ButtonHero, Input.
    - **ButtonBase**: Only for highly custom button patterns (prefer Button component)
-   - **Rule**: If it exists in the design system, you MUST use it
 
 2. **SECOND**: Use `ui/components/component-library` ONLY if design system lacks it
-   - **Navigation Components** Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody ,ModalFooter, Popover, PopoverHeader
+   - **Navigation Components**: Modal, ModalContent, ModalHeader, Popover, PopoverHeader
    - **Form Components**: FormTextField, TextFieldSearch, TextField, TextArea, Label, HelpText, SelectButton, SelectWrapper, SelectOption
-   - **Utility Components**: Skeleton, SensitiveText, Tag, BannerAlert,
+   - **Utility Components**: Skeleton, SensitiveText, Tag
    - **Rule**: These are MetaMask-specific implementations not (yet) in the design system
    - **Avoid "Base" components**: Components with "Base" in the name generally should not be used unless for custom implementations. We use the base/variant pattern for component development.
 
@@ -45,10 +44,10 @@ Always prioritize `@metamask/design-system-react` components and Tailwind CSS pa
 
 ```
 Need a component?
-  ├─ Is it Box, Text, Button, Icon, Avatar, Badge, or Checkbox?
+  ├─ Does the installed @metamask/design-system-react package export it?
   │  └─ YES → Use @metamask/design-system-react [STOP]
   │
-  ├─ Is it Modal, Banner, Popover, Input, Label, Tag, Textarea, etc?
+  ├─ Is it Modal shell/content/header, Popover, Label, Tag, Textarea, Select, or another component not exported by @metamask/design-system-react?
   │  └─ YES → Use ui/components/component-library [STOP]
   │
   ├─ Is it feature-specific UI (e.g., ConnectAccountsModal, AssetPicker)?
@@ -71,6 +70,17 @@ Need a component?
 - **Performance**: Optimized components reduce bundle size
 - **No SASS**: Reduces CSS file size and build complexity
 
+## Required Availability Check
+
+Before choosing `ui/components/component-library` or building custom UI, inspect the consumer repo's installed package. Do not rely on this skill's examples as a complete component list.
+
+1. Check `node_modules/@metamask/design-system-react/dist/components/index.d.cts` for exported components and enums.
+2. If the package uses a different build layout, inspect `node_modules/@metamask/design-system-react/dist/components/index.d.ts` or `node_modules/@metamask/design-system-react/src/components/index.ts`.
+3. Read the matching component type file before writing usage, for example `dist/components/<Component>/<Component>.types.d.cts`.
+4. If `node_modules` is unavailable, check `package.json`/lockfile for the installed package version and inspect the package source only as a fallback.
+
+This lookup costs a few file reads, but it prevents stale skill guidance from overriding the version actually installed in Extension. The package version is the source of truth.
+
 ## Required Imports for Extension
 
 ```tsx
@@ -80,8 +90,16 @@ import {
   Text,
   Button,
   ButtonBase,
+  ButtonFilter,
+  ButtonHero,
   ButtonIcon,
+  TextButton,
   Icon,
+  ModalOverlay,
+  ModalBody,
+  ModalFocus,
+  ModalFooter,
+  ButtonsAlignment,
   TextVariant,
   IconName,
   IconColor,
@@ -90,6 +108,9 @@ import {
   TextColor,
   ButtonVariant,
   ButtonSize,
+  ButtonBaseSize,
+  BannerAlert,
+  BannerBase,
   // Avatar components
   AvatarAccount,
   AvatarBase,
@@ -124,6 +145,10 @@ All `@metamask/design-system-react` components have comprehensive TypeScript def
 - **Box**: `/node_modules/@metamask/design-system-react/dist/components/Box/*.d.cts`
 - **Text**: `/node_modules/@metamask/design-system-react/dist/components/Text/*.d.cts`
 - **Button**: `/node_modules/@metamask/design-system-react/dist/components/Button/*.d.cts`
+- **ModalOverlay**: `/node_modules/@metamask/design-system-react/dist/components/ModalOverlay/*.d.cts`
+- **ModalBody**: `/node_modules/@metamask/design-system-react/dist/components/ModalBody/*.d.cts`
+- **ModalFocus**: `/node_modules/@metamask/design-system-react/dist/components/ModalFocus/*.d.cts`
+- **ModalFooter**: `/node_modules/@metamask/design-system-react/dist/components/ModalFooter/*.d.cts`
 
 When unsure about component APIs:
 
@@ -250,6 +275,33 @@ const MyComponent = () => {
   <Icon name={IconName.Bank} />
   <Text fontWeight={FontWeight.Medium}>Custom Button</Text>
 </ButtonBase>
+```
+
+### Modal Sections:
+
+```tsx
+import {
+  ModalOverlay,
+  ModalBody,
+  ModalFooter,
+  ButtonsAlignment,
+} from '@metamask/design-system-react';
+import { Modal, ModalContent, ModalHeader } from 'ui/components/component-library';
+
+<Modal isOpen onClose={handleClose}>
+  <ModalOverlay />
+  <ModalContent>
+    <ModalHeader onClose={handleClose}>Title</ModalHeader>
+    <ModalBody>
+      <Text variant={TextVariant.BodyMd}>Content</Text>
+    </ModalBody>
+    <ModalFooter
+      buttonsAlignment={ButtonsAlignment.Horizontal}
+      primaryButtonProps={{ children: 'Confirm', onClick: handleConfirm }}
+      secondaryButtonProps={{ children: 'Cancel', onClick: handleClose }}
+    />
+  </ModalContent>
+</Modal>
 ```
 
 ### Using Avatars and Badges:
@@ -420,6 +472,7 @@ Use `div` with `className` when:
 | `<div>` (for layout)                 | `<Box>`                                                  |
 | `<span>`, `<p>`, `<h1>`, etc.        | `<Text variant={TextVariant.BodyMd}>`                    |
 | `<button>` (styled)                  | `<Button variant={ButtonVariant.Primary}>`               |
+| component-library ModalOverlay/Body/Focus/Footer | `@metamask/design-system-react` ModalOverlay/Body/Focus/Footer |
 | SASS files (`.scss`)                 | Design system props + Tailwind `className`               |
 | `style={{ backgroundColor: 'red' }}` | Box: `backgroundColor={BoxBackgroundColor.ErrorDefault}` |
 | `style={{ display: 'flex' }}`        | Box: `flexDirection={BoxFlexDirection.Row}`              |
@@ -450,10 +503,11 @@ Use `div` with `className` when:
 
 1. Replace `div` → `Box` from design system
 2. Replace text elements → `Text` with appropriate `TextVariant`
-3. Convert SASS styles → Tailwind `className` props
-4. Convert arbitrary colors → design system color tokens
-5. Delete `.scss` files after migration
-6. Test thoroughly - layout can shift during migration
+3. Replace migrated component-library imports with design system exports when available
+4. Convert SASS styles → Tailwind `className` props
+5. Convert arbitrary colors → design system color tokens
+6. Delete `.scss` files after migration
+7. Test thoroughly - layout can shift during migration
 
 ### Example Migration
 
@@ -514,6 +568,7 @@ import {
 
 - [ ] No SASS files (`.scss`) created or modified
 - [ ] Design system components used when appropriate (prefer over raw elements)
+- [ ] ModalOverlay, ModalBody, ModalFocus, and ModalFooter imported from `@metamask/design-system-react`
 - [ ] Variant components used before base components (Button > ButtonBase, BannerAlert > BannerBase)
 - [ ] If using base component: confirmed no variant component works
 - [ ] If using base component: considered if this indicates design inconsistency
@@ -531,6 +586,7 @@ import {
 
 - Any `.scss` file → Design system components + Tailwind utilities
 - Any custom CSS → Design system props + Tailwind utilities
+- Any `ui/components/component-library/modal-overlay`, `modal-body`, `modal-focus`, or `modal-footer` import → equivalent `@metamask/design-system-react` export
 - Any arbitrary color values → Design system semantic tokens
 - Static `className="bg-*"` on **Box** → `backgroundColor` prop with `BoxBackgroundColor` enum
 - Static `className="border-*"` color on **Box** → `borderColor` prop with `BoxBorderColor` enum
