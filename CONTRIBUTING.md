@@ -21,8 +21,8 @@ A well-crafted skill should:
 
 1. **Fork and clone** the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/openclaw-skills.git
-   cd openclaw-skills
+   git clone https://github.com/MetaMask/skills.git
+   cd skills
    ```
 
 2. **Create a branch** for your skill:
@@ -30,16 +30,17 @@ A well-crafted skill should:
    git checkout -b add-skill/your-skill-name
    ```
 
-3. **Create the skill directory structure**:
+3. **Create the skill directory** under the relevant domain:
    ```bash
-   mkdir -p your-provider/your-skill-name
+   mkdir -p domains/<domain>/skills/<skill-name>
    ```
 
-4. **Add your `SKILL.md`** — This is the only required file. See the [skill template](.github/SKILL_TEMPLATE.md) for the expected format.
+4. **Add your `skill.md`** — This is the only required file. See [Authoring a skill](README.md#authoring-a-skill) for the canonical layout and frontmatter, and the [skill template](.github/SKILL_TEMPLATE.md) for a starting point.
 
-5. **Add optional supporting files**:
-   - `references/` — Additional documentation, API references, examples
-   - `scripts/` — Helper scripts (bash, Python, etc.)
+5. **Add optional supporting files** alongside `skill.md`:
+   - `references/` — supporting docs the skill reads on demand
+   - `scripts/` — helper scripts the skill can run
+   - `repos/<repo>.md` — a per-repo overlay merged into the skill body at install time
 
 6. **Test your skill** — Ensure the skill works as expected with an AI agent before submitting.
 
@@ -68,28 +69,32 @@ If you find a bug or have a suggestion:
 
 ## Skill Structure
 
-Each skill should follow this structure:
+Each skill lives under a domain and follows this structure:
 
 ```
-provider-name/
-└── skill-name/
-    ├── SKILL.md           # Required: Main skill definition
-    ├── references/        # Optional: Supporting docs
+domains/<domain>/
+└── skills/<skill-name>/
+    ├── skill.md           # Required: the skill definition
+    ├── references/        # Optional: supporting docs read on demand
     │   ├── api.md
     │   └── examples.md
-    └── scripts/           # Optional: Helper scripts
-        └── helper.sh
+    ├── scripts/           # Optional: helper scripts
+    │   └── helper.sh
+    └── repos/             # Optional: per-repo overlays
+        └── metamask-extension.md
 ```
 
-### SKILL.md Format
+See [Authoring a skill](README.md#authoring-a-skill) for the canonical layout and the frontmatter schema.
 
-Your `SKILL.md` should include:
+### `skill.md` format
 
-1. **Title and description** — What the skill does
-2. **Prerequisites** — Required tools, APIs, or setup
-3. **Instructions** — Step-by-step guidance for the AI agent
-4. **Examples** — Concrete usage examples
-5. **Troubleshooting** — Common issues and solutions
+Each `skill.md` begins with YAML frontmatter (`name`, `description`, and optional `maturity`), documented in full under [Authoring a skill](README.md#authoring-a-skill). The body should give the agent everything it needs to act:
+
+1. **When To Use** — the conditions that should trigger the skill
+2. **Workflow** — the step-by-step procedure for the agent to follow
+3. **Common Pitfalls** — known failure modes, each paired with the rule that avoids it
+
+Keep `name` unprefixed in the source file. The installer adds the `mms-` prefix to generated outputs.
 
 ## Review Process
 
