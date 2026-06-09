@@ -1,0 +1,33 @@
+name: Lint skill entries
+
+on:
+  pull_request:
+    paths:
+      - 'domains/**'
+      - 'tools/**'
+      - '.github/scripts/lint-skill-entry.mjs'
+      - '.github/workflows/lint-skill-entry.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lint-skills:
+    name: Lint skill entries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+
+      - name: Get changed skill files
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: domains/**
+
+      - name: Lint changed skills
+        if: steps.changed.outputs.any_changed == 'true'
+        run: node .github/scripts/lint-skill-entry.mjs ${{ steps.changed.outputs.all_changed_files }}
