@@ -113,7 +113,7 @@ git status --short --branch
 
 For Mobile <-> Extension checks:
 
-1. Load relevant perps knowledge: `mobile-extension-map`, `screens`, `shared-package-analysis`, architecture docs as needed.
+1. Load relevant installed perps knowledge from `knowledge/`: `mobile-extension-map`, `screens`, `shared-package-analysis`, architecture docs as needed.
 2. Find the equivalent screen/hook/flow in the other client.
 3. Validate with real flow evidence; do not inject UI state.
 4. Report semantic differences separately from regressions.

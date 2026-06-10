@@ -360,17 +360,46 @@ copy_bundle_dirs() {
   done
 }
 
+copy_domain_knowledge() {
+  local skill_dir="$1" dest_dir="$2" label="$3"
+  local domain_dir; domain_dir=$(cd "$skill_dir/../.." && pwd)
+  local knowledge_dir="$domain_dir/knowledge"
+
+  if [[ -d "$knowledge_dir" ]]; then
+    action "$label/knowledge/"
+    $DRY_RUN && return
+    mkdir -p "$dest_dir"
+    rm -rf "$dest_dir/knowledge"
+    cp -R "$knowledge_dir" "$dest_dir/knowledge"
+  else
+    if $DRY_RUN; then
+      [[ -e "$dest_dir/knowledge" ]] && action "$label/knowledge/ (remove stale)"
+      return
+    fi
+    rm -rf "$dest_dir/knowledge"
+  fi
+}
+
 copy_project_bundles() {
   local skill_dir="$1" out_name="$2"
   copy_bundle_dirs "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
+  copy_domain_knowledge "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
   copy_bundle_dirs "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
+  copy_domain_knowledge "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
   copy_bundle_dirs "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
+  copy_domain_knowledge "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
 }
 
 copy_user_bundles() {
   local skill_dir="$1" out_name="$2"
-  [[ -d "$HOME/.claude" ]] && copy_bundle_dirs "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
-  [[ -d "$HOME/.codex" ]] && copy_bundle_dirs "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+  if [[ -d "$HOME/.claude" ]]; then
+    copy_bundle_dirs "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
+    copy_domain_knowledge "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
+  fi
+  if [[ -d "$HOME/.codex" ]]; then
+    copy_bundle_dirs "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+    copy_domain_knowledge "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+  fi
 }
 
 process_skill() {

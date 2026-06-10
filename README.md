@@ -125,7 +125,7 @@ domains/<area>/
     scripts/                    # optional helper scripts
     adapters/                   # optional runtime payloads used by scripts
     repos/<consuming-repo>.md   # optional repo-specific overlay
-  knowledge/                    # optional shared domain reference
+  knowledge/                    # optional shared domain reference, installed beside each domain skill
 tools/
   install      # core writer (mms- prefix, multi-operator output)
   sync         # Flow 2: `yarn skills` wrapper for engineers

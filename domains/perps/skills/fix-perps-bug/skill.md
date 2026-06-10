@@ -22,7 +22,7 @@ maturity: stable
    - Check if the bug involves a duplicated utility (see shared-package-analysis) -- if so, check both codebases
 
 3. **Check formatting.** If the bug involves number display:
-   - Read formatting-rules knowledge
+   - Read installed `knowledge/formatting-rules.md`
    - Fix must follow the sig-dig rules, not hardcode decimals
 
 4. **Check stream hooks.** If the bug involves stale/missing data:
