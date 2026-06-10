@@ -29,18 +29,26 @@ export const getMemoizedAccounts = createSelector(getInternalAccounts, (a) => a)
 
 Each band-aid suppresses the re-render for one consumer while *adding* an O(n) deep comparison on every dispatch — and the cascade cost scales superlinearly with power-user data (see [mm-power-user-scenario.md](mm-power-user-scenario.md)).
 
-## Step 1 — Measure the blast radius before fixing
+## Step 1 — Traverse the dependency tree exhaustively before fixing
 
-The repair PR's evidence (and its review) should enumerate the graph, the way #37147 did:
+The repair PR's evidence (and its review) should enumerate the graph **to closure** — every selector reachable from the suspect, not just its immediate neighborhood — the way #37147 did:
 
 1. **Direct consumers:** every selector that lists the suspect as an input. `grep -rn "getInternalAccounts" app/selectors --include="*.ts"`
-2. **Transitive consumers:** repeat one level down for each direct consumer (in practice 2 levels reaches most of the graph).
+2. **Transitive consumers:** repeat for each direct consumer until the frontier adds no new selectors. Don't stop at a fixed depth — cascades often have **more than one broken root**, and a partial map produces a wrong fix order.
 3. **Component consumers:** `useSelector` call sites of anything in the graph.
 4. **Recomputation count:** instrument with `selector.recomputations()` (reselect) or a `console.count` in the result function across a few dispatches (a balance poll is a convenient metronome).
 
 A before/after table — *recomputations per dispatch, re-renders per poll cycle, on the same interaction* — is what distinguishes a verified cascade fix from a speculative refactor.
 
-## Step 2 — Fix the root, not the 50 consumers
+## Step 2 — Plan the memoization fix order from the map: roots first
+
+Write down the fix order before writing any fix. The order is **topological** — roots, then their descendants, layer by layer:
+
+- A descendant fix can't be *verified* while any of its inputs is still unstable: its output identity keeps changing for upstream reasons, so the before/after numbers measure the wrong thing.
+- Most descendant "problems" stop being fixes once the roots are stable — they reclassify from "add memoization here" to "remove the band-aid here" (Step 4). The plan is what tells you which is which *in advance*, instead of memoizing selectors that were only recomputing because of their inputs.
+- If the map surfaced multiple roots sharing consumers, fix them together — otherwise the shared consumers keep re-rendering and the first root's win never shows up in the numbers.
+
+## Step 3 — Fix the root, not the 50 consumers
 
 Memoizing consumers one by one is whack-a-mole: each fix adds comparison cost and the graph keeps re-deriving from a poisoned root. Trace **upward** (who are my inputs? are *they* stable?) until you hit the selector whose output identity changes without its data changing — that's the root. Fix its memoization there (patterns + recipes in [mm-selector-memoization.md](mm-selector-memoization.md)).
 
@@ -51,7 +59,7 @@ Memoizing consumers one by one is whack-a-mole: each fix adds comparison cost an
 
 Establish which contract a slice actually follows (log `prev === next` for the input across two unrelated dispatches) before choosing — the answer differs per slice, and assuming the wrong contract either reintroduces the cascade or buys deep-compares you don't need.
 
-## Step 3 — Sweep the graph and *remove* the band-aids
+## Step 4 — Sweep the graph and *remove* the band-aids
 
 This is the step most fixes skip. After the root is stable, every downstream `isEqual`, `createDeepEqualSelector`-wrapping-a-now-stable-input, and `getMemoized*` duplicate is dead weight: it still runs its deep comparison on every dispatch, and it **masks regressions** — if the root breaks again, the band-aids hide it until the app is slow everywhere again.
 
