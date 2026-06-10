@@ -38,6 +38,8 @@ const browserTabs = useSelector((state: any) => state.browser.tabs); // also dro
 
 **Why it's wrong:** an inline accessor returning an array/object hands a fresh reference to the consumer whenever that slice changes (and defeats reuse/memoization across the app). For derived data it's worse — `useSelector(s => s.items.filter(...))` allocates every render.
 
+**Perf-triage note:** an inline accessor returning a **primitive or stable field** (`s => s.settings.basicFunctionalityEnabled`) is reuse/type debt, not a re-render bug — the new arrow function per render is irrelevant; only the result's identity matters. Flag it for cleanup, not as a perf finding.
+
 **Fix:** create a named selector in `app/selectors/`:
 ```ts
 // selectors/browser.ts

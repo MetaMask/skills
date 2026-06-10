@@ -64,6 +64,8 @@ Establish which contract a slice actually follows (log `prev === next` for the i
 
 Then match the tool to **which side is unstable**: an unstable *input* (slice replaced wholesale on sync) calls for a deep-equal **input** compare (`createDeepEqualSelector`); a stable input with an unstable *output* (the result function allocates a fresh collection) calls for a `resultEqualityCheck`, so an unchanged result returns the cached ref. Deep-equalizing inputs to paper over an allocating result function runs the wrong comparison on every dispatch.
 
+Verified mechanism for this repo (`app/core/redux/slices/engine`): `UPDATE_BG_STATE` replaces only the **changed controller's key** with `Engine.state[key]`, and BaseController v2 state is Immer-produced — so an unchanged controller keeps its reference across flushes, and unchanged paths *within* a changed controller are structurally shared. Plain accessors into controller state are stable by construction; deep-equal is only warranted where a selector's *inputs* genuinely churn. And remember a deep-equal selector is output-**stable** but pays its compare per check, scaled by input size — over a power-user transaction history that is an O(n) deep compare per consumer per flush.
+
 ## Step 4 — Sweep the graph and *remove* the band-aids
 
 This is the step most fixes skip. After the root is stable, every downstream `isEqual`, `createDeepEqualSelector`-wrapping-a-now-stable-input, and `getMemoized*` duplicate is dead weight: it still runs its deep comparison on every dispatch, and it **masks regressions** — if the root breaks again, the band-aids hide it until the app is slow everywhere again.

@@ -44,7 +44,7 @@ const a2 = useSelector((s) => getAccountByAddress(s, addr2)); // miss, evicts ad
 const a3 = useSelector((s) => getAccountByAddress(s, addr3)); // miss, evicts addr2 — and so on every render cycle
 ```
 
-In a list rendering N rows, the "memoized" selector recomputes N times per render, forever. Fixes, in order of preference:
+In a list rendering N rows, the "memoized" selector recomputes N times per render, forever. **Check the memoizer before flagging:** this codebase already uses `weakMapMemoize` for some parameterized selectors (e.g. `selectNetworkConfigurationByChainId`), which caches per-argument and doesn't thrash — but only for *stable* arguments. A fresh **object literal** argument per call (`selectAsset(state, { address, chainId, isStaked })`) defeats `weakMapMemoize` too: every call is a new WeakMap key. Fixes, in order of preference:
 
 1. **Lookup-map selector** (above): select the whole memoized index once; key into it. Sidesteps per-arg caching entirely.
 2. **Per-instance selector**: a factory (`makeSelectAccountByAddress()`) instantiated in the component with `useMemo`, so each call site owns its own cache slot.
@@ -91,6 +91,8 @@ const gasFee = useSelector(getGasFee);
 ```
 
 Each `useSelector` is an independent store subscription with its own equality check per store notification. **Check the dispatch cadence before flagging count alone:** in this codebase, controller state changes batch into a 250ms flush (`app/core/Batcher`, `EngineService`'s `updateBatcher`) and dispatch inside `unstable_batchedUpdates`, so checks run at most a few times per second and React renders once per flush — N cheap accessor reads are *not* a problem. The actionable findings inside a high-count component are the **expensive** selectors (cost paid on every check) and the **unstable-ref** selectors (a re-render per flush) — triage and fix those individually first.
+
+Audit calibration (this codebase, 2026-06): a per-selector triage of the 10 highest-count components (9-19 reads each) ruled out ~90% of reads — feature-flag booleans, primitive accessors, and correctly `useMemo`'d factory selectors. The real findings were per-row parameterized selectors and deep-equal selectors over power-user-scaled data. The count was noise; the triage found what mattered.
 
 Consolidating related reads into **one memoized view selector** still earns its keep in two cases: a component repeated per row (per-row × per-flush multiplication of any expensive check), and derivation logic that would otherwise sit unmemoized in the component (where the React Compiler can't stabilize it — see [mm-selector-cascade.md](mm-selector-cascade.md)). One subscription, one equality check, one place where the shape is defined.
 
