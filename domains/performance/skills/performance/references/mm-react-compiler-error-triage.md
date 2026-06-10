@@ -27,7 +27,7 @@ Compiler diagnostics are **not one bucket**. The logger event's `category` field
 - **`category === 'Todo'` → "unsupported."** Syntax or a pattern the compiler *itself* has not implemented yet. There is **no actionable fix on our side** — rewriting working code to appease an unimplemented compiler path is wasted effort and churn. Count these separately, leave the code alone, and re-check after compiler upgrades.
 - **Any other category (e.g. `InvalidReact`, `InvalidJS`) → legitimate, actionable.** A real Rules-of-React violation in our code (mutation during render, conditional hooks, side effects in render). Fixing it both unlocks compilation *and* removes a latent correctness bug.
 
-A healthcheck that doesn't make this split is noise: the `Todo` count swamps the actionable list and the team learns to ignore the output. The extension's webpack wrapper makes the split in ~10 lines:
+A healthcheck that doesn't make this split is noise: the `Todo` count swamps the actionable list and the team learns to ignore the output. The extension's verbose run at enablement (metamask-extension#38007) is the canonical illustration — of 7,308 files processed: 253 compiled, **31 actionable errors**, **7,024 unsupported** (`Todo`). Without the split that reads as ~7,000 hopeless errors; with it, the team's backlog is 31 files and the rest is the compiler's to burn down across upgrades. The extension's webpack wrapper makes the split in ~10 lines:
 
 ```ts
 // adapted from metamask-extension development/webpack/utils/loaders/reactCompilerLoaderWrapper.ts
