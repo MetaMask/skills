@@ -73,37 +73,57 @@ Rules:
 
 ## Core -> clients via yalc
 
+Use the repo toolchain and capture it in the evidence. Do not assume a Node manager. If your local checkout uses asdf/nvm/volta, activate it explicitly before running build commands.
+
 ```bash
+# Optional examples only; use the manager configured for this checkout.
+# asdf users: export PATH="$HOME/.asdf/shims:$HOME/.asdf/bin:$PATH"
+# nvm users:  nvm use
+# volta users usually need no shell change.
+YALC_BIN="${YALC_BIN:-yalc}"
+
 # Pre-state
 for repo in /path/to/core /path/to/mobile /path/to/extension; do
   echo "--- $repo"
   git -C "$repo" status --short --branch
-  (cd "$repo" && yarn --version)
+  (cd "$repo" && printf 'node=%s yarn=%s\n' "$(node -v)" "$(yarn -v)")
 done
 
-# Build package; stop if this fails
+# Build the exact package. This is the freshness gate for yalc.
 cd /path/to/core
 yarn workspace @metamask/perps-controller build
 
-# Publish package
-export P="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.yarn/bin:$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/.asdf/shims"
+# Publish only after the package build succeeds.
 cd /path/to/core/packages/perps-controller
-PATH="$P" yalc publish --private
+"$YALC_BIN" publish --private
 
-# Install in each client; Yarn 4 uses singular skip-build
+# Install in each client; Yarn 4 uses singular skip-build.
 cd /path/to/client
-PATH="$P" yalc add @metamask/perps-controller
+"$YALC_BIN" add @metamask/perps-controller
 yarn install --mode=skip-build
 
 grep -n "@metamask/perps-controller" package.json yalc.lock yarn.lock
 ls -la .yalc/@metamask/perps-controller/dist
 ```
 
+Yalc path handling:
+
+- Prefer plain `yalc` from the developer shell.
+- If `yalc` resolves to a broken version-manager shim, set `YALC_BIN=/opt/homebrew/bin/yalc`, `YALC_BIN=/usr/local/bin/yalc`, or another explicit binary path for that machine.
+
+Build failure handling:
+
+- If the package build fails, do **not** use an older `~/.yalc` package and do **not** hand-edit `dist/`. Report that client validation is blocked before transport.
+- If errors mention `TS6305`, `unknown`, `never`, or a Core workspace dependency cycle, the package graph is stale or cyclic. Do not run `yarn workspaces foreach --from @metamask/perps-controller -R ...`; it can fail on the account-tree/multichain/perps/snap cycle and still leave `dist/` deleted.
+- If a full Core rebuild is acceptable, ask first, then run it gently: `nice -n 10 yarn build`. Otherwise stop at the build blocker with the log path.
+- Treat `yalc publish` success as meaningful only when the current run produced fresh `packages/perps-controller/dist` first.
+- If the user still needs a client runtime smoke despite a Core build blocker, use an explicit **runtime-only yalc overlay**: restore the target client's installed package `dist` as a baseline, transpile only changed package source files into that `dist`, publish with yalc, and label the proof `runtime-only overlay, not publish-quality build`. Do not present this as a successful Core package build.
+
 Run the selected proof in each client, then cleanup:
 
 ```bash
 cd /path/to/client
-PATH="$P" yalc remove @metamask/perps-controller || true
+"$YALC_BIN" remove @metamask/perps-controller || true
 git checkout -- package.json yarn.lock 2>/dev/null || true
 rm -rf .yalc yalc.lock
 git status --short --branch
