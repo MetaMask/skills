@@ -96,6 +96,7 @@ Rule of thumb: values that **cross a file boundary** (Redux selectors, imported 
 2. Recomputation counts on direct + transitive consumers drop to ~0 on unrelated dispatches.
 3. Profiler on a top consumer (account list, send flow): the re-render cascade is gone during a balance poll.
 4. The band-aid greps above return no hits inside the repaired graph.
+5. Lock the win in CI: add a Reassure `*.perf-test.tsx` on a top consumer so the cascade can't silently return.
 
 ## Related
 
