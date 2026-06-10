@@ -68,4 +68,5 @@ Fix the ESLint `react-compiler` warnings on a path before/after opting it in.
 ## Related
 
 - [js-react-compiler.md](js-react-compiler.md) — upstream reference on how the compiler transforms code
+- [mm-react-compiler-error-triage.md](mm-react-compiler-error-triage.md) — triaging compiler errors (`Todo`/unsupported vs actionable), `panicThreshold` ratcheting, and measuring real coverage
 - [mm-selector-memoization.md](mm-selector-memoization.md) — fix data-layer re-renders the compiler can't

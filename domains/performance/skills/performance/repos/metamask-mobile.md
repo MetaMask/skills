@@ -54,6 +54,9 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 | `useSelector` returns new refs; `useSelector(x, isEqual)` band-aids | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Whole subtree re-renders under a Context provider | [mm-context-performance.md](references/mm-context-performance.md) |
 | `useEffect`/`useMemo` re-runs constantly; `JSON.stringify` in deps | [mm-hook-dependency-arrays.md](references/mm-hook-dependency-arrays.md) |
+| Effect chains (`setState` in effect triggers next effect); setState after unmount; missing timer/listener cleanup | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
+| **One selector change re-renders half the app**; `isEqual`/`createDeepEqualSelector` band-aids accumulating downstream | [mm-selector-cascade.md](references/mm-selector-cascade.md) |
+| O(n) `.find()` scans per render; parameterized selector recomputes for every list row; component with 5+ `useSelector` calls | [mm-state-normalization.md](references/mm-state-normalization.md) |
 | Animation janky; `useNativeDriver: false` on width/height | [mm-layout-animations.md](references/mm-layout-animations.md) → [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | List scroll jank / unbounded list | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | Search/filter input blocks typing | [js-concurrent-react.md](references/js-concurrent-react.md) |
@@ -67,6 +70,7 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 | Native module / sync method blocking JS | [native-sdks-over-polyfills.md](references/native-sdks-over-polyfills.md) |
 | Native lib crashes on 16KB-page Android | [native-android-16kb-alignment.md](references/native-android-16kb-alignment.md) |
 | Enable automatic memoization | [mm-react-compiler.md](references/mm-react-compiler.md) → [js-react-compiler.md](references/js-react-compiler.md) |
+| Compiler is enabled but a component shows no `Memo ✨`; compiler errors in build output — which are real? | [mm-react-compiler-error-triage.md](references/mm-react-compiler-error-triage.md) |
 
 ## Verified anti-pattern catalogue (this codebase)
 
@@ -86,6 +90,8 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 | High | lodash main-package imports (98 files, no tree-shaking) | 98 files | [bundle-library-size.md](references/bundle-library-size.md) |
 | High | FlatList missing perf props on growing lists | 65 FlatList JSX | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | High | AppState listener without cleanup | `app/core/SDKConnectV2/services/connection-registry.ts:487` | [js-memory-leaks.md](references/js-memory-leaks.md) |
+| High | Parameterized selector (single-entry cache, busted per arg) doing an O(n) `Object.values().flat().find()` scan per call | `selectSingleTokenByAddressAndChainId` `app/selectors/tokensController.ts:174`; also `app/selectors/assets/assets-list.ts`, `app/selectors/moneyAccountController/index.ts` | [mm-state-normalization.md](references/mm-state-normalization.md) |
+| Medium | Async effect without cancellation; setState-chain effects; derived state via useEffect+setState | feature-specific — run the guide's greps | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
 | Medium | Inline `useSelector(state => state.x)` bypassing named selectors | 3 files | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Medium | Lottie where Rive fits (Rive already installed) | 5 files | [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | Low | dayjs + luxon both present (dedup) | 4 + 6 files | [bundle-library-size.md](references/bundle-library-size.md) |
@@ -101,4 +107,4 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 
 ## Attribution
 
-Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits.
+Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits. Cross-platform React/Redux guidance (`mm-selector-cascade`, `mm-useeffect-antipatterns`, `mm-state-normalization`, `mm-react-compiler-error-triage`) adapted from MetaMask contributor-docs [`frontend-performance.md`](https://github.com/MetaMask/contributor-docs/blob/main/docs/frontend-performance.md) and the extension performance audit (MetaMask-planning#6571; extension PRs metamask-extension#38007, metamask-extension#37147).

@@ -86,5 +86,7 @@ grep -rn "dispatch(" app --include="*.ts" --include="*.tsx" | grep -v ".test." \
 ## Related
 
 - [mm-selector-memoization.md](mm-selector-memoization.md) — the upstream fix for Pattern 1
+- [mm-selector-cascade.md](mm-selector-cascade.md) — repairing the whole dependency graph and removing accumulated `isEqual` band-aids after the root fix
+- [mm-state-normalization.md](mm-state-normalization.md) — consolidating many `useSelector` calls into one view selector
 - [mm-context-performance.md](mm-context-performance.md) — the Context equivalent of over-broad subscriptions
 - [js-profile-react.md](js-profile-react.md) — confirm the re-render reduction
