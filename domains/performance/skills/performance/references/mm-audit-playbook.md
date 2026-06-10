@@ -12,6 +12,7 @@ For reviewing a PR/diff or auditing a file, component, or feature. Output: findi
 
 - **Targeted** (single file / component / small diff): read the files and report concrete findings with `file:line`.
 - **Broad** (whole feature / repo): run the grep sweeps below and triage hits; don't read everything.
+- **Audit wave / program** (scheduled audit of a surface or division): per-surface audits miss mechanism-level patterns that live in *shared* infrastructure (`app/selectors`, shared hooks, the store) — run the cross-cutting sweeps below over the shared dirs **once per wave**, not once per team, and route findings to surface owners. Attach quantified acceptance criteria up front (template in [mm-planning.md](mm-planning.md)). If the surface ships on both platforms, cross-check the sibling platform's audit findings for the same surface before fresh discovery — the React/Redux mechanism patterns recur across extension and mobile.
 
 Always: **measure before asserting impact** where feasible, and respect the guardrails at the bottom (don't over-flag).
 
