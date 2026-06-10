@@ -29,6 +29,8 @@ export const getMemoizedAccounts = createSelector(getInternalAccounts, (a) => a)
 
 Each band-aid suppresses the re-render for one consumer while *adding* an O(n) deep comparison on every dispatch — and the cascade cost scales superlinearly with power-user data (see [mm-power-user-scenario.md](mm-power-user-scenario.md)).
 
+A live cascade also **nullifies every optimization downstream of it**: `React.memo` children re-render anyway (their props are fresh refs), virtualized rows churn, compiler-memoized components re-render (the unstable value crosses the file boundary), and `useMemo`s recompute. Fix the cascade before evaluating any other optimization on the screen — and re-measure them after.
+
 ## Step 1 — Traverse the dependency tree exhaustively before fixing
 
 The repair PR's evidence (and its review) should enumerate the graph **to closure** — every selector reachable from the suspect, not just its immediate neighborhood — the way #37147 did:
@@ -37,6 +39,7 @@ The repair PR's evidence (and its review) should enumerate the graph **to closur
 2. **Transitive consumers:** repeat for each direct consumer until the frontier adds no new selectors. Don't stop at a fixed depth — cascades often have **more than one broken root**, and a partial map produces a wrong fix order.
 3. **Component consumers:** `useSelector` call sites of anything in the graph.
 4. **Recomputation count:** instrument with `selector.recomputations()` (reselect) or a `console.count` in the result function across a few dispatches (a balance poll is a convenient metronome).
+5. **WDYR pass — already wired in this repo:** `wdyr.js` at the repo root tracks `useSelector` hook diffs. Run `ENABLE_WHY_DID_YOU_RENDER=true yarn start`, reproduce one dispatch, and every consumer logging *same values, different reference* is a node in the cascade — the live counterpart of the static map above.
 
 A before/after table — *recomputations per dispatch, re-renders per poll cycle, on the same interaction* — is what distinguishes a verified cascade fix from a speculative refactor.
 
@@ -58,6 +61,8 @@ Memoizing consumers one by one is whack-a-mole: each fix adds comparison cost an
 - Where state is replaced wholesale on sync (documented for this repo's controller-state slices in [mm-selector-memoization.md](mm-selector-memoization.md)), input references break even when data didn't change, and `createDeepEqualSelector` at the *root* is the pragmatic tool.
 
 Establish which contract a slice actually follows (log `prev === next` for the input across two unrelated dispatches) before choosing — the answer differs per slice, and assuming the wrong contract either reintroduces the cascade or buys deep-compares you don't need.
+
+Then match the tool to **which side is unstable**: an unstable *input* (slice replaced wholesale on sync) calls for a deep-equal **input** compare (`createDeepEqualSelector`); a stable input with an unstable *output* (the result function allocates a fresh collection) calls for a `resultEqualityCheck`, so an unchanged result returns the cached ref. Deep-equalizing inputs to paper over an allocating result function runs the wrong comparison on every dispatch.
 
 ## Step 4 — Sweep the graph and *remove* the band-aids
 

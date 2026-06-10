@@ -20,7 +20,7 @@ The cheapest performance fix is the one you make before writing code. Catch arch
 | Risk | Trigger question | Default mitigation |
 |---|---|---|
 | Real-time / WebSocket data | Updates faster than once per user action? | Never put it in Redux. Local state / shared value / direct UI update. Manage subscribe/unsubscribe by visibility + app foreground/background; avoid double-subscribe. See [mm-redux-antipatterns.md](mm-redux-antipatterns.md). |
-| Unbounded data | Can the list/dataset grow without ceiling? | Paginate + virtualize from day one; plan server-side filtering. |
+| Unbounded data | Can the list/dataset grow without ceiling? | Paginate + virtualize from day one; plan server-side filtering. Never persist unbounded data via redux-persist — use a dedicated storage layer. |
 | Large lists | >~50 items now, infinite later? | FlashList v2 with stable keys + `getItemType`; no heavy work per item. [js-lists-flatlist-flashlist.md](js-lists-flatlist-flashlist.md) |
 | New selector / derived state | Adding `createSelector`? | Decide memoization + equality up front; never identity/mutation. [mm-selector-memoization.md](mm-selector-memoization.md). Frequent keyed lookups? Decide the lookup shape now (keyed index vs O(n) scan) — [mm-state-normalization.md](mm-state-normalization.md) |
 | Heavy computation | Big transforms, sorts, regex on large input? | Server offload, or memoize, or defer with `useDeferredValue`. |
