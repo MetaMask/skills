@@ -43,6 +43,7 @@ grep -rn "createSelector(" app/selectors --include="*.ts" | grep -v createDeepEq
 grep -rn "=> .*\.\(map\|filter\|sort\|reverse\)\|new Set\|new Map\|Object\.\(values\|keys\|entries\)\|?? {}\|?? \[\]" app/selectors --include="*.ts"
 grep -rn "\.sort(\|\.reverse(\|\.push(\|\.splice(" app/selectors --include="*.ts"   # mutation
 grep -rn "(_state\|(_," app/selectors --include="*.ts"   # parameterized selectors — single-entry cache → mm-state-normalization.md
+grep -rnE "export (function|const) (get|select)[A-Z][A-Za-z]* = \(state|export function (get|select)" app/selectors --include="*.ts"   # plain unmemoized function selectors (no createSelector at all)
 ```
 Check each result function for: identity/passthrough, new collection without deep-equal, mutation, `state=>state` input. If one broken selector has **many consumers**, switch to the cascade playbook — map the dependency tree to closure and plan the fix order *before* fixing anything: [mm-selector-cascade.md](mm-selector-cascade.md).
 
