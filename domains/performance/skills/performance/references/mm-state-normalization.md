@@ -90,7 +90,9 @@ const gasFee = useSelector(getGasFee);
 // … ×8 more
 ```
 
-Each `useSelector` is an independent store subscription with its own equality check per dispatch. When a component reads 5+ related values, combine them into **one memoized view selector** that returns the assembled view-model. One subscription, one equality check, one place where the shape is defined — and a natural home for the derivation logic that would otherwise sit unmemoized in the component (where, note, the React Compiler can't stabilize it — see [mm-selector-cascade.md](mm-selector-cascade.md)).
+Each `useSelector` is an independent store subscription with its own equality check per store notification. **Check the dispatch cadence before flagging count alone:** in this codebase, controller state changes batch into a 250ms flush (`app/core/Batcher`, `EngineService`'s `updateBatcher`) and dispatch inside `unstable_batchedUpdates`, so checks run at most a few times per second and React renders once per flush — N cheap accessor reads are *not* a problem. The actionable findings inside a high-count component are the **expensive** selectors (cost paid on every check) and the **unstable-ref** selectors (a re-render per flush) — triage and fix those individually first.
+
+Consolidating related reads into **one memoized view selector** still earns its keep in two cases: a component repeated per row (per-row × per-flush multiplication of any expensive check), and derivation logic that would otherwise sit unmemoized in the component (where the React Compiler can't stabilize it — see [mm-selector-cascade.md](mm-selector-cascade.md)). One subscription, one equality check, one place where the shape is defined.
 
 The same consolidation applies to **duplicate derived-data implementations**: the extension audit found 4+ independent fiat-conversion code paths recomputing the same numbers in different components. One canonical selector ends both the wasted compute and the drift between implementations.
 
@@ -103,7 +105,7 @@ grep -rn "Object.values(.*)\.\(find\|filter\)\|\.find((" app/selectors app/compo
 # reshaping selectors: nested loops/reduce building objects in a result function
 grep -rn -B2 "??= {}\|reduce((acc" app/selectors --include="*.ts"
 
-# components with many subscriptions (5+ useSelector in one file = consolidation candidate)
+# components with many subscriptions — triage the N selectors for cost/stability, don't flag the count itself
 grep -rc "useSelector(" app/components --include="*.tsx" | awk -F: '$2>=5' | sort -t: -k2 -rn | head -20
 ```
 
@@ -117,6 +119,7 @@ grep -rc "useSelector(" app/components --include="*.tsx" | awk -F: '$2>=5' | sor
 
 - Don't normalize a slice that's only ever iterated in full — indexes pay for themselves on *keyed lookups*, not on `.map()` over everything.
 - Don't merge *unrelated* selectors into one mega view selector — that re-couples components to data they don't read and re-renders them for it. Consolidate related values consumed together.
+- Don't flag a component for its `useSelector` **count** — with batched controller sync (250ms flush + `unstable_batchedUpdates`), N cheap subscriptions are noise. Flag the expensive or unstable selectors *among* them.
 - `maxSize`/factory-selector machinery is for genuinely parameterized hot paths; for one or two call sites the lookup-map pattern is simpler and stays correct.
 
 ## Related
