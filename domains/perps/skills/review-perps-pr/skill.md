@@ -59,7 +59,9 @@ loop, run each CLI as a live tmux pane instead of one-shot, and `/clear` between
 From the perps `knowledge/` dir: **review-antipatterns** (core checklist), architecture,
 connection-architecture, caching-architecture, formatting-rules, mobile-extension-map,
 shared-package-analysis, feature-flags, screens. Check both repos when a shared util/screen
-changes.
+changes. For page/view test changes, also enforce the component-view test guidance: broad
+rendered UI behavior tests belong in the component-view framework/skill unless a focused unit
+test is explicitly justified.
 
 ## Reviewer prompt (force a fresh full review every round)
 
@@ -67,7 +69,8 @@ changes.
 Fresh full review of perps changes in <PR/branch> at <SHA> vs <base>. No prior context.
 Load perps knowledge (review-antipatterns + the rest). You gate this before any human sees it.
 Every perps anti-pattern AND every nit (naming, magic number, missing testID, weak test,
-.toFixed, fallback-display vs 0) = BLOCKER. APPROVE only if nothing is left to improve.
+component-view behavior left as broad unit tests, .toFixed, fallback-display vs 0) = BLOCKER.
+APPROVE only if nothing is left to improve.
 Return:
 VERDICT: APPROVE | REQUEST_CHANGES
 COMMIT: <sha>

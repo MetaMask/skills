@@ -30,6 +30,8 @@ ui/hooks/perps/usePerpsOrderForm.ts                                  -- formatCu
 
 **Hook consolidation** — extension merges several mobile hooks into one. When reviewing hook changes, check that the consolidated hook still covers all cases the separate mobile hooks handle.
 
+**Component-view test fit** — Perps page tests under `ui/pages/perps/**/*.test.tsx` that render full pages or exercise UI behavior should be reviewed as component-view test candidates. Ask for conversion to the component-view test framework/skill while preserving coverage. Keep ordinary unit tests only for pure helpers, narrow rendering contracts, or cases the framework cannot cover yet; require that exception to be stated.
+
 **Missing screens** — close-all, cancel-all, withdraw, order book, order details. Don't block PRs for these, but note if a PR introduces partial implementations that conflict with future full implementations.
 
 ## Validation
