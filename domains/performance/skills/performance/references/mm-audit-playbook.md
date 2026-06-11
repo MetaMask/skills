@@ -107,6 +107,7 @@ Grep finds *syntactic* patterns. The highest-impact re-render bugs are *data-flo
 - **Render-phase side effects / setState** — any `setState(...)`, `dispatch(...)`, or `trackEvent(...)` in a render body (not inside `useEffect`/`useCallback`)? Triggers extra render passes.
 - **O(n²) reduce-with-spread** — `reduce((acc, x) => ({ ...acc, ... }), {})` rebuilt every render.
 - **Per-item subscription hooks** — trace each into its manager; shared subscription = fine, per-subscriber whole-dataset snapshot = bug. → [mm-streaming-realtime.md](mm-streaming-realtime.md)
+- **Deep-equal selector inputs** — for every `createDeepEqualSelector`, read its *input selectors*: an input function that allocates a fresh composite per call (object spreads of controller state, other selectors' results collected into a new object) forces the deep compare to run over the whole composite on every check — and no result-function grep catches it. `grep -rn -B3 "createDeepEqualSelector(" app/selectors` lists the sites; read each first argument. → [mm-selector-cascade.md](mm-selector-cascade.md) (proactive mode)
 
 Confirm any hit with the Profiler ("why did this render?") before asserting — see [mm-tools.md](mm-tools.md).
 
