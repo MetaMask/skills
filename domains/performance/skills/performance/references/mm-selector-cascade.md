@@ -43,6 +43,8 @@ The repair PR's evidence (and its review) should enumerate the graph **to closur
 
 A before/after table — *recomputations per dispatch, re-renders per poll cycle, on the same interaction* — is what distinguishes a verified cascade fix from a speculative refactor.
 
+**Proactive mode — find the big trees without waiting for a symptom.** Rank roots by blast radius first (grep each selector's name across `app/` for consumer-file counts; appearances inside other selectors' input arrays give direct dependents), then for each large root verify its **input reference-stability**, not just its result function. The pattern that defeats every result-function grep: an input *function* that builds a fresh composite per call — spreading controller states and collecting other selectors' results into a new object. It looks disciplined, passes all pattern sweeps, and silently downgrades a `createDeepEqualSelector` into a whole-composite deep compare on **every check**. Verified instance: `getStateForAssetSelector` feeding `selectAssetsBySelectedAccountGroup` (`app/selectors/assets/assets-list.ts:107`) — the root of the asset-surface tree (15+ dependent selectors, including the per-row `selectAsset`), deep-comparing effectively the entire asset state per consumer per flush.
+
 ## Step 2 — Plan the memoization fix order from the map: roots first
 
 Write down the fix order before writing any fix. The order is **topological** — roots, then their descendants, layer by layer:
