@@ -8,6 +8,32 @@ maturity: stable
 
 Validate one perps change across multiple local MetaMask repo checkouts.
 
+**Canonical direction: a CLIENT validates a CORE controller change.** The
+`@metamask/perps-controller` package lives in Core; Mobile and Extension consume
+it. The owner is wherever the controller change is; the targets are the clients
+that must not break. (Client↔client parity is a secondary mode — see below.)
+
+## Deterministic layer — use `scripts/perps-validate.sh`
+
+Do **not** re-derive the per-folder commands each run. `scripts/perps-validate.sh`
+encodes them and is portable across machines and Node managers. Run it in order:
+
+```bash
+SC="$(dirname "$0")/scripts/perps-validate.sh"   # or the skill's scripts/ path
+
+perps-validate.sh doctor   <core-dir> <client-dir>      # sanity: branches, yalc, links
+perps-validate.sh prestate <client-dir> [client-dir...] # snapshot BEFORE touching anything
+perps-validate.sh build    <core-dir> [--full]          # build pkg; freshness gate
+perps-validate.sh push     <core-dir> <client-dir> [...] # yalc publish + push into clients
+perps-validate.sh verify   <client-dir>                 # version + new symbols landed?
+#   -> then run the client's own proof (type-check + the affected tests)
+perps-validate.sh restore  <client-dir> [client-dir...] # pre-state-aware restore
+```
+
+The script makes no assumption about the Node manager and resolves `yalc`
+robustly (see "yalc resolution" below). Everything else in this doc explains the
+*why* so you can adapt when a step deviates.
+
 ## Defaults
 
 - **Owner checkout**: current repo/cwd unless a path is provided.
@@ -17,9 +43,13 @@ Validate one perps change across multiple local MetaMask repo checkouts.
   - Mobile owner -> validate parity in Extension;
   - Extension owner -> validate parity in Mobile.
 - **Transport**: `yalc` for `@metamask/perps-controller`; none for client parity.
-- **Proof**: smallest meaningful proof: build/package smoke first; recipe/e2e or real UI flow when behavior changes.
+- **Proof**: smallest meaningful proof. For a client validating a Core change,
+  the high-value proof is the **client type-check** (catches removed/renamed/
+  changed exports) plus **the client tests that exercise the changed surface**.
+  Add recipe/e2e or real UI flow only when runtime behavior changes.
 - **Target edits**: forbidden unless explicitly allowed.
-- **Cleanup**: required; restore validation checkouts to pre-state.
+- **Cleanup**: required, and **pre-state aware** — a client that was already on a
+  yalc link must be restored to that exact link, not wiped to a registry baseline.
 
 ## Step 0 — resolve folders or ask
 
@@ -40,12 +70,16 @@ find "$ROOT" -maxdepth 1 -type d \
   \( -name 'core*' -o -name 'controller*' -o -name 'metamask-mobile*' -o -name 'mobile*' -o -name 'metamask-extension*' -o -name 'extension*' \) -print 2>/dev/null
 ```
 
+Note: a workspace may hold many numbered clones (`core-1..core-6`,
+`metamask-mobile-1..6`). Confirm WHICH core holds the change and WHICH client to
+validate — do not assume the first match.
+
 If needed, ask one concise question using the runtime's interactive question tool when available:
 
 ```text
 I need the validation folders:
-- Owner checkout: <default/candidates>
-- Validation target(s): <default/candidates>
+- Owner checkout (Core with the change): <default/candidates>
+- Validation target client(s): <default/candidates>
 - Proof level: transport-only | type/import | recipe/e2e | real UI flow
 - May validation targets be edited? default no
 ```
@@ -60,74 +94,127 @@ Echo the resolved contract before changing anything.
 Owner: <core|mobile|extension> `<path>` on `<branch>`
 Targets:
 - <project> `<path>` — <read-only|editable> — purpose: <integration/parity>
-- <project> `<path>` — <read-only|editable> — purpose: <integration/parity>
 
 Rules:
-1. Capture `git status --short --branch` in every checkout first.
+1. Capture `git status --short --branch` in every checkout first (`prestate`).
 2. Edit only the owner checkout unless a target is explicitly editable.
 3. For Core package validation, build first, then publish via yalc; never publish stale `dist/`.
-4. Run the smallest proof that reaches the changed perps behavior.
-5. Label package transport-only checks as `transport-only`; do not call them E2E.
-6. Cleanup yalc/package-manager changes and prove final target status matches pre-state.
+4. Prove the built `dist/` actually carries the change (version bump + new symbols) before publishing.
+5. Run the smallest proof that reaches the changed perps behavior.
+6. Restore each client to its snapshot; a pre-existing yalc link must come back byte-for-byte.
 ```
 
 ## Core -> clients via yalc
 
-Use the repo toolchain and capture it in the evidence. Do not assume a Node manager. If your local checkout uses asdf/nvm/volta, activate it explicitly before running build commands.
+`scripts/perps-validate.sh` runs all of this. The manual equivalents below are
+for when you must deviate.
+
+### yalc resolution (do not assume asdf/nvm/brew)
+
+`yalc` is the single most fragile dependency across machines. A version-manager
+**shim can exit 0 yet do nothing** — e.g. asdf prints `No version is set for
+command yalc` and returns success, so `yalc publish` silently no-ops. Never trust
+the exit code alone: a working `yalc` prints a semver to stdout.
+
+Resolution order (what the script does):
+1. `YALC_BIN` env override, if set.
+2. `command yalc --version` — accept only if it prints a semver.
+3. Otherwise locate yalc's own `yalc.js` and run it through any working `node`.
+   Searched layouts: `$(npm root -g)/yalc`, `~/.asdf/installs/nodejs/*/lib/...`,
+   `~/.nvm/versions/node/*/lib/...`, `~/.volta/...`, `/opt/homebrew/lib/...`,
+   `/usr/local/lib/...`.
+
+If all else fails: `npm i -g yalc`, or pass an explicit
+`YALC_BIN="node /abs/path/to/yalc/src/yalc.js"`.
 
 ```bash
-# Optional examples only; use the manager configured for this checkout.
-# asdf users: export PATH="$HOME/.asdf/shims:$HOME/.asdf/bin:$PATH"
-# nvm users:  nvm use
-# volta users usually need no shell change.
-YALC_BIN="${YALC_BIN:-yalc}"
-
-# Pre-state
-for repo in /path/to/core /path/to/mobile /path/to/extension; do
-  echo "--- $repo"
-  git -C "$repo" status --short --branch
+# Pre-state for every checkout (the script's `prestate` does this + a byte-for-byte
+# backup of any existing .yalc link).
+for repo in /path/to/core /path/to/client; do
+  echo "--- $repo"; git -C "$repo" status --short --branch
   (cd "$repo" && printf 'node=%s yarn=%s\n' "$(node -v)" "$(yarn -v)")
 done
-
-# Build the exact package. This is the freshness gate for yalc.
-cd /path/to/core
-yarn workspace @metamask/perps-controller build
-
-# Publish only after the package build succeeds.
-cd /path/to/core/packages/perps-controller
-"$YALC_BIN" publish --private
-
-# Install in each client; Yarn 4 uses singular skip-build.
-cd /path/to/client
-"$YALC_BIN" add @metamask/perps-controller
-yarn install --mode=skip-build
-
-grep -n "@metamask/perps-controller" package.json yalc.lock yarn.lock
-ls -la .yalc/@metamask/perps-controller/dist
 ```
 
-Yalc path handling:
+### Building the package — expect a full monorepo build
 
-- Prefer plain `yalc` from the developer shell.
-- If `yalc` resolves to a broken version-manager shim, set `YALC_BIN=/opt/homebrew/bin/yalc`, `YALC_BIN=/usr/local/bin/yalc`, or another explicit binary path for that machine.
+The perps-controller package **cannot build standalone in a fresh Core checkout.**
+Its `tsconfig.build.json` uses project references, so `yarn workspace
+@metamask/perps-controller build` fails with `TS6305: Output file ... has not been
+built from source file` for every dependency package whose `dist/` is missing
+(network-controller, transaction-controller, controller-utils,
+profile-sync-controller, remote-feature-flag-controller, messenger, …). This is
+the normal state of a fresh checkout, **not** a perps-controller bug.
 
-Build failure handling:
+The supported fix is a full monorepo build first:
 
-- If the package build fails, do **not** use an older `~/.yalc` package and do **not** hand-edit `dist/`. Report that client validation is blocked before transport.
-- If errors mention `TS6305`, `unknown`, `never`, or a Core workspace dependency cycle, the package graph is stale or cyclic. Do not run `yarn workspaces foreach --from @metamask/perps-controller -R ...`; it can fail on the account-tree/multichain/perps/snap cycle and still leave `dist/` deleted.
-- If a full Core rebuild is acceptable, ask first, then run it gently: `nice -n 10 yarn build`. Otherwise stop at the build blocker with the log path.
-- Treat `yalc publish` success as meaningful only when the current run produced fresh `packages/perps-controller/dist` first.
-- If the user still needs a client runtime smoke despite a Core build blocker, use an explicit **runtime-only yalc overlay**: restore the target client's installed package `dist` as a baseline, transpile only changed package source files into that `dist`, publish with yalc, and label the proof `runtime-only overlay, not publish-quality build`. Do not present this as a successful Core package build.
+```bash
+cd /path/to/core
+nice -n 10 yarn build          # builds all referenced dists in dependency order
+```
 
-Run the selected proof in each client, then cleanup:
+This takes several minutes (40+ packages) but is clean and leaves the checkout
+buildable for later runs. Do **not** use `yarn workspaces foreach --from
+@metamask/perps-controller -R ...` — it can fail on the
+account-tree/multichain/perps/snap cycle and delete `dist/` on the way out.
+`perps-validate.sh build <core> --full` wraps `nice -n 10 yarn build`; the
+plain `build` form detects TS6305 and tells you to re-run with `--full`.
+
+### Freshness gate
+
+`yalc publish` success is meaningful only when the **current** run produced a
+fresh `packages/perps-controller/dist`, and that dist carries the change. Verify
+before trusting it:
+
+```bash
+D=/path/to/core/packages/perps-controller
+node -p "require('$D/package.json').version"        # expected bump
+ls "$D"/dist/index.cjs                               # dist exists
+grep -l "<new export symbol>" "$D"/dist/index.d.cts  # new surface present
+```
+
+### Publish + push (advancing an existing link)
+
+A client may **already** be on a yalc link (e.g. mid-feature dev). In that case
+`yalc add` is wrong — use `yalc update` to advance the existing link in place.
+`perps-validate.sh push` picks the right one automatically.
+
+```bash
+cd /path/to/core/packages/perps-controller && yalc publish --private --push
+# `--push` propagates to every linked project. WATCH THE OUTPUT: it will touch
+# *other* repos that link the same package (e.g. a sibling clone), not just your
+# target. That is a side effect to note, not a failure.
+```
+
+### Run the proof, then restore
+
+Client proof for "controller won't break":
 
 ```bash
 cd /path/to/client
-"$YALC_BIN" remove @metamask/perps-controller || true
-git checkout -- package.json yarn.lock 2>/dev/null || true
-rm -rf .yalc yalc.lock
-git status --short --branch
+# 1. type-check — the strongest signal for export/type regressions.
+NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --incremental \
+  --tsBuildInfoFile .tsbuildinfo --project ./tsconfig.json
+# 2. the client tests that exercise the changed surface (NOT the whole suite,
+#    NOT --findRelatedTests).
+yarn jest <files that import the changed symbols> --no-coverage
 ```
+
+### Cleanup — pre-state aware (critical)
+
+The old "rm -rf .yalc yalc.lock && git checkout package.json yarn.lock" recipe is
+**destructive** when the client was already on a yalc link before you started: it
+wipes the user's active dev setup. Restore to the snapshot taken by `prestate`:
+
+- **Client was already yalc-linked** → restore the backed-up `.yalc/<pkg>`
+  byte-for-byte, restore `yalc.lock`/`package.json`, re-run
+  `yarn install --mode=skip-build` if node_modules must match.
+- **Client had no prior link (registry baseline)** → `yalc remove <pkg>`,
+  `git checkout -- package.json yarn.lock`, `rm -rf .yalc yalc.lock`.
+
+`perps-validate.sh restore <client>` does the right one based on the recorded
+mode. If you advanced a client deliberately and the user wants to keep the new
+version, say so explicitly and keep the snapshot for a later restore.
 
 ## Client parity
 
@@ -140,17 +227,20 @@ For Mobile <-> Extension checks:
 
 ## Stop conditions
 
-Stop and report when the owner package cannot build, target checkout has unexpected dirt, cleanup would delete user work, target source edits are needed but not allowed, or required device/browser/credential context is missing.
+Stop and report when the owner package cannot build (after `--full`), a target
+checkout has unexpected dirt, cleanup would delete user work, target source edits
+are needed but not allowed, or required device/browser/credential context is
+missing.
 
 ## Final answer
 
 ```md
 Validated <change> against <targets>.
 - Owner: <path>@<branch>, status <clean/expected dirty>
-- Targets: <path/status>, <path/status>
-- Transport: <yalc package/version or none>
-- Proof: <commands/recipes> => <pass/fail>
+- Targets: <path/status>
+- Transport: <yalc package/version or none>  (built via full monorepo build / package build)
+- Proof: <type-check + tests/recipes> => <pass/fail>
 - Artifacts: <paths>
-- Cleanup: <target repos restored or noted>
+- Cleanup: <restored to snapshot | left on new version by request + snapshot kept>
 - Follow-ups/blockers: <if any>
 ```
