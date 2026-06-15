@@ -138,8 +138,7 @@ tools/
 
 | Domain         | Audience          | Examples                                    |
 | -------------- | ----------------- | ------------------------------------------- |
-| `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
-| `metamask-connect` | dApp builders | EVM/Solana/multichain setup, signing, wagmi, React Native |
+| `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `metamask-connect` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |

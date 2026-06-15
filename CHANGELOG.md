@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `metamask-connect` domain for building dApps with the MetaMask Connect SDK (`@metamask/connect-evm`, `@metamask/connect-multichain`, `@metamask/connect-solana`) and the wagmi `metaMask()` connector. Organized with progressive disclosure as `setup-app`, `sign-message`, `send-transaction`, `multichain-operations`, and `migrate` (each routing into per-stack `references/`), plus `troubleshoot-connection` and a `metamask-connect-conventions` guardrails skill
+- Add `metamask-connect` skill to the `web3-tools` domain for building dApps with the MetaMask Connect SDK (`@metamask/connect-evm`, `@metamask/connect-multichain`, `@metamask/connect-solana`) and the wagmi `metaMask()` connector. A single progressive-disclosure skill (mirroring `smart-accounts-kit`): the routing `skill.md` points into `references/` (always-on `conventions`, `troubleshooting`) and `workflows/` (per-stack setup, sign/send for EVM + Solana, multichain `invokeMethod`, and migration from `@metamask/sdk`)
 
 ## [0.1.0]
 

@@ -1,5 +1,5 @@
 # GitHub code ownership for MetaMask skills.
 # ADR-58/recipe skills are experimental but owned by Perps during rollout.
 /domains/agentic/ @MetaMask/perps
-# MetaMask Connect SDK skills (dApp integration) owned by Wallet Integrations + Mobile Platform.
-/domains/metamask-connect/ @MetaMask/wallet-integrations @MetaMask/mobile-platform
+# MetaMask Connect SDK skill (dApp integration) owned by Wallet Integrations + Mobile Platform.
+/domains/web3-tools/skills/metamask-connect/ @MetaMask/wallet-integrations @MetaMask/mobile-platform

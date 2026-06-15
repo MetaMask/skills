@@ -1,8 +1,3 @@
----
-name: metamask-connect-conventions
-description: Core conventions, constraints, and common mistakes for the MetaMask Connect SDK across EVM, Solana, multichain, wagmi, and React Native. Consult before writing or reviewing any MetaMask Connect integration code — covers hex chain IDs, supportedNetworks validation, EIP-1193 provider events, multichain session lifecycle, Solana constraints, React Native polyfills, and testing patterns.
-maturity: stable
----
 # MetaMask Connect — Conventions & Guardrails
 
 Always-on guardrails for the MetaMask Connect SDK, distilled from the [MetaMask Connect Cursor plugin](https://github.com/MetaMask/metamask-connect-cursor-plugin) rules. Apply these whenever you generate or review MetaMask Connect (`@metamask/connect-evm` / `-multichain` / `-solana`) or wagmi `metaMask()` connector code.

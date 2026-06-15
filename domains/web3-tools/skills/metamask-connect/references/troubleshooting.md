@@ -1,8 +1,3 @@
----
-name: troubleshoot-connection
-description: Diagnose and fix common MetaMask Connect SDK connection failures, transport issues, and runtime errors
-maturity: stable
----
 # Troubleshoot MetaMask Connect Issues
 
 ## When to use

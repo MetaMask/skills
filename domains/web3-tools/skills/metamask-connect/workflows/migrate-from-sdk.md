@@ -310,7 +310,7 @@ Key differences:
 - The connect-evm-backed `metaMask()` connector ships in `wagmi/connectors` from wagmi 3.6 / `@wagmi/connectors` 8 — there is no `@metamask/connect-evm/wagmi` subpath; install `@metamask/connect-evm` at wagmi's declared peer range
 - Use `dapp` not `dappMetadata`
 - Connector ID is `'metaMaskSDK'` — find it with `connectors.find(c => c.id === 'metaMaskSDK')`
-- Most wagmi hooks work unchanged, but note the wagmi v3 renames: `useConnect().connectors` → `useConnectors()`, `connectAsync` → `mutateAsync`, `useAccount` → `useConnection` (see `references/wagmi-connector.md`)
+- Most wagmi hooks work unchanged, but note the wagmi v3 renames: `useConnect().connectors` → `useConnectors()`, `connectAsync` → `mutateAsync`, `useAccount` → `useConnection` (see [`migrate-wagmi-connector.md`](migrate-wagmi-connector.md))
 
 ---
 

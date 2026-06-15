@@ -20,7 +20,7 @@ const message = new TextEncoder().encode('Sign this message to verify your ident
 
 ### Step 2a: Sign with React wallet-adapter (useWallet)
 
-**Prerequisites:** `createSolanaClient` has been awaited before rendering, `WalletProvider` is configured with `wallets={[]}`, and the user is connected. See the `setup-app` skill (`references/solana-react.md`).
+**Prerequisites:** `createSolanaClient` has been awaited before rendering, `WalletProvider` is configured with `wallets={[]}`, and the user is connected. See [`setup-solana-react.md`](setup-solana-react.md).
 
 ```tsx
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -59,7 +59,7 @@ function SignMessageButton() {
 
 ### Step 2b: Sign with vanilla browser (wallet-standard feature)
 
-**Prerequisites:** `createSolanaClient` has been called and the wallet is connected via `standard:connect`. See the `setup-app` skill (`references/solana-browser.md`).
+**Prerequisites:** `createSolanaClient` has been called and the wallet is connected via `standard:connect`. See [`setup-solana-browser.md`](setup-solana-browser.md).
 
 ```typescript
 import { createSolanaClient } from '@metamask/connect-solana';

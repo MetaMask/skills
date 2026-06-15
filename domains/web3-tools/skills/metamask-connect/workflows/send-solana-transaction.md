@@ -42,7 +42,7 @@ transaction.feePayer = senderPubkey;
 
 ### Step 2a: Send with React wallet-adapter (useWallet)
 
-**Prerequisites:** `createSolanaClient` has been awaited before rendering, `WalletProvider` is configured with `wallets={[]}`, and the user is connected. See the `setup-app` skill (`references/solana-react.md`).
+**Prerequisites:** `createSolanaClient` has been awaited before rendering, `WalletProvider` is configured with `wallets={[]}`, and the user is connected. See [`setup-solana-react.md`](setup-solana-react.md).
 
 ```tsx
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
@@ -97,7 +97,7 @@ function SendTransactionButton() {
 
 ### Step 2b: Send with vanilla browser (wallet-standard feature)
 
-**Prerequisites:** `createSolanaClient` has been called and the wallet is connected via `standard:connect`. See the `setup-app` skill (`references/solana-browser.md`).
+**Prerequisites:** `createSolanaClient` has been called and the wallet is connected via `standard:connect`. See [`setup-solana-browser.md`](setup-solana-browser.md).
 
 ```typescript
 import { createSolanaClient } from '@metamask/connect-solana';
