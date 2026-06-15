@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `metamask-connect` domain: 18 skills for building dApps with the MetaMask Connect SDK (`@metamask/connect-evm`, `@metamask/connect-multichain`, `@metamask/connect-solana`) across EVM, Solana, multichain, wagmi, and React Native, plus signing, transaction, migration, and troubleshooting skills, and a `metamask-connect-conventions` guardrails skill
+- Add `metamask-connect` domain for building dApps with the MetaMask Connect SDK (`@metamask/connect-evm`, `@metamask/connect-multichain`, `@metamask/connect-solana`) and the wagmi `metaMask()` connector. Organized with progressive disclosure as `setup-app`, `sign-message`, `send-transaction`, `multichain-operations`, and `migrate` (each routing into per-stack `references/`), plus `troubleshoot-connection` and a `metamask-connect-conventions` guardrails skill
 
 ## [0.1.0]
 
