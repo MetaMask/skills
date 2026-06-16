@@ -68,9 +68,11 @@ The installed package is the source of truth, not this skill's examples.
 
 For local visual testing of a component in isolation, see `docs/readme/storybook.md`.
 
-### Layer 2 — `app/component-library/components/` ❌ Deprecated
+### Layer 2 — `app/component-library/components/`
 
-In-repo components carrying `@deprecated` JSDoc. Only touch these when working on legacy code where refactoring is explicitly out of scope. Never use in new components — every primitive that has an MMDS equivalent must come from the package.
+Valid second choice **only** when `@metamask/design-system-react-native` does not export an equivalent (e.g. Tabs, MetaMask-specific modal wrappers not yet migrated to MMDS).
+
+Do not use any component in this library that carries a `@deprecated` JSDoc annotation — those have MMDS equivalents and must be replaced. For everything else in this library, prefer MMDS first; use `app/component-library` only when no MMDS primitive covers the need.
 
 ### Layer 3 — Feature-specific composites
 
@@ -368,7 +370,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
 - [ ] `Foo.types.ts` — `FooProps` interface with JSDoc per prop, optional `testID?: string`
 - [ ] `Foo.testIds.ts` — `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name
-- [ ] `Foo.tsx` — all imports from `@metamask/design-system-react-native`; no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
+- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native` (or `app/component-library` for MetaMask-specific components with no MMDS equivalent and no `@deprecated` annotation); no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
