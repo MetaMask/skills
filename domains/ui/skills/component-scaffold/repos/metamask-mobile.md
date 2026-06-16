@@ -378,8 +378,8 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 ## 11. Scaffold checklist
 
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
-- [ ] `Foo.types.ts` — `FooProps` interface with JSDoc per prop, optional `testID?: string`
-- [ ] `Foo.testIds.ts` — `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name
+- [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop, optional `testID?: string`; inline interface acceptable only for trivial components with 1–2 props
+- [ ] `Foo.testIds.ts` — recommended; `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name; skip only when the component has no testable elements
 - [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native` (or `app/component-library` for MetaMask-specific components with no MMDS equivalent and no `@deprecated` annotation); no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
