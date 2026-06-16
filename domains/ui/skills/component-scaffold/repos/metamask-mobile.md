@@ -256,10 +256,12 @@ testID={`${FooSelectorsIDs.ITEM}-${item.id}`}
 import React from 'react';
 import {
   Box,
+  ButtonBase,
   Text,
   TextColor,
   TextVariant,
 } from '@metamask/design-system-react-native';
+import { useTailwind } from '@metamask/design-system-twrnc-preset';
 import { strings } from '../../../../locales/i18n'; // adjust depth
 import { FooProps } from './Foo.types';
 import { FooSelectorsIDs } from './Foo.testIds';
@@ -269,10 +271,18 @@ const Foo: React.FC<FooProps> = ({
   onClose,
   testID = FooSelectorsIDs.CONTAINER,
 }) => {
+  const tw = useTailwind();
+
   if (!isVisible) return null;
 
   return (
-    <Box twClassName="px-4 pb-6" testID={testID}>
+    <ButtonBase
+      onPress={onClose}
+      testID={testID}
+      style={({ pressed }) =>
+        tw.style('px-4 pb-6', pressed && 'bg-pressed')
+      }
+    >
       <Text
         variant={TextVariant.BodyMd}
         color={TextColor.TextAlternative}
@@ -280,7 +290,7 @@ const Foo: React.FC<FooProps> = ({
       >
         {strings('foo.title')}
       </Text>
-    </Box>
+    </ButtonBase>
   );
 };
 
@@ -378,6 +388,3 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] If bottom sheet: `useElevatedSurface()` applied; `ScrollView` from `react-native-gesture-handler`
 - [ ] All user-visible strings use `strings()` — no hardcoded copy
 
-@app/components/UI/Compliance/AccessRestrictedModal/AccessRestrictedModal.tsx
-@app/components/UI/Earn/components/EarnHeaderSubtitle/EarnHeaderSubtitle.tsx
-@app/component-library/components/design-system.stories.tsx
