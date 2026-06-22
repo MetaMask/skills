@@ -21,7 +21,8 @@
     "test": "node --test test/*.test.mjs",
     "pack:dry-run": "yarn pack --dry-run",
     "lint": "yarn lint:changelog",
-    "lint:changelog": "auto-changelog validate --formatter oxfmt"
+    "lint:changelog": "auto-changelog validate --formatter oxfmt",
+    "lint:skills": "node .github/scripts/lint-skill-entry.mjs"
   },
   "publishConfig": {
     "access": "public",
