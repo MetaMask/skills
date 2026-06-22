@@ -73,7 +73,7 @@ When direct Segment access is unavailable, estimate from Sentry production span 
    ```
 4. **Interpret as upper bound** — endpoint may have callers outside the event path.
 
-Caveats: sample population is MetaMetrics opted-in users only; verify the current `tracesSampleRate` before calculating (it changes between releases).
+Caveats: sample population is MetaMetrics opted-in users only; verify the current `tracesSampleRate` before calculating (it changes between releases). For longer-range (30D+) or release-over-release queries, the sampled count is **not** comparable at face value — older releases are downsampled / retention-truncated and `.0` releases are sample-thin; see `sentry-mcp-queries` (Longer-Range Queries and Percentile Fidelity) and the `performance-attribution` skill.
 
 ---
 

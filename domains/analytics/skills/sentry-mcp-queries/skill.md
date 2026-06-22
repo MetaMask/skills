@@ -72,11 +72,30 @@ Patch releases have uneven adoption — comparing raw counts against them produc
 |---|---|---|
 | Age since publish | < 48–72h | Browser auto-update rollout still ramping (Chrome/Firefox/Edge) |
 | Session count | < ~50% of previous stable release | Sample too small for meaningful rates |
+| Stored span count | < ~few hundred for p75, < ~few thousand for p95+ | Tail percentiles are computed over the *stored* sample — extrapolated counts hide how few events back them |
+| Superseded patch | a higher patch in the same `X.Y.*` line exists **and** the active window (`first_seen`→`last_seen`) is short | Hotfixed-past releases collect few spans, biased to early-updaters during the rollout/migration window |
 | Release stage | `dev`, `canary`, `nightly` | Non-production build — different error profile |
 | Environment | not `production` | Development / staging noise |
 | Manifest split | compare only within same `dist` | MV3 and MV2 populations have different error distributions |
 
 **Rule of thumb:** use the newest release that has ≥ 3 days of production adoption **and** session volume comparable to the previous stable release. Everything in between is hotfix noise — skip it for regression comparisons unless investigating that specific patch.
+
+## Longer-Range (30D+) Queries and Percentile Fidelity
+
+Widening the window past ~30 days to gain sample size trades it back for **fidelity loss on older releases**. Three effects compound:
+
+- **Sample-rate drift** — `tracesSampleRate` changes between releases, so absolute span counts across a 30D+ window mix different capture rates. Normalize each release by *its own* sample rate (or by sessions/users), never a single global rate.
+- **Extrapolation hides thin samples** — span datasets report sample-rate-weighted (extrapolated) counts. A release with 40 stored spans at 0.75% extrapolates to ~5,300 — a real-looking number backed by 40 events. Always check the **stored** sample count, not the extrapolated total, before trusting a release.
+- **Retention downsampling** — spans near the retention boundary are partially evicted, so an old release's count is truncated, not representative. Treat the oldest releases in a 30D+ window as lower bounds only.
+
+**For p75+ analysis** (any tail percentile — p75/p90/p95/p99), sample size *and* quality both matter:
+
+- **Size** — percentiles are computed over stored events. p50 stabilizes in the low hundreds; p75 needs more; p95/p99 need thousands of stored spans. Below that, a handful of outliers move the number — don't report a tail percentile you can't back with stored count.
+- **Quality** — rollout-window spans (first-launch, cold cache, state migration) skew the tail high. A superseded patch release's spans are disproportionately these, so its p75+ reads worse than its steady state would.
+
+**Resolving the size-vs-fidelity tension:** when a single release lacks the sample to support p75+, **collapse the patch chain** — aggregate `release:X.Y.*` across the minor line, or compare against the last *widely-adopted* patch — rather than extending the window into aged, downsampled, sample-rate-drifted territory. Reach for sample size *across adjacent stable patches inside the retention-safe window*, not by going further back in time. Use a longer (90d) window as the **primary, comparable-across-releases** source for p75/p95 and a 30d window only as **secondary context** — 30d over-weights the users still lingering on old versions and inflates baselines.
+
+For attributing a confirmed p75/p95 movement to specific code changes, see the `performance-attribution` skill.
 
 ## Workflow: Replay and Profile
 
@@ -105,3 +124,6 @@ Patch releases have uneven adoption — comparing raw counts against them produc
 | Compare raw event counts across releases | Normalize by sessions — traffic changes masquerade as regressions |
 | Include a <48h-old release in a regression comparison | Wait for rollout; auto-update adoption takes 2–7 days |
 | Treat every patch release as a comparison point | Most patches have low adoption — compare to the last *widely-adopted* release |
+| Trust a release's p95 because its (extrapolated) span count looks large | Check the *stored* sample — p75+ needs hundreds-to-thousands of stored events to be stable |
+| Compare span counts across a 30D+ window at face value | Normalize per-release sample rate; older releases are downsampled / retention-truncated |
+| Anchor a percentile on a `.0` release | `.0` releases have 10–100× fewer samples — use the highest-sample patch in the minor line |
