@@ -40,6 +40,7 @@ parent: pr-codeowners
 | ramp                    | ramp-team                    |
 | predict                 | predict-team                 |
 | rewards                 | rewards-team                 |
+| social-ai               | social-ai-team               |
 | design-system-engineers | metamask-design-system-team  |
 | core-platform           | core-platform-team           |
 | supply-chain            | mm-supply-chain-reviewers    |
