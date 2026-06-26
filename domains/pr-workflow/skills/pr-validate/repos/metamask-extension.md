@@ -21,7 +21,9 @@ Not for code-correctness review.
 
 ## The core move: match evidence to the claim
 
-A PR makes a **falsifiable claim** ("privacy mode now hides the Perps balance"; "hovering the asset row preloads the chart with no double-fetch"; "this cuts startup latency"). Validation = pick the evidence that would **falsify the claim if it were false**, then capture it. Don't run a fixed checklist. Read the PR first (`gh pr view`, `gh pr diff`), state the claim, then choose lanes.
+A PR makes a **falsifiable claim** ("privacy mode now hides the Perps balance"; "hovering the asset row preloads the chart with no double-fetch"; "this cuts startup latency"). Validation = pick the evidence that would **falsify the claim if it were false**, then capture it. Don't run a fixed checklist.
+
+First, write a **Claim Card** (`Given <precondition>, when <action>, then <observable>` + surface, falsifier, baseline) from the PR body, the linked issue, and the diff — the linchpin; every lane is only as good as the claim. Full rubric, anti-patterns, and special cases (refactor/no-op, bug-fix, perf, migration, flag-gated): `references/claim-extraction.md`. Then choose lanes:
 
 | Claim shape | Lead with | Capture via |
 |---|---|---|
