@@ -33,7 +33,7 @@ A PR makes a **falsifiable claim** ("privacy mode now hides the Perps balance"; 
 | Bundle / build output | bundle-size diff, chunk membership | build + source-map analysis |
 | Behavior with no UI | targeted tests + repro | `pr-manual-testing`, CI checks |
 
-A PR that mixes claims (a UI fix that also shifts a metric) needs more than one lane, assembled into one bundle.
+A PR that mixes claims (a UI fix that also shifts a metric) needs more than one lane, assembled into one bundle. Full lane menu with capture pointers: `references/evidence-catalog.md`.
 
 ## AEP — autonomous validation
 
