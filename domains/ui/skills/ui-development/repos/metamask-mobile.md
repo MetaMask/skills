@@ -16,13 +16,12 @@ Always prioritize @metamask/design-system-react-native components and Tailwind C
 **Before writing any new component or choosing what to use, ask: "Does @metamask/design-system-react-native have this?"**
 
 1. **FIRST**: Use `@metamask/design-system-react-native` components
-   - **Always use for**: Box (layout), Text (typography), Button/ButtonBase/ButtonIcon, Icon, Checkbox
-   - **Always use for**: Avatar variants (Account, Base, Favicon, Group, Icon, Network, Token)
-   - **Always use for**: Badge variants (Count, Icon, Network, Status, Wrapper)
-   - **Rule**: If it exists in the design system, you MUST use it
+   - **Availability is dynamic**: read the installed package export index before deciding a component is unavailable.
+   - **Rule**: If the installed package exports the component, you MUST use it.
+   - **Common examples**: Box/BoxRow/BoxColumn, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Avatar variants, Badge variants, BottomSheet components, HeaderBase/HeaderRoot/HeaderSearch/HeaderStandard, Input/TextField/TextFieldSearch/Label, ListItem, Skeleton, Tag, Toast.
 
 2. **SECOND**: Use `app/component-library` ONLY if design system lacks it
-   - **Use for**: BottomSheet, Tabs, Headers, ListItems, Skeleton, Tags, Modal, Overlay, Toast, RadioButton, etc.
+   - **Use for**: MetaMask-specific or not-yet-migrated components such as Tabs and feature-owned modal wrappers
    - **Rule**: These are MetaMask-specific implementations not (yet) in the design system
    - **Important**: component-library components should themselves use design system primitives internally
 
@@ -39,10 +38,10 @@ Always prioritize @metamask/design-system-react-native components and Tailwind C
 ### Decision Tree
 ```
 Need a component?
-  ├─ Is it Box, Text, Button, Icon, Avatar, Badge, or Checkbox?
+  ├─ Does the installed @metamask/design-system-react-native package export it?
   │  └─ YES → Use @metamask/design-system-react-native [STOP]
   │
-  ├─ Is it BottomSheet, Tabs, Header, ListItem, Skeleton, Tag, Modal, etc?
+  ├─ Is it Tabs or a MetaMask-specific component that is not exported by @metamask/design-system-react-native?
   │  └─ YES → Use app/component-library [STOP]
   │
   ├─ Is it feature-specific UI (e.g., BridgeInputSelector, StakeInputView)?
@@ -63,6 +62,17 @@ Need a component?
 - **Performance**: Optimized implementations tested at scale
 - **Type Safety**: Full TypeScript support with JSDoc documentation
 
+## Required Availability Check
+
+Before choosing `app/component-library` or building custom UI, inspect the consumer repo's installed package. Do not rely on this skill's examples as a complete component list.
+
+1. Check `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts` for exported components and enums.
+2. If the package uses a different build layout, inspect `node_modules/@metamask/design-system-react-native/dist/components/index.d.ts` or `node_modules/@metamask/design-system-react-native/src/components/index.ts`.
+3. Read the matching component type file before writing usage, for example `dist/components/<Component>/<Component>.types.d.cts`.
+4. If `node_modules` is unavailable, check `package.json`/lockfile for the installed package version and inspect the package source only as a fallback.
+
+This lookup costs a few file reads, but it prevents stale skill guidance from overriding the version actually installed in Mobile. The package version is the source of truth.
+
 ## Required Imports for React Native
 
 ```tsx
@@ -73,8 +83,30 @@ import {
   Text,
   Button,
   ButtonBase,
+  ButtonFilter,
+  ButtonHero,
+  ButtonIcon,
+  ButtonSemantic,
+  BottomSheet,
+  BottomSheetDialog,
+  BottomSheetHeader,
+  BottomSheetFooter,
+  BottomSheetOverlay,
+  ButtonsAlignment,
+  HeaderBase,
+  HeaderRoot,
+  HeaderSearch,
+  HeaderStandard,
   Icon,
+  IconAlert,
+  MainActionButton,
+  TabEmptyState,
   TextVariant,
+  FontWeight,
+  ButtonBaseSize,
+  TitleHub,
+  TitleStandard,
+  TitleSubpage,
   BoxFlexDirection,
   BoxAlignItems,
   BoxJustifyContent,
@@ -90,6 +122,13 @@ All @metamask/design-system-react-native components have comprehensive TypeScrip
 - **Box**: `/node_modules/@metamask/design-system-react-native/dist/components/Box/Box.types.d.cts`
 - **Text**: `/node_modules/@metamask/design-system-react-native/dist/components/Text/Text.types.d.cts`
 - **Button**: `/node_modules/@metamask/design-system-react-native/dist/components/Button/Button.types.d.cts`
+- **BottomSheet**: `/node_modules/@metamask/design-system-react-native/dist/components/BottomSheet/BottomSheet.types.d.cts`
+- **BottomSheetDialog**: `/node_modules/@metamask/design-system-react-native/dist/components/BottomSheetDialog/BottomSheetDialog.types.d.cts`
+- **BottomSheetHeader**: `/node_modules/@metamask/design-system-react-native/dist/components/BottomSheetHeader/BottomSheetHeader.types.d.cts`
+- **BottomSheetFooter**: `/node_modules/@metamask/design-system-react-native/dist/components/BottomSheetFooter/BottomSheetFooter.types.d.cts`
+- **HeaderBase**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderBase/HeaderBase.types.d.cts`
+- **HeaderSearch**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderSearch/HeaderSearch.types.d.cts`
+- **HeaderStandard**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderStandard/HeaderStandard.types.d.cts`
 
 When unsure about component APIs:
 1. Read the `.types.d.cts` files for complete prop documentation
@@ -179,6 +218,29 @@ const MyComponent = () => {
 >
 ```
 
+### Bottom Sheet:
+
+```tsx
+import {
+  BottomSheet,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  ButtonsAlignment,
+} from '@metamask/design-system-react-native';
+
+<BottomSheet ref={sheetRef} goBack={navigation.goBack}>
+  <BottomSheetHeader onClose={handleClose}>Title</BottomSheetHeader>
+  <Box twClassName="px-4 py-3">
+    <Text variant={TextVariant.BodyMd}>Content</Text>
+  </Box>
+  <BottomSheetFooter
+    buttonsAlignment={ButtonsAlignment.Horizontal}
+    primaryButtonProps={{ children: 'Confirm', onPress: handleConfirm }}
+    secondaryButtonProps={{ children: 'Cancel', onPress: handleClose }}
+  />
+</BottomSheet>
+```
+
 ## Box Component Best Practices
 
 ### Prefer Props Over twClassName for Layout
@@ -231,6 +293,7 @@ Always use semantic color tokens:
 | ------------------------------------ | -------------------------------------- |
 | `<View>`                             | `<Box>`                                |
 | `<Text style={...}>`                 | `<Text variant={TextVariant.BodyMd}>`  |
+| `app/component-library` BottomSheets | `@metamask/design-system-react-native` BottomSheet components |
 | `StyleSheet.create()`                | `twClassName="..."`                    |
 | `style={{ backgroundColor: 'red' }}` | `twClassName="bg-error-default"`       |
 | `flexDirection: 'row'`               | `flexDirection={BoxFlexDirection.Row}` |
@@ -267,10 +330,11 @@ import { ScrollView } from 'react-native';
 ### Migration Steps
 1. Replace `View` → `Box` from design system
 2. Replace `Text` → `Text` with appropriate `TextVariant`
-3. Convert `StyleSheet.create()` styles → `twClassName` props or `tw.style()`
-4. Convert arbitrary colors → design system color tokens
-5. Delete `.styles.ts` files after migration
-6. Test thoroughly - layout can shift during migration
+3. Replace migrated component-library imports with design system exports when available
+4. Convert `StyleSheet.create()` styles → `twClassName` props or `tw.style()`
+5. Convert arbitrary colors → design system color tokens
+6. Delete `.styles.ts` files after migration
+7. Test thoroughly - layout can shift during migration
 
 ### Example Migration
 
@@ -321,6 +385,7 @@ const tw = useTailwind();
 - [ ] No `import tw from 'twrnc'` (must use `useTailwind()` hook)
 - [ ] No raw `View` components (use `Box`)
 - [ ] No raw `Text` without variants (use `Text` with `TextVariant`)
+- [ ] No component-library BottomSheet imports when design system exports cover the use case
 - [ ] No `StyleSheet.create()` (use `twClassName` or `tw.style()`)
 - [ ] No arbitrary color values (use design system tokens)
 - [ ] No separate `.styles.ts` files for new components
@@ -331,6 +396,7 @@ const tw = useTailwind();
 ### When You See These Patterns, IMMEDIATELY Suggest Alternatives:
 - Any `import tw from 'twrnc'` → `import { useTailwind } from '@metamask/design-system-twrnc-preset'`
 - Any `View` component → `Box` from design system
+- Any `app/component-library/components/BottomSheets/*` import → equivalent `@metamask/design-system-react-native` BottomSheet export
 - Any `StyleSheet` usage → Tailwind classes
 - Any arbitrary color values → Design system tokens
 - Any manual flex properties → Box component props + twClassName

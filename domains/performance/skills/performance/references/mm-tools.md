@@ -110,8 +110,12 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
 "Prevent regressions going forward"
   → Reassure perf-test in CI  +  E2E performance gates (mms-performance-testing skill)
 
+"On an RC build" (RC tester, QA, or a flow that's only slow in release)
+  → React Native Release Profiler: shake → profile the flow → hand the .cpuprofile to
+    Claude Code / AI agent of choice to find the hot frames
+
 "Production alert / user report"
-  → Sentry (#metamask-mobile-release-monitoring) → Release Profiler on an RC build
+  → Sentry (#metamask-mobile-release-monitoring) → Release Profiler on an RC build (as above)
 
 "No tool isolates it"
   → Manual binary search (below)
@@ -182,7 +186,16 @@ EXPO_ATLAS=1 yarn expo export --platform ios && yarn expo-atlas
 - Dashboards + `#metamask-mobile-release-monitoring` alerts. `trace()` spans/measurements already flow here. Correlate regressions with release tags.
 
 ### React Native Release Profiler (production-like CPU profile)
-- RC build (TestFlight/Bitrise) → shake → Profiler → Start → reproduce → Stop → `yarn react-native-release-profiler --local <file.cpuprofile> [--sourcemap-path <maps>]` → open in `chrome://tracing` / SpeedScope / Perfetto. See `docs/readme/release-build-profiler.md`.
+Best way to root-cause a slow flow on a real build — and the lowest-effort to read:
+
+1. Grab an **RC build** — a release build; dev builds aren't representative.
+2. **Shake** the device → the **Performance Profiler** menu appears.
+3. **Start** the profiler, run the slow flow, then **Stop**. The `.cpuprofile` (a `sampling-profiler-trace*.cpuprofile`) saves to **Downloads**.
+4. **Analyze it — two ways:**
+   - **Visualize the flame graph:** symbolicate with `yarn react-native-release-profiler --local <file.cpuprofile> [--sourcemap-path <maps>]`, then open it in **SpeedScope** (speedscope.app) / `chrome://tracing` / Perfetto.
+   - **Or let AI read it:** hand the `.cpuprofile` to **Claude Code / your AI agent of choice** and ask "why is this slow?" — it parses the sampling profile and names the hot frames / culprit function for you, no flame-graph reading.
+
+See `docs/readme/release-build-profiler.md`.
 
 ### Manual binary search (last resort)
 1. Android device, go to the slow screen.
