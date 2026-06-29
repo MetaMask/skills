@@ -113,4 +113,6 @@ Escalate severity by one level if the selector is imported in **10+ files**.
 ## Related
 
 - [mm-redux-antipatterns.md](mm-redux-antipatterns.md) — `useSelector(x, isEqual)` is the *symptom* of a broken selector; fix the selector, then remove the `isEqual`.
+- [mm-selector-cascade.md](mm-selector-cascade.md) — graph-level view: blast radius of one broken root, and sweeping out downstream band-aids after the fix.
+- [mm-state-normalization.md](mm-state-normalization.md) — state/selector *shape*: O(1) lookups, parameterized-selector cache thrashing, view-selector consolidation.
 - [js-profile-react.md](js-profile-react.md) — prove the re-render reduction.
