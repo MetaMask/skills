@@ -1,3 +1,31 @@
 # GitHub code ownership for MetaMask skills.
+# This is a first-pass domain mapping intended for domain-owner review.
+
+# Product/domain-specific skills.
+/domains/perps/ @MetaMask/perps
+/domains/swaps/ @MetaMask/swaps-engineers
+/domains/transactions/ @MetaMask/transactions
+/domains/api-platform/ @MetaMask/api-platform @MetaMask/wallet-api-platform-engineers
+/domains/assets/ @MetaMask/metamask-assets
+/domains/engagement/ @MetaMask/engagement
+/domains/notifications/ @MetaMask/notifications
+/domains/web3auth/ @MetaMask/web3auth @MetaMask/web3auth-platform
+/domains/card/ @MetaMask/card
+/domains/portfolio/ @MetaMask/portfolio
+
+# Domains currently present or pending in open PRs.
+/domains/analytics/ @MetaMask/performance-council
+/domains/platform/ @MetaMask/extension-platform @MetaMask/core-platform
+
+# Horizontal skills domains.
+/domains/performance/ @MetaMask/performance-council
+/domains/testing/ @MetaMask/qa
+/domains/ui/ @MetaMask/design-system-engineers @MetaMask/design-system
+/domains/coding/ @MetaMask/engineering
+/domains/pr-workflow/ @MetaMask/engineering
+/domains/general/ @MetaMask/engineering
+/domains/web3-tools/ @MetaMask/developer-relations
+
+# Legacy/experimental.
 # ADR-58/recipe skills are experimental but owned by Perps during rollout.
 /domains/agentic/ @MetaMask/perps
