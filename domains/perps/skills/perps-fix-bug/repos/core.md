@@ -1,6 +1,6 @@
 ---
 repo: core
-parent: fix-perps-bug
+parent: perps-fix-bug
 ---
 
 ## File Paths

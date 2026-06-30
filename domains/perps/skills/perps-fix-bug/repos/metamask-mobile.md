@@ -1,6 +1,6 @@
 ---
 repo: metamask-mobile
-parent: fix-perps-bug
+parent: perps-fix-bug
 ---
 
 ## File Paths

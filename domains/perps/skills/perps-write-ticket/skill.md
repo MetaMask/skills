@@ -1,6 +1,6 @@
 ---
-name: write-perps-ticket
-description: Interactively author one clean, complete perps ticket — bug, EPIC, or initiative — that states intent and expected outcome without implementation. Use when a PM (or a Claude acting for one) has a raw perps observation, feature idea, or strategic goal and wants a single well-formed ticket ready for engineering to break down. This is the first (product) pass; the engineering split + layer routing is a separate pass (breakdown-perps-tickets). Captures what/expected/repro, makes the ticket surfaceable so it doesn't get lost, and stops before implementation or repo routing.
+name: perps-write-ticket
+description: Interactively author one clean, complete perps ticket — bug, EPIC, or initiative — that states intent and expected outcome without implementation. Use when a PM (or a Claude acting for one) has a raw perps observation, feature idea, or strategic goal and wants a single well-formed ticket ready for engineering to break down. This is the first (product) pass; the engineering split + layer routing is a separate pass (perps-breakdown-tickets). Captures what/expected/repro, makes the ticket surfaceable so it doesn't get lost, and stops before implementation or repo routing.
 maturity: experimental
 ---
 
@@ -18,10 +18,10 @@ the product team can file and engineering can break down as-is. You describe
 
 This is the **first (product) pass**. The technical split — which repos/layers
 change, dependency order, component routing — is the engineer's job and lives in
-`breakdown-perps-tickets`. Do not do it here.
+`perps-breakdown-tickets`. Do not do it here.
 
 Not for: engineering task breakdown, or routing a ticket across Core/clients
-(→ `breakdown-perps-tickets`).
+(→ `perps-breakdown-tickets`).
 
 ## Operating principle: intent, not implementation
 
@@ -56,7 +56,7 @@ Ask which kind, or infer it and confirm. Each has its own shape:
 3. **Draft the ticket** in the matching format below.
 4. **Make it surfaceable** (see below) so it doesn't vanish into the backlog.
 5. **Stop at the product boundary.** Do not add implementation, file paths, or a
-   layer split. Hand off: a bug/EPIC is ready for `breakdown-perps-tickets`.
+   layer split. Hand off: a bug/EPIC is ready for `perps-breakdown-tickets`.
 
 ## Surfacing (so bugs don't get lost)
 
@@ -124,7 +124,7 @@ tickets). Leave open if not yet decided.
 
 ## Handoff
 
-A bug or EPIC produced here is the **input** to `breakdown-perps-tickets`, which
+A bug or EPIC produced here is the **input** to `perps-breakdown-tickets`, which
 (with codebase access) routes it across Core/Core-release/Mobile/Extension and
 emits the engineering task tickets. Keep this skill on the product side of that
 line.
@@ -135,5 +135,5 @@ line.
   surface labels (optional; plain words are fine for a product ticket).
 - `../../knowledge/formatting-rules.md` — number semantics, to describe expected
   values correctly without prescribing decimals.
-- Related skills: `breakdown-perps-tickets` (engineering split + routing — the
-  next pass), `fix-perps-bug` (implement a fix).
+- Related skills: `perps-breakdown-tickets` (engineering split + routing — the
+  next pass), `perps-fix-bug` (implement a fix).

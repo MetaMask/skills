@@ -1,5 +1,5 @@
 ---
-name: validate-perps-multiproject
+name: perps-validate-multiproject
 description: Interactively validate perps changes across local MetaMask Core, Mobile, and Extension checkouts. Use when a Core @metamask/perps-controller change must be checked in Mobile/Extension, or when a Mobile/Extension perps change needs parity validation in the other client. Defaults to current checkout as owner, yalc for Core package transport, read-only validation targets, and the smallest meaningful proof; asks the user only when required folders or proof level cannot be resolved.
 maturity: stable
 ---

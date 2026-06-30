@@ -1,5 +1,5 @@
 ---
-name: review-perps-pr
+name: perps-review-pr
 description: >-
   Pre-flight self-review gate for perps PRs. A perps dev runs it on their OWN PR to drive a
   looping double-agentic cross-review — two different model CLIs (Claude, Codex, Cursor)

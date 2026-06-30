@@ -1,5 +1,5 @@
 ---
-name: fix-perps-bug
+name: perps-fix-bug
 description: Debug and fix perps feature bugs
 maturity: stable
 ---

@@ -1,6 +1,6 @@
 ---
 repo: metamask-mobile
-parent: review-perps-pr
+parent: perps-review-pr
 ---
 
 ## File Paths
