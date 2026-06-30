@@ -171,4 +171,4 @@ Layer specifics:
 - `knowledge/screens.md` — route/component names for the "Affected" field.
 - `knowledge/formatting-rules.md` — perps number/precision rules for acceptance criteria.
 - `knowledge/shared-package-analysis.md` — duplicated utilities to check both sides.
-- Related skills: `perps-fix-bug` (implement a client fix), `perps-review-pr` (review the resulting PRs).
+- Related skills: `recipe-fix-ticket` (implement a client fix), `perps-review-pr` (review the resulting PRs).

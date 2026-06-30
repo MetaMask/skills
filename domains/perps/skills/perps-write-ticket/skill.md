@@ -136,4 +136,4 @@ line.
 - `../../knowledge/formatting-rules.md` — number semantics, to describe expected
   values correctly without prescribing decimals.
 - Related skills: `perps-breakdown-tickets` (engineering split + routing — the
-  next pass), `perps-fix-bug` (implement a fix).
+  next pass), `recipe-fix-ticket` (implement a fix).
