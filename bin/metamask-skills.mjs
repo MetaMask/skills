@@ -246,8 +246,22 @@ function run(cmd, args, options = {}) {
 }
 
 function repoNameFromGitHubUrl(url) {
-  const match = /(?:github\.com[:/])(?:[^/]+)\/([^/#]+?)(?:\.git)?(?:[#/].*)?$/u.exec(url);
+  const match = /(?:github\.com(?:-[^/:]+)?[:/])(?:[^/]+)\/([^/#]+?)(?:\.git)?(?:[#/].*)?$/u.exec(url);
   return match?.[1];
+}
+
+function inferRepoFromBasename(target) {
+  const base = path.basename(target);
+  if (/^metamask-mobile(?:-\d+)?$/u.test(base)) {
+    return 'metamask-mobile';
+  }
+  if (/^metamask-extension(?:-\d+)?$/u.test(base)) {
+    return 'metamask-extension';
+  }
+  if (/^core(?:-\d+)?$/u.test(base)) {
+    return 'metamask-core';
+  }
+  return undefined;
 }
 
 function inferRepoFromRemote(target) {
@@ -277,6 +291,7 @@ function resolveRepo(target, repoOverride) {
     getConfigValue(process.env, localConfig, TARGET_REPO_ENV_KEY) ||
     inferRepoFromRemote(target) ||
     inferRepoFromPackage(target) ||
+    inferRepoFromBasename(target) ||
     path.basename(target)
   );
 }
@@ -759,6 +774,7 @@ export {
   parseFrontmatter,
   parseGlobalArgs,
   parseSkillsLocal,
+  inferRepoFromBasename,
   repoNameFromGitHubUrl,
   repoOverlays,
   hasSkillsSource,
