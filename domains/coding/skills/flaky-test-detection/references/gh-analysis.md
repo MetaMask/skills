@@ -44,6 +44,8 @@ gh run view <run-id> --repo MetaMask/metamask-mobile --log-failed \
 
 `TOTAL_RUNS` is all runs in the sampled window (not just failures) — the denominator for rate calculation. It is fetched separately at the end of the script.
 
+> Requires Bash 4+ (for `declare -A`). macOS ships Bash 3.2 by default — run this with `brew install bash` or via `gh`'s bundled environment, or invoke as `bash script.sh` with a Bash 4+ binary on `PATH`.
+
 ```bash
 declare -A fail_count
 
@@ -67,7 +69,7 @@ TOTAL_RUNS=$(gh run list \
 # Print: failures total rate% file
 for f in "${!fail_count[@]}"; do
   count=${fail_count[$f]}
-  rate=$(echo "scale=0; $count * 100 / $TOTAL_RUNS" | bc)
+  rate=$(echo "scale=2; $count * 100 / $TOTAL_RUNS" | bc)
   echo "$count $TOTAL_RUNS ${rate}% $f"
 done | sort -rn
 ```
