@@ -36,7 +36,7 @@ FAILED_RUN_IDS=$(gh run list \
 
 ```bash
 gh run view <run-id> --repo MetaMask/metamask-mobile --log-failed \
-  | grep --only-matching 'FAIL .\+\.test\.\(ts\|tsx\|js\)' \
+  | grep -oE 'FAIL .+\.test\.(ts|tsx|js|jsx)' \
   | sed 's/^FAIL //'
 ```
 
@@ -49,7 +49,7 @@ declare -A fail_count
 
 for run_id in $FAILED_RUN_IDS; do
   files=$(gh run view "$run_id" --repo MetaMask/metamask-mobile --log-failed 2>/dev/null \
-    | grep --only-matching 'FAIL .\+\.test\.\(ts\|tsx\|js\)' \
+    | grep -oE 'FAIL .+\.test\.(ts|tsx|js|jsx)' \
     | sed 's/^FAIL //')
   for f in $files; do
     fail_count[$f]=$(( ${fail_count[$f]:-0} + 1 ))
