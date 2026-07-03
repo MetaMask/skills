@@ -15,13 +15,20 @@ The integration surface is `app/scripts/messenger-client-init/` (the pattern is 
 | Stateless service | No persisted state (e.g. an API service) | Same as modular, minus state steps |
 | Wallet-managed | Name is one of: AccountsController, ApprovalController, ConnectivityController, KeyringController, NetworkController, RemoteFeatureFlagController, StorageService | `this.wallet.getInstance('<Name>')` — construction happens inside `@metamask/wallet` |
 
+Independently of the path above, the controller class itself comes from one of two sources — the `messenger-client-init/` wiring in §3 is identical either way, only step 1 (and where types are imported from) differs:
+
+| Source | When | Where the class lives |
+|---|---|---|
+| npm package | Controller is owned/shared outside the extension (most new controllers) | `@metamask/<name>-controller`, imported as a dependency |
+| Repo-local | Controller is extension-only | `app/scripts/controllers/<name>/` (class + a `<name>-controller.types.ts` exporting the messenger type) — e.g. `app/scripts/controllers/rewards/rewards-controller.ts` |
+
 ## 2. Canonical examples (read, don't guess)
 
 | Controller | Copy for |
 |---|---|
-| `app/scripts/messenger-client-init/geolocation-controller-init.ts` + `messengers/geolocation-controller-messenger.ts` (+ both `.test.ts`) | Default pattern: init fn, default-state hydration, `api` methods, minimal messenger, tests |
+| `app/scripts/messenger-client-init/geolocation-controller-init.ts` + `messengers/geolocation-controller-messenger.ts` (+ both `.test.ts`) | Default pattern (npm-package controller): init fn, default-state hydration, `api` methods, minimal messenger, tests |
 | `app/scripts/messenger-client-init/transaction-pay-controller-init.ts` + `messengers/transaction-pay-controller-messenger.ts` | Separate init messenger used inside constructor callbacks, heavy cross-controller delegation |
-| `app/scripts/messenger-client-init/rewards-controller-init.ts` + `messengers/rewards-controller-messenger.ts` | Remote-feature-flag gating via init messenger |
+| `app/scripts/controllers/rewards/rewards-controller.ts` (+ `rewards-controller.types.ts` exporting `RewardsControllerMessenger`) + `app/scripts/messenger-client-init/rewards-controller-init.ts` + `messengers/rewards-controller-messenger.ts` | Repo-local controller pattern, plus remote-feature-flag gating via init messenger. The init/messenger files are indistinguishable in shape from the npm-package case — only the class import path differs |
 | `PerpsController` entries in `app/scripts/metamask-controller.js` + `shared/lib/environment.ts` | Build-flag gating (conditional init-map spread) |
 | `app/scripts/messenger-client-init/data-deletion-service-init.ts` | Stateless service |
 
@@ -29,7 +36,7 @@ The integration surface is `app/scripts/messenger-client-init/` (the pattern is 
 
 | # | File | Action |
 |---|---|---|
-| 1 | `package.json` | `yarn add @metamask/<name>-controller`, then `yarn lint:lockfile:dedupe:fix && yarn allow-scripts auto && yarn lavamoat:auto && yarn attributions:generate` (skip if repo-local) |
+| 1 | `package.json`, or `app/scripts/controllers/<name>/` | **npm package**: `yarn add @metamask/<name>-controller`, then `yarn lint:lockfile:dedupe:fix && yarn allow-scripts auto && yarn lavamoat:auto && yarn attributions:generate`. **Repo-local**: create the folder with the controller class and a `<name>-controller.types.ts` exporting the messenger type — mirror `app/scripts/controllers/rewards/` — no dependency commands needed |
 | 2 | `app/scripts/messenger-client-init/messengers/<name>-controller-messenger.ts` | Create `getXControllerMessenger` (skeleton below). Add `getXControllerInitMessenger` (namespace `'XControllerInit'`) only if the init fn itself needs actions/events beyond the controller's messenger type |
 | 3 | `app/scripts/messenger-client-init/messengers/<name>-controller-messenger.test.ts` | `expect(messenger).toBeInstanceOf(Messenger)`; optionally assert delegation via a `delegate` spy |
 | 4 | `app/scripts/messenger-client-init/messengers/index.ts` | Export the factory fns; add to `MESSENGER_FACTORIES`: `{ getMessenger, getInitMessenger: noop }` (lodash `noop`) or the real init-messenger fn |
