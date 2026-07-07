@@ -2,7 +2,6 @@
 name: perps-write-ticket
 description: Interactively author one clean, complete perps ticket — bug, EPIC, or initiative — that states intent and expected outcome without implementation. Use when a PM (or a Claude acting for one) has a raw perps observation, feature idea, or strategic goal and wants a single well-formed ticket ready for engineering to break down. This is the first (product) pass; the engineering split + layer routing is a separate pass (perps-breakdown-tickets). Captures what/expected/repro, makes the ticket surfaceable so it doesn't get lost, and stops before implementation or repo routing.
 maturity: experimental
-allowed-tools: Read, Grep, Glob, AskUserQuestion
 ---
 
 # Write Perps Ticket
