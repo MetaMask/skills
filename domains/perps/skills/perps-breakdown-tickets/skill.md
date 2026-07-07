@@ -2,6 +2,7 @@
 name: perps-breakdown-tickets
 description: Interactively break a perps product requirement into split, dispatch-ready technical tickets across MetaMask Core, its release, Mobile, and Extension. Use when a product manager (or a codebase-aware Claude acting for one) has a perps bug or feature and needs engineering-grade tickets, correctly routed now that @metamask/perps-controller is the Core source of truth. Triages where the change actually lives, emits only the applicable layer tickets with dependency links, and enforces token-efficient, signal-over-noise tickets agents can act on directly.
 maturity: experimental
+allowed-tools: Read, Grep, Glob, AskUserQuestion
 ---
 
 # Breakdown Perps Tickets
