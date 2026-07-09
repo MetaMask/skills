@@ -5,6 +5,25 @@ parent: e2e-testing
 
 # MetaMask Mobile E2E Testing Guidelines
 
+## Running tests locally (agents — read first)
+
+When asked to **run**, **validate**, or **debug** E2E tests, open
+[references/running-tests-locally.md](references/running-tests-locally.md) and follow the **Agent execution standard**.
+
+Quick rules:
+
+1. **Appium smoke** (`tests/smoke-appium/`, `yarn appium-smoke:ios`) — use the **main-e2e release** build, same as CI Appium jobs. Download artifact `main-e2e-MetaMask.app` from a successful `build` workflow run; local path `build/ci-main-e2e/MetaMask.app`. Always set `IOS_APP_PATH` so `.e2e.env` debug `PREBUILT_*` paths do not override.
+2. **Do not** use Detox debug builds (`yarn test:e2e:*:debug:build`) for Appium smoke — Android debug opens the Expo dev launcher; iOS debug is the wrong config for `playwright.smoke-appium.config.ts`.
+3. **Prefer iOS** for local Appium validation on Mac (CI Android APK is x86_64-only).
+4. Boot sim → `node scripts/e2e/prepare-ios-appium-runner.mjs` → run with `IOS_SIMULATOR_UDID`.
+5. For **writing** new Detox specs, use the `e2e-test` skill instead.
+
+| Task | Open |
+| ---- | ---- |
+| Run Appium smoke / validate PR locally | [running-tests-locally.md](references/running-tests-locally.md) |
+| Write new Detox spec, POM, mocks | `e2e-test` skill |
+| Cross-framework POM (`resolve`, Appium vs Detox) | Sections below + `docs/testing/e2e-testing.md` in repo |
+
 ## Core Principles
 
 1. **Test Coverage is Critical**: Higher coverage creates more confidence and helps identify bugs effectively.
