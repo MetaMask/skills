@@ -40,8 +40,9 @@ If any prerequisite is missing, stop and report the blocker instead of partially
 Use these references before coding:
 
 - Non-EVM Tron Core integration: `https://github.com/MetaMask/core/pull/6862`
+- EVM Robinhood Chain Core integration: `https://github.com/MetaMask/core/pull/9459`
 - Existing non-EVM Solana, Bitcoin, and Tron handling in `packages/bridge-controller/` and `packages/bridge-status-controller/`
-- Existing EVM chain entries in `packages/bridge-controller/src/constants/bridge.ts` and `packages/bridge-controller/src/constants/tokens.ts`
+- Existing EVM chain entries in `packages/bridge-controller/src/constants/chains.ts`, `packages/bridge-controller/src/constants/bridge.ts`, `packages/bridge-controller/src/constants/tokens.ts`, and `packages/bridge-controller/src/types.ts`
 
 Review the closest EVM or non-EVM implementation in the target checkout and mirror existing naming, ordering, validation, and test style.
 
@@ -52,7 +53,7 @@ For agent implementation or review tasks, follow this workflow exactly:
 1. Confirm prerequisites and classify the network as EVM, non-EVM, or hybrid/unknown.
 2. Review the closest existing Core implementation before editing.
 3. Update `packages/bridge-controller` constants, token metadata, types, validators, trade utilities, CAIP formatters, and exports as needed.
-4. Update `packages/bridge-status-controller` non-EVM detection, transaction submission, snap/client request construction, and status handling as needed.
+4. Update `packages/bridge-status-controller` only when the network changes non-EVM detection, transaction submission, snap/client request construction, or status handling.
 5. Validate exported package contracts, generated messenger action types, and changelog requirements when public behavior changes.
 6. Run targeted package tests and note any remaining client validation gaps.
 
@@ -60,9 +61,21 @@ For agent implementation or review tasks, follow this workflow exactly:
 
 ### 1. Network Constants
 
-Update `packages/bridge-controller/src/constants/bridge.ts` and related constants when the new network should be available to Bridge:
+Update chain and bridge constants when the new network should be available to Bridge:
 
-- Add the network to allowed chain ID lists.
+- `packages/bridge-controller/src/constants/chains.ts`
+  - For EVM networks, add the hex chain ID to `CHAIN_IDS`, for example `ROBINHOOD: '0x1237'`.
+  - For EVM networks, add the display name constant.
+  - For EVM networks, add the `NETWORK_TO_NAME_MAP` entry.
+  - Do not add non-EVM scopes here unless the file already has a matching local pattern; non-EVM allowlists use keyring scopes instead.
+- `packages/bridge-controller/src/types.ts`
+  - Add the bridge API numeric chain ID to the `ChainId` enum when controller code needs a numeric ID.
+  - For non-EVM networks, follow the Tron pattern with entries such as `TRON = 728126428`.
+- `packages/bridge-controller/src/constants/bridge.ts`
+  - Add the network to `ALLOWED_BRIDGE_CHAIN_IDS`.
+  - For EVM networks, add the hex `CHAIN_IDS.<NETWORK>` constant to `ALLOWED_BRIDGE_CHAIN_IDS`.
+  - For non-EVM networks, import and add the keyring scope, for example `TrxScope.Mainnet`.
+  - Add the `DEFAULT_CHAIN_RANKING` entry using the correct CAIP chain ID format, for example `eip155:4663` for EVM or `tron:728126428` for Tron.
 - Keep ordering consistent with existing networks.
 - Use hex `CHAIN_IDS` constants such as `CHAIN_IDS.MAINNET` or `'0x1'` for EVM allowlists.
 - Use EIP-155 CAIP chain IDs such as `eip155:1` for feature flag ranking and CAIP-formatted asset IDs.
@@ -71,11 +84,11 @@ Update `packages/bridge-controller/src/constants/bridge.ts` and related constant
 
 Update native token metadata in `packages/bridge-controller/src/constants/tokens.ts` when the network needs package-level default token support:
 
-- Symbol and display name
-- Native token address convention
-- Decimals
-- Icon URL or icon lookup convention
-- SLIP-44 mapping when applicable
+- Add or reuse the symbol in `CURRENCY_SYMBOLS`.
+- Add a network token object, reusing `ETH_SWAPS_TOKEN_OBJECT` for ETH-native EVM chains when appropriate.
+- Add the network to `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`.
+- For non-EVM networks, follow the Tron pattern: add the native currency symbol such as `TRX`, define a token object such as `TRX_SWAPS_TOKEN_OBJECT`, map `[TrxScope.Mainnet]` in `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`, and add the native asset entry in `SYMBOL_TO_SLIP44_MAP`, for example `TRX: 'slip44:195'`.
+- Add symbol, display name, native token address convention, decimals, icon URL or icon lookup convention, and SLIP-44 mapping when applicable.
 
 ### 2. Types And Validators
 
@@ -142,9 +155,10 @@ Non-EVM transaction data must be converted to the exact format the signing path 
 For EVM networks:
 
 - Reuse existing `TxData` quote and approval types unless the backend introduces a new shape.
-- Add chain constants, native token metadata, allowlists, and default token mappings as needed.
+- Add chain constants in `constants/chains.ts`, the decimal `ChainId` enum entry in `types.ts`, bridge allowlist/ranking entries in `constants/bridge.ts`, and native/default token mappings in `constants/tokens.ts`.
 - Verify quote fee logic if the network has unusual fee semantics.
 - Confirm approval flow behavior for token swaps and bridge transactions.
+- Do not update `bridge-status-controller` submit strategy code unless the new EVM network changes submit behavior beyond existing `TxData` handling.
 - Avoid adding non-EVM CAIP or snap-specific handling unless the network actually needs it.
 
 ## Non-EVM-Specific Handling
@@ -167,6 +181,7 @@ Core package changes usually gate availability through exported allowlists and p
 - Extension and Mobile must consume a package version that includes the new network.
 - LaunchDarkly/client flags still control user-facing rollout in the consuming repos.
 - Public exports and behavior changes need changelog or release note handling according to Core repo conventions.
+- EVM allowlist additions in `@metamask/bridge-controller` should include a `packages/bridge-controller/CHANGELOG.md` entry.
 
 ## Validation Checklist
 
