@@ -224,7 +224,7 @@ Before finishing, verify:
 
 Run targeted tests for changed areas:
 
-- Unit tests for `ui/ducks/bridge/selectors.ts`
+- Unit tests in `ui/ducks/bridge/selectors.test.ts` (and selector implementation only when its logic changes)
 - Unit tests for `ui/ducks/bridge/utils.ts`
 - Unit tests for `ui/hooks/bridge/useSmartSlippage.test.ts`
 - Unit or integration tests for destination account picker changes

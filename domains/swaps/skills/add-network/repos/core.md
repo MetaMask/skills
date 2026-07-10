@@ -20,4 +20,4 @@ Follow `knowledge/add-network-core.md` section `Agent Execution Standard (SSOT)`
 ## Validation
 
 1. `yarn workspace @metamask/bridge-controller test`
-2. `yarn workspace @metamask/bridge-status-controller test`
+2. `yarn workspace @metamask/bridge-status-controller test` only when BridgeStatus is touched

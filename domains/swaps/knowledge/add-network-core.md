@@ -215,12 +215,12 @@ Before finishing, verify:
 Run targeted tests for the touched package areas:
 
 - `yarn workspace @metamask/bridge-controller test`
-- `yarn workspace @metamask/bridge-status-controller test`
+- `yarn workspace @metamask/bridge-status-controller test` only when BridgeStatus is touched
 
 Also run build/type or generated contract checks when relevant:
 
 - `yarn workspace @metamask/bridge-controller build`
-- `yarn workspace @metamask/bridge-status-controller build`
+- `yarn workspace @metamask/bridge-status-controller build` only when BridgeStatus is touched
 - Messenger action type checks when messenger actions or controller events change
 - Changelog validation when public package behavior changes
 
