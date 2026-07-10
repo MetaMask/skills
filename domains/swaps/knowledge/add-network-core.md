@@ -40,11 +40,23 @@ If any prerequisite is missing, stop and report the blocker instead of partially
 Use these references before coding:
 
 - Non-EVM Tron Core integration: `https://github.com/MetaMask/core/pull/6862`
-- EVM Robinhood Chain Core integration: `https://github.com/MetaMask/core/pull/9459`
+- EVM Robinhood Chain Core integration (minimal constants-only template): `https://github.com/MetaMask/core/pull/9459`
 - Existing non-EVM Solana, Bitcoin, and Tron handling in `packages/bridge-controller/` and `packages/bridge-status-controller/`
 - Existing EVM chain entries in `packages/bridge-controller/src/constants/chains.ts`, `packages/bridge-controller/src/constants/bridge.ts`, `packages/bridge-controller/src/constants/tokens.ts`, and `packages/bridge-controller/src/types.ts`
 
 Review the closest EVM or non-EVM implementation in the target checkout and mirror existing naming, ordering, validation, and test style.
+
+### Minimal EVM Path
+
+For a standard EVM network whose backend returns existing `TxData` trade and approval shapes, Core onboarding is usually limited to:
+
+1. `packages/bridge-controller/src/constants/chains.ts` — `CHAIN_IDS`, display name, and `NETWORK_TO_NAME_MAP`
+2. `packages/bridge-controller/src/types.ts` — decimal `ChainId` enum entry
+3. `packages/bridge-controller/src/constants/bridge.ts` — `ALLOWED_BRIDGE_CHAIN_IDS` and `DEFAULT_CHAIN_RANKING`
+4. `packages/bridge-controller/src/constants/tokens.ts` — native currency symbol, network token object, and `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`
+5. `packages/bridge-controller/CHANGELOG.md` — an `Added` entry under `Unreleased`
+
+Robinhood Chain PR #9459 changed only these five files. It did not update validators, trade utilities, CAIP formatters, exports, BridgeStatus, or tests. Skip the extended sections below unless the network introduces a new trade or approval shape, signing path, CAIP behavior, fee behavior, or public helper.
 
 ## Agent Execution Standard (SSOT)
 
@@ -52,9 +64,9 @@ For agent implementation or review tasks, follow this workflow exactly:
 
 1. Confirm prerequisites and classify the network as EVM, non-EVM, or hybrid/unknown.
 2. Review the closest existing Core implementation before editing.
-3. Update `packages/bridge-controller` constants, token metadata, types, validators, trade utilities, CAIP formatters, and exports as needed.
+3. For a standard EVM network, follow the Minimal EVM Path. Update validators, trade utilities, CAIP formatters, or exports only when the network introduces behavior that existing generic EVM handling does not cover.
 4. Update `packages/bridge-status-controller` only when the network changes non-EVM detection, transaction submission, snap/client request construction, or status handling.
-5. Validate exported package contracts, generated messenger action types, and changelog requirements when public behavior changes.
+5. Add a changelog entry when allowlists or public behavior change. Re-check exports and generated messenger action types only when exported helpers, types, or controller messenger contracts change.
 6. Run targeted package tests and note any remaining client validation gaps.
 
 ## Core Implementation Checklist
@@ -70,6 +82,7 @@ Update chain and bridge constants when the new network should be available to Br
   - Do not add non-EVM scopes here unless the file already has a matching local pattern; non-EVM allowlists use keyring scopes instead.
 - `packages/bridge-controller/src/types.ts`
   - Add the bridge API numeric chain ID to the `ChainId` enum when controller code needs a numeric ID.
+  - For EVM networks, the enum decimal value must equal the hex `CHAIN_IDS` value, for example `4663` equals `0x1237`.
   - For non-EVM networks, follow the Tron pattern with entries such as `TRON = 728126428`.
 - `packages/bridge-controller/src/constants/bridge.ts`
   - Add the network to `ALLOWED_BRIDGE_CHAIN_IDS`.
@@ -77,6 +90,8 @@ Update chain and bridge constants when the new network should be available to Br
   - For non-EVM networks, import and add the keyring scope, for example `TrxScope.Mainnet`.
   - Add the `DEFAULT_CHAIN_RANKING` entry using the correct CAIP chain ID format, for example `eip155:4663` for EVM or `tron:728126428` for Tron.
 - Keep ordering consistent with existing networks.
+- Keep EVM `CHAIN_IDS.*` entries grouped before non-EVM keyring scopes in `ALLOWED_BRIDGE_CHAIN_IDS`.
+- Place new `DEFAULT_CHAIN_RANKING` entries alongside peer networks and use the canonical display name.
 - Use hex `CHAIN_IDS` constants such as `CHAIN_IDS.MAINNET` or `'0x1'` for EVM allowlists.
 - Use EIP-155 CAIP chain IDs such as `eip155:1` for feature flag ranking and CAIP-formatted asset IDs.
 - Prefer CAIP scopes from `@metamask/keyring-api` for non-EVM networks.
@@ -84,15 +99,15 @@ Update chain and bridge constants when the new network should be available to Br
 
 Update native token metadata in `packages/bridge-controller/src/constants/tokens.ts` when the network needs package-level default token support:
 
-- Add or reuse the symbol in `CURRENCY_SYMBOLS`.
-- Add a network token object, reusing `ETH_SWAPS_TOKEN_OBJECT` for ETH-native EVM chains when appropriate.
-- Add the network to `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`.
+- Add a network key to `CURRENCY_SYMBOLS`, with the native symbol as its value, for example `ROBINHOOD: 'ETH'`.
+- Define `<NETWORK>_SWAPS_TOKEN_OBJECT`; for an ETH-native EVM chain, spread `ETH_SWAPS_TOKEN_OBJECT` instead of duplicating its fields.
+- Map `[CHAIN_IDS.<NETWORK>]` to the network token object in `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`.
 - For non-EVM networks, follow the Tron pattern: add the native currency symbol such as `TRX`, define a token object such as `TRX_SWAPS_TOKEN_OBJECT`, map `[TrxScope.Mainnet]` in `SWAPS_CHAINID_DEFAULT_TOKEN_MAP`, and add the native asset entry in `SYMBOL_TO_SLIP44_MAP`, for example `TRX: 'slip44:195'`.
-- Add symbol, display name, native token address convention, decimals, icon URL or icon lookup convention, and SLIP-44 mapping when applicable.
+- For an ETH-native EVM network, inherit the native address convention, decimals, and icon fields from `ETH_SWAPS_TOKEN_OBJECT`; do not add a new SLIP-44 mapping.
 
-### 2. Types And Validators
+### 2. Types And Validators (New Backend Shapes Only)
 
-Update type and validator internals only where the bridge API introduces a shape that does not already exist:
+For a standard EVM network, only add the `ChainId` enum entry described above. Update the following internals only where the bridge API introduces a shape that does not already exist:
 
 - `packages/bridge-controller/src/types.ts`
   - Add network-specific trade data types.
@@ -187,14 +202,12 @@ Core package changes usually gate availability through exported allowlists and p
 
 Before finishing, verify:
 
-- Constants and token metadata are present and exported where needed.
-- CAIP formatting works both directions.
-- Type guards correctly identify network-specific trades.
-- Transaction data extraction returns the format expected by the signer.
-- EVM approval/trade flows still use existing `TxData` handling.
-- Non-EVM approval/trade flows work with and without approvals when applicable.
-- Package exports are updated for new public helpers or types.
-- Generated messenger action types are updated or checked when controller messenger contracts change.
+- Standard EVM constants and token metadata are present in the five Minimal EVM Path files.
+- Existing EVM CAIP conversion and `TxData` handling cover the new chain without code changes.
+- For non-EVM or custom trade shapes, type guards, `extractTradeData`, and CAIP formatters are updated and tested.
+- BridgeStatus remains untouched for a standard EVM network and changes only when submit, status, or signing behavior differs.
+- `CHANGELOG.md` includes an `Unreleased` entry when an allowlist changes.
+- Package exports and generated messenger action types are checked only when their contracts change.
 - Downstream Extension and Mobile impact is explicitly called out.
 
 ## Test Guidance
@@ -212,6 +225,8 @@ Also run build/type or generated contract checks when relevant:
 - Changelog validation when public package behavior changes
 
 If behavior changes, add or update tests in the closest package test suites.
+
+Constants-only EVM allowlist additions such as PR #9459 may require no new unit tests when existing generic EVM formatter and validator coverage applies. Still run the Bridge controller package tests to check for regressions.
 
 ## Required Agent Response Sections
 
