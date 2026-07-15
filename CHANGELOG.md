@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `analytics` domain: Sentry span-quota guard, Sentry MCP query workflows (including longer-range/30D+ query fidelity and percentile-sample-size filtering), release-over-release performance attribution, instrumentation methodology (including memoized-selector fan-out and incidentally-added instrumentation), and supporting knowledge
+
 ## [0.1.0]
 
 ### Added
