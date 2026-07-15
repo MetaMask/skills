@@ -22,8 +22,8 @@
 
 <!-- Mark completed items with an "x" -->
 
-- [ ] I have read the [CONTRIBUTING.md](../CONTRIBUTING.md) guidelines
-- [ ] My skill follows the [SKILL_TEMPLATE.md](.github/SKILL_TEMPLATE.md) format
+- [ ] I have read the [CONTRIBUTING.md](https://github.com/MetaMask/skills/blob/main/CONTRIBUTING.md) guidelines
+- [ ] My skill follows the [SKILL_TEMPLATE.md](https://github.com/MetaMask/skills/blob/main/.github/SKILL_TEMPLATE.md) format
 - [ ] I have tested this skill with an AI agent
 - [ ] My skill does not contain any secrets, private keys, or sensitive data
 - [ ] I have added appropriate documentation
