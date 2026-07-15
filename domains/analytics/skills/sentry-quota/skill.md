@@ -34,13 +34,17 @@ A custom span is a quota risk when these stack. The first three together are the
 
 Low fan-out + discrete user action + already gated = fine. Don't flag healthy spans.
 
+**The subtlest fan-out has no visible loop: a memoized selector.** A `trace` passed into a memoized selector (`createSelector` / `reselect`, or any function called from `useSelector`) fires on every input change by reference. If the selector also iterates entities, it is fan-out × recompute-frequency. Its volume tracks internal state-churn, not user action, so no user-facing metric predicts it — you cannot capacity-plan it. Treat any `trace` reaching a selector as fan-out.
+
 ## Workflow
 
 ### PR review (pre-merge gate)
-1. `gh pr diff <n>` — scan **added** lines for new `TraceName` entries and `trace(` call sites.
-2. Score each new span against the breach triad: is the enclosing scope a loop/poller? is there a gate? a kill-switch?
+1. `gh pr diff <n>` — scan **added** lines for three things, not two: new `TraceName` entries, new `trace(` call sites, **and a `trace`/trace-callback passed as an *argument*** into a call (`fn(…, trace)`). The third is the one reviews miss — a caller wiring up a function's optional `trace?` param adds instrumentation with no `trace(` site and no `TraceName` entry.
+2. Score each against the breach triad: is the enclosing scope a loop, poller, **or selector**? is there a gate? a kill-switch?
 3. Block if a new always-on span has no gate — require a sub-sample gate (`span-sub-sampling`) before merge. Cheaper than a post-ship cherry-pick.
-4. If the diff adds no `trace(` sites and no `TraceName` entries → "no new instrumentation, no quota risk", stop.
+4. If the diff adds no `trace(` sites, no `TraceName` entries, **and no `trace` argument passed into a call** → "no new instrumentation", stop.
+
+> **Instrumentation is not always added by an instrumentation PR.** The costliest spans arrive incidentally — a caller passes a `trace` argument into an existing function during an unrelated change (a bug fix, a refactor), so the PR's stated purpose gives no signal to review it for quota. Do not gate this scan on the PR *looking* like instrumentation. And accept the limit: a `trace` argument buried in a bug-fix diff will slip a human reviewer, which is why the runtime backstops (per-name volume alerting, the per-name sampler budget below) exist. This skill lowers the rate; it does not eliminate the class.
 
 ### Locate (incident)
 1. Grep the span name / `TraceName.X` across the consuming repo **and** the controller package source.
@@ -65,6 +69,8 @@ Pick the lowest tier that stops the bleed.
 
 Tier 0 + 1 stop the bleed now; Tier 2 is the follow-up so the metric returns.
 
+**Prevent the next one, not just this one.** Every tier above requires *naming* the offender first, so a new one runs unbounded until someone catches it. A per-transaction-name budget in the sampler — sample the first N of a name per session, then decay — bounds *any* name with no advance knowledge of which will misbehave. It is the only control that acts before the offender is named, and the only one that catches instrumentation added incidentally rather than deliberately.
+
 ## Common Pitfalls
 
 | Mistake | Correct approach |
@@ -76,3 +82,6 @@ Tier 0 + 1 stop the bleed now; Tier 2 is the follow-up so the metric returns.
 | Disable the span on `main` only | Cherry-pick to the active release branch — `main` alone leaves the live release breaching |
 | Treat "move to Segment" as free | Segment events ship without CI governance or billing review (`segment-governance`) |
 | Ship new always-on instrumentation with no kill-switch | Add an env disable flag on day one — turns a future cut into a config flip, not a cherry-pick |
+| An optional `trace?` param passes review because it emits nothing | It is a dormant fan-out — it detonates when any caller supplies the argument. Remove the *param*, not just the argument, so one line can't re-arm it. |
+| Disable one entry point of a multi-path change | One change can reach the backend by more than one path (a controller callback *and* a selector param). Audit every entry point it added, not just the one that fired. |
+| Filter a release before its successor is fixed | The filter redirects users onto the next build; if that carries the same span, volume only moves. Filter a release only once the build users update to is clean. |
