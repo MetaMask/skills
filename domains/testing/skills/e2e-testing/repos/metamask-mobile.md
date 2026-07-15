@@ -242,6 +242,80 @@ The following patterns are prohibited in test specs:
    await Assertions.expectElementToBeVisible(element);
    ```
 
+4. **Test-Step Helpers Belong in Page Objects or Flow Files, Not Spec Files**
+
+   Spec files must not define helper functions that perform test steps (UI interactions or multi-step navigation). Spec files should read as a sequence of high-level page object and flow calls. Inline step helpers hide test steps, cannot be reused across specs, and bypass the Page Object Model / Flow structure the framework mandates.
+
+   **Decision rule for where the logic belongs:**
+
+   - Touches a **single** page object → add a **method to that Page Object class**.
+   - Orchestrates **more than one** page object → move it to a **Flow file** (`e2e/flows/*.flow.ts`, e.g. the existing `flows/wallet.flow.ts`).
+
+   > This applies to helpers that perform **test steps** (UI/navigation/step logic). Small pure-data utilities are not the target.
+
+   The example below touches three page objects (`TabBarComponent`, `SettingsView`, `SyncAccountsSettingsView`), so it belongs in a flow file.
+
+   ❌ Incorrect — helper function performing test steps defined inside the `.spec.ts` file:
+
+   ```typescript
+   // qr-sync.spec.ts
+   async function navigateToSyncAccountsSettings(): Promise<void> {
+     await TabBarComponent.tapSettingButton();
+     await SettingsView.tapSyncAccounts();
+     await SyncAccountsSettingsView.expectScreenVisible();
+     await SyncAccountsSettingsView.waitForQrCode();
+   }
+
+   describe(SmokeE2E('QrSync'), () => {
+     it('syncs a single HD wallet to mobile', async () => {
+       await withFixtures(
+         { fixture: new FixtureBuilder().build(), restartDevice: true },
+         async () => {
+           await loginToApp();
+           await navigateToSyncAccountsSettings();
+           // ...
+         },
+       );
+     });
+   });
+   ```
+
+   ✅ Correct — move it to a flow file because it spans multiple page objects:
+
+   ```typescript
+   // e2e/flows/sync-accounts.flow.ts
+   import SettingsView from '../page-objects/Settings/SettingsView';
+   import SyncAccountsSettingsView from '../page-objects/Settings/SyncAccountsSettingsView';
+   import TabBarComponent from '../page-objects/wallet/TabBarComponent';
+
+   export async function navigateToSyncAccountsSettings(): Promise<void> {
+     await TabBarComponent.tapSettingButton();
+     await SettingsView.tapSyncAccounts();
+     await SyncAccountsSettingsView.expectScreenVisible();
+     await SyncAccountsSettingsView.waitForQrCode();
+   }
+   ```
+
+   ```typescript
+   // qr-sync.spec.ts
+   import { navigateToSyncAccountsSettings } from '../../flows/sync-accounts.flow';
+
+   describe(SmokeE2E('QrSync'), () => {
+     it('syncs a single HD wallet to mobile', async () => {
+       await withFixtures(
+         { fixture: new FixtureBuilder().build(), restartDevice: true },
+         async () => {
+           await loginToApp();
+           await navigateToSyncAccountsSettings();
+           // ...
+         },
+       );
+     });
+   });
+   ```
+
+   If the logic had touched only **one** page object, the correct fix would instead be to add a method to that page object class rather than create a flow.
+
 ## Handling Flaky Tests
 
 ### Common Issues and Solutions
@@ -302,6 +376,7 @@ Before submitting E2E tests, ensure:
 - [ ] All gestures have descriptive `description` parameters
 - [ ] Appropriate timeouts for operations (not magic numbers)
 - [ ] Page Object pattern used for complex interactions
+- [ ] No test-step/navigation helper functions defined in spec files — extract to a page object method (single page) or a flow file (multiple pages)
 - [ ] Element selectors defined once and reused
 - [ ] Framework configuration used appropriately
 - [ ] Error handling for expected failure scenarios
