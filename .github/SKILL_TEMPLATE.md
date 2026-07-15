@@ -1,97 +1,40 @@
 # Skill Template
 
-Use this template when creating a new `SKILL.md` file for your skill.
+Copy the block below into `domains/<domain>/skills/<skill-name>/skill.md` and replace the placeholders. See [Authoring a skill](../README.md#authoring-a-skill) for the canonical layout and the full frontmatter schema.
 
 ---
 
-# [Skill Name]
+```markdown
+---
+name: <skill-name>
+description: <one or two sentences, including when-to-use cues so agents can match this skill; keep it well under the operator limits, around 1,000 characters>
+maturity: experimental
+---
 
-> Brief one-line description of what this skill does.
+# <Skill Title>
 
-## Overview
+## When To Use
 
-A more detailed explanation of the skill's purpose and capabilities. What problem does it solve? Who is it for?
+- <the concrete condition that should trigger this skill>
+- <another triggering condition>
 
-## Prerequisites
+## Workflow
 
-List any requirements before using this skill:
+1. **<First step>.** State what the agent should do and how to tell it is done.
+2. **<Second step>.** Keep steps imperative and verifiable.
+3. **<Continue as needed>.** Reference supporting material in `references/` rather than inlining long content.
 
-- Required tools (e.g., Node.js, Python, specific CLI tools)
-- Required API keys or environment variables
-- Required knowledge or context
+## Common Pitfalls
 
-## Instructions
-
-Provide clear, step-by-step instructions for the AI agent to follow.
-
-### Step 1: [Action Name]
-
-Detailed instructions for the first step.
-
-```bash
-# Example command if applicable
-example-command --flag value
+| Pitfall | Rule |
+|---|---|
+| <a tempting wrong move> | <the rule that avoids it> |
+| <another common mistake> | <its rule> |
 ```
 
-### Step 2: [Action Name]
+## Notes for authors
 
-Detailed instructions for the second step.
-
-### Step 3: [Action Name]
-
-Continue with additional steps as needed.
-
-## Examples
-
-### Example 1: [Use Case Name]
-
-```
-User: "Help me [do something specific]"
-Agent: [Expected behavior or response]
-```
-
-### Example 2: [Another Use Case]
-
-Provide additional examples to clarify usage.
-
-## Configuration
-
-If the skill requires configuration, document it here:
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `param1` | string | Yes | — | Description of param1 |
-| `param2` | number | No | `10` | Description of param2 |
-
-## Troubleshooting
-
-### Common Issue 1
-
-**Problem:** Description of the issue.
-
-**Solution:** How to resolve it.
-
-### Common Issue 2
-
-**Problem:** Another common issue.
-
-**Solution:** Resolution steps.
-
-## Security Considerations
-
-Document any security implications:
-
-- What permissions does this skill require?
-- Are there any risks users should be aware of?
-- What data is accessed or transmitted?
-
-## References
-
-- [Link to official documentation](https://example.com)
-- [Link to related resources](https://example.com)
-
-## Changelog
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | YYYY-MM-DD | Initial release |
+- Keep `name` unprefixed and matching the skill's directory name. The installer adds the `mms-` prefix to the generated outputs.
+- `maturity` is optional and defaults to `stable`. Use `experimental` for new skills and `deprecated` on the way out.
+- Put supporting docs in `references/`, which the skill reads on demand, rather than expanding the description. The description is always loaded into the agent's discovery surface, while the body and references are not.
+- Add a `repos/<repo>.md` overlay only when a consuming repo needs repo-specific guidance. It is merged into the skill body at install time.
