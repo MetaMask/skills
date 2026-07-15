@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Add `coding` TypeScript knowledge: `derive-dont-define-types` (derive from authoritative types; ad-hoc types duplicate, run too wide, and drift) and `avoid-any` (`any` disables type checking — substitute by position: assignee -> `unknown`, assigned -> `never`)
 
 - Add `pr-workflow` skills (commit-discipline, diff-audit, pr-review-discipline + knowledge), `coding` skills (ts2589-workaround + TypeScript knowledge), and `general` skills (scope-lock, specifications-as-guardrails, diagnose-blockers)
 
