@@ -26,10 +26,26 @@ When tempted to write `any`, first identify which side of an assignment it sits 
   - ✅ `type Fn = () => unknown; const xs: unknown[]`
 - **Assigned `any`** — the value that _flows into_ a slot. **Try `never` first**, then widen to a subtype of the assignee type. `unknown` cannot substitute here (it is only assignable to `unknown`); `never` is the bottom type, assignable to everything.
 
-## Two more cases
+## Avoidance case — a generic default of `any`
 
-- **A generic parameter with a default of `any`** — always supply an explicit type argument. The `any` default silently poisons the instantiation otherwise.
-- **`any` inside a generic _constraint_** (e.g. `T extends Struct<any>`) may be acceptable — a constraint position does not assign `any` to a value.
+Some generic types default a parameter to `any` (e.g. `@types/jest` v27's `jest.fn()` → `Mock<any, any>`). Always supply explicit type arguments so the default can't silently poison the instantiation — and **derive** them from the target (`ReturnType<Fn>`, `Parameters<Fn>`), don't hand-write them.
+
+## The one acceptable exception — generic *constraints*
+
+`any` is acceptable in a generic **constraint**, and only there. It bounds a type parameter without being assigned to a value, so it does not pollute or infect.
+
+```typescript
+class BaseController<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Messenger extends RestrictedMessenger<N, any, any, string, string>,
+> // ...
+```
+
+The guideline attaches three conditions:
+
+- **Declare it explicitly.** The `no-explicit-any` rule is `error`, so a constraint `any` needs an inline `// eslint-disable-next-line @typescript-eslint/no-explicit-any` at the site — it is a deliberate, visible exception, not a silent one.
+- **Constraints only — never a generic _argument_.** Passing `any` as an argument (`ControllerMessenger<any, any>`) is 🚫 not acceptable: that assigns `any` and infects. Constraint-vs-argument is the entire distinction.
+- **Prefer a narrower constraint anyway.** A specific constraint gives better type safety and intellisense; reach for `any` here only when the narrower bound is genuinely unavailable.
 
 ## When it still seems unavoidable
 
