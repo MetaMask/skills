@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `platform` domain (extension errors/lifecycle debugging + architecture knowledge), `testing/benchmark-design`, `performance/browser-extension-profiling`, and `coding/resilient-api-collection`
+
 ## [0.1.0]
 
 ### Added
