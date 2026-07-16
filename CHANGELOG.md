@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `typescript-typing` skill (coding domain): the reasoning layer beneath `coding-guidelines`' TypeScript section — `any` as a type-checking-off directive with substitute-by-position guidance (assignee → `unknown`, assigned → `never`) and the generic-constraint exception, plus derive-types-from-authoritative-sources over ad-hoc declarations. Experimental.
+- Add `typescript` domain (experimental) with three skills: `avoid-any` (`any` is a type-checking-off directive, not a type — substitute by position: assignee → `unknown`, assigned → `never`; the one exception is a generic constraint), `derive-types` (derive from authoritative sources over ad-hoc declarations that duplicate, run too wide, and drift), and `decompose-large-files` (decompose a large file by coherent, independently-mergeable units for modularity, maintainability, and reviewability — and to unblock incremental TS migration).
 
 ## [0.2.0]
 
