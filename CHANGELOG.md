@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `typescript` domain (experimental) with three skills: `avoid-any` (`any` is a type-checking-off directive, not a type — substitute by position: assignee → `unknown`, assigned → `never`; the one exception is a generic constraint), `derive-types` (derive from authoritative sources over ad-hoc declarations that duplicate, run too wide, and drift), and `decompose-large-files` (decompose a large file by coherent, independently-mergeable units for modularity, maintainability, and reviewability — and to unblock incremental TS migration).
+- Add `typescript` domain (experimental) with four skills: `avoid-any` (`any` is a type-checking-off directive, not a type — substitute by position: assignee → `unknown`, assigned → `never`; two narrow exceptions: generic constraints and bivariant callback parameters), `derive-types` (derive from authoritative sources over ad-hoc declarations that duplicate, run too wide, and drift), `decompose-large-files` (decompose a large file by coherent, independently-mergeable units for modularity, maintainability, and reviewability — and to unblock incremental TS migration), and `migration-context-cost` (a file's JS→TS migration cost is dominated by context fan-in + fan-out, not line count — scope and sequence tickets by it).
 
 ## [0.2.0]
 
