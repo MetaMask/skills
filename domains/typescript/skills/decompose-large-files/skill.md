@@ -26,9 +26,13 @@ Extraction is worth it only when the extracted piece is a **coherent unit that c
 
 Some code should **stay** in the original file: the thin **composition / bootstrap root** that wires the modules together. Extracting the wiring itself fragments rather than clarifies — it is the one place the whole is assembled. The tell is code that references _everything_ (the central object plus the shared mutable state every cluster reads); relocating it behind a wide "params bag" just moves the tangle.
 
-## How to convert one unit (self-contained, per #41735)
+## Identifying the boundaries is the key — extraction is optional
 
-The extraction is not the point — **converting the file to TypeScript in small, self-contained units is.** Each unit is a piece you can type and review on its own instead of holding the whole file at once; pulling it into its own module is just what makes that unit self-contained and independently convertible. Each unit is one self-contained change — no separate "final deletion" or "integration" ticket:
+**The key step is identifying the coherent boundaries.** Once you know them, you can convert the file to TypeScript in small, self-contained units — type and review one cluster at a time — instead of holding the whole file at once. That is true whether or not you physically move anything: the boundary map is what makes incremental conversion possible, and documenting it (one unit per ticket) is the deliverable.
+
+**Extraction — moving a unit into its own module — is optional.** It buys modularity, reviewability, and a bounded per-unit change surface, so it is often worth doing, but you convert in units because you identified the boundaries, not because you moved the code. Extract where the move adds value; leave a cluster in place where it doesn't.
+
+When you *do* extract a unit, it is one self-contained change — no separate "final deletion" or "integration" ticket:
 
 1. **Scaffold** the module (its own file/dir, TypeScript from the start).
 2. **Port** the bodies in, unchanged in behavior.
