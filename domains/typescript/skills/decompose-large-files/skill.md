@@ -26,9 +26,9 @@ Extraction is worth it only when the extracted piece is a **coherent unit that c
 
 Some code should **stay** in the original file: the thin **composition / bootstrap root** that wires the modules together. Extracting the wiring itself fragments rather than clarifies — it is the one place the whole is assembled. The tell is code that references _everything_ (the central object plus the shared mutable state every cluster reads); relocating it behind a wide "params bag" just moves the tangle.
 
-## How to extract one unit (self-contained, per #41735)
+## How to convert one unit (self-contained, per #41735)
 
-Each extraction is one self-contained change — no separate "final deletion" or "integration" ticket:
+The extraction is not the point — **converting the file to TypeScript in small, self-contained units is.** Each unit is a piece you can type and review on its own instead of holding the whole file at once; pulling it into its own module is just what makes that unit self-contained and independently convertible. Each unit is one self-contained change — no separate "final deletion" or "integration" ticket:
 
 1. **Scaffold** the module (its own file/dir, TypeScript from the start).
 2. **Port** the bodies in, unchanged in behavior.

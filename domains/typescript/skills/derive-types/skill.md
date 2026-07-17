@@ -20,31 +20,44 @@ An ad-hoc type — one hand-defined to describe a value an authoritative type al
 
 ## A grounded example (`metamask-extension` #42583)
 
-A `wallet-services` module hand-wrote a slice of `NetworkController` state instead of deriving it.
+A `wallet-services` module hand-rolled a messenger type, re-declaring each controller action's signature and **hand-copying its return shape** inline.
 
-🚫 Re-declared — every field optional (wider than the real, _required_ field), keyed by `string` not `Hex`, and unlinked from the source, so it drifts silently when the controller changes:
+🚫 Reinvents the controller's messenger and re-states its action returns:
 
 ```typescript
-type NetworkControllerState = {
-  networkConfigurationsByChainId?: Record<
-    string,
-    {
-      defaultRpcEndpointIndex?: number;
-      rpcEndpoints?: { networkClientId?: string }[];
-    }
+type TokenResolutionMessenger = {
+  call(
+    action: 'AssetsContractController:getTokenStandardAndDetails',
+    address: string,
+    // …
+  ): Promise<
+    | {
+        balance?: string | number | bigint | { toString(radix?: number): string };
+        decimals?: string | number | bigint | { toString(radix?: number): string };
+        standard?: string;
+        symbol?: string;
+      }
+    | undefined
   >;
+  // the other action's return is discarded entirely:
+  call(action: 'AssetsContractController:getBalancesInSingleCall' /* … */): Promise<unknown>;
 };
 ```
 
-✅ Derived — tracks the authoritative shape (`Record<Hex, NetworkConfiguration>`), narrowed to the one field in use:
+✅ Derive each return from the controller's exported action type; don't hand-copy it:
 
 ```typescript
-import type { NetworkState } from '@metamask/network-controller';
+import type { AssetsContractControllerGetTokenStandardAndDetailsAction } from '@metamask/assets-controllers';
 
-type NetworkConfigurations = NetworkState['networkConfigurationsByChainId'];
+// the action already types its own return — derive it
+type TokenDetails = ReturnType<
+  AssetsContractControllerGetTokenStandardAndDetailsAction['handler']
+>;
 ```
 
-A too-wide copy does not save work; it moves the work downstream. The same PR typed a dependency as `getMetaMaskState: () => Record<string, unknown>`, so every consumer then had to re-cast the shape back by hand — including a `{ metamask: getMetaMaskState() } as never` double-cast. Deriving that dependency from the authoritative state type deletes the casts. The same file _did_ derive one type correctly (`type Action = (typeof ACTIONS)[number]`), so the pattern was already in hand; the discipline is extending it to every referenced type.
+The messenger itself should extend the controller's `RestrictedMessenger` parameterized with those exported action types, so every `call` signature comes from the controller rather than a hand-rolled overload. The hand-rolled version is worse than a plain duplicate: one return is hand-copied (already looser than the controller's real type), the other (`Promise<unknown>`) discards the type entirely.
+
+The same PR also typed a dependency `getMetaMaskState: () => Record<string, unknown>`, which forced every consumer to re-cast the shape by hand — including a `{ metamask: getMetaMaskState() } as never` double-cast. That downstream cast tax is what a too-wide type always imposes; deriving the dependency from the authoritative state type deletes it. Notably the same file _did_ derive one type correctly (`type Action = (typeof ACTIONS)[number]`), so the pattern was already in hand — the discipline is extending it to every referenced type.
 
 ## Rule
 
