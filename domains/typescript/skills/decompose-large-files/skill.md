@@ -10,6 +10,12 @@ A file that has grown to thousands of lines is hard to review, hard to maintain,
 
 Reference application: `metamask-extension` #41735 (`MetamaskController` decomposition, 9,260 → ~3,500 lines).
 
+## Why decompose first — even if the file could convert in one pass
+
+Documenting a large file's modularizable boundaries — one coherent unit per ticket — is worth doing **even if the file could somehow be converted and reviewed in a single PR**, because identifying those boundaries is the first logical step of _any_ migration process, human or AI. The boundary map is not throwaway scaffolding; it is the migration's own plan.
+
+And a single-pass conversion is impractical even for a capable AI. Converting a multi-thousand-line file in one PR means holding the entire file in context **and** progressively loading every upstream file whose source types the code should derive from (see `derive-types`) **and** every downstream file that imports it and must be updated. That context fan-in (source types) and fan-out (consumers) is the real cost — not the line count of the file itself. Decomposing shrinks each unit's context to one subject plus its seam, which is what makes the conversion tractable and reviewable at all.
+
 ## The decision that matters: what is a coherent unit?
 
 Extraction is worth it only when the extracted piece is a **coherent unit that can move independently**. Apply this judgment _before_ proposing any module:
