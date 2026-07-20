@@ -145,7 +145,7 @@ tools/
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
 | `pr-workflow`  | MM product eng    | PR title, description, changelog            |
-| `swaps`        | MM product eng    | Non-EVM swap integration                    |
+| `swaps`        | MM product eng    | EVM and non-EVM network integration         |
 | `testing`      | MM product eng    | E2E, unit, visual, perf testing             |
 | `ui`           | MM product eng    | Component development                       |
 
