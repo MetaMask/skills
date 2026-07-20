@@ -11,22 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- chore: Add docs for React Dev Tools Performance and Network tabs ([#71](https://github.com/MetaMask/skills/pull/71))
-- add: anti-pattern helper functions in spec files ([#67](https://github.com/MetaMask/skills/pull/67))
-- docs(swaps): add EVM network integration skills ([#66](https://github.com/MetaMask/skills/pull/66))
-- Add flaky-test-detection skill ([#61](https://github.com/MetaMask/skills/pull/61))
-- chore(perps): prefix all perps skill names with perps- ([#60](https://github.com/MetaMask/skills/pull/60))
-- chore(pr-workflow): add social-ai team to MetaMask Mobile codeowners overlay ([#53](https://github.com/MetaMask/skills/pull/53))
-- chore: Update design system UI skills ([#45](https://github.com/MetaMask/skills/pull/45))
-- docs(performance): recommend the Release Profiler → AI-agent .cpuprofile workflow ([#40](https://github.com/MetaMask/skills/pull/40))
-
-### Added
-
 - feat(skills): add controller-integration skill for mobile and extension ([#62](https://github.com/MetaMask/skills/pull/62))
 - feat(perps): add multiproject validation skill ([#48](https://github.com/MetaMask/skills/pull/48))
 - feat(perps): add write-perps-ticket product-authoring skill ([#58](https://github.com/MetaMask/skills/pull/58))
 - feat(perps): add breakdown-perps-tickets skill ([#57](https://github.com/MetaMask/skills/pull/57))
 - feat(ui): add component-scaffold skill for MetaMask Mobile ([#52](https://github.com/MetaMask/skills/pull/52))
+
+### Changed
+
+- chore: Update docs for React Dev Tools Performance and Network tabs ([#71](https://github.com/MetaMask/skills/pull/71))
+- chore(perps): prefix all perps skill names with perps- ([#60](https://github.com/MetaMask/skills/pull/60))
+- chore(pr-workflow): add social-ai team to MetaMask Mobile codeowners overlay ([#53](https://github.com/MetaMask/skills/pull/53))
+- chore: Update design system UI skills ([#45](https://github.com/MetaMask/skills/pull/45))
+- docs(performance): recommend the Release Profiler → AI-agent .cpuprofile workflow ([#40](https://github.com/MetaMask/skills/pull/40))
+- add: anti-pattern helper functions in spec files ([#67](https://github.com/MetaMask/skills/pull/67))
+- docs(swaps): add EVM network integration skills ([#66](https://github.com/MetaMask/skills/pull/66))
+- Add flaky-test-detection skill ([#61](https://github.com/MetaMask/skills/pull/61))
 
 ### Fixed
 
