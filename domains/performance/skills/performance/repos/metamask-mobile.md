@@ -61,6 +61,8 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 | **Real-time / websocket screen slow or janky** (prices, order book, live balances); slow only on first-open / after backgrounding | [mm-streaming-realtime.md](references/mm-streaming-realtime.md) |
 | **List re-renders fully even though children are memoized** (a hook returns a new array/object every render) | [mm-unstable-hook-return.md](references/mm-unstable-hook-return.md) |
 | FPS drops; want to localize JS vs UI thread | [js-measure-fps.md](references/js-measure-fps.md) → [js-profile-react.md](references/js-profile-react.md) |
+| Need a full timeline (React scheduler + JS + network) for a slow flow, not just re-renders | [js-performance-panel.md](references/js-performance-panel.md) |
+| Inspect network requests / API timings; is a slow screen data-bound or render-bound? | [js-network-panel.md](references/js-network-panel.md) |
 | Memory grows over a session | [js-memory-leaks.md](references/js-memory-leaks.md) / [native-memory-leaks.md](references/native-memory-leaks.md) |
 | Slow startup (TTI) | [native-measure-tti.md](references/native-measure-tti.md) → [bundle-analyze-js.md](references/bundle-analyze-js.md) |
 | Bundle too big / barrel imports / heavy lib | [bundle-barrel-exports.md](references/bundle-barrel-exports.md) → [bundle-analyze-js.md](references/bundle-analyze-js.md) → [bundle-library-size.md](references/bundle-library-size.md) |
