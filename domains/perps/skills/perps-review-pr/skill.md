@@ -59,9 +59,10 @@ loop, run each CLI as a live tmux pane instead of one-shot, and `/clear` between
 From the installed `knowledge/` dir: **review-antipatterns** (core checklist), architecture,
 connection-architecture, caching-architecture, formatting-rules, mobile-extension-map,
 shared-package-analysis, feature-flags, screens. Check both repos when a shared util/screen
-changes. For page/view test changes, also enforce the component-view test guidance: broad
-rendered UI behavior tests belong in the component-view framework/skill unless a focused unit
-test is explicitly justified.
+changes. For page/view test changes, enforce **review-antipatterns** § Component View Test
+Coverage (same Mobile rule as testing `knowledge/testing-layers.md`): broad rendered UI
+behavior tests belong in the component-view framework/skill unless a focused unit test is
+explicitly justified.
 
 ## Reviewer prompt (force a fresh full review every round)
 

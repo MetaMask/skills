@@ -8,6 +8,26 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 
 # Unit Testing Guidelines
 
+Peer of **component-view-test** for MetaMask Mobile. Choose the layer first; this skill is not the default for screen/view UI behavior.
+
+## When to use
+
+Use this skill when you need to:
+
+- Write or fix **focused** unit tests for pure helpers, local utilities, or narrow component contracts
+- Keep the **smallest** unit coverage for a case the CV framework cannot cover yet (document why)
+- Apply Jest/RTL conventions (naming, AAA, matchers) for allowed unit cases
+
+Do **not** use this skill as the default for full-screen / view UI behavior — use **component-view-test** (`*.view.test.tsx`) instead.
+
+## Testing layers (read first)
+
+Follow installed `knowledge/testing-layers.md` before choosing unit vs component-view vs e2e.
+
+- **Default for screen/view behavior:** `*.view.test.tsx` via the **component-view-test** skill — not a broad RTL unit test that mocks hooks/selectors.
+- **This skill applies when:** pure helpers, local utilities, narrow component contracts, or the CV framework cannot cover the case yet (smallest focused unit test + note why).
+- **Do not** add new full-page `*.test.tsx` files that render a screen and mock Redux/hooks to force UI state; convert or write CV instead.
+
 ## Test Naming Rules
 
 - **NEVER use "should" in test names** - this is a hard rule with zero exceptions

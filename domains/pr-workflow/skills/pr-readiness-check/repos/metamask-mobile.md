@@ -21,9 +21,16 @@ Scan the current branch diff for common issues that could be flagged during PR r
 
    For each new or modified source file with non-trivial logic changes (not just config, docs, or styles), check whether a corresponding test file was added or updated.
 
-   Heuristic: a source file `Foo.ts(x)` should have a matching `Foo.test.ts(x)` (or `Foo.view.test.tsx` for components). Warn if:
+   Prefer layers per the Mobile testing-layers policy (testing domain `knowledge/testing-layers.md`, installed beside `component-view-test` / `unit-testing`):
+
+   - **Screens / views / UI behavior via app state** → prefer `Foo.view.test.tsx` (component-view). Warn if the only new coverage is a broad `Foo.test.tsx` that renders the whole screen and mocks hooks/selectors.
+   - **Pure logic / helpers / narrow contracts** → `Foo.test.ts(x)` is appropriate.
+   - **CV cannot cover yet** → accept a focused unit test, but warn if the PR does not note why CV was not used.
+
+   Heuristic: a source file `Foo.ts(x)` should have matching `Foo.view.test.tsx` (for screens/views) and/or `Foo.test.ts(x)` (for allowed unit cases). Warn if:
    - New exported functions/components have no corresponding test file changes
    - Existing test files were not updated despite significant logic changes in the source
+   - A new or significantly changed screen only gained a broad unit screen test instead of a component-view test
 
 3. **Check for missing JSDoc**
 

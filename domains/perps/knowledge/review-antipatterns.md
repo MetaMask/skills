@@ -108,8 +108,10 @@ PRs that touch UI components must include testIDs so agentic recipes and E2E tes
 
 ## Component View Test Coverage
 
-Perps page/view tests should use the component-view test framework when they are exercising screen behavior through rendered UI and app state. Broad unit tests that render a page and mock hooks/selectors are a review smell.
+**Same rule as testing domain `knowledge/testing-layers.md` (Mobile; installed beside testing skills):** screen/view behavior through rendered UI and app state defaults to `*.view.test.tsx`; unit tests only for pure logic, narrow contracts, or when CV cannot cover (smallest focused test + reason). Broad unit tests that render a page and mock hooks/selectors are a review smell.
 
-- **Component-view behavior tested as a unit test** — files such as `ui/pages/perps/**/index.test.tsx` or `app/components/UI/Perps/**/*.test.tsx` that render a whole page/view and assert UI behavior should be converted to `*.view.test.tsx` using the component-view test framework/skill. Keep simple unit tests only for focused pure logic, local helper functions, or narrow component contracts.
+Perps-specific enforcement:
+
+- **Component-view behavior tested as a unit test** — files such as `ui/pages/perps/**/index.test.tsx` or `app/components/UI/Perps/**/*.test.tsx` that render a whole page/view and assert UI behavior should be converted to `*.view.test.tsx` using the component-view test framework/skill.
 - **Hook/selector mocking in a page behavior test** — mocking selectors, hooks, or service modules to force page state bypasses the real state wiring. Drive behavior through framework state presets/renderers instead. If the framework cannot cover the case yet, keep the unit test focused and link a follow-up for the missing framework support.
 - **Coverage drops during conversion** — converting to component-view tests must preserve the same coverage intent. If a scenario cannot move to component-view, document why and retain the smallest focused unit test needed to keep coverage.
