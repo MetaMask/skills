@@ -27,7 +27,7 @@ What are you testing?
 Page/view behavior exercised through rendered UI and real Redux/app state belongs in **`*.view.test.tsx`** using the `tests/component-view/` framework.
 
 - Drive state through presets/renderers — do **not** mock hooks or selectors to force UI state.
-- Only Engine and allowed native modules may be mocked.
+- Only the Engine and native modules may be mocked.
 - How to write/run: load the **component-view-test** skill.
 
 ## Unit tests (allowed cases)
