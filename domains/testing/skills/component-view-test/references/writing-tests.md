@@ -2,6 +2,8 @@
 
 Reference: [SKILL.md](../SKILL.md) · [Navigation & Mocking](navigation-mocking.md) · [Reference](reference.md)
 
+**Layer choice:** Component-view is the default for Mobile screen/view behavior. See installed `knowledge/testing-layers.md` before choosing unit tests instead.
+
 ---
 
 ## Read Before Writing

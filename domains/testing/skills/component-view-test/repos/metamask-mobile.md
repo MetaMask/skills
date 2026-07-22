@@ -4,15 +4,26 @@ parent: component-view-test
 ---
 
 
-# Component View Test Agent
+# Component View Testing Guidelines
 
-**Goal**: Create, update, and fix component view tests (`*.view.test.tsx`) in the MetaMask Mobile codebase using the `tests/component-view/` framework.
+Peer of **unit-testing** for MetaMask Mobile. Create, update, and fix component view tests (`*.view.test.tsx`) using the `tests/component-view/` framework.
+
+## When to use
+
+**Default Mobile layer** for screen/view UI behavior through real Redux/app state.
 
 Use this skill whenever you need to:
 
+- Cover new or changed screen/view behavior (prefer CV over broad unit tests)
 - Write a new component view test file
 - Update tests after a component or preset has changed
 - Diagnose and fix a failing component view test
+
+If the case is pure logic / helpers, or CV cannot cover it yet, use **unit-testing** for the smallest focused unit test and document why.
+
+## Testing layers (read first)
+
+Follow installed `knowledge/testing-layers.md` for the full decision tree (CV → unit fallback → e2e). This skill and **unit-testing** are peers — choose by layer, not by which doc is longer.
 
 Your job is to figure out whether the user needs to **write a new test**, **fix a failing test**, or **update tests after a component/preset change**, then follow the corresponding path and open the relevant reference when that path indicates.
 
