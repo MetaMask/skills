@@ -49,12 +49,17 @@ Output modes: `validation_only` (the default for these task classes), plus `pull
 
 A green result is real only if the evidence bundle is **non-empty** and contains the expected media. An agent chain can "pass" by skipping with zero artifacts. Always confirm artifacts exist — and show the claimed surface — before believing a pass or publishing. Never upgrade a zero-artifact run to "proven".
 
+## Concurrent runs
+
+Two validations on one machine share five mutable resources: CDP debug ports, e2e harness service ports, artifact directories, evidence-host upload paths, and commit pins on published links. Collisions cross-contaminate evidence silently — another session's logs attributed to your run is an integrity failure, not flakiness. Derive ports per run, keep one e2e run per worktree, namespace artifact directories and upload paths by run id, and pin published links only after your own final upload lands.
+
 ## Publishing evidence to the PR body
 
-Put the evidence where a reviewer expects it: the PR template's **Screenshots/Recordings → Before / After** section (see `pr-description`).
+Put the evidence where a reviewer expects it: the PR template's **Screenshots/Recordings → Before / After** section (see `pr-description`). Author-run validation publishes to the PR body, never as a PR comment.
 
 - Host images somewhere GitHub renders inline (an asset store the PR can reach) — a `localhost` or local file path will not render.
 - Convert recordings to GIF (e.g. `ffmpeg` two-pass palette); webm/mp4 don't render inline in PR bodies.
+- Pin repo-hosted artifact links to a commit with line anchors (`/blob/<sha>/…#Lx-Ly`) — branch refs are mutable and not tamper-evident.
 - Scrub local paths, usernames, and internal URLs from any narrative before posting.
 
 ## Reporting
@@ -68,7 +73,7 @@ Verdict: ✅ proven / ❌ refuted / ⚠️ inconclusive
 Evidence: <lane> — <artifact or link>, ...
 ```
 
-If a lane comes back inconclusive, say so and name what's missing.
+If a lane comes back inconclusive, say so and name what's missing. Verdict vocabulary is earned: report ✅ proven only when the published surface carries the exhibits `references/evidence-trustworthiness.md` requires — a completed run without them is run-complete, evidence-owed.
 
 ## Boundaries
 
