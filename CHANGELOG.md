@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `typescript` domain (experimental) — TypeScript authoring and JS→TS migration guidance.
+
 ## [0.2.0]
 
 ### Added
