@@ -751,7 +751,10 @@ function postinstall(args) {
     }
     const repo = resolveRepo(target, repoOverride);
     const result = delegate('sync', target, repo, passthrough);
-    return result === 0 ? 0 : 0;
+    if (result !== 0) {
+      warn(`auto-update failed with exit code ${result}`);
+    }
+    return 0;
   } catch (error) {
     warn(`auto-update failed: ${error instanceof Error ? error.message : String(error)}`);
     return 0;
