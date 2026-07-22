@@ -17,11 +17,11 @@ The Perps feature enables perpetual futures trading in MetaMask Mobile. This doc
 
 ## Quick Navigation
 
-- **[Connection Architecture](./perps-connection-architecture.md)** - Connection lifecycle, reconnection logic, WebSocket management
-- **[Screen Documentation](./perps-screens.md)** - Detailed view documentation
-- **[Sentry Integration](./perps-sentry-reference.md)** - Error tracking and monitoring
-- **[MetaMetrics Events](./perps-metametrics-reference.md)** - Analytics events
-- **[Protocol Documentation](./hyperliquid/)** - HyperLiquid protocol specifics
+- **[Connection Architecture](./connection-architecture.md)** - Connection lifecycle, reconnection logic, WebSocket management
+- **[Screen Documentation](./screens.md)** - Detailed view documentation
+- **[Sentry Integration](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-sentry-reference.md)** - Error tracking and monitoring
+- **[MetaMetrics Events](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-metametrics-reference.md)** - Analytics events
+- **[Protocol Documentation](https://github.com/MetaMask/metamask-mobile/tree/main/docs/perps/hyperliquid)** - HyperLiquid protocol specifics
 
 ## Layer Architecture
 
@@ -54,7 +54,7 @@ graph TD
 | **Perps Controller**   | Business logic, provider management, Redux state  | PerpsController (Redux controller)                 |
 | **Protocol Provider**  | Exchange-specific API implementation              | HyperLiquidProvider (REST + WebSocket)             |
 
-**See [perps-connection-architecture.md](./perps-connection-architecture.md) for detailed connection flow.**
+**See [perps-connection-architecture.md](./connection-architecture.md) for detailed connection flow.**
 
 ## Directory Structure
 
@@ -148,7 +148,7 @@ Main screen-level components representing full pages:
 - **PerpsRedirect** - Routing/redirect logic
 - **HIP3DebugView** - Developer debug interface
 
-**See [perps-screens.md](./perps-screens.md) for detailed view documentation.**
+**See [perps-screens.md](./screens.md) for detailed view documentation.**
 
 ### Hooks
 
@@ -329,7 +329,7 @@ const prices = useLivePrices({
 <Text>{prices.BTC?.price}</Text>
 ```
 
-**See [perps-connection-architecture.md](./perps-connection-architecture.md) for WebSocket architecture details.**
+**See [perps-connection-architecture.md](./connection-architecture.md) for WebSocket architecture details.**
 
 ### Background Preloading
 
@@ -364,7 +364,7 @@ Cache freshness is managed by the controller's 5-minute preload cycle, not by th
 | **~1-2s**    | Live WebSocket data replaces cache with real-time updates                            |
 | **On error** | `PerpsConnectionErrorView` renders (unchanged behavior)                              |
 
-**See [perps-connection-architecture.md](./perps-connection-architecture.md) for detailed preloading architecture.**
+**See [perps-connection-architecture.md](./connection-architecture.md) for detailed preloading architecture.**
 
 ### Form Management
 
@@ -511,7 +511,7 @@ const prices = useLivePrices({ symbols: ['BTC'], throttleMs: 100 });
 
 4. **Shared cache** ensures instant data availability for all subscribers
 
-**See [perps-connection-architecture.md](./perps-connection-architecture.md) for detailed stream architecture.**
+**See [perps-connection-architecture.md](./connection-architecture.md) for detailed stream architecture.**
 
 ## Quick Reference
 
@@ -540,7 +540,7 @@ Perps uses a multi-layered error handling approach:
 4. **Hook Layer** - Exposes errors to UI
 5. **Component Layer** - Displays errors to user
 
-**See [perps-sentry-reference.md](./perps-sentry-reference.md) for error tracking details.**
+**See [perps-sentry-reference.md](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-sentry-reference.md) for error tracking details.**
 
 ## Analytics
 
@@ -551,7 +551,7 @@ All user interactions are tracked via MetaMetrics events:
 - Connection events (connect, disconnect, errors)
 - Deposit/withdrawal flows
 
-**See [perps-metametrics-reference.md](./perps-metametrics-reference.md) for complete event catalog.**
+**See [perps-metametrics-reference.md](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-metametrics-reference.md) for complete event catalog.**
 
 ## Development Guidelines
 
@@ -577,7 +577,7 @@ All user interactions are tracked via MetaMetrics events:
 2. Follow naming: `Perps[Feature]View`
 3. Use hooks for data access (not direct controller calls)
 4. Add to navigation in `routes/index.tsx`
-5. Document in [perps-screens.md](./perps-screens.md)
+5. Document in [perps-screens.md](./screens.md)
 
 ### Before Committing
 
@@ -636,7 +636,7 @@ Multi-protocol architecture with provider abstraction:
 - **`AggregatedPerpsProvider`** - Wraps multiple providers behind the `PerpsProvider` interface
 - **`SubscriptionMultiplexer`** - Merges WebSocket subscriptions from multiple providers
 
-**See [hyperliquid/](./hyperliquid/) directory for HyperLiquid-specific documentation.**
+**See [hyperliquid/](https://github.com/MetaMask/metamask-mobile/tree/main/docs/perps/hyperliquid) directory for HyperLiquid-specific documentation.**
 
 ## Migration Notes
 
@@ -666,11 +666,11 @@ Migrated from per-section `PerpsConnectionProvider` lifecycle management to a si
 
 ## Additional Resources
 
-- **[Perps Screens](./perps-screens.md)** - Detailed view documentation
-- **[Connection Architecture](./perps-connection-architecture.md)** - Connection management deep dive
-- **[Sentry Integration](./perps-sentry-reference.md)** - Error tracking
-- **[MetaMetrics Events](./perps-metametrics-reference.md)** - Analytics events
-- **[HyperLiquid Docs](./hyperliquid/)** - Protocol documentation
+- **[Perps Screens](./screens.md)** - Detailed view documentation
+- **[Connection Architecture](./connection-architecture.md)** - Connection management deep dive
+- **[Sentry Integration](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-sentry-reference.md)** - Error tracking
+- **[MetaMetrics Events](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-metametrics-reference.md)** - Analytics events
+- **[HyperLiquid Docs](https://github.com/MetaMask/metamask-mobile/tree/main/docs/perps/hyperliquid)** - Protocol documentation
 
 ## Questions?
 

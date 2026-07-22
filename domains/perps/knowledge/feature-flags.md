@@ -67,7 +67,7 @@ interface VersionGatedFeatureFlag {
 
 ### String Flags (for A/B Tests)
 
-See [Perps A/B Testing Framework](./perps-ab-testing.md) for variant-based flags.
+See [Perps A/B Testing Framework](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-ab-testing.md) for variant-based flags.
 
 ---
 
@@ -277,6 +277,6 @@ The `minimumVersion` field ensures features only activate on compatible app vers
 
 ## Related Documentation
 
-- [Perps A/B Testing Framework](./perps-ab-testing.md)
-- [Perps Connection Architecture](./perps-connection-architecture.md)
-- [Perps MetaMetrics Reference](./perps-metametrics-reference.md)
+- [Perps A/B Testing Framework](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-ab-testing.md)
+- [Perps Connection Architecture](./connection-architecture.md)
+- [Perps MetaMetrics Reference](https://github.com/MetaMask/metamask-mobile/blob/main/docs/perps/perps-metametrics-reference.md)
