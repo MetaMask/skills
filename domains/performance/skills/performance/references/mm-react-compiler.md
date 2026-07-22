@@ -51,6 +51,8 @@ React Compiler auto-memoizes components, callbacks, and computed values at build
 
 On opted-in paths you can gradually drop hand-written `useMemo`/`useCallback`/`React.memo` once the compiler is verified working — but do it deliberately and re-measure. Off opted-in paths, manual memoization still matters.
 
+**Exception — effect dependencies.** Keep any `useMemo`/`useCallback` whose output is used as a `useEffect` dependency, here or in a consumer: the compiler's memoization is not guaranteed to match the manual strategy, and a mismatch causes over/under-firing of effects or infinite loops — a correctness change, not a perf tweak. Official guidance is to leave existing manual memoization in place and only omit it in *new* code ([reactwg/react-compiler#16](https://github.com/reactwg/react-compiler/discussions/16)).
+
 ## What breaks compilation (it will skip the component)
 
 - Mutating props or state during render.
@@ -68,4 +70,5 @@ Fix the ESLint `react-compiler` warnings on a path before/after opting it in.
 ## Related
 
 - [js-react-compiler.md](js-react-compiler.md) — upstream reference on how the compiler transforms code
+- [mm-react-compiler-error-triage.md](mm-react-compiler-error-triage.md) — triaging compiler errors (`Todo`/unsupported vs actionable), `panicThreshold` ratcheting, and measuring real coverage
 - [mm-selector-memoization.md](mm-selector-memoization.md) — fix data-layer re-renders the compiler can't

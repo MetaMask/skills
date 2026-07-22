@@ -83,5 +83,6 @@ For each hit, ask: *does this dependency change identity every render?* If yes, 
 
 ## Related
 
+- [mm-useeffect-antipatterns.md](mm-useeffect-antipatterns.md) — the effect-body side: derived state, effect chains, unmount-safe async, cleanup
 - [js-react-compiler.md](js-react-compiler.md) / [mm-react-compiler.md](mm-react-compiler.md) — automatic memoization on opted-in paths
 - [js-concurrent-react.md](js-concurrent-react.md) — defer expensive derived work
