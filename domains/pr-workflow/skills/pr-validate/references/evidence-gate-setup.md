@@ -40,6 +40,15 @@ Resolve the path to wherever `pr-validate` lives on disk. Note that `tools/insta
 
 These are independent of the hook; the skill needs them whether or not you install the gate.
 
-1. **`gh pr comment` must be permitted.** pr-validate posts its evidence bundle as a PR review comment, so `gh pr comment` (and `gh pr edit` if you publish into the PR body) must be in your operator's permission allow/ask list. In Claude Code, add it to `permissions.allow` (or `permissions.ask`) in `settings.json`, e.g. `"Bash(gh pr comment:*)"`.
+1. **`gh pr comment` must be permitted — pick a grant model.** pr-validate posts its evidence bundle as a PR review comment (`gh pr edit` if publishing into your own PR body). Four options, in descending order of standing safety:
+
+   | Model | How | Tradeoff |
+   |---|---|---|
+   | **`ask` (recommended)** | `"Bash(gh pr comment:*)"` in `permissions.ask` | Per-post confirmation prompt. Combined with this hook (content gate) and a draft-confirm habit, that's three independent layers. |
+   | **`allow` + hook** | same pattern in `permissions.allow`, hook wired | Frictionless posting; safety rests entirely on the hook and your draft discipline. Only sensible where the hook is actually installed — not for operators without hook support. |
+   | **Allowlisted wrapper** | keep raw `gh pr comment` denied; allowlist a small script that takes `--repo`/`--pr`/`--body-file`, checks preconditions (canonical header present), and is the only sanctioned path | Tightest scoping — the raw verb stays blocked; costs a script to maintain. |
+   | **No grant — manual post** | the model prepares the body file; you run `gh pr comment <n> --repo <owner/repo> --body-file <file>` yourself | Zero standing grant; you are the bottleneck. The universal fallback, and the only option on operators with no permission system. |
+
+   Avoid a bare **deny** on the comment verbs if you use this skill: it hard-blocks the publish step with no prompt, which reads as a mysterious failure mid-run.
 
 2. **Image re-hosting needs your own public evidence repo.** Screenshots and recordings captured locally must be re-hosted to a public URL before a reviewer can see them (see items 8–9 in `evidence-trustworthiness.md`). This repo is **yours to provide** — set it to a public repo you control, referenced here as `<your-evidence-host-repo>`. There is no shared/default host: parameterize it in your own configuration and push captures there, then reference the resulting raw URLs in the PR comment. Do not hardcode someone else's host.
