@@ -40,6 +40,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 - **Long-task / TBT** — main-thread blocking: `window.stateHooks.getLongTaskMetricsWithTBT()` (`ui/helpers/utils/performance-observers.ts`). TBT lives here, not in the web-vitals lane.
 - **React render & selector** — WDYR (`ENABLE_WHY_DID_YOU_RENDER`, wired in `app/scripts/development/wdyr.ts`) for unnecessary re-renders; `yarn devtools:react` for the flame graph. Selectors use `reselect`; no built-in call counter — prove via WDYR.
 - **Benchmark A/B** — `yarn test:e2e:benchmark` (presets in `shared/constants/benchmarks.ts`). The rolling baseline sits behind a `continue-on-error` step and can silently freeze — verify it's current and prefer a **paired A/B** (build both refs, compare directly). See `performance-testing` / `ab-testing`.
+  - **Treatment check first** — before trusting a delta, confirm the mechanism under test is active in each arm (split chunk present in head, absent in base; the span emitted; the flag evaluated). An arm without the treatment delivered is a no-op, not a control — a paired A/B built on it reports noise as signal.
 - **DevTools / CDP** *(manual)* — flame chart, network waterfall, JS coverage, heap snapshots over a flow (memory leaks), CPU throttling (`Emulation.setCPUThrottlingRate`), animation FPS. No repo helper — DevTools or `mm cdp`.
 
 **Build output**
@@ -51,6 +52,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 
 **Production telemetry**
 - **Sentry query links** — before/after error-rate / transaction / latency, scoped to the release. For PRs that *add/change span instrumentation* (volume), use the analytics span-quota skill instead.
+  - For a **perf-targeting PR** the lead evidence is the measured impact — and CI publishes it: metamaskbot posts a base-vs-merge-base benchmark matrix on every PR, the published A/B. Read the **primary table (vs the baseline commit)**; ignore the *vs previous 5 runs on main* section — its baseline moves, so opposite-signed deltas for one metric across presets are drift. Mechanism evidence (chunk membership, a request absent from the network waterfall) proves the win *possible*, never that it *happened*.
 - **Distributed traces** — a span/transaction now appears / is shaped correctly.
 
 **Extension integrity**

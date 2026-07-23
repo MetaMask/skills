@@ -2,6 +2,8 @@
 
 Full runs: claim → lanes → capture → trust-gate → publish. The visual case is in the skill's main instructions; these cover the non-visual claim shapes.
 
+**Publish surface follows ownership.** Put the bundle in the **PR body** when you authored the PR — the evidence is part of your own claim. Post it as a **comment** when validating someone else's PR, rather than editing another author's body. The examples below say "in the PR body" for brevity; substitute a comment on PRs you don't own.
+
 ## Perf — "defer Rive wasm at startup"
 - **Claim:** on cold start of the home view, the Rive wasm chunk isn't requested until the animation surface mounts. **Surface:** startup network + chunk graph. **Falsifier:** the chunk appears in the cold-start waterfall. **Baseline:** base requests it at startup.
 - **Lanes:** AEP perf validation (primary) → chunk membership + CDP netlog (corroborate).
