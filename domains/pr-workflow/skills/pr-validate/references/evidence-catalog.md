@@ -4,7 +4,9 @@ The menu of evidence kinds for validating a `metamask-extension` PR, with **what
 
 Pick the evidence that would **falsify the claim if it were false**. Prefer a lane that yields an artifact a reviewer can independently re-check (a link, image, number, or replayable trace) over prose. Match, then capture — don't run the whole menu. Verify any `yarn` script name against the repo's `package.json`; they drift.
 
-**Rely on CI for routine coverage.** Lint, build, typecheck, the full test suite, and changelog validation are already run by CI — cite the check result (e.g. "N pass / 0 fail at head") instead of re-collecting it. Spend independent evidence only on the claim's load-bearing falsifier, on specifically important/noteworthy areas (security, money, permissions, the exact changed surface), or where a green result could be vacuous/misattributed. Re-collecting what CI covers is bundle noise.
+**Rely on CI for routine coverage.** Lint, build, typecheck, the full test suite, and changelog validation are already run by CI — cite the check result (e.g. "N pass / 0 fail at head") instead of re-collecting it. Spend independent evidence only on the claim's load-bearing falsifier, on specifically important/noteworthy areas (security, money, permissions, the exact changed surface), or where a green result could be vacuous/misattributed. Re-collecting what CI covers is bundle noise. And **don't restate CI results in the published comment** — the reviewer already sees the Checks tab; reference a CI result only to highlight something specific.
+
+**Publish falsifier-forward.** The published bundle should foreground **what would have falsified the claim and how each falsifier is closed** — the falsifier is the load-bearing content, not a footnote. Lead with the disproof attempt and the evidence that rules it out, not a lane inventory.
 
 ## Matching guide (claim → lanes)
 
