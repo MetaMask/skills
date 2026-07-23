@@ -14,6 +14,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 |---|---|---|
 | a visible UI behavior | visual (`visual-testing` / AEP `visual_validation`) | recording for motion; a11y |
 | a fixed bug (any) | **falsifying test** — fails on `main`, passes on the branch | visual if visible; Sentry if it errored |
+| a concurrency / ordering guarantee (retry, cancellation, supersession, debounce, race) | **deterministic interleaving test** — fake timers + concurrent launch force each race; assert the ordering/cancellation outcome | transition telemetry; live forced-race capture |
 | preload / no-double-fetch / lazy-load | AEP `perf_validation` | DevTools CDP netlog, chunk membership |
 | a render / over-render fix | WDYR + React DevTools | startup traces |
 | interaction responsiveness | INP, long-task TBT | DevTools profile |
@@ -34,6 +35,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 **Behavior & flow**
 - **Visual before/after** — UI on a real headed build with controlled state/network. Capture via `visual-testing` (`yarn build:test:webpack` → `dist/chrome`; `mm launch` / `describe-screen` / `screenshot`; `mm mock-network` for degraded paths). Or AEP `visual_validation` (autonomous: deterministic seed + agent navigation).
 - **E2E trace + video** — a replayable full-flow proof. Playwright: `yarn playwright test <spec>` (trace `on` by default; view `yarn test:e2e:pw:report`). Selenium: `yarn test:e2e:single <path> --browser chrome|firefox [--retries n]` (screenshots auto on failure). See `e2e-test`.
+- **Deterministic interleaving test** — for a concurrency/ordering claim (retry, cancellation, supersession, debounce, locks, queues), the correctness *is* the ordering under races. Force each race deterministically: `jest.useFakeTimers()` + `advanceTimersByTimeAsync(DELAY)` to fire the delayed action at a known point, `Promise.all([opA, opB])` to overlap, `advanceTimersByTimeAsync(0)` to step to a precise interleaving point, then assert the ordering/cancellation outcome — including **asymmetric** guarantees (one path canceled, another must complete). **Trust-gate:** the test must actually interleave (time advanced into the pending window, concurrent op injected *during* it) — a sequential run exercises no race and is a vacuous green.
 - **Falsifying regression test** — the strongest single proof a fix targets the bug: a new test that **fails on `main`, passes on the branch**. Show both runs. Reach for it on every bug fix.
 - **Component / Storybook** — a component across states in isolation: `yarn storybook`, `yarn test-storybook` (visual + a11y via the Storybook a11y addon). See `component-view-test`.
 - **Flaky-stability rerun** — run N× to prove non-flakiness (Playwright `--retries`, Selenium `--retries n`). See `e2e-flakiness-patterns`.
