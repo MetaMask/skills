@@ -4,6 +4,8 @@ The menu of evidence kinds for validating a `metamask-extension` PR, with **what
 
 Pick the evidence that would **falsify the claim if it were false**. Prefer a lane that yields an artifact a reviewer can independently re-check (a link, image, number, or replayable trace) over prose. Match, then capture — don't run the whole menu. Verify any `yarn` script name against the repo's `package.json`; they drift.
 
+**Rely on CI for routine coverage.** Lint, build, typecheck, the full test suite, and changelog validation are already run by CI — cite the check result (e.g. "N pass / 0 fail at head") instead of re-collecting it. Spend independent evidence only on the claim's load-bearing falsifier, on specifically important/noteworthy areas (security, money, permissions, the exact changed surface), or where a green result could be vacuous/misattributed. Re-collecting what CI covers is bundle noise.
+
 ## Matching guide (claim → lanes)
 
 | The PR claims… | Lead with | Corroborate |
@@ -46,7 +48,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 **Build output**
 - **Bundle-size diff** — measured grow/shrink (bundle-size CI or local build comparison).
 - **Chunk membership** — a module moved to the intended lazy chunk (webpack build; source-map membership).
-- **LavaMoat policy diff** — no new global/builtin/package capability: regenerate `lavamoat/webpack/build/policy.json` (`yarn webpack:lavamoat:policy:build`) and `git diff`; new entries need justification.
+- **LavaMoat policy / supply-chain capability diff** — audit what a dependency change (bump/add) grants. For a bump the policy *will* change, so the bar is **not** "empty diff" — it's **every new grant justified by the dep's function**. Regenerate `lavamoat/webpack/.../policy.json` (`yarn webpack:lavamoat:policy:build`, `:mv2`/`:mv3`) and `git diff` across **all build variants** (a grant can appear in one and not others), then read **grant-by-grant**: new **globals** (`fetch`, `importScripts`, `WebAssembly`) / **builtins** (`fs`, `child_process`) on a dep that shouldn't need them, new **packages** edges to powerful APIs, or an identifier substitution (`pkgC>name` replacing `pkgB>pkgA>name` = possible dep swap). Falsifier: a surprising grant ("what's it using this for?"). Guide: [lavamoat policy-diff](https://lavamoat.github.io/guides/policy-diff/).
 - **Manifest permissions diff** — no scope creep: `git diff app/manifest/v{2,3}/_base.json`.
 - **Build-variant matrix** — works across types: `yarn build:test:flask` / `:beta` / `:mv2`.
 
