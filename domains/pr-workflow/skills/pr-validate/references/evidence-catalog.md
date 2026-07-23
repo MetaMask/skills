@@ -20,7 +20,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 | interaction responsiveness | INP, long-task TBT | DevTools profile |
 | startup / load timing | benchmark A/B (paired) | startup phase traces, FCP/LCP |
 | smaller/cleaner bundle | bundle-size diff | chunk membership |
-| a memory leak fixed | heap-over-a-flow | benchmark over time |
+| a memory leak fixed / introduced | **retention-path from code** — holder → held set → outlived boundary | heap-over-a-flow + retainer graph; lifecycle test |
 | an error/crash fixed | Sentry rate→0 | falsifying test, visual |
 | a dependency change is safe | LavaMoat policy + manifest diff | bundle-size |
 | persisted-state change | **state migration** (`changedKeys`, old→new) | vault round-trip |
@@ -48,6 +48,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 - **Benchmark A/B** — `yarn test:e2e:benchmark` (presets in `shared/constants/benchmarks.ts`). The rolling baseline sits behind a `continue-on-error` step and can silently freeze — verify it's current and prefer a **paired A/B** (build both refs, compare directly). See `performance-testing` / `ab-testing`.
   - **Treatment check first** — before trusting a delta, confirm the mechanism under test is active in each arm (split chunk present in head, absent in base; the span emitted; the flag evaluated). An arm without the treatment delivered is a no-op, not a control — a paired A/B built on it reports noise as signal.
 - **DevTools / CDP** *(manual)* — flame chart, network waterfall, JS coverage, heap snapshots over a flow (memory leaks), CPU throttling (`Emulation.setCPUThrottlingRate`), animation FPS. No repo helper — DevTools or `mm cdp`.
+- **Retention-path from code** — the lead lane for a memory-leak claim, and the one that works at review time: name the **holder** (listener, closure, module singleton, accumulating collection, timer), the **held set** (the specific objects pinned — list the closure's captures), and the **outlived boundary** (`destroy()`, stream close, instance replacement). Method: pair every acquire with its release site (`on`↔`removeListener`, push↔drain, assign↔null) — the absence of the pair, cited at the acquire site, is the finding. Distinguish bounded staleness from unbounded growth, and introduced from pre-existing. Corroborate with a lifecycle test (force the boundary, assert release) and heap-over-a-flow with the retainer graph naming the same path.
 
 **Build output**
 - **Bundle-size diff** — measured grow/shrink (bundle-size CI or local build comparison).
