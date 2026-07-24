@@ -19,6 +19,8 @@ Complements `pr-readiness-check` (which checks that tests and guidelines are *pr
 
 Not for code-correctness review.
 
+The rules this skill decides by — falsifiability, in-situ evidence, trust gates, when to stop — are collected in `references/principles.md`. Read them once; they govern every case the instructions below do not name.
+
 ## The core move: match evidence to the claim
 
 A PR makes a **falsifiable claim** ("privacy mode now hides the Perps balance"; "hovering the asset row preloads the chart with no double-fetch"; "this cuts startup latency"). Validation = pick the evidence that would **falsify the claim if it were false**, then capture it. Don't run a fixed checklist.
