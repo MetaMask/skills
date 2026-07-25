@@ -23,7 +23,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 | a memory leak fixed / introduced | **retention-path from code** — holder → held set → outlived boundary | heap-over-a-flow + retainer graph; lifecycle test |
 | an error/crash fixed | Sentry rate→0 | falsifying test, visual |
 | a dependency change is safe | LavaMoat policy + manifest diff | bundle-size |
-| persisted-state change | **state migration** (`changedKeys`, old→new) | vault round-trip |
+| persisted-state change | **state migration** — transform (defer to CI) + **double-apply idempotence** on combined state | unrelated-key preservation; vault round-trip |
 | tx / confirmation behavior | transaction simulation | e2e trace |
 | dapp / provider behavior | provider connectivity (EIP-1193/6963) | e2e trace |
 | flag-gated behavior | feature-flag matrix (on/off) | visual per state |
@@ -64,7 +64,7 @@ Pick the evidence that would **falsify the claim if it were false**. Prefer a la
 - **Distributed traces** — a span/transaction now appears / is shaped correctly.
 
 **Extension integrity**
-- **State migration** — a persisted-state change doesn't corrupt existing users: `app/scripts/migrations/NNN.test.js` asserts `meta.version` and that `changedKeys` covers only mutated controllers. Scaffold with `./development/generate-migration.sh NNN`.
+- **State migration** — a persisted-state change doesn't corrupt existing users. The transform itself is CI-covered: each migration ships `app/scripts/migrations/NNN.test.js` asserting `meta.version`, the shape, and that `changedKeys` covers only mutated controllers — **defer to it**. Independent evidence goes to what those per-path fixtures never do: **run the whole `migrate()` twice** on state that **combines** the branches (the migration rarely clears its source, so interrupted/re-entrant re-runs happen in the field) and assert the second application is a no-op — byte-identical output, empty `changedKeys`. Corroborate no-loss by counting migrated entries in vs out and confirming unrelated keys are byte-preserved; the removal/cleanup paths (a migration that strips entries) are where a double-apply most plausibly breaks. Scaffold with `./development/generate-migration.sh NNN`. Exemplar: #42297 (unified assets-controller migration) — idempotent across EVM + non-EVM + slip44-cleanup on combined synthetic state.
 - **Vault / keyring round-trip** — lossless encrypt→decrypt (`app/scripts/lib/encryptor-factory.ts`; `test/e2e/tests/vault-corruption/`).
 - **Transaction simulation / gas** — balance-changes/gas correct before submit (`app/scripts/lib/transaction/containers/enforced-simulations.ts`; `test/e2e/tests/simulation-details/`).
 - **Provider / dapp connectivity** — injection + connect + requests: `yarn dapp` (test-dapp on :8080); EIP-6963 `test/e2e/provider/eip-6963.spec.js`.
