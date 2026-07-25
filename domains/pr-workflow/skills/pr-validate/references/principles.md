@@ -23,8 +23,11 @@ specific instruction, decide by these.
   provenance — and a transcription is a place to be selective without noticing you are
   being selective. Check what a harness *imports*: a harness that re-implements the code
   under test evidences only itself, however it is presented.
-- **Reproducibility of assertions** — every figure resolves to something the reader can
-  reopen: a linked run, a quoted line, a re-issuable query.
+- **Reproducibility of assertions** — the bar is not that the reader *can* re-run it (a
+  working link is the floor) but that they *needn't*: the exhibit is complete enough — the
+  numbers, the window, the method, the control — that reading it makes the result
+  near-certain. The re-issuable link/query is a backstop for the skeptic, offered second,
+  never the headline.
 
 ## Why believe it
 
