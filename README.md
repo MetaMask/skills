@@ -205,7 +205,7 @@ METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
     "skills:postinstall": "metamask-skills postinstall"
   },
   "devDependencies": {
-    "@metamask/skills": "^0.1.0"
+    "@metamask/skills": "^0.2.0"
   }
 }
 ```
@@ -252,6 +252,7 @@ tools/install \
 | `--exclude`      | none | Comma-separated skill opt-outs (`domain/skill` or `skill`). Explicit excludes win. Repeatable. |
 | `--save`         | off | Persist CLI domain/maturity/include/exclude choices to `.skills.local`. CLI flags are one-off unless this is passed. |
 | `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
+| `--prune-stale`  | off      | Remove installed project-scope `mms-*` skills that are outside the resolved source/filter selection. |
 | `--dry-run`      | off      | Preview without writing                                                          |
 
 **Install-all default with granular overrides.** Stable skills install for every
@@ -278,6 +279,12 @@ yarn skills \
   --exclude testing/visual-testing \
   --save
 ```
+
+Use `--prune-stale` or `SKILLS_PRUNE_STALE=1` when a repo should converge to the
+current selection and remove old generated `mms-*` project skills. This is wider
+than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/`
+inside an installed skill, while prune-stale removes whole generated skill
+directories that no longer exist in the resolved source/filter set.
 
 Recipe skills currently live in the experimental `agentic` domain. Install all
 lower-level recipe tools in this rollout with `--domain agentic --maturity

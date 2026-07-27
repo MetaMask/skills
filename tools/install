@@ -33,6 +33,7 @@ INCLUDE_FILTER=""
 EXCLUDE_FILTER=""
 DRY_RUN=false
 INCLUDE_USER=false
+PRUNE_STALE=false
 SOURCES=()
 
 usage() {
@@ -61,6 +62,8 @@ Optional:
   --include-user      Also install skills with \`scope: user\` (writes to
                       \$HOME/.claude/skills and \$HOME/.codex/skills, outside
                       the target repo). Off by default — warns + lists them.
+  --prune-stale       Remove installed project-scope mms-* skills that are not
+                      expected from this source/filter selection.
   --dry-run           Preview without writing files
   -h, --help          Show this help
 
@@ -84,6 +87,7 @@ while [[ $# -gt 0 ]]; do
     --include|--skill) INCLUDE_FILTER="${INCLUDE_FILTER:+$INCLUDE_FILTER,}$2"; shift 2 ;;
     --exclude)       EXCLUDE_FILTER="${EXCLUDE_FILTER:+$EXCLUDE_FILTER,}$2"; shift 2 ;;
     --include-user)  INCLUDE_USER=true; shift ;;
+    --prune-stale)   PRUNE_STALE=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
     -h|--help)       usage 0 ;;
     *)               echo "Unknown arg: $1"; usage ;;
@@ -374,7 +378,7 @@ copy_domain_knowledge() {
   else
     if $DRY_RUN; then
       [[ -e "$dest_dir/knowledge" ]] && action "$label/knowledge/ (remove stale)"
-      return
+      return 0
     fi
     rm -rf "$dest_dir/knowledge"
   fi
@@ -388,6 +392,46 @@ copy_project_bundles() {
   copy_domain_knowledge "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
   copy_bundle_dirs "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
   copy_domain_knowledge "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
+}
+
+expected_project_skill_contains() {
+  local needle="$1" item expected_count i
+  set +u
+  expected_count=${#EXPECTED_PROJECT_SKILLS[@]}
+  set -u
+  for ((i = 0; i < expected_count; i++)); do
+    item="${EXPECTED_PROJECT_SKILLS[$i]}"
+    [[ "$item" == "$needle" ]] && return 0
+  done
+  return 1
+}
+
+is_managed_project_skill() {
+  local dir="$1" label="$2" marker
+  case "$label" in
+    .cursor/rules) marker="$dir/RULE.md" ;;
+    *) marker="$dir/SKILL.md" ;;
+  esac
+  [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"
+}
+
+remove_stale_project_skills() {
+  local parent label dir
+  for entry in \
+    "$CLAUDE_DIR|.claude/skills" \
+    "$CURSOR_DIR|.cursor/rules" \
+    "$AGENTS_DIR|.agents/skills"; do
+    parent="${entry%%|*}"
+    label="${entry#*|}"
+    for dir in "$parent"/${PREFIX}*; do
+      [[ -e "$dir" ]] || continue
+      [[ -d "$dir" ]] || continue
+      expected_project_skill_contains "$(basename "$dir")" && continue
+      is_managed_project_skill "$dir" "$label" || continue
+      action "$label/$(basename "$dir") (remove stale managed skill)"
+      $DRY_RUN || rm -rf "$dir"
+    done
+  done
 }
 
 copy_user_bundles() {
@@ -492,6 +536,7 @@ ${overlay_content}"
   write_cursor "$out_name" "$description" "$merged"
   write_agents "$out_name" "$out_name" "$description" "$merged"
   copy_project_bundles "$skill_dir" "$out_name"
+  EXPECTED_PROJECT_SKILLS+=("$out_name")
 }
 
 preflight_skill() {
@@ -536,6 +581,7 @@ echo "  domain:   ${DOMAIN_FILTER:-<all>}"
 echo "  maturity: $MATURITY_FILTER"
 echo "  include:  ${INCLUDE_FILTER:-<none>}"
 echo "  exclude:  ${EXCLUDE_FILTER:-<none>}"
+echo "  prune:    $PRUNE_STALE"
 echo "  dry-run:  $DRY_RUN"
 
 # Two-pass resolution: collect (domain, skill_dir) per name across all sources,
@@ -547,6 +593,7 @@ RESOLVED_DIRS=()
 RESOLVED_DOMAINS=()
 SKIPPED_USER_SKILLS=()
 FAILED_SKILLS=()
+EXPECTED_PROJECT_SKILLS=()
 
 find_resolved_index() {
   local needle="$1"
@@ -607,6 +654,8 @@ for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
   log "skill: $(basename "${RESOLVED_DIRS[$i]}")"
   process_skill "${RESOLVED_DIRS[$i]}" "$domain_name"
 done
+
+$PRUNE_STALE && remove_stale_project_skills
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."

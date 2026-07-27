@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in stale project skill pruning via `--prune-stale` and `SKILLS_PRUNE_STALE=1`.
+
 ## [0.2.0]
 
 ### Added
