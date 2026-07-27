@@ -53,6 +53,7 @@ Or use the installer to drop all `web3-tools/` skills at once:
 metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/component-view-test
+metamask-skills describe testing/integration-test
 metamask-skills describe testing/unit-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
 metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
@@ -61,14 +62,15 @@ metamask-skills install       # lower-level installer wrapper
 
 The discovery commands make opt-in selection self-serve. Developers can find a
 skill, inspect it, then save their selection. On Mobile, prefer installing
-**component-view-test** and **unit-testing** together (CV is the default view
-layer; unit is the peer fallback — see `domains/testing/knowledge/testing-layers.md`):
+**component-view-test**, **integration-test**, and **unit-testing** together
+(see `domains/testing/knowledge/testing-layers.md` for layer selection):
 
 ```bash
 metamask-skills list --domain testing
 metamask-skills describe testing/component-view-test
+metamask-skills describe testing/integration-test
 metamask-skills describe testing/unit-testing
-metamask-skills sync --include testing/component-view-test --include testing/unit-testing --save
+metamask-skills sync --include testing/component-view-test --include testing/integration-test --include testing/unit-testing --save
 ```
 
 Consumer repos should prefer this CLI over copying sync/postinstall scripts.

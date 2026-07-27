@@ -4,7 +4,7 @@
 
 Use this decision tree whenever adding or reviewing tests for Mobile code.
 
-**Peer skills:** `component-view-test` and `unit-testing` are documented at the same level. Choose by this tree — do not treat unit-testing as the primary testing guide.
+**Peer skills:** `component-view-test`, `integration-test`, and `unit-testing` are documented at the same level. Choose by this tree — do not treat unit-testing as the primary testing guide.
 
 ## Decision tree
 
@@ -14,6 +14,10 @@ What are you testing?
 │  → Write or update ComponentName.view.test.tsx (component-view-test skill)
 │  → If the CV framework cannot cover the case yet:
 │     → Smallest focused unit test + note why CV cannot
+│
+├─ App-to-controller seam / controller flow with I/O isolated
+│  → Write or update *.integration.test.ts (integration-test skill)
+│  → Exercise real controllers/providers/services through a domain harness
 │
 ├─ Pure logic / helpers / narrow component contracts
 │  → Focused unit test (unit-testing skill)
@@ -29,6 +33,15 @@ Page/view behavior exercised through rendered UI and real Redux/app state belong
 - Drive state through presets/renderers — do **not** mock hooks or selectors to force UI state.
 - Only the Engine and native modules may be mocked.
 - How to write/run: load the **component-view-test** skill.
+
+## Integration tests
+
+Behavior that crosses the app-to-controller seam belongs in **`*.integration.test.ts`** using the `tests/integration/` framework.
+
+- Run real controller, provider, service, validation, and state-transition code.
+- Mock only the I/O boundary; Shape B/C harnesses may also mock documented app-shell glue while preserving the real target chain.
+- Reuse a per-domain harness. Test files must not add one-off `jest.mock(...)` declarations.
+- How to write/run: load the **integration-test** skill.
 
 ## Unit tests (allowed cases)
 
