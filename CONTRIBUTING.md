@@ -56,11 +56,18 @@ A well-crafted skill should:
    - `repos/<consuming-repo>.md` — Repo-specific overlays (`metamask-extension.md`,
      `metamask-mobile.md`, `core.md`)
 
-6. **Test your skill** — Install locally against a consumer repo before submitting:
+6. **Test your skill** — Install locally against a consumer repo before submitting.
+   `--repo` must match the repo you are installing into:
 
    ```bash
-   # From this checkout, install into a target repo:
+   # Mobile:
    ./tools/install --repo metamask-mobile --target /path/to/metamask-mobile --domain <area>
+
+   # Core:
+   ./tools/install --repo core --target /path/to/core --domain <area>
+
+   # dApp / Web3:
+   ./tools/install --repo my-dapp --target /path/to/my-dapp --domain web3-tools
 
    # Or exercise the CLI package:
    yarn smoke

@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add opt-in stale project skill pruning via `--prune-stale` and `SKILLS_PRUNE_STALE=1`.
 
-### Fixed
+### Changed
 
 - Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
 
