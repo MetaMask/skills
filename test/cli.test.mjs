@@ -195,7 +195,7 @@ describe('managed skill pruning', () => {
     assert.equal(existsSync(stale), true);
   });
 
-  test('wires prune through the public sync CLI flag and environment variable', () => {
+  test('wires prune through the public sync CLI flag and accepted environment values only', () => {
     const fromFlag = writeInstalledSkill('.agents/skills', 'mms-cli-flag-stale', 'SKILL.md', true);
     const flagResult = runCli(['sync', '--target', target, '--repo', 'core', '--prune-stale'], {
       METAMASK_SKILLS_DIR: source,
@@ -212,6 +212,15 @@ describe('managed skill pruning', () => {
 
     assert.equal(envResult.status, 0, `${envResult.stdout}\n${envResult.stderr}`);
     assert.equal(existsSync(fromEnv), false);
+
+    const fromDisabledEnv = writeInstalledSkill('.agents/skills', 'mms-cli-disabled-env-stale', 'SKILL.md', true);
+    const disabledEnvResult = runCli(['sync', '--target', target, '--repo', 'core'], {
+      METAMASK_SKILLS_DIR: source,
+      SKILLS_PRUNE_STALE: '0',
+    });
+
+    assert.equal(disabledEnvResult.status, 0, `${disabledEnvResult.stdout}\n${disabledEnvResult.stderr}`);
+    assert.equal(existsSync(fromDisabledEnv), true);
   });
 
   test('does not prune stale skills when installation fails', () => {
