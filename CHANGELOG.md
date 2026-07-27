@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout (remove leftover OpenClaw references).
+- Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
 
 ## [0.2.0]
 
