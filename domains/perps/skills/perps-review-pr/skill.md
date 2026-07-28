@@ -59,9 +59,10 @@ loop, run each CLI as a live tmux pane instead of one-shot, and `/clear` between
 From the installed `knowledge/` dir: **review-antipatterns** (core checklist), architecture,
 connection-architecture, caching-architecture, formatting-rules, mobile-extension-map,
 shared-package-analysis, feature-flags, screens. Check both repos when a shared util/screen
-changes. For page/view test changes, enforce **review-antipatterns** § Component View Test
+changes. For test changes, enforce **review-antipatterns** § Test Layer
 Coverage (same Mobile rule as testing `knowledge/testing-layers.md`): broad rendered UI
-behavior tests belong in the component-view framework/skill unless a focused unit test is
+behavior tests belong in the component-view framework/skill, and controller/provider flows
+belong in `*.integration.test.ts` via the perps harnesses, unless a focused unit test is
 explicitly justified.
 
 ## Reviewer prompt (force a fresh full review every round)
@@ -70,7 +71,7 @@ explicitly justified.
 Fresh full review of perps changes in <PR/branch> at <SHA> vs <base>. No prior context.
 Load installed perps knowledge (`knowledge/`, review-antipatterns + the rest). You gate this before any human sees it.
 Every perps anti-pattern AND every nit (naming, magic number, missing testID, weak test,
-component-view behavior left as broad unit tests, .toFixed, fallback-display vs 0) = BLOCKER.
+component-view behavior left as broad unit tests, controller/provider flows faked with mocks instead of integration tests, .toFixed, fallback-display vs 0) = BLOCKER.
 APPROVE only if nothing is left to improve.
 Return:
 VERDICT: APPROVE | REQUEST_CHANGES

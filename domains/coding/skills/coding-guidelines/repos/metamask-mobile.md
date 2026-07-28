@@ -22,10 +22,11 @@ parent: coding-guidelines
 
 **Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside testing skills):
 1. **Component-view** (`*.view.test.tsx`) — **default** for screen/view UI behavior via real app state (`component-view-test` skill)
-2. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet (`unit-testing` skill)
-3. **E2E** — full device / multi-screen Appium flows (`e2e-test` skill)
+2. **Integration** (`*.integration.test.ts`) — app-to-controller flows with real controllers/providers/services and only the I/O boundary mocked (`integration-test` skill)
+3. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet (`unit-testing` skill)
+4. **E2E** — full device / multi-screen Appium flows (`e2e-test` skill)
 
-Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Load **component-view-test** and **unit-testing** as peer skills (same documentation level); choose by layer, not by which skill is more familiar.
+Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Load **component-view-test**, **integration-test**, and **unit-testing** as peer skills (same documentation level); choose by layer, not by which skill is more familiar.
 
 **File Organization**:
 ```
@@ -33,6 +34,7 @@ ComponentName/
 ├── ComponentName.{constants,stories,styles,types}.ts(x)
 ├── ComponentName.tsx
 ├── ComponentName.view.test.tsx   # preferred for screen/view behavior
+├── ComponentName.integration.test.ts # app-to-controller flow (see testing-layers)
 ├── ComponentName.test.ts(x)      # focused unit only (see testing-layers)
 ├── README.md
 └── index.ts
@@ -47,8 +49,9 @@ ComponentName/
 **External**: [MetaMask Contributor Docs](https://github.com/MetaMask/contributor-docs) • [TypeScript Guidelines](https://github.com/MetaMask/contributor-docs/blob/main/docs/typescript.md)
 
 **Testing (Mobile, peer layers)**:
-- Layers policy: testing domain `knowledge/testing-layers.md` (beside `component-view-test` / `unit-testing` when installed)
+- Layers policy: testing domain `knowledge/testing-layers.md` (beside `component-view-test` / `integration-test` / `unit-testing` when installed)
 - Component-view (default for views): `component-view-test` skill
+- Integration (app-to-controller flows): `integration-test` skill
 - Unit (helpers / CV fallback): `unit-testing` skill • [Contributor unit testing docs](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md)
 - E2E (device journeys): `e2e-test` skill
 
@@ -58,6 +61,6 @@ ComponentName/
 
 **Commands**: ONLY use `.claude/commands/` + yarn command
 
-**Testing**: CV default for views → unit for allowed fallback → e2e for Appium. Load `component-view-test` and `unit-testing` as peers (plus `e2e-test` when needed); follow testing domain `knowledge/testing-layers.md` when those skills are installed.
+**Testing**: CV default for views → integration for app-to-controller flows → unit for allowed fallback → e2e for Appium. Load `component-view-test`, `integration-test`, and `unit-testing` as peers (plus `e2e-test` when needed); follow testing domain `knowledge/testing-layers.md` when those skills are installed.
 
 **Forbidden**: ❌ npm/npx commands
