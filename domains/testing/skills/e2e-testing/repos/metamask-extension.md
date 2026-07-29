@@ -417,6 +417,84 @@ The following patterns are prohibited in test specs:
    await somePage.waitForLoadingToComplete();
    ```
 
+4. **Test-Step Helpers Belong in Page Objects or Flow Files, Not Spec Files**
+
+   Spec files must not define helper functions that perform test steps (UI interactions or multi-step navigation). Spec files should read as a sequence of high-level page object and flow calls. Inline step helpers hide test steps, cannot be reused across specs, and bypass the Page Object Model / Flow structure the framework mandates.
+
+   **Decision rule for where the logic belongs:**
+
+   - Touches a **single** page object → add a **method to that Page Object class**.
+   - Orchestrates **more than one** page object → move it to a **Flow file** (`test/e2e/page-objects/flows/*.flow.ts`).
+
+   > This applies to helpers that perform **test steps** (UI/navigation/step logic). Small pure-data utilities are not the target.
+
+   The example below touches three page objects (`HeaderNavbar`, `SettingsPage`, `SyncAccountsSettingsPage`), so it belongs in a flow file.
+
+   ❌ Incorrect — helper function performing test steps defined inside the `.spec.ts` file:
+
+   ```typescript
+   // qr-sync.spec.ts
+   async function navigateToSyncAccountsSettings(
+     driver: Driver,
+   ): Promise<SyncAccountsSettingsPage> {
+     const headerNavbar = new HeaderNavbar(driver);
+     await headerNavbar.openSettingsPage();
+
+     const settingsPage = new SettingsPage(driver);
+     await settingsPage.checkPageIsLoaded();
+     await settingsPage.goToSyncAccountsSettings();
+
+     const syncAccountsPage = new SyncAccountsSettingsPage(driver);
+     await syncAccountsPage.checkPageIsLoaded();
+     await syncAccountsPage.waitForQrCode();
+     return syncAccountsPage;
+   }
+
+   describe('QrSync', function () {
+     it('syncs a single HD wallet to mobile', async function () {
+       // ...
+       const syncAccountsPage = await navigateToSyncAccountsSettings(driver);
+       // ...
+     });
+   });
+   ```
+
+   ✅ Correct — move it to a flow file because it spans multiple page objects:
+
+   ```typescript
+   // test/e2e/page-objects/flows/sync-accounts.flow.ts
+   export async function navigateToSyncAccountsSettings(
+     driver: Driver,
+   ): Promise<SyncAccountsSettingsPage> {
+     const headerNavbar = new HeaderNavbar(driver);
+     await headerNavbar.openSettingsPage();
+
+     const settingsPage = new SettingsPage(driver);
+     await settingsPage.checkPageIsLoaded();
+     await settingsPage.goToSyncAccountsSettings();
+
+     const syncAccountsPage = new SyncAccountsSettingsPage(driver);
+     await syncAccountsPage.checkPageIsLoaded();
+     await syncAccountsPage.waitForQrCode();
+     return syncAccountsPage;
+   }
+   ```
+
+   ```typescript
+   // qr-sync.spec.ts
+   import { navigateToSyncAccountsSettings } from '../../page-objects/flows/sync-accounts.flow';
+
+   describe('QrSync', function () {
+     it('syncs a single HD wallet to mobile', async function () {
+       // ...
+       const syncAccountsPage = await navigateToSyncAccountsSettings(driver);
+       // ...
+     });
+   });
+   ```
+
+   If the logic had touched only **one** page object, the correct fix would instead be to add a method to that page object class rather than create a flow.
+
 ## Handling Flaky Tests
 
 ### Common Issues and Solutions
@@ -515,6 +593,7 @@ Before submitting E2E tests, ensure:
 - [ ] Page Object pattern used for all UI interactions
 - [ ] Element selectors defined in page objects, not in test specs
 - [ ] No hardcoded selectors in test files
+- [ ] No test-step/navigation helper functions defined in spec files — extract to a page object method (single page) or a flow file (multiple pages)
 - [ ] Proper TypeScript type annotations used for variables and method parameters
 
 ### Test Reliability

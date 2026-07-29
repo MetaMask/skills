@@ -1,97 +1,103 @@
 # Skill Template
 
-Use this template when creating a new `SKILL.md` file for your skill.
+Use this template when creating a new skill under `domains/<area>/skills/<skill-name>/skill.md`.
+
+Copy the block below into `skill.md` and replace the placeholders.
 
 ---
 
-# [Skill Name]
+```markdown
+---
+name: example-skill
+description: >-
+  One or two sentences: what the skill does, plus when_to_use cues
+  (e.g. "Use when asked to …, or for …"). Keep the full description
+  within 1,536 characters.
+maturity: stable
+---
 
-> Brief one-line description of what this skill does.
+# Example Skill
 
-## Overview
+Brief overview of purpose and who it is for (dApp builders vs MetaMask product eng).
 
-A more detailed explanation of the skill's purpose and capabilities. What problem does it solve? Who is it for?
+## When to use
+
+- Trigger phrases / tasks this skill owns
+- Out of scope (what it should not do)
 
 ## Prerequisites
 
-List any requirements before using this skill:
-
-- Required tools (e.g., Node.js, Python, specific CLI tools)
-- Required API keys or environment variables
-- Required knowledge or context
+- Required tools (Node, `gh`, device/browser, etc.)
+- Required env vars or access
+- Required knowledge or related skills
 
 ## Instructions
 
-Provide clear, step-by-step instructions for the AI agent to follow.
+Step-by-step guidance the agent should follow.
 
-### Step 1: [Action Name]
-
-Detailed instructions for the first step.
+### Step 1: …
 
 ```bash
 # Example command if applicable
 example-command --flag value
 ```
 
-### Step 2: [Action Name]
-
-Detailed instructions for the second step.
-
-### Step 3: [Action Name]
-
-Continue with additional steps as needed.
+### Step 2: …
 
 ## Examples
 
-### Example 1: [Use Case Name]
+### Example 1: …
 
 ```
-User: "Help me [do something specific]"
-Agent: [Expected behavior or response]
+User: "…"
+Agent: …
 ```
-
-### Example 2: [Another Use Case]
-
-Provide additional examples to clarify usage.
-
-## Configuration
-
-If the skill requires configuration, document it here:
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `param1` | string | Yes | — | Description of param1 |
-| `param2` | number | No | `10` | Description of param2 |
 
 ## Troubleshooting
 
-### Common Issue 1
+### Common issue
 
-**Problem:** Description of the issue.
+**Problem:** …
 
-**Solution:** How to resolve it.
+**Solution:** …
 
-### Common Issue 2
+## Security considerations
 
-**Problem:** Another common issue.
+- Permissions required
+- Risks or data accessed
+```
 
-**Solution:** Resolution steps.
+## Optional repo overlay
 
-## Security Considerations
+If the skill only applies to specific consumer repos, add overlays:
 
-Document any security implications:
+```
+domains/<area>/skills/<skill-name>/repos/metamask-mobile.md
+```
 
-- What permissions does this skill require?
-- Are there any risks users should be aware of?
-- What data is accessed or transmitted?
+```yaml
+---
+repo: metamask-mobile
+parent: example-skill
+---
 
-## References
+# Mobile-specific guidance
 
-- [Link to official documentation](https://example.com)
-- [Link to related resources](https://example.com)
+Content here merges into the base skill body at install time for that repo.
+```
 
-## Changelog
+Skills with a `repos/` directory but no overlay matching `--repo` are skipped
+for that target. Skills with no `repos/` directory install for any target.
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | YYYY-MM-DD | Initial release |
+## Optional supporting dirs
+
+- `references/` — deeper docs, API notes, images
+- `scripts/` — helper scripts invoked by the skill
+- `adapters/` — runtime payloads used by scripts
+
+## Notes
+
+- Source filename is **`skill.md`** (lowercase). Consumer install output uses
+  the `mms-` prefix and operator-specific names (`SKILL.md`, `RULE.md`).
+- `maturity`: `experimental` | `stable` | `deprecated` (default `stable`).
+- See [Authoring a skill](../README.md#authoring-a-skill) in the README for full details.

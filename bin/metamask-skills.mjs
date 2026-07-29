@@ -34,7 +34,7 @@ Discover skills:
   describe <skill>  Show one skill; accepts skill, mms-skill, or domain/skill
 
 Common selection options:
-  --domain <list> --maturity <level> --include <list> --exclude <list> --save --dry-run
+  --domain <list> --maturity <level> --include <list> --exclude <list> --save --prune-stale --dry-run
 
 Repo inference:
   1. --repo <name>
