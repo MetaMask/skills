@@ -11,7 +11,7 @@ Security screening for an AI skills repository. Skills are instructions executed
 
 ## Scope
 
-Changed files under `domains/**` (skills/knowledge/checklists markdown), `tools/**`, `bin/**`, and CI workflow changes.
+Changed files under `domains/**` — including skill instructions, knowledge, checklists, scripts, configuration, references, and other supporting files — plus `tools/**`, `bin/**`, and CI workflow changes.
 
 ## Report ONLY these classes (changed lines)
 
@@ -24,7 +24,7 @@ Changed files under `domains/**` (skills/knowledge/checklists markdown), `tools/
 ### 2. Credential access & data exfiltration
 
 - Instructions to read credential material: `~/.ssh`, `.env`, keychains, cloud credential paths, browser profiles, wallet/keyring data
-- Sending repo content, environment values, or user data to external endpoints not already used by the repo (webhooks, pastebins)
+- Sending repo content, environment values, credential material, or user data to external endpoints, including new or materially expanded data flows to endpoints already used by the repo, unless the transmission is clearly required and documented
 - Hardcoded secrets: tokens, API keys, private keys, credentialed DSNs — even in examples (require placeholders)
 
 ### 3. Unsafe execution & safety-control bypass
