@@ -29,7 +29,7 @@ For full architecture, component locations, and safety details, see the on-deman
 # Verify the iOS toolchain (Xcode, idb, idb_companion, booted simulator)
 yarn mm:doctor
 
-# Install idb if MM_IOS_DEPENDENCY_MISSING is reported
+# Install idb if MM_DEPENDENCIES_MISSING is reported
 brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb
 
 # Build/install MetaMask separately if it is not already installed
@@ -51,9 +51,14 @@ yarn mm launch
 
 # Pin a simulator if needed
 yarn mm launch --device-id <UDID>
+
+# Install a specific build before launching
+yarn mm launch --app-bundle ios/build/MetaMask.app
 ```
 
 There is only one supported environment: prod. Do not request or switch launch contexts. Supplying `--context e2e` is rejected.
+
+`--reinstall`, `--reset-app-data`, and `--allow-fox-code-mismatch` are destructive to the installed wallet state and are guarded (a destructive flag requires `--app-bundle`). See [references/cli-reference.md](references/cli-reference.md#destructive-launch-flags).
 
 ### 2. Reuse Knowledge
 
@@ -119,6 +124,9 @@ For JS development, attach the installed development app to Metro:
 
 ```bash
 yarn watch:clean
+yarn mm launch --metro-port 8081
+
+# Equivalent, still supported (the flag wins when both are set)
 MM_METRO_PORT=8081 yarn mm launch
 ```
 
@@ -162,12 +170,14 @@ The input must be an object containing `steps`, not a bare array.
 
 ## Error Recovery
 
-- `MM_IOS_DEPENDENCY_MISSING`: `idb` is not installed. Run `yarn mm:doctor`, then `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb`.
+- `MM_DEPENDENCIES_MISSING`: Xcode command-line tools or `idb` are missing. Run `yarn mm:doctor`, then `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb`.
 - `MM_WAIT_TIMEOUT`: target did not become visible; describe the screen and verify scope/test ID.
 - `MM_CLICK_TIMEOUT`: click may have completed; describe before retrying.
 - `MM_TYPE_TIMEOUT`: field interaction stalled; inspect focus and use a fresh target.
-- `MM_IOS_RUNNER_NOT_READY`: verify simulator and that MetaMask is installed.
-- `MM_IOS_APP_IDENTITY_MISMATCH`: this is an internal safety check; reuse the existing installed app or install a matching app outside the mm workflow.
+- `MM_DEVICE_NOT_AVAILABLE`: no simulator is booted, the UDID does not exist, or `simctl` failed. Run `xcrun simctl list devices` and boot one; verify MetaMask is installed.
+- `MM_INVALID_CONFIG`: the launch options are unusable — no app and no `--app-bundle`, a destructive flag without `--app-bundle`, a `fox_code` mismatch, or an unreachable Metro port. Read the remediation text; reuse the installed app or install a matching build.
+
+Launch errors use core `ErrorCode`s (not `MM_IOS_*`): `@metamask/client-mcp-core` collapses unknown consumer codes into `MM_LAUNCH_FAILED`, so iOS detail is carried in the message and remediation.
 
 For the full error-code table and troubleshooting, see [references/error-recovery.md](references/error-recovery.md).
 
