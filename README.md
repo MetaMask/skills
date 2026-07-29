@@ -63,14 +63,17 @@ metamask-skills install       # lower-level installer wrapper
 The discovery commands make opt-in selection self-serve. Developers can find a
 skill, inspect it, then save their selection. On Mobile, prefer installing
 **component-view-test**, **integration-test**, and **unit-testing** together
-(see `domains/testing/knowledge/testing-layers.md` for layer selection):
+(see `domains/testing/knowledge/testing-layers.md` for layer selection). For
+cross-layer audits (inventory → disposition → Jira/PR report), also install
+experimental **test-layer-placement**:
 
 ```bash
 metamask-skills list --domain testing
 metamask-skills describe testing/component-view-test
 metamask-skills describe testing/integration-test
 metamask-skills describe testing/unit-testing
-metamask-skills sync --include testing/component-view-test --include testing/integration-test --include testing/unit-testing --save
+metamask-skills describe testing/test-layer-placement
+metamask-skills sync --include testing/component-view-test --include testing/integration-test --include testing/unit-testing --include testing/test-layer-placement --maturity experimental --save
 ```
 
 Consumer repos should prefer this CLI over copying sync/postinstall scripts.

@@ -6,6 +6,8 @@ Use this decision tree whenever adding or reviewing tests for Mobile code.
 
 **Peer skills:** `component-view-test`, `integration-test`, and `unit-testing` are documented at the same level. Choose by this tree — do not treat unit-testing as the primary testing guide.
 
+**Orchestrator:** For a code area / Jira / PR audit across all layers (inventory → disposition → optional implement → Jira + PR report), use **`test-layer-placement`**. Default mode is analyze-only. Unit↔CV overlap migrate/delete is a sub-pass of that skill.
+
 ## Decision tree
 
 ```
