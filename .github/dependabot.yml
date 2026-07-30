@@ -1,0 +1,14 @@
+version: 2
+
+updates:
+  # Actions are pinned to commit hashes, which means they never move on their own —
+  # a pinned action is frozen at whatever it was when someone typed it, security
+  # fixes included. Dependabot is what makes pinning safe rather than merely static:
+  # it opens a PR when the tag a pin tracks moves, keeping the trailing version
+  # comment and the hash in step.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'ci'
