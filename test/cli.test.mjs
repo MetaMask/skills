@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -327,5 +327,70 @@ describe('installed knowledge references resolve', () => {
         );
       }
     }
+  });
+});
+
+describe('corpus: knowledge citations resolve within their own domain', () => {
+  // `knowledge/` is copied per DOMAIN, so a skill can only cite files from its own
+  // domain's knowledge dir. A citation naming another domain's file can never resolve
+  // for any consumer or operator — the skill installs fine and the reference dangles.
+  //
+  // Known-unresolved, tracked separately; the list must only ever shrink. Each entry is
+  // a cross-domain citation of testing/knowledge/testing-layers.md, which the installer
+  // has no way to deliver into these domains.
+  const KNOWN_UNRESOLVED = new Set([
+    'domains/coding/skills/coding-guidelines/repos/metamask-mobile.md → knowledge/testing-layers.md',
+    'domains/perps/skills/perps-review-pr/skill.md → knowledge/testing-layers.md',
+    'domains/pr-workflow/skills/pr-guidelines/repos/metamask-mobile.md → knowledge/testing-layers.md',
+    'domains/pr-workflow/skills/pr-readiness-check/repos/metamask-mobile.md → knowledge/testing-layers.md',
+  ]);
+
+  function collectCitations(domainsDir) {
+    const found = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && entry.name.endsWith('.md')) {
+          const rel = path.relative(path.join(domainsDir, '..'), full).split(path.sep).join('/');
+          if (!rel.includes('/skills/')) continue;
+          const domain = rel.split('/')[1];
+          const body = readFileSync(full, 'utf8');
+          for (const m of body.matchAll(/\]\((knowledge\/[\w.-]+\.md)\)|`(knowledge\/[\w.-]+\.md)`/gu)) {
+            const ref = m[1] || m[2];
+            found.push({ rel, domain, ref, key: `${rel} → ${ref}` });
+          }
+        }
+      }
+    };
+    walk(domainsDir);
+    return found;
+  }
+
+  test('no skill cites a knowledge file its own domain does not ship', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const unresolved = collectCitations(domainsDir).filter(
+      (c) => !existsSync(path.join(domainsDir, c.domain, c.ref)),
+    );
+
+    const unexpected = unresolved.filter((c) => !KNOWN_UNRESOLVED.has(c.key));
+    assert.deepEqual(
+      unexpected.map((c) => c.key),
+      [],
+      'new dangling knowledge citation(s) — a skill may only cite its own domain\'s knowledge',
+    );
+  });
+
+  test('the known-unresolved list has no stale entries', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const stillBroken = new Set(
+      collectCitations(domainsDir)
+        .filter((c) => !existsSync(path.join(domainsDir, c.domain, c.ref)))
+        .map((c) => c.key),
+    );
+    const fixed = [...KNOWN_UNRESOLVED].filter((k) => !stillBroken.has(k));
+    assert.deepEqual(fixed, [], 'these citations now resolve — remove them from KNOWN_UNRESOLVED');
   });
 });
