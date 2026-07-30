@@ -87,8 +87,8 @@ List them. Each one is a claim you are about to test.
 
 ### Step 2: Find the authoritative source for each
 
-Work down this list — the first hit wins. In practice most types have a source
-and it takes under a minute to find:
+Work down this list — the first hit wins. In the worked example 9 of the 12
+hand-written types had a source, each found in under a minute:
 
 1. **The call site.** What is actually passed? In a JS caller, check for a JSDoc
    `@type {import('…').Foo}` annotation on the variable — the answer is sometimes
@@ -157,13 +157,15 @@ never isolated anything.
 
 ## The four divergence shapes
 
-Nearly every real finding is one of these:
+Four shapes to check for. All five divergences in the worked example were one of
+these, which is a small sample — treat the list as a starting checklist, not a
+partition:
 
 1. **Widening** — `string` for a `Hex`/template-literal type, `string` for an enum,
    `number | undefined` for `number`. Admits values the real type rejects; worst
    when a guard downstream depends on the narrower form.
 2. **Dropped nullability** — the source says `| undefined`, the hand-written type
-   doesn't. Often deletes the reason a runtime guard existed.
+   doesn't. Erases the compiler's record of why a runtime guard exists.
 3. **Duplication** — the same shape written out in two files, unshared. Both copies
    now need every future change.
 4. **Placeholder** — `Record<string, unknown>`, `any`, or `unknown` standing in for
@@ -172,12 +174,13 @@ Nearly every real finding is one of these:
 ## Escape hatches are the tell
 
 When a diff adds a hand-written type *and* an `as`, a `!`, a new `?.`, or an
-`eslint-disable` in the same region, the escape hatch usually exists to service
+`eslint-disable` in the same region, check whether the escape hatch exists to service
 the type rather than the runtime. Count them — a cluster marks where to probe first.
 
 ## A typing change should not change runtime behavior
 
-The second axis, and the one most likely to ship a real defect. A migration PR is
+The second axis, and the one whose defects reach runtime rather than staying in
+the type layer. A migration PR is
 allowed to add annotations; it is not allowed to change what the program *does*.
 Four patterns to grep the diff for, all of which look like typing work:
 
@@ -187,8 +190,8 @@ Four patterns to grep the diff for, all of which look like typing work:
    string type (`` `${SomeEnum}`[] ``), the literal already type-checked and the
    swap bought nothing.
 2. **A default parameter or fallback deleted.** `function f(x = {})` → `function f(x: T)`
-   removes a guard. Ask what the guard was *for*: usually the `| undefined` that the
-   new type just dropped. Then check reachability rather than assuming either way.
+   removes a guard. Ask what the guard was *for*: a `| undefined` the new type just
+   dropped is the first candidate. Then check reachability rather than assuming either way.
 3. **A call made optional.** `obj.method()` → `obj.method?.()`, added to satisfy a
    hand-written `| undefined`, converts a **throw into a silent no-op**. The loud
    failure was load-bearing; now the same state produces no signal at all.

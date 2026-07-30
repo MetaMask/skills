@@ -26,9 +26,8 @@ const parts = host.split('.');
 return parts[9];        // typed `string`; `undefined` at runtime
 ```
 
-`arr[i]` and `record[key]` are typed as if the element always exists. This is the
-single highest-frequency false negative in most codebases — every `.split()[n]`,
-every lookup table, every `find`-then-index.
+`arr[i]` and `record[key]` are typed as if the element always exists. Easy to underestimate how much surface this covers: every `.split()[n]`, every
+lookup table, every `find`-then-index is an instance.
 
 - **Flag:** `noUncheckedIndexedAccess` (not enabled in `metamask-extension`).
 - **In review:** any index or dynamic key access on a path that can be empty or
