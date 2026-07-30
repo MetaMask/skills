@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -260,5 +260,91 @@ describe('managed skill pruning', () => {
 
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(stale), true);
+  });
+});
+
+describe('cross-domain knowledge references', () => {
+  let root;
+  let source;
+  let target;
+
+  function seed(domain, skill, body, knowledgeFiles = {}) {
+    const dir = path.join(source, 'domains', domain, 'skills', skill);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      ['---', `name: ${skill}`, `description: ${skill}`, 'maturity: stable', '---', body].join('\n'),
+    );
+    for (const [file, contents] of Object.entries(knowledgeFiles)) {
+      const kdir = path.join(source, 'domains', domain, 'knowledge');
+      mkdirSync(kdir, { recursive: true });
+      writeFileSync(path.join(kdir, file), contents);
+    }
+    return dir;
+  }
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-xdomain-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+
+    // `testing` owns the file; `coding` cites it. Knowledge is delivered per domain, so
+    // before this the citation could not resolve for any consumer on any operator.
+    seed('testing', 'unit-testing', 'Body.', { 'testing-layers.md': '# Layers\n' });
+    seed('coding', 'guidelines', 'Read [layers](knowledge/testing-layers.md) first.');
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('a skill receives knowledge it cites from another domain', () => {
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    for (const base of ['.claude/skills', '.cursor/rules', '.agents/skills']) {
+      assert.ok(
+        existsSync(path.join(target, base, 'mms-guidelines', 'knowledge', 'testing-layers.md')),
+        `${base}: cross-domain knowledge not delivered`,
+      );
+    }
+  });
+
+  test('the owning domain still gets its own knowledge', () => {
+    assert.ok(
+      existsSync(path.join(target, '.claude/skills', 'mms-unit-testing', 'knowledge', 'testing-layers.md')),
+    );
+  });
+
+  test('an ambiguous filename fails rather than picking one', () => {
+    const clash = mkdtempSync(path.join(os.tmpdir(), 'mms-clash-'));
+    const clashSource = path.join(clash, 'source');
+    const clashTarget = path.join(clash, 'target');
+    mkdirSync(path.join(clashSource, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(clashSource, 'tools', 'install'));
+    mkdirSync(clashTarget, { recursive: true });
+
+    const saved = source;
+    source = clashSource;
+    // Two domains ship the same filename; a third cites it by name alone.
+    seed('testing', 'a', 'Body.', { 'shared.md': '# one\n' });
+    seed('perps', 'b', 'Body.', { 'shared.md': '# two\n' });
+    seed('coding', 'c', 'Read [x](knowledge/shared.md).');
+    source = saved;
+
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', clashTarget, '--repo', 'core', '--source', clashSource],
+      { encoding: 'utf8' },
+    );
+    assert.notEqual(result.status, 0, 'ambiguous reference should fail the install');
+    assert.match(result.stderr, /exists in more than one domain/u);
+    rmSync(clash, { recursive: true, force: true });
   });
 });
