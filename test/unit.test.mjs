@@ -19,6 +19,7 @@ import {
   parseDiscoveryArgs,
   parseFrontmatter,
   parseGlobalArgs,
+  inferRepoFromBasename,
   parseSkillsLocal,
   repoNameFromGitHubUrl,
   shouldSkipPostinstall,
@@ -36,9 +37,29 @@ describe('repoNameFromGitHubUrl', () => {
     assert.equal(repoNameFromGitHubUrl('https://github.com/MetaMask/skills/tree/main'), 'skills');
   });
 
+  test('parses ssh host aliases used by multi-account git configs', () => {
+    assert.equal(
+      repoNameFromGitHubUrl('git@github.com-abretonc7s:MetaMask/metamask-mobile.git'),
+      'metamask-mobile',
+    );
+  });
+
   test('returns undefined for non-github urls', () => {
     assert.equal(repoNameFromGitHubUrl('https://example.com/foo/bar'), undefined);
     assert.equal(repoNameFromGitHubUrl(''), undefined);
+  });
+});
+
+describe('inferRepoFromBasename', () => {
+  test('maps numbered farm slot directories to skill overlay repo names', () => {
+    assert.equal(inferRepoFromBasename('/work/metamask-mobile-3'), 'metamask-mobile');
+    assert.equal(inferRepoFromBasename('/work/metamask-extension-2'), 'metamask-extension');
+    assert.equal(inferRepoFromBasename('/work/core-5'), 'metamask-core');
+  });
+
+  test('returns undefined for unrelated directory names', () => {
+    assert.equal(inferRepoFromBasename('/work/metamask-extension-historical-pr3'), undefined);
+    assert.equal(inferRepoFromBasename('/work/my-app'), undefined);
   });
 });
 
