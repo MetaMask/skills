@@ -5,8 +5,8 @@ parent: effect-anti-pattern-review
 
 ## Paths
 
-- Component sources: [`ui/`](https://github.com/MetaMask/metamask-extension/tree/develop/ui)
-- Shared hooks: [`ui/hooks/`](https://github.com/MetaMask/metamask-extension/tree/develop/ui/hooks)
+- Component sources: [`ui/`](https://github.com/MetaMask/metamask-extension/tree/main/ui)
+- Shared hooks: [`ui/hooks/`](https://github.com/MetaMask/metamask-extension/tree/main/ui/hooks)
 
 ## Commands
 

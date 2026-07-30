@@ -5,10 +5,10 @@ parent: selector-anti-pattern-review
 
 ## Paths
 
-- Selector definitions: [`ui/selectors/`](https://github.com/MetaMask/metamask-extension/tree/develop/ui/selectors)
-- Selector creators: [`shared/lib/selectors/selector-creators.ts`](https://github.com/MetaMask/metamask-extension/blob/develop/shared/lib/selectors/selector-creators.ts) — source of truth for `createSelector`, `createDeepEqualSelector`, `createResultEqualSelector`, `createShallowResultSelector`
-- Controller state shape: [`app/scripts/metamask-controller.js`](https://github.com/MetaMask/metamask-extension/blob/develop/app/scripts/metamask-controller.js)
-- Component consumption sites: anywhere under [`ui/`](https://github.com/MetaMask/metamask-extension/tree/develop/ui) that calls `useSelector`
+- Selector definitions: [`ui/selectors/`](https://github.com/MetaMask/metamask-extension/tree/main/ui/selectors)
+- Selector creators: [`shared/lib/selectors/selector-creators.ts`](https://github.com/MetaMask/metamask-extension/blob/main/shared/lib/selectors/selector-creators.ts) — source of truth for `createSelector`, `createDeepEqualSelector`, `createResultEqualSelector`, `createShallowResultSelector`
+- Controller state shape: [`app/scripts/metamask-controller.js`](https://github.com/MetaMask/metamask-extension/blob/main/app/scripts/metamask-controller.js)
+- Component consumption sites: anywhere under [`ui/`](https://github.com/MetaMask/metamask-extension/tree/main/ui) that calls `useSelector`
 
 ## Commands
 
