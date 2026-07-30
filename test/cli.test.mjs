@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -238,5 +238,44 @@ describe('managed skill pruning', () => {
 
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(stale), true);
+  });
+});
+
+describe('content ref is pinned', () => {
+  // A lockfile pins the CLI; it does not pin the skill revision that reaches disk. These
+  // assert the two are tied together, and that a missing tag fails rather than widening
+  // to a branch — silently installing from `main` is the behaviour this replaced.
+  const BIN_SRC = readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'metamask-skills.mjs'),
+    'utf8',
+  );
+  const BOOTSTRAP_SRC = readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'bootstrap'),
+    'utf8',
+  );
+
+  test('the CLI cache does not track a branch', () => {
+    assert.ok(
+      !/'--branch',\s*'main'/u.test(BIN_SRC) && !/origin',\s*'main'/u.test(BIN_SRC),
+      'cache clone/fetch still references main directly',
+    );
+    assert.match(BIN_SRC, /function contentRef/u, 'expected a contentRef() resolver');
+  });
+
+  test('the pinned ref matches this package version', () => {
+    const { version } = JSON.parse(
+      readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'),
+    );
+    assert.match(BIN_SRC, /`v\$\{version\}`/u, 'contentRef should derive the tag from package version');
+    assert.ok(version, 'package.json must declare a version for the pin to resolve');
+  });
+
+  test('bootstrap does not default to a branch', () => {
+    assert.ok(
+      !/REF="\$\{SKILLS_REF:-main\}"/u.test(BOOTSTRAP_SRC),
+      'bootstrap still defaults SKILLS_REF to main',
+    );
+    assert.match(BOOTSTRAP_SRC, /latest_release_tag/u, 'expected release-tag resolution');
+    assert.match(BOOTSTRAP_SRC, /Refusing to install from an unpinned branch/u, 'expected fail-closed path');
   });
 });
