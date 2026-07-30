@@ -55,7 +55,7 @@ grows linearly with the catalogue. A skill that is never selected still costs it
 - `description` within the ceiling in [`tools/skill-schema.mjs`](tools/skill-schema.mjs). It is
   the lowest limit across operators, so a description that passes is accepted by all of them.
 
-`yarn lint:skills` checks the deterministic properties — directory layout, name pattern,
+`yarn audit:skills` checks the deterministic properties — directory layout, name pattern,
 frontmatter keys, maturity values, description length — so review time goes to the two
 questions above, which no check can answer.
 
@@ -170,7 +170,7 @@ Your `skill.md` should include YAML frontmatter plus body content:
 ```yaml
 ---
 name: <slash-command-name>
-description: <≤1,536 chars including when_to_use cues>
+description: <≤1,024 chars including when_to_use cues>
 maturity: stable          # experimental | stable | deprecated
 ---
 ```

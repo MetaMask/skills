@@ -22,6 +22,7 @@ import {
   KNOWN_REPOS,
   MATURITY_VALUES,
   NAME_PATTERN,
+  SCOPE_VALUES,
   RECOMMENDED_SECTIONS,
 } from '../../tools/skill-schema.mjs';
 
@@ -31,6 +32,7 @@ const ROOT = process.env.SKILLS_LINT_ROOT
 
 const allowedSiblings = new Set(ALLOWED_SIBLING_DIRS);
 const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
+const FALSY = new Set(['0', 'false', 'no', 'off']);
 
 export function lintSkill(skill) {
   const errors = [];
@@ -68,6 +70,17 @@ export function lintSkill(skill) {
     errors.push(`\`maturity\` "${raw.maturity}" must be one of: ${MATURITY_VALUES.join(', ')}`);
   }
 
+  // `scope` and `mandatory` change installer behaviour, and a typo in either is a silent
+  // no-op today: the key is accepted, no enum runs, and the skill installs in a way the
+  // author did not intend. `scope: users` falls back to project scope; `mandatory: ture`
+  // is falsy. Warnings rather than errors — the blocking surface stays small.
+  if (raw.scope !== undefined && !SCOPE_VALUES.includes(raw.scope)) {
+    warnings.push(`\`scope\` "${raw.scope}" is not one of: ${SCOPE_VALUES.join(', ')} (installs as project scope)`);
+  }
+  if (raw.mandatory !== undefined && !TRUTHY.has(String(raw.mandatory).toLowerCase()) && !FALSY.has(String(raw.mandatory).toLowerCase())) {
+    warnings.push(`\`mandatory\` "${raw.mandatory}" is neither truthy nor falsy (treated as false)`);
+  }
+
   // On-demand-only contract: a source skill must not force persistent loading.
   if (raw.alwaysApply !== undefined && TRUTHY.has(String(raw.alwaysApply).toLowerCase())) {
     errors.push('skills are on-demand only; remove `alwaysApply: true` (always-on guidance belongs in AGENTS.md)');
@@ -99,7 +112,11 @@ export function lintSkill(skill) {
   }
 
   for (const section of RECOMMENDED_SECTIONS) {
-    if (!new RegExp(`^#{1,4}\\s+${section}\\b`, 'imu').test(skill.body)) {
+    // A trailing `\b` let `## When To Use Cases` satisfy `When To Use` — a different
+    // section. Anchoring to end-of-line fixes that but rejects `## Workflows` and
+    // `## Workflow (interactive)`, both of which are the section, and both of which exist
+    // in this corpus. So: optional plural, optional parenthetical qualifier, nothing else.
+    if (!new RegExp(`^#{1,4}\\s+${section}s?(?:\\s*\\([^)]*\\))?\\s*$`, 'imu').test(skill.body)) {
       warnings.push(`missing recommended section "## ${section}"`);
     }
   }
@@ -160,7 +177,9 @@ function main() {
     }
   }
 
-  const all = collectSkills([ROOT]);
+  // '*' rather than undefined: the linter never reads repoApplicable, but relying on that
+  // would break silently if `repo` became required.
+  const all = collectSkills([ROOT], '*');
   const skills = paths.length > 0 ? skillsForPaths(all, paths) : all;
 
   for (const skill of skills) {

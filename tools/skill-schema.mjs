@@ -10,6 +10,9 @@ export const KNOWN_FRONTMATTER = [...REQUIRED_FRONTMATTER, ...OPTIONAL_FRONTMATT
 
 export const MATURITY_VALUES = ['experimental', 'stable', 'deprecated'];
 
+// `scope: user` installs to $HOME instead of the target repo; anything else is project scope.
+export const SCOPE_VALUES = ['user', 'project'];
+
 // Directories the installer copies alongside skill.md (see tools/install).
 export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows'];
 

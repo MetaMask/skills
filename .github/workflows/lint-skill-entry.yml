@@ -43,8 +43,21 @@ jobs:
             echo "any_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
+          # A schema or installer change re-validates the whole catalogue. Without this the
+          # workflow triggers on tools/**, finds no changed skill files, skips the lint step,
+          # and reports green — so a tightened rule is never applied to what already exists.
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- tools/ .github/scripts/ | grep -q .; then
+            echo "full_audit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "full_audit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Audit every skill (schema or installer changed)
+        if: steps.changed.outputs.full_audit == 'true'
+        run: node .github/scripts/lint-skill-entry.mjs
+
       - name: Lint changed skills
-        if: steps.changed.outputs.any_changed == 'true'
+        if: steps.changed.outputs.full_audit != 'true' && steps.changed.outputs.any_changed == 'true'
         run: |
           mapfile -d '' -t files < changed-skill-files.bin
           node .github/scripts/lint-skill-entry.mjs "${files[@]}"

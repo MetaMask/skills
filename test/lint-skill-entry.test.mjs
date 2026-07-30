@@ -73,6 +73,29 @@ describe('lint-skill-entry', () => {
     assert.match(output, /must match the directory/u);
   });
 
+  // `workflows/` was the live failure mode this audit surfaced on `main`: 14 files across
+  // two web3-tools skills, referenced 22 times, never shipped. It is now IN the bundle
+  // list, so the guarantee to test is the general one — a sibling the installer does not
+  // copy must fail, whatever it is called.
+  test('a sibling directory the installer does not ship fails', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x');
+    mkdirSync(path.join(dir, 'playbooks'));
+    const { code, output } = lint(root);
+    assert.equal(code, 1, output);
+    assert.match(output, /unexpected directory "playbooks\/"/u);
+  });
+
+  test('every directory in BUNDLE_DIRS is accepted as a sibling', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x');
+    for (const bundle of BUNDLE_DIRS) {
+      mkdirSync(path.join(dir, bundle), { recursive: true });
+    }
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+  });
+
   test('a knowledge/ sibling directory fails (the conversion guarantee)', () => {
     const root = makeRoot();
     const dir = writeSkill(root, 'perps', 'fix-bug', 'name: fix-bug\ndescription: x');
