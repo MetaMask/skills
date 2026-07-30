@@ -16,14 +16,15 @@ jobs:
     name: Lint skill entries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # The repo's own composite action, as every other workflow here uses. Removes the
+      # third-party dependency, and with it the unpinned-reference and credential-
+      # persistence findings that raw actions/checkout raised.
+      - uses: MetaMask/action-checkout-and-setup@v3
         with:
-          # Need the base commit to diff against.
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
+          is-high-risk-environment: false
           node-version: 24.x
+          # Full history: the changed-file diff needs the base commit.
+          fetch-depth: 0
 
       # Filenames come from PR contents, so they are untrusted input. They are read
       # NUL-delimited, passed through the environment, and split on NUL into an array —
