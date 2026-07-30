@@ -6,6 +6,13 @@ tags: useEffect, setState, cleanup, AbortController, unmount, memory-leaks
 
 # Skill: useEffect Lifecycle Anti-Patterns
 
+> **Scope.** The platform-agnostic taxonomy — unstable dependency identity, wrong
+> dependencies, derived state via effect, cascading effect chains, missing timer cleanup,
+> uncancelled async — is the single source in the **`effect-anti-patterns`** knowledge file,
+> installed alongside this skill under `knowledge/`. This file is the MetaMask Mobile
+> instance of its lifecycle half: the verified instances, the repo's own idioms, and the
+> fix recipes.
+
 [mm-hook-dependency-arrays.md](mm-hook-dependency-arrays.md) covers *when* effects re-run (the deps side). This file covers what goes wrong **inside and after** the effect: state derived in effects instead of render, effects chained off each other's setState, async work that outlives the component, and missing cleanup. These patterns cause extra render passes, memory leaks, and the classic "setState on unmounted component" warnings — and they're invisible to selector/re-render sweeps.
 
 ## Pattern — derived state via useEffect + setState ("you might not need an effect")

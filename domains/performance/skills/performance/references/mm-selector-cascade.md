@@ -6,6 +6,12 @@ tags: reselect, cascade, dependency-graph, isEqual, structural-sharing, react-co
 
 # Skill: Selector Dependency Cascades
 
+> **Scope.** What a broken root selector does to the component graph is defined generically
+> in the **`render-cascade`** knowledge file, and the selector patterns that cause it in
+> **`selector-anti-patterns`** — both installed alongside this skill under `knowledge/`.
+> This file is the MetaMask Mobile instance: the real dependency graph, its blast radius,
+> and the repair order.
+
 [mm-selector-memoization.md](mm-selector-memoization.md) catalogues the broken-selector *patterns*. This file is about what happens **downstream of one broken root selector** — and how to repair the whole graph instead of patching its leaves. Reference case: extension PR metamask-extension#37147, where a single identity output selector (`getInternalAccounts`) was recomputing through **15 direct + 35+ transitive consumer selectors into 50+ components on every dispatch** — every 5-second balance poll, every keystroke in the send flow.
 
 ## Anatomy of a cascade

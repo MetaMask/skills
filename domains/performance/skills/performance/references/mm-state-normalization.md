@@ -6,6 +6,11 @@ tags: redux, normalization, selectors, O(1)-lookups, cache-thrashing, useSelecto
 
 # Skill: State Normalization & Selector Shape
 
+> **Scope.** The generic form of the O(n)-lookup problem is `selector-anti-patterns` §7,
+> in the knowledge file installed alongside this skill under `knowledge/`. This file is the
+> MetaMask Mobile instance, plus the parameterized-selector cache-thrashing and
+> view-selector consolidation work that is specific to this store's shape.
+
 Selector *memoization* fixes when things recompute; state and selector **shape** fixes how much each recomputation costs and how many subscriptions fire. The patterns here come from the extension performance audit (MetaMask-planning#6580, #6484), where linear scans and reshaping selectors multiplied across power-user data: with 1,000 tokens, 27 `.find()`-based lookups per render is 27,000 comparisons — per render.
 
 ## Pattern — O(n) scans where the state shape should provide O(1) lookups
