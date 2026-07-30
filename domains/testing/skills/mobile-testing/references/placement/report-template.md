@@ -46,7 +46,7 @@ Also create a Cursor canvas with the same numbers when useful.
 Mirror the PR checklist (done vs proposed).
 
 ### How to re-run
-Follow skill `test-layer-placement`. Overlap sub-pass: `references/unit-cv-overlap.md` / personal `test-layer-overlap-audit`.
+Follow mobile-testing `references/placement.md`. Overlap sub-pass: `placement/unit-cv-overlap.md` / personal `test-layer-overlap-audit`.
 Canvas path: `~/.cursor/projects/<workspace>/canvases/<ticket>-test-layer-placement.canvas.tsx`
 ```
 

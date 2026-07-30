@@ -1,5 +1,8 @@
 # Page Objects & Selectors — Reference
 
+> **Nearly deprecated.** Prefer Appium for new E2E ([`../appium-e2e.md`](../appium-e2e.md)). Use these Detox docs only for migration or remaining unmigrated suites ([`../detox-to-appium.md`](../detox-to-appium.md)).
+
+
 ## Page Object Location
 
 ```

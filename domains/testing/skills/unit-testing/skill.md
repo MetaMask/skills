@@ -1,8 +1,14 @@
 ---
 name: unit-testing
 description: >
-  Peer of component-view-test and integration-test for MetaMask Mobile. Focused
-  Jest unit tests for pure logic, helpers, and narrow contracts — or as fallback
-  when component-view tests cannot cover a case. Follow
-  knowledge/testing-layers.md before choosing this skill.
+  MetaMask Extension unit-testing guidance. Deprecated for MetaMask Mobile —
+  use testing/mobile-testing (references/unit.md) instead.
+maturity: deprecated
 ---
+
+# Unit testing
+
+**MetaMask Mobile:** Deprecated. Install **`mobile-testing`** and open
+`references/unit.md`.
+
+**MetaMask Extension:** Follow the Extension overlay below.

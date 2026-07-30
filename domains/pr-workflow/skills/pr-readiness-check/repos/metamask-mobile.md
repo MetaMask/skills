@@ -21,12 +21,13 @@ Scan the current branch diff for common issues that could be flagged during PR r
 
    For each new or modified source file with non-trivial logic changes (not just config, docs, or styles), check whether a corresponding test file was added or updated.
 
-   Prefer layers per the Mobile testing-layers policy (testing domain `knowledge/testing-layers.md`, installed beside `component-view-test` / `integration-test` / `unit-testing`):
+   Prefer layers per the Mobile testing-layers policy (testing domain `knowledge/testing-layers.md`, installed beside `mobile-testing`):
 
    - **Screens / views / UI behavior via app state** → prefer `Foo.view.test.tsx` (component-view). Warn if the only new coverage is a broad `Foo.test.tsx` that renders the whole screen and mocks hooks/selectors.
    - **App-to-controller flows / controller behavior with I/O isolated** → prefer `Foo.integration.test.ts` (integration) exercised through a domain harness. Warn if such a flow is only covered by mocking the controller in a CV or unit test.
    - **Pure logic / helpers / narrow contracts** → `Foo.test.ts(x)` is appropriate.
    - **CV cannot cover yet** → accept a focused unit test, but warn if the PR does not note why CV was not used.
+   - **Device journeys** → prefer Appium (`tests/smoke-appium/`); Detox is nearly deprecated.
 
    Heuristic: a source file `Foo.ts(x)` should have matching `Foo.view.test.tsx` (for screens/views), `Foo.integration.test.ts` (for app-to-controller flows), and/or `Foo.test.ts(x)` (for allowed unit cases). Warn if:
    - New exported functions/components have no corresponding test file changes

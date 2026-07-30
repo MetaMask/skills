@@ -4,28 +4,30 @@
 
 Use this decision tree whenever adding or reviewing tests for Mobile code.
 
-**Peer skills:** `component-view-test`, `integration-test`, and `unit-testing` are documented at the same level. Choose by this tree — do not treat unit-testing as the primary testing guide.
+**Entrypoint:** Install **`mobile-testing`**. That skill routes to unit, component-view, integration, Appium E2E, Detox→Appium migration, and placement references. Do not treat unit-testing as the primary testing guide.
 
-**Orchestrator:** For a code area / Jira / PR audit across all layers (inventory → disposition → optional implement → Jira + PR report), use **`test-layer-placement`**. Default mode is analyze-only. Unit↔CV overlap migrate/delete is a sub-pass of that skill.
+**Placement audits:** For a code area / Jira / PR audit across all layers (inventory → disposition → optional implement → Jira + PR report), open `mobile-testing` → `references/placement.md`. Default mode is analyze-only. Unit↔CV overlap migrate/delete is a sub-pass of that path.
 
 ## Decision tree
 
 ```
 What are you testing?
 ├─ Screen / view / UI behavior via app state
-│  → Write or update ComponentName.view.test.tsx (component-view-test skill)
+│  → Write or update ComponentName.view.test.tsx (mobile-testing → component-view)
 │  → If the CV framework cannot cover the case yet:
 │     → Smallest focused unit test + note why CV cannot
 │
 ├─ App-to-controller seam / controller flow with I/O isolated
-│  → Write or update *.integration.test.ts (integration-test skill)
+│  → Write or update *.integration.test.ts (mobile-testing → integration)
 │  → Exercise real controllers/providers/services through a domain harness
 │
 ├─ Pure logic / helpers / narrow component contracts
-│  → Focused unit test (unit-testing skill)
+│  → Focused unit test (mobile-testing → unit)
 │
-└─ Full device journey / Appium flow
-   → E2E (e2e-test skill) — not a substitute for CV on a single view
+└─ Full device journey
+   → Default: Appium (mobile-testing → appium-e2e)
+   → Remaining Detox / migration only (mobile-testing → detox-to-appium)
+   → Not a substitute for CV on a single view
 ```
 
 ## Default: component-view tests
@@ -34,7 +36,7 @@ Page/view behavior exercised through rendered UI and real Redux/app state belong
 
 - Drive state through presets/renderers — do **not** mock hooks or selectors to force UI state.
 - Only the Engine and native modules may be mocked.
-- How to write/run: load the **component-view-test** skill.
+- How to write/run: `mobile-testing` → `references/component-view.md`.
 
 ## Integration tests
 
@@ -43,7 +45,7 @@ Behavior that crosses the app-to-controller seam belongs in **`*.integration.tes
 - Run real controller, provider, service, validation, and state-transition code.
 - Mock only the I/O boundary; Shape B/C harnesses may also mock documented app-shell glue while preserving the real target chain.
 - Reuse a per-domain harness. Test files must not add one-off `jest.mock(...)` declarations.
-- How to write/run: load the **integration-test** skill.
+- How to write/run: `mobile-testing` → `references/integration.md`.
 
 ## Unit tests (allowed cases)
 
@@ -53,7 +55,7 @@ Keep unit tests for:
 - Narrow component contracts that are not screen/view behavior
 - Cases the CV framework cannot cover yet — retain the **smallest** focused unit test and document why
 
-How to write/run: load the **unit-testing** skill.
+How to write/run: `mobile-testing` → `references/unit.md`.
 
 ## Smell / avoid
 
@@ -61,9 +63,9 @@ Broad `*.test.tsx` files that render a whole screen/page and mock hooks/selector
 
 ## E2E
 
-Full multi-screen or device journeys that need Appium. Do not use E2E as the primary coverage for a single view when CV can cover it.
+Full multi-screen or device journeys. **Default to Appium** (`tests/smoke-appium/`). Detox is nearly deprecated — prefer migrating remaining Detox specs rather than extending them. Do not use E2E as the primary coverage for a single view when CV can cover it.
 
-How to write/run: load the **e2e-test** skill.
+How to write/run: `mobile-testing` → `references/appium-e2e.md` (or `references/detox-to-appium.md` for migration / remaining Detox).
 
 ## Coverage during conversion
 
