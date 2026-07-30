@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -238,5 +238,67 @@ describe('managed skill pruning', () => {
 
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(stale), true);
+  });
+});
+
+describe('corpus: frontmatter cannot force a load', () => {
+  // The context an agent must ingest has no upper bound if a file can *require* other
+  // files. A body link is the agent's choice — it reads what it judges relevant, and a
+  // broken one costs a failed read. A frontmatter key that declares a dependency is a
+  // mandatory pull, and mandatory pulls compose: A requires B requires C.
+  //
+  // `tools/install` hardcodes `alwaysApply: false` into every Cursor rule it emits, so
+  // no *installed* skill forces a load today. Nothing stops a source file declaring one.
+  //
+  // This is an ALLOWLIST, not a denylist of known-bad keys. A denylist silently exempts
+  // whatever it forgot to name — `loadAll:` invented next month passes a list that only
+  // knows about `alwaysApply:`. An unrecognized key fails until someone decides it is safe.
+  const ALLOWED_KEYS = new Set(['name', 'description', 'maturity', 'domain', 'metadata']);
+
+  function frontmatterKeys(body) {
+    const m = /^---\n([\s\S]*?)\n---/u.exec(body);
+    if (!m) return [];
+    return m[1]
+      .split('\n')
+      .filter((l) => /^[A-Za-z_][\w-]*:/u.test(l)) // top-level only; nested lines are indented
+      .map((l) => l.slice(0, l.indexOf(':')));
+  }
+
+  function corpusFiles() {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const out = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (
+          entry.name === 'skill.md'
+          || (entry.name.endsWith('.md') && full.includes(`${path.sep}knowledge${path.sep}`))
+        ) {
+          out.push({
+            rel: path.relative(repoRoot, full).split(path.sep).join('/'),
+            body: readFileSync(full, 'utf8'),
+          });
+        }
+      }
+    };
+    walk(domainsDir);
+    return out;
+  }
+
+  test('no unrecognized frontmatter key in any skill or knowledge file', () => {
+    const unknown = [];
+    for (const { rel, body } of corpusFiles()) {
+      for (const key of frontmatterKeys(body)) {
+        if (!ALLOWED_KEYS.has(key)) unknown.push(`${rel} → ${key}`);
+      }
+    }
+    assert.deepEqual(
+      unknown,
+      [],
+      'unrecognized frontmatter key. If it makes the agent load another file, it is not allowed — '
+        + 'the context an agent must ingest has to stay bounded. If it is inert metadata, add it to ALLOWED_KEYS.',
+    );
   });
 });
