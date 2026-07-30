@@ -262,3 +262,85 @@ describe('managed skill pruning', () => {
     assert.equal(existsSync(stale), true);
   });
 });
+
+describe('domain knowledge is installed once per domain', () => {
+  let root;
+  let source;
+  let target;
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-knowledge-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+
+    // One domain, two skills, two knowledge files. The pre-0.3 installer copied the
+    // knowledge dir into BOTH skills; the shared layout writes it once.
+    const knowledge = path.join(source, 'domains', 'testing', 'knowledge');
+    mkdirSync(knowledge, { recursive: true });
+    writeFileSync(path.join(knowledge, 'alpha.md'), '# Alpha\n');
+    writeFileSync(path.join(knowledge, 'beta.md'), '# Beta\n');
+    for (const name of ['first', 'second']) {
+      const dir = path.join(source, 'domains', 'testing', 'skills', name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, 'skill.md'),
+        ['---', `name: ${name}`, `description: Skill ${name}`, 'maturity: stable', '---', 'Body.'].join('\n'),
+      );
+    }
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('writes one shared knowledge dir per operator, not one per skill', () => {
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+
+    for (const base of ['.claude/skills', '.cursor/rules', '.agents/skills']) {
+      const shared = path.join(target, base, 'mms-testing-knowledge');
+      assert.ok(existsSync(path.join(shared, 'alpha.md')), `${base} missing shared alpha.md`);
+      assert.ok(existsSync(path.join(shared, 'beta.md')), `${base} missing shared beta.md`);
+      // and NOT duplicated into each skill
+      for (const name of ['mms-first', 'mms-second']) {
+        assert.ok(
+          !existsSync(path.join(target, base, name, 'knowledge')),
+          `${base}/${name} should not carry a per-skill knowledge copy`,
+        );
+      }
+    }
+  });
+
+  test('upgrading removes a per-skill knowledge copy left by an older install', () => {
+    const stalePath = path.join(target, '.claude/skills', 'mms-first', 'knowledge');
+    mkdirSync(stalePath, { recursive: true });
+    writeFileSync(path.join(stalePath, 'alpha.md'), '# stale\n');
+    assert.ok(existsSync(path.join(stalePath, 'alpha.md')));
+
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(!existsSync(stalePath), 'stale per-skill knowledge dir should be removed on upgrade');
+    assert.ok(existsSync(path.join(target, '.claude/skills', 'mms-testing-knowledge', 'alpha.md')));
+  });
+
+  test('--prune-stale keeps the shared knowledge dir', () => {
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source, '--prune-stale'],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(existsSync(path.join(target, '.claude/skills', 'mms-testing-knowledge', 'alpha.md')));
+  });
+});

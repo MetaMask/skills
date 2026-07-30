@@ -163,6 +163,11 @@ domains/<area>/
   knowledge/                    # Optional: shared domain reference
 ```
 
+Domain `knowledge/` installs once per domain as `mms-<domain>-knowledge/`, a sibling of the
+domain's installed skills — a different shape from the repo's. **Cite knowledge files by
+name, not by relative path**: no relative path resolves correctly in both layouts. See
+[Referring to domain knowledge from a skill](README.md#referring-to-domain-knowledge-from-a-skill).
+
 ### `skill.md` Format
 
 Your `skill.md` should include YAML frontmatter plus body content:

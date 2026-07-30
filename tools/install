@@ -364,34 +364,66 @@ copy_bundle_dirs() {
   done
 }
 
-copy_domain_knowledge() {
-  local skill_dir="$1" dest_dir="$2" label="$3"
-  local domain_dir; domain_dir=$(cd "$skill_dir/../.." && pwd)
-  local knowledge_dir="$domain_dir/knowledge"
+# Domain knowledge installs ONCE per domain, to its own `${PREFIX}<domain>-knowledge/`
+# directory, rather than once per skill.
+#
+# It used to be copied into every skill directory in the domain, which meant a domain
+# with K knowledge files and N skills wrote K*N copies per operator — `performance`
+# alone lands 7*8 = 56 — and made "one source" true in the repo but not on disk.
+#
+# The shared directory also fixes cross-layer references. Per-skill copies sat as
+# siblings of `references/`, three levels apart from where they live in the repo, so
+# `../../../knowledge/x.md` resolved in the repo and broke once installed while
+# `../knowledge/x.md` did the reverse — no relative path was correct in both. Skills
+# therefore cite knowledge files BY NAME, and the shared directory is the one place
+# every operator resolves that name to.
+KNOWLEDGE_DONE=""
 
-  if [[ -d "$knowledge_dir" ]]; then
-    action "$label/knowledge/"
-    $DRY_RUN && return
-    mkdir -p "$dest_dir"
-    rm -rf "$dest_dir/knowledge"
-    cp -R "$knowledge_dir" "$dest_dir/knowledge"
-  else
-    if $DRY_RUN; then
-      [[ -e "$dest_dir/knowledge" ]] && action "$label/knowledge/ (remove stale)"
-      return 0
-    fi
-    rm -rf "$dest_dir/knowledge"
-  fi
+knowledge_out_name() {
+  printf '%s%s-knowledge' "$PREFIX" "$1"
+}
+
+install_domain_knowledge() {
+  local domain_name="$1" domain_dir="$2"
+  local knowledge_dir="$domain_dir/knowledge"
+  [[ -d "$knowledge_dir" ]] || return 0
+
+  local out_name; out_name=$(knowledge_out_name "$domain_name")
+  # Once per domain per run, however many skills the domain ships.
+  case " $KNOWLEDGE_DONE " in
+    *" $domain_name "*) return 0 ;;
+  esac
+  KNOWLEDGE_DONE="$KNOWLEDGE_DONE $domain_name"
+
+  local entry parent label dest
+  for entry in "$CLAUDE_DIR|.claude/skills" "$CURSOR_DIR|.cursor/rules" "$AGENTS_DIR|.agents/skills"; do
+    parent="${entry%%|*}"; label="${entry#*|}"
+    dest="$parent/$out_name"
+    action "$label/$out_name/"
+    $DRY_RUN && continue
+    mkdir -p "$parent"
+    rm -rf "$dest"
+    cp -R "$knowledge_dir" "$dest"
+  done
+}
+
+# Pre-0.3 installs put a copy of the domain's knowledge inside each skill directory.
+# Remove it so an upgrade does not leave N stale duplicates behind the shared copy.
+remove_per_skill_knowledge() {
+  local dest_dir="$1" label="$2"
+  [[ -e "$dest_dir/knowledge" ]] || return 0
+  action "$label/knowledge/ (remove per-skill copy — now shared)"
+  $DRY_RUN || rm -rf "$dest_dir/knowledge"
 }
 
 copy_project_bundles() {
   local skill_dir="$1" out_name="$2"
   copy_bundle_dirs "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
-  copy_domain_knowledge "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
+  remove_per_skill_knowledge "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
   copy_bundle_dirs "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
-  copy_domain_knowledge "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
+  remove_per_skill_knowledge "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
   copy_bundle_dirs "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
-  copy_domain_knowledge "$skill_dir" "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
+  remove_per_skill_knowledge "$AGENTS_DIR/$out_name" ".agents/skills/$out_name"
 }
 
 expected_project_skill_contains() {
@@ -438,12 +470,30 @@ copy_user_bundles() {
   local skill_dir="$1" out_name="$2"
   if [[ -d "$HOME/.claude" ]]; then
     copy_bundle_dirs "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
-    copy_domain_knowledge "$skill_dir" "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
+    remove_per_skill_knowledge "$USER_CLAUDE_DIR/$out_name" "~/.claude/skills/$out_name"
   fi
   if [[ -d "$HOME/.codex" ]]; then
     copy_bundle_dirs "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
-    copy_domain_knowledge "$skill_dir" "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
+    remove_per_skill_knowledge "$USER_CODEX_DIR/$out_name" "~/.codex/skills/$out_name"
   fi
+}
+
+install_user_domain_knowledge() {
+  local domain_name="$1" domain_dir="$2"
+  local knowledge_dir="$domain_dir/knowledge"
+  [[ -d "$knowledge_dir" ]] || return 0
+  local out_name; out_name=$(knowledge_out_name "$domain_name")
+  local entry parent label dest
+  for entry in "$USER_CLAUDE_DIR|~/.claude/skills|$HOME/.claude" "$USER_CODEX_DIR|~/.codex/skills|$HOME/.codex"; do
+    parent="${entry%%|*}"; label="${entry#*|}"; label="${label%%|*}"
+    [[ -d "${entry##*|}" ]] || continue
+    dest="$parent/$out_name"
+    action "$label/$out_name/"
+    $DRY_RUN && continue
+    mkdir -p "$parent"
+    rm -rf "$dest"
+    cp -R "$knowledge_dir" "$dest"
+  done
 }
 
 process_skill() {
@@ -514,6 +564,7 @@ process_skill() {
     write_user_claude "$out_name" "$out_name" "$description" "$body"
     write_user_codex  "$out_name" "$out_name" "$description" "$body"
     copy_user_bundles "$skill_dir" "$out_name"
+    install_user_domain_knowledge "$domain_name" "$(cd "$skill_dir/../.." && pwd)"
     return
   fi
 
@@ -537,6 +588,14 @@ ${overlay_content}"
   write_agents "$out_name" "$out_name" "$description" "$merged"
   copy_project_bundles "$skill_dir" "$out_name"
   EXPECTED_PROJECT_SKILLS+=("$out_name")
+
+  # Shared per-domain knowledge. Guarded internally so it runs once per domain,
+  # not once per skill; registered as expected so --prune-stale leaves it alone.
+  local domain_dir; domain_dir=$(cd "$skill_dir/../.." && pwd)
+  if [[ -d "$domain_dir/knowledge" ]]; then
+    install_domain_knowledge "$domain_name" "$domain_dir"
+    EXPECTED_PROJECT_SKILLS+=("$(knowledge_out_name "$domain_name")")
+  fi
 }
 
 preflight_skill() {

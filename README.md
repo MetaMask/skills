@@ -128,7 +128,7 @@ domains/<area>/
     scripts/                    # optional helper scripts
     adapters/                   # optional runtime payloads used by scripts
     repos/<consuming-repo>.md   # optional repo-specific overlay
-  knowledge/                    # optional shared domain reference, installed beside each domain skill
+  knowledge/                    # optional shared domain reference, installed once as mms-<domain>-knowledge/
 tools/
   install      # core writer (mms- prefix, multi-operator output)
   sync         # Flow 2: `yarn skills` wrapper for engineers
@@ -136,6 +136,30 @@ tools/
   bootstrap    # zero-config installer for cloud agents
 .targets.local.example          # template for maintainer config
 ```
+
+### Referring to domain knowledge from a skill
+
+Domain `knowledge/` installs **once per domain**, as a sibling of the domain's skills:
+
+```
+.claude/skills/mms-<skill>/SKILL.md
+.claude/skills/mms-<skill>/references/…
+.claude/skills/mms-<domain>-knowledge/…      # one copy, shared by every skill in the domain
+```
+
+That layout does not match the repo's, where `knowledge/` sits two levels above a skill and
+three above its `references/`. **So cite knowledge files by name, never by relative path** —
+no relative path is correct in both layouts, and one written against either will silently
+break in the other:
+
+```markdown
+See the `selector-anti-patterns` knowledge file.        <!-- resolves in both -->
+See [x](../../../knowledge/selector-anti-patterns.md)   <!-- repo only; 404 once installed -->
+See [x](../knowledge/selector-anti-patterns.md)         <!-- installed only; 404 in the repo -->
+```
+
+Section anchors have the same problem for a different reason — they break the moment the
+target file is reorganized. Name the file and the section in prose instead.
 
 ## Domains today
 
