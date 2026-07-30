@@ -2,7 +2,7 @@
 #
 # Two-arm type proof: does a hand-written type agree with the authoritative one?
 #
-#   type-proof.sh <repo-path> <probe-dir> [probe-dest]
+#   substitution-ab.sh <repo-path> <probe-dir> [probe-dest]
 #
 #   <repo-path>   repo checked out at the PR head, deps installed
 #   <probe-dir>   directory of probe-*.ts files (see skill.md Step 3)
@@ -12,8 +12,8 @@
 # Arm A must be silent. If it is not, stop — nothing in Arm B is attributable.
 set -uo pipefail
 
-REPO=${1:?usage: type-proof.sh <repo-path> <probe-dir> [probe-dest]}
-PROBES=${2:?usage: type-proof.sh <repo-path> <probe-dir> [probe-dest]}
+REPO=${1:?usage: substitution-ab.sh <repo-path> <probe-dir> [probe-dest]}
+PROBES=${2:?usage: substitution-ab.sh <repo-path> <probe-dir> [probe-dest]}
 DEST=${3:-src/__type-probe__}
 
 : "${NODE_OPTIONS:=--max-old-space-size=9216}"

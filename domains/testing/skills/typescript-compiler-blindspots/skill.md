@@ -1,31 +1,44 @@
 ---
-name: typescript-type-proof
+name: typescript-compiler-blindspots
 description: >-
-  Prove whether a hand-written TypeScript type actually agrees with the
-  authoritative type it restates, by substituting the derived type at a fixed
-  commit and diffing `tsc` output. A hand-written type compiles whether or not
-  it is true, so a green build is not evidence — this turns the type into a
-  falsifiable claim. Also audits the second axis a migration can fail on — typing
-  edits that quietly change runtime behavior: stripped `| undefined`, deleted
-  default parameters, literals swapped for runtime enum lookups, calls made
-  optional so a throw becomes a silent no-op. Use when reviewing or validating a
-  JS→TS migration, a PR that hand-writes types/interfaces for values that already
+  Find the type defects `tsc` is structurally unable to report — a green build is
+  not evidence the types are correct. Covers the two classes: (1) hand-written
+  types that restate an authoritative source and disagree with it, caught by
+  substituting the derived type at a fixed commit and diffing `tsc` output; and
+  (2) the standing blind spots in the language and config — unchecked array/record
+  indexing, bivariant method parameters, covariant arrays, `any` absorption at
+  untyped boundaries, ambient `declare module` assertions, excess-property checks
+  that only fire on fresh literals, and external data asserted rather than
+  validated. Also audits typing edits that quietly change runtime behavior:
+  stripped `| undefined`, deleted default parameters, literals swapped for runtime
+  enum lookups, calls made optional so a throw becomes a silent no-op. Use when
+  reviewing a JS→TS migration, a PR that hand-writes types for values that already
   have them, a "rename-only" refactor, or any PR claiming a change is mechanical.
   Trigger phrases include "validate this TypeScript migration", "is this type
-  right", "does this type match the real shape", "prove the conversion is
-  mechanical", "derive vs define", and "why didn't CI catch this type".
+  right", "does this type match the real shape", "why didn't CI catch this type",
+  "derive vs define", and "what can tsc not check".
 maturity: experimental
 ---
 
-# TypeScript type proof
+# TypeScript compiler blind spots
 
 A hand-written type is a **claim about a value's shape**, and it compiles whether
-or not the claim is true. So `tsc` passing tells you the code is well-formed, not
-that the types are correct — and in a partially-migrated repo it often cannot
-tell you, because the caller is untyped JS and is never checked at all.
+or not the claim is true. `tsc` checks declarations for internal **consistency** —
+never for **correspondence** to the source they restate. Across a JavaScript
+boundary (`checkJs` off) it checks nothing at all.
 
-This skill makes the claim falsifiable: replace the hand-written type with the
-**derived** one and let the compiler report the disagreement.
+Those are the blind spots. This skill finds what is hiding in them.
+
+Two classes, two methods:
+
+| Class | What it is | Method |
+|---|---|---|
+| **Restated types** | A type hand-written to describe a value that already has an authoritative type | **Substitution A/B** — swap in the derived type, diff `tsc` output |
+| **Standing blind spots** | Defects the language and config cannot report at all, in any codebase | **Targeted audit** — [references/false-negatives.md](references/false-negatives.md) |
+
+The second class is the one that surprises people: a file of genuinely broken
+code can typecheck clean. The reference includes exactly that — a demonstration
+file where every block is wrong and `tsc` reports zero errors.
 
 Companion to the authoring rule it enforces — *derive types from authoritative
 sources instead of re-declaring them* in
@@ -115,7 +128,7 @@ export function asCalledByTheRealCode() {
 ### Step 4: Run both arms
 
 ```bash
-./scripts/type-proof.sh <repo-path> <probe-dir>
+./scripts/substitution-ab.sh <repo-path> <probe-dir>
 ```
 
 Or by hand — Arm A first, and stop if it is not silent.
