@@ -12,6 +12,10 @@
     "Note `mandatory` controls whether the INSTALLER ships a skill past the domain filter.",
     "It does not make an agent load anything, and is unrelated to the constraint above."
   ],
+  "limits": {
+    "descriptionMaxChars": 1536,
+    "$why": "Frontmatter is loaded for every installed skill at agent startup, as fixed overhead that scales linearly with the catalogue. The cap is documented in README; this makes it enforced rather than advisory."
+  },
   "skill": {
     "name": "Slash-command name, unprefixed. The installer adds the mms- prefix on write.",
     "description": "What the skill does plus when-to-use cues, <= 1536 characters.",

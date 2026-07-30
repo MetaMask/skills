@@ -306,6 +306,34 @@ describe('corpus: frontmatter cannot force a load', () => {
     );
   });
 
+  test('no description exceeds the documented budget', () => {
+    // Every installed skill's frontmatter is loaded at agent startup, so this is fixed
+    // overhead that scales linearly with the catalogue. README documents the cap; without
+    // a check it is advisory, and description is the field authors are tempted to grow.
+    //
+    // Parsed line-wise rather than by regex: descriptions use both the plain form and the
+    // folded `>-` form with indented continuation lines, and a single expression that
+    // handles the first silently misses the second — which is most of them.
+    const max = SCHEMA.limits.descriptionMaxChars;
+    const over = [];
+    for (const { kind, rel, body } of corpusFiles()) {
+      if (kind !== 'skill') continue;
+      const m = /^---\n([\s\S]*?)\n---/u.exec(body);
+      if (!m) continue;
+      const lines = m[1].split('\n');
+      const i = lines.findIndex((l) => /^description:/u.test(l));
+      if (i === -1) continue;
+      const parts = [lines[i].replace(/^description:[ \t]*(?:>-|>|\|)?[ \t]*/u, '')];
+      for (let j = i + 1; j < lines.length; j += 1) {
+        if (/^[A-Za-z_][\w-]*:/u.test(lines[j])) break; // next top-level key
+        parts.push(lines[j].trim());
+      }
+      const len = parts.join(' ').replace(/\s+/gu, ' ').trim().length;
+      if (len > max) over.push(`${rel} → ${len} chars (max ${max})`);
+    }
+    assert.deepEqual(over, [], 'description exceeds the budget set in skill-frontmatter.json');
+  });
+
   test('the schema declares every frontmatter key the installer reads', () => {
     // tools/install pulls specific keys by name. If it grows one the schema does not
     // declare, this fails rather than the installer quietly honouring an undeclared key.
