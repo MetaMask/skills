@@ -6,7 +6,7 @@ description: Review and diagnose Redux selector anti-patterns that cause render 
 
 # Selector Anti-Pattern Review
 
-**Scope:** Redux selector anti-patterns are the dominant cause of React render cascades in the MetaMask UI. This skill covers both review phases: pre-merge PR review (grep-driven checklist) and post-merge diagnosis (WDYR-driven workflow). Both modes resolve to the same root cause and the same fix set, catalogued in [`selector-anti-patterns`](../../knowledge/selector-anti-patterns.md) and [`render-cascade`](../../knowledge/render-cascade.md).
+**Scope:** Redux selector anti-patterns are the dominant cause of React render cascades in the MetaMask UI. This skill covers both review phases: pre-merge PR review (grep-driven checklist) and post-merge diagnosis (WDYR-driven workflow). Both modes resolve to the same root cause and the same fix set, catalogued in the **`selector-anti-patterns`** and **`render-cascade`** knowledge files — the single source for their definitions (installed alongside this skill under `knowledge/`).
 
 Both `metamask-extension` and `metamask-mobile` share the same React + Redux architecture; this skill applies to both (see overlays for repo-specific paths).
 
@@ -27,8 +27,8 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 
 1. **List changed selector/consumer files.** `git diff --name-only origin/main...HEAD | grep -E '(selectors|useSelector)'`
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
-3. **Match each hit to a pattern** in [`selector-anti-patterns`](../../knowledge/selector-anti-patterns.md) (numbered 1–5) or to one of the [team-specific workarounds](#team-specific-workarounds) below.
-4. **Block on Jest warning.** If the PR's test run surfaces `"result function returned its own inputs"`, the PR introduces [Pattern 2](../../knowledge/selector-anti-patterns.md#2-identity-function-selector). Do not merge.
+3. **Match each hit to a pattern** in `selector-anti-patterns` or to one of the [team-specific workarounds](#team-specific-workarounds) below.
+4. **Block on Jest warning.** If the PR's test run surfaces `"result function returned its own inputs"`, the PR introduces an identity/passthrough result (`selector-anti-patterns` §2). Do not merge.
 5. **Require a fix, not a justification.** None of the five patterns have a valid use case. See [Pitfalls](#common-pitfalls) for the narrow `createDeepEqualSelector` exception.
 
 ## Mode B: Post-Merge Diagnosis (WDYR-driven)
@@ -41,24 +41,27 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
    ```
 2. **Enable WDYR.** `ENABLE_WHY_DID_YOU_RENDER=true yarn start` (same env var on extension and mobile).
 3. **Identify root component.** The first WDYR log is the cascade origin. Do not fix downstream symptoms first.
-4. **Classify via the [WDYR message table](#wdyr-message-interpretation).** If the root cause is a selector, return to [Mode A](#mode-a-pre-merge-review-grep-driven) and apply the fix set. If it is a context value or prop identity issue, see [`render-cascade`](../../knowledge/render-cascade.md).
+4. **Classify via the [WDYR message table](#wdyr-message-interpretation).** If the root cause is a selector, return to [Mode A](#mode-a-pre-merge-review-grep-driven) and apply the fix set. If it is a context value or prop identity issue, see the `render-cascade` knowledge file.
 5. **Verify.** Repeat the action. Confirm the counter stabilizes (e.g. 0→2, not 0→25). Divide raw counts by 2 under React Strict Mode.
 
 ## Grep Checklist
 
-| Pattern | Detection | Knowledge ref |
-|---|---|---|
-| 1. Plain function selector | `grep -rE 'export function get' <selectors-dir>/` | [§1](../../knowledge/selector-anti-patterns.md#1-plain-function-selector) |
-| 2. Identity function selector | Jest warning `result function returned its own inputs` | [§2](../../knowledge/selector-anti-patterns.md#2-identity-function-selector) |
-| 3. Unnecessary `createDeepEqualSelector` | `grep -rn 'createDeepEqualSelector' <selectors-dir>/` then verify each input is not from Immer state | [§3](../../knowledge/selector-anti-patterns.md#3-unnecessary-deep-equality) |
-| 4. O(n) lookup | `grep -rnE '\.find\(.*=>.*address' <selectors-dir>/` | [§4](../../knowledge/selector-anti-patterns.md#4-on-lookups) |
-| 5. Chained unmemoized transforms | `grep -rnE 'export function get.*\{' <selectors-dir>/ -A5` and check for multiple `.filter/.map/.sort` without memoization | [§5](../../knowledge/selector-anti-patterns.md#5-chained-transforms-unmemoized) |
+| Pattern (`selector-anti-patterns` §) | Detection |
+|---|---|
+| §1 Unmemoized selector | `grep -rE 'export function get' <selectors-dir>/` |
+| §2 Identity / passthrough result | Jest warning `result function returned its own inputs` |
+| §3 New collection in the result function | `grep -rnE 'new Set\|new Map\|Object\.(values\|keys\|entries)\|\?\? \{\}\|\?\? \[\]' <selectors-dir>/` |
+| §4 Mutation in the result function | `grep -rnE '\.sort\(\|\.reverse\(\|\.push\(\|\.splice\(' <selectors-dir>/` |
+| §5 Over-broad input | `grep -rn 'state) => state\b' <selectors-dir>/` |
+| §6 Unnecessary deep equality | `grep -rn 'createDeepEqualSelector' <selectors-dir>/` then verify each input is genuinely unstable |
+| §7 O(n) lookup | `grep -rnE '\.find\(.*=>.*address' <selectors-dir>/` |
+| §8 Chained unmemoized transforms | `grep -rnE 'export function get.*\{' <selectors-dir>/ -A5`, then look for several `.filter/.map/.sort` without memoization |
 
 See the repo overlay for the concrete `<selectors-dir>` path.
 
 ## Team-Specific Workarounds
 
-Two patterns show up beyond the five in the knowledge file. Both are workarounds for broken selectors downstream. The fix is always to fix the selector, never to propagate the workaround.
+Two patterns show up beyond those in the knowledge file. Both are workarounds for broken selectors downstream. The fix is always to fix the selector, never to propagate the workaround.
 
 ### `useSelector(selector, isEqual)` from `react-redux`
 

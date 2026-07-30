@@ -1,78 +1,114 @@
 ---
 name: selector-anti-patterns
 domain: performance
-description: Five Redux selector patterns that that break selector memoization and cause render cascades
+description: The Redux selector patterns that break memoization and cause render cascades — the canonical, platform-agnostic taxonomy that per-repo selector references instantiate
 ---
 
 # Selector Anti-Patterns
 
-Each pattern causes `useSelector` to return a new reference on every call, triggering unnecessary re-renders.
+**This file is the single source for the pattern taxonomy.** Per-repo references — such as
+the `mm-selector-memoization` reference shipped with the `performance` skill — name these
+patterns rather than redefining them, and add what only they can: the codebase's own
+selector-creator utilities, verified instances with `file:line`, and fix recipes.
 
-## The Five Patterns
+Every pattern below has the same failure shape: `useSelector` returns a **new reference**
+when the underlying data did not change, so every consumer re-renders. One broken selector
+near the root of the graph cascades through everything downstream, and the cost scales
+superlinearly with user data.
 
-### 1. Plain Function Selector
+## 1. Unmemoized selector
 
-No memoization. Returns new reference every call.
+A plain function that allocates. No memoization at all — a new reference on every call.
 
 ```typescript
 // ❌ BROKEN
 export function getPendingApprovals(state) {
-  return Object.values(state.metamask.pendingApprovals ?? {});
+  return Object.values(state.pendingApprovals ?? {});
 }
 
 // ✅ FIXED
-const getPendingApprovalsObject = (state) => state.metamask.pendingApprovals ?? {};
+const getPendingApprovalsObject = (state) => state.pendingApprovals ?? {};
 export const getPendingApprovals = createSelector(
   getPendingApprovalsObject,
   (approvals) => Object.values(approvals),
 );
 ```
 
-Detection: `grep -r "export function get" ui/selectors/`
+Detection: grep exported `function get…` in the selectors directory.
 
-### 2. Identity Function Selector
+## 2. Identity / passthrough result
 
-Transform in input, identity in result → memoization is broken.
+The transform happens in the **input** and the result function returns its input unchanged,
+so the cache can never hit. A plain `createSelector` only helps when its *inputs* are
+reference-stable; controller-state slices usually are not.
 
 ```typescript
-// ❌ BROKEN: Object.values() in INPUT creates new array
+// ❌ BROKEN: Object.values() in the INPUT creates a new array each call
 export const getAccounts = createSelector(
   (state) => Object.values(state.accounts),
   (accounts) => accounts, // identity — cache never hits
 );
 
-// ✅ FIXED: Stable input, transform in OUTPUT
+// ✅ FIXED: stable input, transform in the OUTPUT
 export const getAccounts = createSelector(
-  (state) => state.accounts, // stable Immer reference
+  (state) => state.accounts, // stable structural reference
   (accounts) => Object.values(accounts),
 );
 ```
 
-Detection: Jest warning `"result function returned its own inputs"`
+Detection: the reselect/Jest warning `"result function returned its own inputs"`.
 
-### 3. Unnecessary Deep Equality
+## 3. New collection allocated in the result function
 
-`createDeepEqualSelector` adds O(n) overhead when Immer already provides stable references.
+Even a correctly-shaped `createSelector` returns a new reference whenever it recomputes —
+and if its inputs are unstable, that is every dispatch.
 
 ```typescript
-// ❌ UNNECESSARY: state.accounts is already stable
-const getAccounts = createDeepEqualSelector(
-  (state) => state.metamask.accounts,
-  (accounts) => transformAccounts(accounts),
-);
+// ❌ new array/Set/Map/object every call → always "changed"
+(accounts) => Object.values(accounts).sort(...)
+(transactions) => new Set(transactions.flatMap(...))
+(items) => items.filter(...)
+(state) => state.swapsTransactions ?? {}   // a fresh {} on every nullish hit
+```
 
-// ✅ CORRECT
-const getAccounts = createSelector(
-  (state) => state.metamask.accounts,
+**Fix:** a deep-equal selector creator (returns the *cached* reference when data is
+unchanged), a stable module-level constant for the empty case, or a result-equality check.
+
+## 4. Mutation in the result function
+
+```typescript
+// ❌ mutates the input array AND returns a corrupting reference
+createSelector([getItems], (items) => { items.sort(cmp); return items; })
+```
+
+**Fix:** copy first — `[...items].sort(cmp)`.
+
+## 5. Over-broad input
+
+`state => state`, or a large slice, as an input selector forces recomputation on **any**
+state change anywhere. Narrow the input to the smallest slice that actually feeds the
+result.
+
+## 6. Unnecessary deep equality
+
+Deep-equal creators cost O(n) per comparison. Reaching for one when the input is already
+reference-stable pays that cost for nothing — and deep-comparing a large slice on every
+dispatch can be worse than the re-render it prevents.
+
+```typescript
+// ❌ UNNECESSARY: this slice is already reference-stable
+const getAccounts = createDeepEqualSelector(
+  (state) => state.accounts,
   (accounts) => transformAccounts(accounts),
 );
 ```
 
-Use `createDeepEqualSelector` only when inputs are genuinely not from Immer/Redux state.
+Prefer **narrowing the input** over deep-equalizing a giant object.
 
-### 4. O(n) Lookups
+## 7. O(n) lookups over unnormalized state
 
-`.find()` on Object.values is O(n). With n items × m selectors per state change = O(n×m).
+`.find()` over `Object.values()` is O(n). With n items × m selectors per state change that
+is O(n×m) on every dispatch.
 
 ```typescript
 // ❌ BROKEN
@@ -83,16 +119,16 @@ export const getAccountByAddress = (state, address) =>
 export const getAccountByAddress = (state, address) => state.accounts[address];
 ```
 
-### 5. Chained Transforms (Unmemoized)
+## 8. Chained unmemoized transforms
 
-Each transform creates a new array. Multiple transforms = multiple new references per call.
+Each transform allocates. Several in sequence means several new references per call.
 
 ```typescript
 // ❌ BROKEN: 3 new arrays per call
 export function getSortedItems(state) {
   const items = Object.values(state.items);    // array 1
   const filtered = items.filter(isVisible);    // array 2
-  return filtered.sort(byDate);               // array 3
+  return filtered.sort(byDate);                // array 3
 }
 
 // ✅ FIXED: single memoized output
@@ -104,12 +140,24 @@ export const getSortedItems = createSelector(
 );
 ```
 
-## Selector Creator Decision Tree
+## Selector creator decision tree
 
 ```
-Is INPUT unstable (not from Immer/Redux)?
-├── YES → createDeepEqualSelector
-└── NO → Is OUTPUT unstable (new array/object from transform)?
-    ├── YES → createResultEqualSelector (or createShallowResultSelector)
-    └── NO → createSelector
+Is the INPUT unstable (a fresh object/array every dispatch)?
+├── YES → deep-equal selector creator (but prefer narrowing the input first)
+└── NO  → Is the OUTPUT unstable (a new array/object from the transform)?
+    ├── YES → result-equality selector creator
+    └── NO  → plain createSelector
 ```
+
+## Don't over-correct
+
+- A selector returning a **primitive** is fine even if it filters internally — the consumer
+  memoizes on the primitive value. Wasteful allocation, not a re-render bug.
+- Memoization is not free. Prefer narrowing inputs over adding comparison work.
+
+## Related
+
+- `render-cascade` — what one broken root selector does to the component graph downstream.
+- Per-repo instances: the `mm-selector-memoization` reference documents a codebase's own
+  selector creators, its verified broken selectors, and the fix recipe for each.

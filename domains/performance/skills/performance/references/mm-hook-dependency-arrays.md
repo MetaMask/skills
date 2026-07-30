@@ -8,6 +8,8 @@ tags: useEffect, useMemo, useCallback, dependencies, JSON.stringify
 
 Dependency arrays decide when `useEffect`/`useMemo`/`useCallback` re-run. The most common MetaMask problem is **`JSON.stringify` inside a dependency array** — it runs a synchronous serialization on every render just to compute the dependency key, which is both expensive and a sign the upstream reference is unstable.
 
+> **Scope.** This file is the *dependency* half of effect performance, instantiated for this codebase. The platform-agnostic taxonomy — unstable dependency identity, wrong dependencies, derived state via effect, cascading effect chains, missing cleanup, uncancelled async — lives in the **`effect-anti-patterns`** knowledge file, installed alongside this skill under `knowledge/`. Read that for the general shape; read this for the verified instances and the repo's lint gaps.
+
 ## Pattern — `JSON.stringify` in deps
 
 ```ts

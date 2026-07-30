@@ -1,12 +1,12 @@
 ---
 maturity: experimental
 name: effect-anti-pattern-review
-description: Review PR diffs that add or modify `useEffect` for the four systemic React effect anti-patterns
+description: Review PR diffs that add or modify `useEffect` for the systemic React effect anti-patterns
 ---
 
 # Effect Anti-Pattern Review
 
-**Scope:** Pre-merge review of PRs that add or modify `useEffect` calls. The workflow is a grep-driven checklist against the four patterns catalogued in [`effect-anti-patterns`](../../knowledge/effect-anti-patterns.md).
+**Scope:** Pre-merge review of PRs that add or modify `useEffect` calls. The workflow is a grep-driven checklist against the patterns catalogued in the **`effect-anti-patterns`** knowledge file, which is the single source for their definitions and fixes (installed alongside this skill under `knowledge/`).
 
 Applies to both `metamask-extension` and `metamask-mobile`. See overlays for repo-specific paths.
 
@@ -26,19 +26,20 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 
 1. **List changed files with `useEffect`.** `git diff --name-only origin/main...HEAD | xargs grep -l 'useEffect'`
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
-3. **For each hit, map to a pattern** in [`effect-anti-patterns`](../../knowledge/effect-anti-patterns.md) and apply the fix from the knowledge file.
-4. **Block on pattern 1.** `JSON.stringify` in a dependency array is always broken. Do not merge.
-5. **Block on pattern 3 without cleanup.** Any `setInterval` / `setTimeout` without a matching `clearInterval` / `clearTimeout` in the cleanup function is blocking.
+3. **For each hit, map to a pattern** in `effect-anti-patterns` and apply the fix from the knowledge file.
+4. **Block on unstable dependency identity.** `JSON.stringify` in a dependency array is always broken. Do not merge.
+5. **Block on a timer without cleanup.** Any `setInterval` / `setTimeout` without a matching `clearInterval` / `clearTimeout` in the cleanup function is blocking.
 6. **Require cancellation for async effects.** Any `fetch` / network call inside `useEffect` must use `AbortController`.
 
 ## Grep Checklist
 
-| Pattern | Detection | Knowledge ref |
-|---|---|---|
-| 1. `JSON.stringify` in deps | `grep -rnE 'useEffect.*\[.*JSON\.stringify' <source-dir>` | [§1](../../knowledge/effect-anti-patterns.md#1-jsonstringify-in-dependency-array) |
-| 2. State-mirror effect | Hand review — look for `useEffect` that calls `setX` based on other state/props | [§2](../../knowledge/effect-anti-patterns.md#2-useeffect--setstate-state-mirror-pattern) |
-| 3. Missing interval/timer cleanup | `grep -rnE 'setInterval\|setTimeout' <source-dir>` then check each effect returns a cleanup | [§3](../../knowledge/effect-anti-patterns.md#3-missing-intervaltimer-cleanup) |
-| 4. Missing `AbortController` | `grep -rnB2 -A10 'fetch\(' <source-dir>` within `useEffect` blocks | [§4](../../knowledge/effect-anti-patterns.md#4-missing-abortcontroller-in-async-effects) |
+| Pattern (`effect-anti-patterns` §) | Detection |
+|---|---|
+| §1 Unstable dependency identity | `grep -rnE 'useEffect.*\[.*JSON\.stringify' <source-dir>`, plus inline `{`/`[` literals in the dep position |
+| §2 Wrong dependencies | Hand review — empty deps that read state (stale closure), or deps that read nothing |
+| §3 Derived state via effect + setState | Hand review — `useEffect` that calls `setX` from other state/props; §3a for chains of them |
+| §4 Missing timer cleanup | `grep -rnE 'setInterval\|setTimeout' <source-dir>` then check each effect returns a cleanup |
+| §5 Uncancelled async work | `grep -rnB2 -A10 'fetch\(' <source-dir>` within `useEffect` blocks |
 
 See the repo overlay for the concrete `<source-dir>` path.
 

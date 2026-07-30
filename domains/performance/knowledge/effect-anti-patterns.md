@@ -1,69 +1,95 @@
 ---
 name: effect-anti-patterns
 domain: performance
-description: Four React `useEffect` patterns that cause unnecessary renders, memory leaks, or race conditions
+description: The React `useEffect` patterns that cause unnecessary renders, memory leaks, or race conditions — the canonical, platform-agnostic taxonomy that per-repo effect references instantiate
 ---
 
 # Effect Anti-Patterns
 
-Four `useEffect` patterns that are systemically broken in React codebases. Each pattern has a broken example, a fixed example, and a detection recipe.
+**This file is the single source for the pattern taxonomy.** Per-repo references — such as
+the `mm-hook-dependency-arrays` and `mm-useeffect-antipatterns` references shipped with the
+`performance` skill — name these patterns rather than redefining them, and add what only
+they can: verified instances with `file:line`, repo-specific lint gaps, and fix recipes.
 
-## 1. `JSON.stringify` in Dependency Array
+Two halves, and they fail differently. Patterns 1–2 are about **when an effect re-runs**
+(the dependency side). Patterns 3–5 are about **what happens inside and after it** (the
+lifecycle side).
 
-`JSON.stringify` produces a new string on every render when the input is an object. React compares dependency arrays by reference for primitives and by identity for objects. A stringified object is a new primitive every render, so the effect fires every render.
+## 1. Unstable dependency identity
 
-```typescript
-// ❌ BROKEN: effect runs on every render
-useEffect(() => {
-  doSomething(config)
-}, [JSON.stringify(config)])
-
-// ✅ FIXED: destructure and depend on primitives
-const { a, b } = config
-useEffect(() => {
-  doSomething({ a, b })
-}, [a, b])
-
-// ✅ ALSO FIXED: stabilize via useMemo
-const stableConfig = useMemo(() => config, [config.a, config.b])
-useEffect(() => {
-  doSomething(stableConfig)
-}, [stableConfig])
-```
-
-Detection: `grep -rnE 'useEffect.*\[.*JSON\.stringify' <source-dir>`
-
-## 2. `useEffect` + `setState` (State Mirror Pattern)
-
-Using an effect to mirror one piece of state into another is almost always wrong. The computed value should be derived inline or via `useMemo`. Mirror-effects trigger an extra render and create synchronization bugs.
+A dependency array is supposed to be a cheap identity check. Anything that produces a new
+value every render defeats it — and usually signals an unstable reference upstream.
 
 ```typescript
-// ❌ BROKEN: two renders, possible stale state
-const [fullName, setFullName] = useState('')
-useEffect(() => {
-  setFullName(`${first} ${last}`)
-}, [first, last])
+// ❌ serializes on EVERY render just to build the dep key
+useEffect(() => { doSomething(config) }, [JSON.stringify(config)])
 
-// ✅ FIXED: derived inline, one render
-const fullName = `${first} ${last}`
+// ❌ new object every render → effect runs every render (or loops forever)
+useEffect(() => { ... }, [{ id: user.id }])
 
-// ✅ ALSO FIXED: memoized if expensive
-const fullName = useMemo(() => expensiveJoin(first, last), [first, last])
+// ✅ stabilize the reference upstream, then depend on it directly
+const stableConfig = useMemo(() => derive(a, b), [a, b])
+useEffect(() => { doSomething(stableConfig) }, [stableConfig])
+
+// ✅ or depend on the primitives
+useEffect(() => { ... }, [user.id])
 ```
 
-The React docs explicitly call this out: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect).
+Stabilizing the source beats hashing it. If you genuinely cannot, a primitive key computed
+**once** (`useMemo(() => xs.join(','), [xs])`) still beats a per-render `JSON.stringify`.
 
-Detection: `grep -rnB1 -A3 'useEffect' <source-dir> | grep -B2 -A1 'set[A-Z]'` (review hits manually)
+Detection: grep for `JSON.stringify` inside a dependency array, and for inline `{`/`[`
+literals in the dep position.
 
-## 3. Missing Interval/Timer Cleanup
+## 2. Wrong dependencies
 
-Every `setInterval` and `setTimeout` inside an effect must be cleared in the cleanup function. Otherwise the timer survives component unmount and fires on dead state, leaking memory and causing "setState on unmounted component" warnings.
+```typescript
+// ❌ empty deps but reads state → stale closure, value frozen at first render
+const onPress = useCallback(() => doThing(count), [])
+
+// ❌ empty deps and reads nothing → this was never a hook, hoist it out
+const config = useMemo(() => ({ a: 1, b: 2 }), [])
+```
+
+**Fix:** include what you read; or if there is genuinely nothing to read, move the constant
+outside the component. Where `react-hooks/exhaustive-deps` is not enabled, this is not
+caught automatically and must be reviewed by hand.
+
+## 3. Derived state via effect + setState
+
+If a value is computable from props/state/store, compute it during render. State plus an
+effect is for *synchronizing with something external*, not for derivation.
+
+```typescript
+// ❌ two render passes per change: render → effect → setState → render again
+const [visible, setVisible] = useState([])
+useEffect(() => { setVisible(items.filter((t) => !t.hidden)) }, [items])
+
+// ✅ derive during render — one pass, no state to drift out of sync
+const visible = useMemo(() => items.filter((t) => !t.hidden), [items])
+```
+
+The React docs call this out directly:
+[You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect).
+
+### 3a. Cascading effect chains
+
+The same mistake compounded: effect A sets state, which triggers effect B, which sets
+state, which triggers effect C. Each link is a full extra render pass *and* a window where
+the UI shows an inconsistent intermediate combination.
+
+**Fix:** collapse the chain into render-time derivation — one `useMemo` per step, or one
+for the lot.
+
+## 4. Missing timer cleanup
+
+Every `setInterval` and recurring `setTimeout` started in an effect must be cleared in its
+cleanup. Otherwise the timer outlives unmount, fires against dead state, and leaks in
+proportion to how often the component mounts.
 
 ```typescript
 // ❌ BROKEN: timer leaks after unmount
-useEffect(() => {
-  setInterval(poll, 1000)
-}, [])
+useEffect(() => { setInterval(poll, 1000) }, [])
 
 // ✅ FIXED
 useEffect(() => {
@@ -72,19 +98,23 @@ useEffect(() => {
 }, [])
 ```
 
-Detection: `grep -rnB2 -A10 'setInterval\|setTimeout' <source-dir> | grep -B5 'useEffect' | grep -v 'clearInterval\|clearTimeout'`
+## 5. Uncancelled async work
 
-## 4. Missing `AbortController` in Async Effects
-
-Async work inside an effect should be cancellable. Without `AbortController`, a request initiated before unmount can resolve after unmount, triggering `setState` on a dead component and masking memory issues.
+Async work started in an effect can resolve *after* unmount — or after the input changed,
+letting a stale response overwrite a newer one.
 
 ```typescript
-// ❌ BROKEN: fetch races unmount
-useEffect(() => {
-  fetch(url).then((r) => setData(r))
-}, [url])
+// ❌ fetch races unmount; stale data can win
+useEffect(() => { fetchMeta(address).then(setMeta) }, [address])
 
-// ✅ FIXED
+// ✅ cancelled flag — cheapest, works for any promise
+useEffect(() => {
+  let cancelled = false
+  fetchMeta(address).then((m) => { if (!cancelled) setMeta(m) })
+  return () => { cancelled = true }
+}, [address])
+
+// ✅ AbortController — also cancels the request itself
 useEffect(() => {
   const ctrl = new AbortController()
   fetch(url, { signal: ctrl.signal })
@@ -94,8 +124,26 @@ useEffect(() => {
 }, [url])
 ```
 
-## Why These Matter
+Pick one and apply it consistently.
 
-- **Renders.** State-mirror effects double every render in the affected component tree.
-- **Memory.** Uncleared intervals and timers leak proportional to how often the component mounts.
-- **Correctness.** Async effects without cancellation cause `"Can't perform a React state update on an unmounted component"` warnings and, worse, data races where an older response overwrites a newer one.
+## Why these matter
+
+- **Renders.** Derived-state effects double every render in the affected subtree, and
+  chains multiply it.
+- **Memory.** Uncleared timers and subscriptions leak proportional to mount count.
+- **Correctness.** Uncancelled async work produces "state update on an unmounted
+  component" warnings and, worse, races where an older response overwrites a newer one.
+
+## Don't over-correct
+
+- Don't add `useMemo`/`useCallback` everywhere — only where profiling shows wasted work, or
+  where a memoized child depends on the reference. Compilers handle many cases on opted-in
+  paths.
+- A `JSON.stringify` on a cold path with a small object is acceptable. Prioritize hot render
+  paths.
+
+## Related
+
+- `render-cascade` — how effect-driven re-renders propagate through the component graph.
+- `selector-anti-patterns` — the store-side counterpart; an unstable selector result is a
+  common source of the unstable dependency in pattern 1.
