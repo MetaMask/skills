@@ -394,3 +394,60 @@ describe('corpus: knowledge citations resolve within their own domain', () => {
     assert.deepEqual(fixed, [], 'these citations now resolve — remove them from KNOWN_UNRESOLVED');
   });
 });
+
+describe('corpus: content is safe to publish and links stay current', () => {
+  function allSkillDocs() {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const out = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && /\.(md|py|sh|ts|mjs)$/u.test(entry.name)) {
+          out.push({ rel: path.relative(repoRoot, full).split(path.sep).join('/'), body: readFileSync(full, 'utf8') });
+        }
+      }
+    };
+    walk(domainsDir);
+    return out;
+  }
+
+  // This repo is public. A personal path, handle, or private-repo name in a skill is
+  // both a leak and a dead reference for every reader but its author.
+  test('no personal paths, handles, or private-repo references', () => {
+    const PERSONAL = [
+      [/(^|[\s"'`(])\/(home|Users)\/[a-z][a-z0-9_.-]*/u, 'absolute personal path'],
+      [/\b(majorlift|MajorLift)\b/u, 'personal handle'],
+      [/\bexogram[-a-z]*/u, 'private repo'],
+      [/metamask-extension-skills/u, 'personal repo'],
+      [/consensys-test\//u, 'personal fork'],
+    ];
+    const hits = [];
+    for (const { rel, body } of allSkillDocs()) {
+      body.split('\n').forEach((line, i) => {
+        for (const [re, label] of PERSONAL) {
+          if (re.test(line)) hits.push(`${rel}:${i + 1} (${label})`);
+        }
+      });
+    }
+    assert.deepEqual(hits, [], 'personal or private references must not ship in a public skill');
+  });
+
+  // A frozen branch is worse than a deleted one: the link loads, and the reader gets
+  // stale source with no signal. `metamask-extension` moved to `main`; `develop` still
+  // exists but stopped receiving commits in January 2026.
+  const FROZEN_BRANCHES = ['develop'];
+  test('no links into a known-frozen branch', () => {
+    const hits = [];
+    for (const { rel, body } of allSkillDocs()) {
+      body.split('\n').forEach((line, i) => {
+        for (const branch of FROZEN_BRANCHES) {
+          const re = new RegExp(`github\\.com/[^\\s)]+/(blob|tree)/${branch}/`, 'u');
+          if (re.test(line)) hits.push(`${rel}:${i + 1} (→ ${branch})`);
+        }
+      });
+    }
+    assert.deepEqual(hits, [], 'link points into a frozen branch — use the repo\'s default branch, or pin a SHA');
+  });
+});
