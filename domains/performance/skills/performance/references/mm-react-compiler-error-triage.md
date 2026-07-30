@@ -18,7 +18,7 @@ The React Compiler **fails open**: when it can't compile a component, it silentl
 | `'critical_errors'` | only critical errors (compiler-internal invariant violations) | CI / debug builds, first ratchet target |
 | `'all_errors'` | every diagnostic, including unsupported syntax | CI / debug builds, end-state ratchet |
 
-**The ratchet strategy** (extension roadmap, tracked internally): keep production at `'none'` permanently; aim for a *non-production* build that passes at `'critical_errors'`, then at `'all_errors'`. Each ratchet step turns a class of silent skips into a visible, fixable error list. Never enable a non-`'none'` threshold in a release build — one un-compilable file would block the release for an optimization that is optional by design.
+**The ratchet strategy** (extension roadmap, MetaMask-planning#6552 → #6553): keep production at `'none'` permanently; aim for a *non-production* build that passes at `'critical_errors'`, then at `'all_errors'`. Each ratchet step turns a class of silent skips into a visible, fixable error list. Never enable a non-`'none'` threshold in a release build — one un-compilable file would block the release for an optimization that is optional by design.
 
 ## Triage: unsupported syntax vs. legitimate errors
 
@@ -63,7 +63,7 @@ What the buckets tell you:
 
 ## Staged adoption roadmap
 
-The extension's sequence (internal epic) generalizes to any repo:
+The extension's sequence (epic MetaMask-planning#6549) generalizes to any repo:
 
 1. **Lint clean:** update `eslint-plugin-react-hooks` / `eslint-plugin-react-compiler` to latest; fix violations — these are exactly what the compiler will refuse to compile.
 2. **Audit opt-outs:** every `'use no memo'` carries a reason + TODO; the count only goes down. `grep -rn "use no memo" app --include="*.ts*"`.

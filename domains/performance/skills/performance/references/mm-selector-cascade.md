@@ -89,7 +89,7 @@ For each hit that consumes the fixed root (directly or transitively): remove the
 
 ## What the React Compiler can and cannot do here
 
-The compiler memoizes **within a file**. A `useSelector` result, an imported hook's return value, or an external context value is opaque to it — if the selector hands back a fresh reference, the compiled component still re-renders, and any derivation from it still recomputes (internal audit ticket):
+The compiler memoizes **within a file**. A `useSelector` result, an imported hook's return value, or an external context value is opaque to it — if the selector hands back a fresh reference, the compiled component still re-renders, and any derivation from it still recomputes (extension audit ticket MetaMask-planning#6661):
 
 ```tsx
 const tokens = useSelector(selectTokens);     // compiler cannot see/stabilize this

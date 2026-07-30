@@ -76,7 +76,7 @@ useEffect(() => {
 
 The cancelled flag prevents the *setState*; AbortController additionally stops the request from consuming bandwidth/battery. The race-condition variant (stale response overwriting fresh data when `address` changes quickly) is fixed by the same cleanup — the old effect's closure is cancelled before the new one runs.
 
-**Codify, don't copy-paste** (internal extension epic): once a repo has three hand-rolled cancelled flags, extract shared hooks — `useIsMounted()`, `useAbortableEffect(fn, deps)` (effect receives a signal), `useEventListener(target, event, handler)` (auto-removes on unmount) — so cleanup is the default, not per-site diligence.
+**Codify, don't copy-paste** (extension epic MetaMask-planning#6525): once a repo has three hand-rolled cancelled flags, extract shared hooks — `useIsMounted()`, `useAbortableEffect(fn, deps)` (effect receives a signal), `useEventListener(target, event, handler)` (auto-removes on unmount) — so cleanup is the default, not per-site diligence.
 
 ## Pattern — missing cleanup for timers / subscriptions / listeners
 
