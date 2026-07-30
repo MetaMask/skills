@@ -242,18 +242,22 @@ describe('managed skill pruning', () => {
 });
 
 describe('corpus: frontmatter cannot force a load', () => {
-  // The context an agent must ingest has no upper bound if a file can *require* other
-  // files. A body link is the agent's choice — it reads what it judges relevant, and a
-  // broken one costs a failed read. A frontmatter key that declares a dependency is a
-  // mandatory pull, and mandatory pulls compose: A requires B requires C.
+  // The permitted keys live in skill-frontmatter.json, not here — they describe the skill
+  // FORMAT, so an author hitting this failure finds the list, and the reason a key is or is
+  // not allowed, in a file they would think to open.
   //
-  // `tools/install` hardcodes `alwaysApply: false` into every Cursor rule it emits, so
-  // no *installed* skill forces a load today. Nothing stops a source file declaring one.
-  //
-  // This is an ALLOWLIST, not a denylist of known-bad keys. A denylist silently exempts
-  // whatever it forgot to name — `loadAll:` invented next month passes a list that only
-  // knows about `alwaysApply:`. An unrecognized key fails until someone decides it is safe.
-  const ALLOWED_KEYS = new Set(['name', 'description', 'maturity', 'domain', 'metadata']);
+  // Allowlist rather than a denylist of known-bad keys: a denylist silently exempts whatever
+  // it did not name, so a key invented next month passes a check that knows only the old ones.
+  const SCHEMA_PATH = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '..',
+    'skill-frontmatter.json',
+  );
+  const SCHEMA = JSON.parse(readFileSync(SCHEMA_PATH, 'utf8'));
+  const ALLOWED = {
+    skill: new Set(Object.keys(SCHEMA.skill)),
+    knowledge: new Set(Object.keys(SCHEMA.knowledge)),
+  };
 
   function frontmatterKeys(body) {
     const m = /^---\n([\s\S]*?)\n---/u.exec(body);
@@ -267,38 +271,57 @@ describe('corpus: frontmatter cannot force a load', () => {
   function corpusFiles() {
     const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     const domainsDir = path.join(repoRoot, 'domains');
-    const out = [];
+    const found = [];
     const walk = (dir) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) walk(full);
-        else if (
-          entry.name === 'skill.md'
-          || (entry.name.endsWith('.md') && full.includes(`${path.sep}knowledge${path.sep}`))
-        ) {
-          out.push({
-            rel: path.relative(repoRoot, full).split(path.sep).join('/'),
-            body: readFileSync(full, 'utf8'),
-          });
+        else if (entry.name === 'skill.md') found.push(['skill', full]);
+        else if (entry.name.endsWith('.md') && full.includes(`${path.sep}knowledge${path.sep}`)) {
+          found.push(['knowledge', full]);
         }
       }
     };
     walk(domainsDir);
-    return out;
+    return found.map(([kind, full]) => ({
+      kind,
+      rel: path.relative(repoRoot, full).split(path.sep).join('/'),
+      body: readFileSync(full, 'utf8'),
+    }));
   }
 
-  test('no unrecognized frontmatter key in any skill or knowledge file', () => {
+  test('every frontmatter key is declared in skill-frontmatter.json', () => {
     const unknown = [];
-    for (const { rel, body } of corpusFiles()) {
+    for (const { kind, rel, body } of corpusFiles()) {
       for (const key of frontmatterKeys(body)) {
-        if (!ALLOWED_KEYS.has(key)) unknown.push(`${rel} → ${key}`);
+        if (!ALLOWED[kind].has(key)) unknown.push(`${rel} → ${key} (${kind})`);
       }
     }
     assert.deepEqual(
       unknown,
       [],
-      'unrecognized frontmatter key. If it makes the agent load another file, it is not allowed — '
-        + 'the context an agent must ingest has to stay bounded. If it is inert metadata, add it to ALLOWED_KEYS.',
+      'frontmatter key not declared in skill-frontmatter.json. If it makes an agent load '
+        + 'another file it must not be added — the context an agent ingests has to stay '
+        + 'bounded. Otherwise declare it there, with a line saying what it does.',
+    );
+  });
+
+  test('the schema declares every frontmatter key the installer reads', () => {
+    // tools/install pulls specific keys by name. If it grows one the schema does not
+    // declare, this fails rather than the installer quietly honouring an undeclared key.
+    const install = readFileSync(
+      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'install'),
+      'utf8',
+    );
+    const read = [...install.matchAll(/frontmatter_value\s+"\$\w+"\s+"([\w-]+)"/gu)].map((m) => m[1]);
+    assert.ok(read.length > 0, 'expected to find frontmatter_value calls in tools/install');
+    const undeclared = [...new Set(read)].filter(
+      (k) => !ALLOWED.skill.has(k) && !ALLOWED.knowledge.has(k),
+    );
+    assert.deepEqual(
+      undeclared,
+      [],
+      'tools/install reads a frontmatter key that skill-frontmatter.json does not declare',
     );
   });
 });

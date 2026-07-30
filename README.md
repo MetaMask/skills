@@ -391,6 +391,13 @@ Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `mandatory`, and `scope` are read by the CLI.
 
+The permitted keys, for skills and for knowledge files, are declared in
+[`skill-frontmatter.json`](skill-frontmatter.json) and enforced by `yarn test`.
+Adding one is a deliberate decision: **a key that makes an agent eagerly load
+another file must not be added.** A body link is the agent's own choice, but a
+declared dependency is a mandatory pull, and mandatory pulls compose — so the
+context an agent must ingest stops having an upper bound.
+
 ### Overlay frontmatter
 
 ```yaml

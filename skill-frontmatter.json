@@ -1,0 +1,28 @@
+{
+  "$comment": [
+    "Permitted top-level frontmatter keys, by file kind. This is the source of truth;",
+    "test/cli.test.mjs enforces it and README.md documents it for authors.",
+    "",
+    "Adding a key is a deliberate decision, not a formality. A key that makes an agent",
+    "EAGERLY LOAD another file must not be added: a body link is the agent's own choice,",
+    "but a declared dependency is a mandatory pull, and mandatory pulls compose (A requires",
+    "B requires C), so the context an agent must ingest stops having an upper bound.",
+    "tools/install writes `alwaysApply: false` into every Cursor rule for the same reason.",
+    "",
+    "Note `mandatory` controls whether the INSTALLER ships a skill past the domain filter.",
+    "It does not make an agent load anything, and is unrelated to the constraint above."
+  ],
+  "skill": {
+    "name": "Slash-command name, unprefixed. The installer adds the mms- prefix on write.",
+    "description": "What the skill does plus when-to-use cues, <= 1536 characters.",
+    "maturity": "experimental | stable | deprecated. Default stable.",
+    "mandatory": "Truthy installs the skill even when its domain is filtered out.",
+    "scope": "user installs to $HOME instead of the target repo; needs --include-user.",
+    "metadata": "Inert operator metadata (emoji, homepage). Preserved through install, never read."
+  },
+  "knowledge": {
+    "name": "Human-readable title for the knowledge file.",
+    "domain": "Owning domain. Knowledge is delivered per domain, so it cannot be cited across domains.",
+    "description": "One line on what the file covers."
+  }
+}
