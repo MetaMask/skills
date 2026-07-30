@@ -128,7 +128,7 @@ domains/<area>/
     scripts/                    # optional helper scripts
     adapters/                   # optional runtime payloads used by scripts
     repos/<consuming-repo>.md   # optional repo-specific overlay
-  knowledge/                    # optional shared domain reference, installed once as mms-<domain>-knowledge/
+  knowledge/                    # optional shared domain reference, installed beside each domain skill
 tools/
   install      # core writer (mms- prefix, multi-operator output)
   sync         # Flow 2: `yarn skills` wrapper for engineers
@@ -139,27 +139,27 @@ tools/
 
 ### Referring to domain knowledge from a skill
 
-Domain `knowledge/` installs **once per domain**, as a sibling of the domain's skills:
+`knowledge/` is copied **beside every skill in the domain**, so the installed tree is
+flatter than this repo's:
 
 ```
-.claude/skills/mms-<skill>/SKILL.md
-.claude/skills/mms-<skill>/references/…
-.claude/skills/mms-<domain>-knowledge/…      # one copy, shared by every skill in the domain
+repo        domains/<area>/knowledge/x.md          domains/<area>/skills/<s>/skill.md
+installed   .claude/skills/mms-<s>/knowledge/x.md  .claude/skills/mms-<s>/SKILL.md
 ```
 
-That layout does not match the repo's, where `knowledge/` sits two levels above a skill and
-three above its `references/`. **So cite knowledge files by name, never by relative path** —
-no relative path is correct in both layouts, and one written against either will silently
-break in the other:
+A skill body therefore reaches its knowledge as **`knowledge/x.md`** once installed, but as
+`../../knowledge/x.md` in the repo — and from a `references/` file the two are `../knowledge/x.md`
+and `../../../knowledge/x.md`. **A repo-relative path is broken in the delivered output**, and
+nothing reports it. Cite by name, or by the installed-relative form:
 
 ```markdown
-See the `selector-anti-patterns` knowledge file.        <!-- resolves in both -->
-See [x](../../../knowledge/selector-anti-patterns.md)   <!-- repo only; 404 once installed -->
-See [x](../knowledge/selector-anti-patterns.md)         <!-- installed only; 404 in the repo -->
+See the `selector-anti-patterns` knowledge file.        <!-- safe anywhere -->
+See [x](knowledge/selector-anti-patterns.md)            <!-- correct from an installed skill body -->
+See [x](../../knowledge/selector-anti-patterns.md)      <!-- repo-relative: 404 once installed -->
 ```
 
-Section anchors have the same problem for a different reason — they break the moment the
-target file is reorganized. Name the file and the section in prose instead.
+`test/cli.test.mjs` guards this: every `knowledge/…` reference in an emitted skill must
+resolve on disk after install.
 
 ## Domains today
 

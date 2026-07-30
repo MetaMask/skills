@@ -163,9 +163,10 @@ domains/<area>/
   knowledge/                    # Optional: shared domain reference
 ```
 
-Domain `knowledge/` installs once per domain as `mms-<domain>-knowledge/`, a sibling of the
-domain's installed skills — a different shape from the repo's. **Cite knowledge files by
-name, not by relative path**: no relative path resolves correctly in both layouts. See
+Domain `knowledge/` is copied **beside every skill in the domain**, so an installed skill
+body reaches it as `knowledge/<file>.md`. That is a different shape from this repo, where
+`knowledge/` sits two levels above a skill. **Cite knowledge files by name, or by the
+installed-relative path — never by a repo-relative one.** See
 [Referring to domain knowledge from a skill](README.md#referring-to-domain-knowledge-from-a-skill).
 
 ### `skill.md` Format
