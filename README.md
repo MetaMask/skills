@@ -53,6 +53,7 @@ Or use the installer to drop all `web3-tools/` skills at once:
 metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/component-view-test
+metamask-skills describe testing/integration-test
 metamask-skills describe testing/unit-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
 metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
@@ -61,14 +62,18 @@ metamask-skills install       # lower-level installer wrapper
 
 The discovery commands make opt-in selection self-serve. Developers can find a
 skill, inspect it, then save their selection. On Mobile, prefer installing
-**component-view-test** and **unit-testing** together (CV is the default view
-layer; unit is the peer fallback — see `domains/testing/knowledge/testing-layers.md`):
+**component-view-test**, **integration-test**, and **unit-testing** together
+(see `domains/testing/knowledge/testing-layers.md` for layer selection). For
+cross-layer audits (inventory → disposition → Jira/PR report), also install
+experimental **test-layer-placement**:
 
 ```bash
 metamask-skills list --domain testing
 metamask-skills describe testing/component-view-test
+metamask-skills describe testing/integration-test
 metamask-skills describe testing/unit-testing
-metamask-skills sync --include testing/component-view-test --include testing/unit-testing --save
+metamask-skills describe testing/test-layer-placement
+metamask-skills sync --include testing/component-view-test --include testing/integration-test --include testing/unit-testing --include testing/test-layer-placement --maturity experimental --save
 ```
 
 Consumer repos should prefer this CLI over copying sync/postinstall scripts.
@@ -205,7 +210,7 @@ METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
     "skills:postinstall": "metamask-skills postinstall"
   },
   "devDependencies": {
-    "@metamask/skills": "^0.1.0"
+    "@metamask/skills": "^0.2.0"
   }
 }
 ```
@@ -252,6 +257,7 @@ tools/install \
 | `--exclude`      | none | Comma-separated skill opt-outs (`domain/skill` or `skill`). Explicit excludes win. Repeatable. |
 | `--save`         | off | Persist CLI domain/maturity/include/exclude choices to `.skills.local`. CLI flags are one-off unless this is passed. |
 | `--include-user` | off      | Also install `scope: user` skills (writes to `$HOME` — outside the target repo). Default skips them with a warning. |
+| `--prune-stale`  | off      | Remove installed project-scope `mms-*` skills that are outside the resolved source/filter selection. |
 | `--dry-run`      | off      | Preview without writing                                                          |
 
 **Install-all default with granular overrides.** Stable skills install for every
@@ -278,6 +284,12 @@ yarn skills \
   --exclude testing/visual-testing \
   --save
 ```
+
+Use `--prune-stale` or `SKILLS_PRUNE_STALE=1` when a repo should converge to the
+current selection and remove old generated `mms-*` project skills. This is wider
+than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/`
+inside an installed skill, while prune-stale removes whole generated skill
+directories that no longer exist in the resolved source/filter set.
 
 Recipe skills currently live in the experimental `agentic` domain. Install all
 lower-level recipe tools in this rollout with `--domain agentic --maturity

@@ -106,12 +106,13 @@ PRs that touch UI components must include testIDs so agentic recipes and E2E tes
 - **testID missing from the element that holds the value** — adding testID to a wrapper View instead of the `TextInput` or Text that actually contains the value. CDP fiber-walk reads `value` from the React element with the matching testID — the testID must be on the element that owns the state.
 - **TP/SL price inputs without testID** — the trigger price `TextInput` components in `PerpsTPSLView` (and similar order-form screens) frequently lack testIDs, making it impossible to assert the accepted decimal precision agentically. Any PR touching these screens must add `testID` to both the Take Profit and Stop Loss price inputs.
 
-## Component View Test Coverage
+## Test Layer Coverage
 
-**Same rule as testing domain `knowledge/testing-layers.md` (Mobile; installed beside testing skills):** screen/view behavior through rendered UI and app state defaults to `*.view.test.tsx`; unit tests only for pure logic, narrow contracts, or when CV cannot cover (smallest focused test + reason). Broad unit tests that render a page and mock hooks/selectors are a review smell.
+**Same rule as testing domain `knowledge/testing-layers.md` (Mobile; installed beside testing skills):** cover every test in its best-fit layer. Screen/view behavior through rendered UI and app state defaults to `*.view.test.tsx`; app-to-controller flows (real `HyperLiquidProvider` / `TradingService` behavior with only the I/O boundary mocked) belong in `*.integration.test.ts` via the perps harnesses; unit tests only for pure logic, narrow contracts, or when the higher layers cannot cover (smallest focused test + reason). Broad unit tests that render a page and mock hooks/selectors, or that mock the controller to fake a flow, are a review smell.
 
 Perps-specific enforcement:
 
 - **Component-view behavior tested as a unit test** — files such as `ui/pages/perps/**/index.test.tsx` or `app/components/UI/Perps/**/*.test.tsx` that render a whole page/view and assert UI behavior should be converted to `*.view.test.tsx` using the component-view test framework/skill.
+- **Controller/provider flow faked with mocks** — order/close/flip/validation flows that mock `HyperLiquidProvider` or `TradingService` to simulate behavior should be covered by `*.integration.test.ts` through the perps harnesses (`tests/integration/harnesses/perps*`), which run the real controller code with only the I/O boundary mocked. See the `integration-test` skill.
 - **Hook/selector mocking in a page behavior test** — mocking selectors, hooks, or service modules to force page state bypasses the real state wiring. Drive behavior through framework state presets/renderers instead. If the framework cannot cover the case yet, keep the unit test focused and link a follow-up for the missing framework support.
-- **Coverage drops during conversion** — converting to component-view tests must preserve the same coverage intent. If a scenario cannot move to component-view, document why and retain the smallest focused unit test needed to keep coverage.
+- **Coverage drops during conversion** — converting to component-view or integration tests must preserve the same coverage intent. If a scenario cannot move layer, document why and retain the smallest focused unit test needed to keep coverage.

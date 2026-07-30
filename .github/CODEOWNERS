@@ -1,3 +1,23 @@
-# GitHub code ownership for MetaMask skills.
-# ADR-58/recipe skills are experimental but owned by Perps during rollout.
-/domains/agentic/ @MetaMask/perps
+# Code owners for MetaMask skills.
+#
+# Domain teams maintain their skills. Platform teams own shared tooling,
+# documentation, and anything without a more specific owner.
+
+*                        @MetaMask/extension-platform @MetaMask/mobile-platform
+
+/.github/                @MetaMask/extension-platform @MetaMask/mobile-platform
+/bin/                    @MetaMask/extension-platform @MetaMask/mobile-platform
+/docs/                   @MetaMask/extension-platform @MetaMask/mobile-platform
+/test/                   @MetaMask/extension-platform @MetaMask/mobile-platform
+/tools/                  @MetaMask/extension-platform @MetaMask/mobile-platform
+/README.md               @MetaMask/extension-platform @MetaMask/mobile-platform
+/CONTRIBUTING.md         @MetaMask/extension-platform @MetaMask/mobile-platform
+
+/domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/perps/          @MetaMask/perps
+/domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/swaps/          @MetaMask/swaps-engineers
+/domains/testing/        @MetaMask/qa
+/domains/ui/             @MetaMask/design-system-engineers

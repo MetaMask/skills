@@ -6,7 +6,7 @@ parent: component-view-test
 
 # Component View Testing Guidelines
 
-Peer of **unit-testing** for MetaMask Mobile. Create, update, and fix component view tests (`*.view.test.tsx`) using the `tests/component-view/` framework.
+Peer of **integration-test** and **unit-testing** for MetaMask Mobile. Create, update, and fix component view tests (`*.view.test.tsx`) using the `tests/component-view/` framework.
 
 ## When to use
 
@@ -23,7 +23,7 @@ If the case is pure logic / helpers, or CV cannot cover it yet, use **unit-testi
 
 ## Testing layers (read first)
 
-Follow installed `knowledge/testing-layers.md` for the full decision tree (CV → unit fallback → e2e). This skill and **unit-testing** are peers — choose by layer, not by which doc is longer.
+Follow installed `knowledge/testing-layers.md` for the full decision tree (CV vs integration vs unit vs E2E). These testing skills are peers — choose by layer, not by which doc is longer.
 
 Your job is to figure out whether the user needs to **write a new test**, **fix a failing test**, or **update tests after a component/preset change**, then follow the corresponding path and open the relevant reference when that path indicates.
 

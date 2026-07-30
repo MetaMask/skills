@@ -24,6 +24,8 @@
 #   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
 #   SKILLS_INCLUDE        Comma-separated skill opt-ins (domain/skill or skill).
 #   SKILLS_EXCLUDE        Comma-separated skill opt-outs (domain/skill or skill).
+#   SKILLS_PRUNE_STALE    Set to 1/true/yes to remove installed mms-* skills
+#                         outside the resolved source/filter selection.
 #
 # Usage (via `yarn skills`):
 #   tools/sync --repo metamask-extension --target /path/to/repo
@@ -43,6 +45,7 @@ INCLUDE_SOURCE=""
 EXCLUDE_FILTER=""
 EXCLUDE_SOURCE=""
 DRY_RUN=false
+PRUNE_STALE=false
 RESET=false
 SAVE=true
 SAVE_REQUESTED=false
@@ -70,6 +73,8 @@ Options:
                        opt out of some.
   --include-user       Also install skills with \`scope: user\` (writes to
                        \$HOME — outside this repo). Off by default.
+  --prune-stale        Remove installed project-scope mms-* skills that are not
+                       expected from the resolved source/filter selection.
   --dry-run            Preview without writing
   --reset              Forget saved selection in <target>/.skills.local
   --no-save            Don't persist selection to .skills.local
@@ -82,6 +87,8 @@ Env:
   SKILLS_MATURITY      Minimum maturity filter (default: stable)
   SKILLS_INCLUDE       Skill opt-ins; explicit includes bypass domain/maturity
   SKILLS_EXCLUDE       Skill opt-outs; explicit excludes win
+  SKILLS_PRUNE_STALE   1/true/yes removes installed mms-* skills outside the
+                       resolved source/filter selection
 EOF
   exit "${1:-1}"
 }
@@ -97,6 +104,7 @@ while [[ $# -gt 0 ]]; do
     --save)          SAVE_REQUESTED=true; shift ;;
     --select)        SELECT=true; shift ;;
     --include-user)  INCLUDE_USER=true; shift ;;
+    --prune-stale)   PRUNE_STALE=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
     --reset)         RESET=true; shift ;;
     --no-save)       SAVE=false; shift ;;
@@ -262,6 +270,10 @@ else
   fi
 fi
 
+if [[ "${SKILLS_PRUNE_STALE:-}" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
+  PRUNE_STALE=true
+fi
+
 
 domain_has_mandatory() {
   local domain_dir="$1"
@@ -355,6 +367,7 @@ fi
 if [[ -n "$EXCLUDE_FILTER" ]]; then
   echo "Exclude skills: $EXCLUDE_FILTER  (source: $EXCLUDE_SOURCE)"
 fi
+echo "Prune stale: $PRUNE_STALE"
 
 # Persist if interactive selection produced something new, or if CLI config was
 # explicitly marked --save. Plain CLI flags remain one-off by default.
@@ -384,6 +397,7 @@ INSTALL_ARGS+=(--maturity "$MATURITY_FILTER")
 [[ -n "$INCLUDE_FILTER" ]] && INSTALL_ARGS+=(--include "$INCLUDE_FILTER")
 [[ -n "$EXCLUDE_FILTER" ]] && INSTALL_ARGS+=(--exclude "$EXCLUDE_FILTER")
 $INCLUDE_USER && INSTALL_ARGS+=(--include-user)
+$PRUNE_STALE && INSTALL_ARGS+=(--prune-stale)
 $DRY_RUN && INSTALL_ARGS+=(--dry-run)
 
 INSTALL_BIN=""

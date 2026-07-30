@@ -8,7 +8,7 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 
 # Unit Testing Guidelines
 
-Peer of **component-view-test** for MetaMask Mobile. Choose the layer first; this skill is not the default for screen/view UI behavior.
+Peer of **component-view-test** and **integration-test** for MetaMask Mobile. Choose the layer first; this skill is not the default for screen/view UI behavior or app-to-controller flows.
 
 ## When to use
 
@@ -22,7 +22,7 @@ Do **not** use this skill as the default for full-screen / view UI behavior — 
 
 ## Testing layers (read first)
 
-Follow installed `knowledge/testing-layers.md` before choosing unit vs component-view vs e2e.
+Follow installed `knowledge/testing-layers.md` before choosing unit vs component-view vs integration vs E2E.
 
 - **Default for screen/view behavior:** `*.view.test.tsx` via the **component-view-test** skill — not a broad RTL unit test that mocks hooks/selectors.
 - **This skill applies when:** pure helpers, local utilities, narrow component contracts, or the CV framework cannot cover the case yet (smallest focused unit test + note why).
