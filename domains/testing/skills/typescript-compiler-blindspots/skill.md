@@ -213,7 +213,7 @@ entry nobody is watching. The same edit in a hot path would be caught in minutes
 Weight findings by observability, not just by likelihood: **an unlikely failure in a
 swallowed path can outrank a likely one in a loud path.**
 
-## Why CI cannot catch any of this
+## Why the build stays green regardless
 
 - The hand-written type **compiles by construction** — that is why it was written.
 - With `checkJs` off, a type written for a function whose callers are still `.js`

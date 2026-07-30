@@ -247,7 +247,7 @@ declare const rpcResult: unknown;
 export const chainId = (rpcResult as { chainId: string }).chainId.slice(2);
 ```
 
-## How to use this in a review
+## How to use the catalog in a review
 
 Don't run all ten as a checklist. Pick by what the diff touches:
 
