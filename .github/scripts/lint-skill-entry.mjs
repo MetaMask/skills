@@ -9,7 +9,7 @@
 // Run against the repo:        node .github/scripts/lint-skill-entry.mjs
 // Run against another tree:     SKILLS_LINT_ROOT=/path node .github/scripts/lint-skill-entry.mjs
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -117,12 +117,51 @@ function skillsForPaths(skills, paths) {
   );
 }
 
+// A changed path under domains/ must live at domains/<domain>/skills/<name>/… and that
+// skill root must have a readable skill.md.
+//
+// This has to run BEFORE the collectSkills filter, not inside the per-skill loop.
+// collectSkills only returns directories that already match the expected layout and parse,
+// so anything malformed is invisible to it — a misplaced file, a SKILL.md casing error, or
+// a skill.md deleted in the same PR all produced "0 skill(s) checked, 0 error(s)" and a
+// green run. The shape has to be checked from the path side, where the malformed cases
+// actually exist.
+export const SKILL_PATH = /^domains\/([^/]+)\/skills\/([^/]+)\/(?:[^/]+\/)*[^/]+$/u;
+
+export function validatePathShape(file, root = ROOT) {
+  const normalized = file.split(path.sep).join('/');
+  if (!normalized.startsWith('domains/')) {
+    return null;
+  }
+  const match = SKILL_PATH.exec(normalized);
+  if (!match) {
+    return `path "${normalized}" is not under domains/<domain>/skills/<name>/`;
+  }
+  const [, domain, name] = match;
+  const skillRoot = path.join(root, 'domains', domain, 'skills', name);
+  try {
+    statSync(path.join(skillRoot, 'skill.md'));
+  } catch {
+    return `skill root "domains/${domain}/skills/${name}/" has no readable skill.md`;
+  }
+  return null;
+}
+
 function main() {
   const paths = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
-  const all = collectSkills([ROOT]);
-  const skills = paths.length > 0 ? skillsForPaths(all, paths) : all;
   let errorCount = 0;
   let warningCount = 0;
+
+  for (const file of paths) {
+    const problem = validatePathShape(file);
+    if (problem) {
+      console.log(`\nerror:   ${problem}`);
+      errorCount += 1;
+    }
+  }
+
+  const all = collectSkills([ROOT]);
+  const skills = paths.length > 0 ? skillsForPaths(all, paths) : all;
 
   for (const skill of skills) {
     const { errors, warnings } = lintSkill(skill);

@@ -8,6 +8,7 @@ import { afterEach, describe, test } from 'node:test';
 import {
   BUNDLE_DIRS,
   KNOWN_FRONTMATTER,
+  DESCRIPTION_MAX,
   KNOWN_KNOWLEDGE_FRONTMATTER,
 } from '../tools/skill-schema.mjs';
 
@@ -41,8 +42,8 @@ function writeSkill(root, domain, name, frontmatter, body) {
   return dir;
 }
 
-function lint(root) {
-  const result = spawnSync(process.execPath, [LINTER], {
+function lint(root, ...paths) {
+  const result = spawnSync(process.execPath, [LINTER, ...paths], {
     env: { ...process.env, SKILLS_LINT_ROOT: root },
     encoding: 'utf8',
   });
@@ -146,5 +147,78 @@ describe('schema tracks the installer', () => {
       [],
       'tools/install reads a frontmatter key the schema does not declare',
     );
+  });
+});
+
+// The workflow invokes the linter WITH changed-file arguments. Every test above runs the
+// no-argument full-audit branch, so the branch CI actually depends on had no coverage —
+// which is how malformed paths reached main. These mirror the CI invocation.
+describe('changed-files mode', () => {
+  test('a changed skill.md is linted', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x');
+    const { code, output } = lint(root, 'domains/testing/skills/unit-testing/skill.md');
+    assert.equal(code, 0, output);
+    assert.match(output, /1 skill\(s\) checked/u);
+  });
+
+  test('a changed reference file maps back to its skill root', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'unit-testing', 'name: wrong-name\ndescription: x');
+    mkdirSync(path.join(dir, 'references'), { recursive: true });
+    writeFileSync(path.join(dir, 'references', 'foo.md'), '# foo\n');
+    const { code, output } = lint(root, 'domains/testing/skills/unit-testing/references/foo.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /must match the directory/u, 'should lint the owning skill, not just the file');
+  });
+
+  test('a malformed domains path fails', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x');
+    const { code, output } = lint(root, 'domains/testing/bar/skill.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /is not under domains\/<domain>\/skills\/<name>\//u);
+  });
+
+  test('a changed path whose skill.md is missing is reported, not skipped', () => {
+    const root = makeRoot();
+    // Skill-shaped directory, no skill.md — the case that previously printed
+    // "0 skill(s) checked, 0 error(s)" and exited 0.
+    mkdirSync(path.join(root, 'domains', 'testing', 'skills', 'ghost', 'references'), {
+      recursive: true,
+    });
+    writeFileSync(path.join(root, 'domains', 'testing', 'skills', 'ghost', 'references', 'a.md'), 'x');
+    const { code, output } = lint(root, 'domains/testing/skills/ghost/references/a.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /has no readable skill\.md/u);
+  });
+
+  test('a filename containing spaces survives argv handling', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x');
+    writeFileSync(path.join(dir, 'references file.md'), '# spaced\n');
+    const { code, output } = lint(root, 'domains/testing/skills/unit-testing/references file.md');
+    assert.equal(code, 0, output);
+    assert.match(output, /1 skill\(s\) checked/u, 'the path should resolve as one argument');
+  });
+
+  test('warnings-only input exits 0', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: x', '# no sections\n');
+    const { code, output } = lint(root, 'domains/testing/skills/unit-testing/skill.md');
+    assert.equal(code, 0, output);
+    assert.match(output, /warning:/u);
+  });
+
+  test('a description of exactly DESCRIPTION_MAX passes, +1 fails', () => {
+    const atLimit = makeRoot();
+    writeSkill(atLimit, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${'x'.repeat(DESCRIPTION_MAX)}`);
+    assert.equal(lint(atLimit, 'domains/testing/skills/unit-testing/skill.md').code, 0);
+
+    const overLimit = makeRoot();
+    writeSkill(overLimit, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${'x'.repeat(DESCRIPTION_MAX + 1)}`);
+    const { code, output } = lint(overLimit, 'domains/testing/skills/unit-testing/skill.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /over the \d+-char operator ceiling/u);
   });
 });
