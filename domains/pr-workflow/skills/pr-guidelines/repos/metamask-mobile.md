@@ -89,7 +89,7 @@ Use `.github/pull-request-template.md` - fill ALL sections:
   - Labels applied
 - Target `main` branch
 - Keep focused (single feature/fix)
-- Include tests (unit/Component-view/e2e)
+- Include tests in the best-fit layer: **Component-view** (default for views) → **integration** (app-to-controller flows) → **unit** (pure logic / CV fallback) → **e2e** (device journeys). Canonical policy: testing domain `knowledge/testing-layers.md` (beside `component-view-test` / `integration-test` / `unit-testing` when installed).
 - Update TSDoc when relevant
 
 **⚠️ Force Push Policy**:

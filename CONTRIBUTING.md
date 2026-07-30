@@ -1,6 +1,8 @@
-# Contributing to MetaMask OpenClaw Skills
+# Contributing to MetaMask Skills
 
-Thank you for your interest in contributing to the MetaMask OpenClaw Skills repository! This document provides guidelines for contributing new skills and improving existing ones.
+Thank you for your interest in contributing to [MetaMask/skills](https://github.com/MetaMask/skills)!
+This repository is the shared source of agent skills, domain knowledge, and the
+`@metamask/skills` installer CLI for the MetaMask ecosystem.
 
 ## Code of Conduct
 
@@ -10,42 +12,73 @@ This project follows the [MetaMask Code of Conduct](https://github.com/MetaMask/
 
 A well-crafted skill should:
 
-- **Solve a real problem** — Address a genuine need for MetaMask users or Ethereum developers
-- **Be self-contained** — Include all necessary context for an AI agent to execute the skill
-- **Follow best practices** — Implement security considerations and proper error handling
-- **Be well-documented** — Include clear instructions, examples, and expected outcomes
+- **Solve a real problem** — Address a genuine need for MetaMask engineers or Web3 developers
+- **Be self-contained** — Include the context an AI agent needs to execute the skill
+- **Target the right audience** — Place it under the correct domain (`web3-tools`, `perps`, `testing`, etc.)
+- **Declare maturity** — Use `experimental`, `stable`, or `deprecated` in frontmatter
+- **Be well-documented** — Clear instructions, examples, and expected outcomes
 
 ## How to Contribute
 
 ### Adding a New Skill
 
 1. **Fork and clone** the repository:
+
    ```bash
-   git clone https://github.com/YOUR_USERNAME/openclaw-skills.git
-   cd openclaw-skills
+   git clone https://github.com/YOUR_USERNAME/skills.git
+   cd skills
    ```
 
 2. **Create a branch** for your skill:
+
    ```bash
    git checkout -b add-skill/your-skill-name
    ```
 
-3. **Create the skill directory structure**:
+3. **Create the skill under a domain**:
+
    ```bash
-   mkdir -p your-provider/your-skill-name
+   mkdir -p domains/<area>/skills/<skill-name>
    ```
 
-4. **Add your `SKILL.md`** — This is the only required file. See the [skill template](.github/SKILL_TEMPLATE.md) for the expected format.
+   Examples: `domains/testing/skills/…`, `domains/perps/skills/…`,
+   `domains/web3-tools/skills/…`.
+
+4. **Add `skill.md`** — This is the only required file. See the
+   [skill template](.github/SKILL_TEMPLATE.md) and [Authoring a skill](README.md#authoring-a-skill)
+   in the README for frontmatter and layout.
 
 5. **Add optional supporting files**:
+
    - `references/` — Additional documentation, API references, examples
    - `scripts/` — Helper scripts (bash, Python, etc.)
+   - `adapters/` — Optional runtime payloads used by scripts
+   - `repos/<consuming-repo>.md` — Repo-specific overlays (`metamask-extension.md`,
+     `metamask-mobile.md`, `core.md`)
 
-6. **Test your skill** — Ensure the skill works as expected with an AI agent before submitting.
+6. **Test your skill** — Install locally against a consumer repo before submitting.
+   `--repo` must match the repo you are installing into:
+
+   ```bash
+   # Mobile:
+   ./tools/install --repo metamask-mobile --target /path/to/metamask-mobile --domain <area>
+
+   # Core:
+   ./tools/install --repo core --target /path/to/core --domain <area>
+
+   # dApp / Web3:
+   ./tools/install --repo my-dapp --target /path/to/my-dapp --domain web3-tools
+
+   # Or exercise the CLI package:
+   yarn smoke
+   yarn test
+   node bin/metamask-skills.mjs list --target /path/to/consumer-repo
+   ```
 
 7. **Submit a Pull Request** with:
+
    - A clear title describing the skill
-   - A description of what the skill does
+   - What the skill does and who it is for
    - Any relevant context or use cases
 
 ### Improving Existing Skills
@@ -54,6 +87,14 @@ A well-crafted skill should:
 - Update outdated information
 - Add missing edge cases or error handling
 - Improve security considerations
+- Add or refresh repo overlays under `repos/`
+
+### CLI / tooling changes
+
+Changes under `bin/`, `tools/`, or install behavior ship via the published
+`@metamask/skills` package. Add a consumer-facing entry under
+`## [Unreleased]` in `CHANGELOG.md`, and follow
+[docs/processes/releasing.md](docs/processes/releasing.md) when cutting a release.
 
 ### Reporting Issues
 
@@ -68,35 +109,49 @@ If you find a bug or have a suggestion:
 
 ## Skill Structure
 
-Each skill should follow this structure:
+Each skill lives under a domain:
 
 ```
-provider-name/
-└── skill-name/
-    ├── SKILL.md           # Required: Main skill definition
-    ├── references/        # Optional: Supporting docs
-    │   ├── api.md
-    │   └── examples.md
-    └── scripts/           # Optional: Helper scripts
-        └── helper.sh
+domains/<area>/
+  skills/<skill-name>/
+    skill.md                    # Required: base skill definition
+    references/                 # Optional: supporting docs
+    scripts/                    # Optional: helper scripts
+    adapters/                   # Optional: runtime payloads
+    repos/<consuming-repo>.md   # Optional: repo-specific overlay
+  knowledge/                    # Optional: shared domain reference
 ```
 
-### SKILL.md Format
+### `skill.md` Format
 
-Your `SKILL.md` should include:
+Your `skill.md` should include YAML frontmatter plus body content:
 
-1. **Title and description** — What the skill does
-2. **Prerequisites** — Required tools, APIs, or setup
+```yaml
+---
+name: <slash-command-name>
+description: <≤1,536 chars including when_to_use cues>
+maturity: stable          # experimental | stable | deprecated
+---
+```
+
+Body guidance:
+
+1. **Title and purpose** — What the skill does
+2. **When to use** — Triggers and scope (also reflected in `description`)
 3. **Instructions** — Step-by-step guidance for the AI agent
 4. **Examples** — Concrete usage examples
 5. **Troubleshooting** — Common issues and solutions
+
+Source files use lowercase `skill.md`. The installer writes multi-operator
+output as `mms-<name>` (`SKILL.md` / `RULE.md` under consumer skill dirs).
+See the README for full frontmatter, overlay, and install details.
 
 ## Review Process
 
 1. A maintainer will review your PR
 2. They may request changes or clarifications
 3. Once approved, your skill will be merged
-4. Skills may be tested by the community before full approval
+4. CLI-facing changes should include changelog entries and ship in a package release
 
 ## Security Considerations
 
@@ -105,7 +160,10 @@ Your `SKILL.md` should include:
 - **Use secure defaults** for any configurations
 - **Document security implications** of the skill's actions
 
-If you discover a security issue in an existing skill, please report it privately following MetaMask's [security policy](https://github.com/MetaMask/metamask-extension/security/policy).
+If you discover a security issue in an existing skill or the installer, please
+report it privately following MetaMask's
+[security policy](https://github.com/MetaMask/metamask-extension/security/policy)
+or this repo's [SECURITY.md](SECURITY.md).
 
 ## Questions?
 
