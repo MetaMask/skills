@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, test } from 'node:test';
+import {
+  BUNDLE_DIRS,
+  KNOWN_FRONTMATTER,
+  KNOWN_KNOWLEDGE_FRONTMATTER,
+} from '../tools/skill-schema.mjs';
 
 const LINTER = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -106,5 +111,40 @@ describe('lint-skill-entry', () => {
     const { code, output } = lint(root);
     assert.equal(code, 1);
     assert.match(output, /on-demand/u);
+  });
+});
+
+describe('schema tracks the installer', () => {
+  // The schema and tools/install (Bash) describe the same facts in two languages. The
+  // comment in skill-schema.mjs asks a human to keep them in sync; these check it.
+  //
+  // Drift here is not cosmetic. `workflows/` existed in two web3-tools skills, was
+  // referenced 17 times from their bodies, and was absent from the installer's bundle
+  // list — so every installed copy carried 17 dangling links, and nothing reported it.
+  const INSTALL = readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'install'),
+    'utf8',
+  );
+
+  test('BUNDLE_DIRS matches the directories tools/install copies', () => {
+    const m = /for bundle in ([\w\s]+); do/u.exec(INSTALL);
+    assert.ok(m, 'could not find the bundle loop in tools/install');
+    const shipped = m[1].trim().split(/\s+/u);
+    assert.deepEqual(
+      [...shipped].sort(),
+      [...BUNDLE_DIRS].sort(),
+      'tools/install ships a different set of directories than BUNDLE_DIRS declares',
+    );
+  });
+
+  test('the schema declares every frontmatter key tools/install reads', () => {
+    const read = [...INSTALL.matchAll(/frontmatter_value\s+"\$\w+"\s+"([\w-]+)"/gu)].map((x) => x[1]);
+    assert.ok(read.length > 0, 'expected frontmatter_value calls in tools/install');
+    const known = new Set([...KNOWN_FRONTMATTER, ...KNOWN_KNOWLEDGE_FRONTMATTER]);
+    assert.deepEqual(
+      [...new Set(read)].filter((k) => !known.has(k)),
+      [],
+      'tools/install reads a frontmatter key the schema does not declare',
+    );
   });
 });
