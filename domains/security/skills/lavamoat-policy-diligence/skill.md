@@ -223,9 +223,9 @@ A clean policy diff does not mean a safe dependency, and a known CVE does not sh
 grant. Run the umbrella skill when the question is "is this bump safe"; run this one when the
 question is "why does it need that".
 
-## Called by supply-chain-audit and pr-validate
+## Called by supply-chain-audit and evidence
 
-`supply-chain-audit` delegates its capability-containment lane here. pr-validate keeps
+`supply-chain-audit` delegates its capability-containment lane here. `evidence` keeps
 **supply-chain** as an evidence category and packages the per-grant justification (accept /
 reject, each with its permalink) posted where the policy is reviewed. Engine helper:
 `scripts/policy-audit.py`. Usable standalone whenever a policy grant needs a reason.
