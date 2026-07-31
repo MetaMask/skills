@@ -1,10 +1,10 @@
 ---
-name: memory-leak-hunt
-description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, only for a primitive that cannot be paired statically — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs) and escalates to a heap snapshot only where the read is inconclusive. Triggers on /memory-leak-hunt, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot. Callable by pr-validate as the engine behind its memory-leak evidence category.
+name: memory-leak
+description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, only for a primitive that cannot be paired statically — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs) and escalates to a heap snapshot only where the read is inconclusive. Triggers on /memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot. Callable by pr-validate as the engine behind its memory-leak evidence category.
 maturity: experimental
 ---
 
-# /memory-leak-hunt
+# /memory-leak
 
 Find where an object outlives its purpose — and prove it, or prove it doesn't. A memory
 leak is a **retention path**: something acquires a reference (a listener, a timer, a map
