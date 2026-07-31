@@ -1,6 +1,6 @@
 ---
 maturity: experimental
-name: effect-antipattern-review
+name: effect-antipattern-scan
 description: Review PR diffs that add or modify `useEffect` for the systemic React effect antipatterns
 ---
 
@@ -18,7 +18,7 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 
 ## Do Not Use When
 
-- Reviewing selector or render-cascade issues (use [`selector-antipattern-review`](../selector-antipattern-review/skill.md))
+- Reviewing selector or render-cascade issues (use [`selector-antipattern-scan`](../selector-antipattern-scan/skill.md))
 - Reviewing non-React code (background scripts, workers, test utilities)
 - Reviewing an effect that is intentionally one-shot with no async work or timers (check patterns below anyway, but most do not apply)
 

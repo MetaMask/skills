@@ -1,6 +1,6 @@
 ---
 maturity: experimental
-name: selector-antipattern-review
+name: selector-antipattern-scan
 description: Review and diagnose Redux selector antipatterns that cause render cascades, pre-merge and post-merge
 ---
 
@@ -18,7 +18,7 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 
 ## Do Not Use When
 
-- Non-selector performance concerns (effects → use `effect-antipattern-review`, context providers, virtualization)
+- Non-selector performance concerns (effects → use `effect-antipattern-scan`, context providers, virtualization)
 - Network-bound slowness (use the Network panel, not WDYR)
 - Startup or initial-mount perf (use startup profiling)
 - Non-React trees (worker messaging, background script perf)

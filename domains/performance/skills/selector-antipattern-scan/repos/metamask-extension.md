@@ -1,6 +1,6 @@
 ---
 repo: metamask-extension
-parent: selector-antipattern-review
+parent: selector-antipattern-scan
 ---
 
 ## Paths

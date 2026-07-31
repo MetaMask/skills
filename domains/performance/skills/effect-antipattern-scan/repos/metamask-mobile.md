@@ -1,6 +1,6 @@
 ---
 repo: metamask-mobile
-parent: effect-antipattern-review
+parent: effect-antipattern-scan
 ---
 
 ## Paths
