@@ -25,11 +25,16 @@ export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos'];
 
 export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 
-// The description is always loaded into the operator's discovery surface, so it
-// is the per-skill always-on cost. The ceiling is the per-operator minimum
-// (OpenCode caps description at 1024), so a description that passes here is
-// accepted by every target.
-export const DESCRIPTION_MAX = 1024;
+// The description is always loaded into the operator's discovery surface, so it is the
+// per-skill always-on cost, and the only part of a skill that carries its own trigger
+// cues — cutting it makes the skill less likely to be selected when it is relevant.
+//
+// This is a REPO BUDGET, not an operator limit. No operator observed here rejects or
+// truncates a longer one: `tools/install` emits the value verbatim, and descriptions
+// well over 1024 characters install and load in Claude Code today. Treat a lower number
+// as a deliberate budget decision, and cite the operator and version before claiming any
+// figure is externally imposed.
+export const DESCRIPTION_MAX = 1536;
 
 export const RECOMMENDED_SECTIONS = ['When To Use', 'Workflow'];
 

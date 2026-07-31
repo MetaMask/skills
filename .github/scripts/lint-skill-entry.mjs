@@ -63,7 +63,7 @@ export function lintSkill(skill) {
   if (!raw.description) {
     errors.push('missing required `description` in frontmatter');
   } else if (raw.description.length > DESCRIPTION_MAX) {
-    errors.push(`\`description\` is ${raw.description.length} chars, over the ${DESCRIPTION_MAX}-char operator ceiling`);
+    errors.push(`\`description\` is ${raw.description.length} chars, over the ${DESCRIPTION_MAX}-char budget`);
   }
 
   if (raw.maturity && !MATURITY_VALUES.includes(raw.maturity)) {

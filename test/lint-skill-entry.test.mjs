@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, test } from 'node:test';
 import {
   BUNDLE_DIRS,
-  KNOWN_FRONTMATTER,
   DESCRIPTION_MAX,
+  KNOWN_FRONTMATTER,
   KNOWN_KNOWLEDGE_FRONTMATTER,
 } from '../tools/skill-schema.mjs';
 
@@ -113,12 +113,14 @@ describe('lint-skill-entry', () => {
     assert.match(output, /prefix/u);
   });
 
-  test('a description over the operator ceiling fails', () => {
+  test('a description over the budget fails', () => {
     const root = makeRoot();
-    writeSkill(root, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${'x'.repeat(1100)}`);
+    // Derived from the constant: a hardcoded length silently stops testing the boundary
+    // the moment the budget moves.
+    writeSkill(root, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${'x'.repeat(DESCRIPTION_MAX + 1)}`);
     const { code, output } = lint(root);
     assert.equal(code, 1);
-    assert.match(output, /operator ceiling/u);
+    assert.match(output, /over the \d+-char budget/u);
   });
 
   test('an invalid maturity value fails', () => {
@@ -176,6 +178,27 @@ describe('schema tracks the installer', () => {
 // The workflow invokes the linter WITH changed-file arguments. Every test above runs the
 // no-argument full-audit branch, so the branch CI actually depends on had no coverage —
 // which is how malformed paths reached main. These mirror the CI invocation.
+// 1,536 is a repo budget, not an operator limit — no observed operator rejects or
+// truncates a longer description, and several over 1,024 install and load today. The
+// check exists to bound always-on context, so what matters is that the number the docs
+// state and the number enforced are the same one.
+describe('description budget', () => {
+  test('the enforced ceiling is the one the docs state', () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    for (const doc of ['README.md', 'CONTRIBUTING.md', path.join('.github', 'SKILL_TEMPLATE.md')]) {
+      const body = readFileSync(path.join(root, doc), 'utf8');
+      const stated = [...body.matchAll(/(\d[\d,]*)[- ]?character|≤([\d,]+) chars|within ([\d,]+) characters/gu)]
+        .flatMap((m) => [m[1], m[2], m[3]])
+        .filter(Boolean)
+        .map((n) => Number(n.replace(/,/gu, '')))
+        .filter((n) => n > 100);
+      for (const n of stated) {
+        assert.equal(n, DESCRIPTION_MAX, `${doc} states ${n} but the schema enforces ${DESCRIPTION_MAX}`);
+      }
+    }
+  });
+});
+
 describe('changed-files mode', () => {
   test('a changed skill.md is linted', () => {
     const root = makeRoot();
@@ -242,6 +265,6 @@ describe('changed-files mode', () => {
     writeSkill(overLimit, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${'x'.repeat(DESCRIPTION_MAX + 1)}`);
     const { code, output } = lint(overLimit, 'domains/testing/skills/unit-testing/skill.md');
     assert.equal(code, 1, output);
-    assert.match(output, /over the \d+-char operator ceiling/u);
+    assert.match(output, /over the \d+-char budget/u);
   });
 });

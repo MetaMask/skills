@@ -170,7 +170,7 @@ Your `skill.md` should include YAML frontmatter plus body content:
 ```yaml
 ---
 name: <slash-command-name>
-description: <≤1,024 chars including when_to_use cues>
+description: <≤1,536 chars including when_to_use cues>
 maturity: stable          # experimental | stable | deprecated
 ---
 ```
