@@ -1,6 +1,6 @@
 ---
 repo: metamask-extension
-parent: effect-anti-pattern-review
+parent: effect-antipattern-review
 ---
 
 ## Paths

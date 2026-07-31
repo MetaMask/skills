@@ -8,7 +8,7 @@ tags: reselect, cascade, dependency-graph, isEqual, structural-sharing, react-co
 
 > **Scope.** What a broken root selector does to the component graph is defined generically
 > in the **`render-cascade`** knowledge file, and the selector patterns that cause it in
-> **`selector-anti-patterns`** — both installed alongside this skill under `knowledge/`.
+> **`selector-antipatterns`** — both installed alongside this skill under `knowledge/`.
 > This file is the MetaMask Mobile instance: the real dependency graph, its blast radius,
 > and the repair order.
 

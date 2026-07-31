@@ -1,5 +1,5 @@
 ---
-name: selector-anti-patterns
+name: selector-antipatterns
 domain: performance
 description: The Redux selector patterns that break memoization and cause render cascades — the canonical, platform-agnostic taxonomy that per-repo selector references instantiate
 ---

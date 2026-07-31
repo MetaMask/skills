@@ -15,7 +15,7 @@ Broken or absent memoization in widely-used selectors is the single highest-impa
 
 ## The patterns, and what they look like here
 
-The pattern taxonomy itself lives in the **`selector-anti-patterns`** knowledge file,
+The pattern taxonomy itself lives in the **`selector-antipatterns`** knowledge file,
 installed alongside this skill under `knowledge/`. It is the single source — read it for the
 full definition, the worked before/after of each, and the selector-creator decision tree.
 This section maps each pattern onto *this* codebase.

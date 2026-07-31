@@ -1,12 +1,12 @@
 ---
 maturity: experimental
-name: effect-anti-pattern-review
-description: Review PR diffs that add or modify `useEffect` for the systemic React effect anti-patterns
+name: effect-antipattern-review
+description: Review PR diffs that add or modify `useEffect` for the systemic React effect antipatterns
 ---
 
 # Effect Anti-Pattern Review
 
-**Scope:** Pre-merge review of PRs that add or modify `useEffect` calls. The workflow is a grep-driven checklist against the patterns catalogued in the **`effect-anti-patterns`** knowledge file, which is the single source for their definitions and fixes (installed alongside this skill under `knowledge/`).
+**Scope:** Pre-merge review of PRs that add or modify `useEffect` calls. The workflow is a grep-driven checklist against the patterns catalogued in the **`effect-antipatterns`** knowledge file, which is the single source for their definitions and fixes (installed alongside this skill under `knowledge/`).
 
 Applies to both `metamask-extension` and `metamask-mobile`. See overlays for repo-specific paths.
 
@@ -18,7 +18,7 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 
 ## Do Not Use When
 
-- Reviewing selector or render-cascade issues (use [`selector-anti-pattern-review`](../selector-anti-pattern-review/skill.md))
+- Reviewing selector or render-cascade issues (use [`selector-antipattern-review`](../selector-antipattern-review/skill.md))
 - Reviewing non-React code (background scripts, workers, test utilities)
 - Reviewing an effect that is intentionally one-shot with no async work or timers (check patterns below anyway, but most do not apply)
 
@@ -26,14 +26,14 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 
 1. **List changed files with `useEffect`.** `git diff --name-only origin/main...HEAD | xargs grep -l 'useEffect'`
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
-3. **For each hit, map to a pattern** in `effect-anti-patterns` and apply the fix from the knowledge file.
+3. **For each hit, map to a pattern** in `effect-antipatterns` and apply the fix from the knowledge file.
 4. **Block on unstable dependency identity.** `JSON.stringify` in a dependency array is always broken. Do not merge.
 5. **Block on a timer without cleanup.** Any `setInterval` / `setTimeout` without a matching `clearInterval` / `clearTimeout` in the cleanup function is blocking.
 6. **Require cancellation for async effects.** Any `fetch` / network call inside `useEffect` must use `AbortController`.
 
 ## Grep Checklist
 
-| Pattern (`effect-anti-patterns` §) | Detection |
+| Pattern (`effect-antipatterns` §) | Detection |
 |---|---|
 | §1 Unstable dependency identity | `grep -rnE 'useEffect.*\[.*JSON\.stringify' <source-dir>`, plus inline `{`/`[` literals in the dep position |
 | §2 Wrong dependencies | Hand review — empty deps that read state (stale closure), or deps that read nothing |

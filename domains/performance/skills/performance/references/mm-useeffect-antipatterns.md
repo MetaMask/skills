@@ -8,7 +8,7 @@ tags: useEffect, setState, cleanup, AbortController, unmount, memory-leaks
 
 > **Scope.** The platform-agnostic taxonomy — unstable dependency identity, wrong
 > dependencies, derived state via effect, cascading effect chains, missing timer cleanup,
-> uncancelled async — is the single source in the **`effect-anti-patterns`** knowledge file,
+> uncancelled async — is the single source in the **`effect-antipatterns`** knowledge file,
 > installed alongside this skill under `knowledge/`. This file is the MetaMask Mobile
 > instance of its lifecycle half: the verified instances, the repo's own idioms, and the
 > fix recipes.

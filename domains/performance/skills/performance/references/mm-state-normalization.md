@@ -6,7 +6,7 @@ tags: redux, normalization, selectors, O(1)-lookups, cache-thrashing, useSelecto
 
 # Skill: State Normalization & Selector Shape
 
-> **Scope.** The generic form of the O(n)-lookup problem is `selector-anti-patterns` §7,
+> **Scope.** The generic form of the O(n)-lookup problem is `selector-antipatterns` §7,
 > in the knowledge file installed alongside this skill under `knowledge/`. This file is the
 > MetaMask Mobile instance, plus the parameterized-selector cache-thrashing and
 > view-selector consolidation work that is specific to this store's shape.

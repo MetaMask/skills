@@ -1,12 +1,12 @@
 ---
 maturity: experimental
-name: selector-anti-pattern-review
-description: Review and diagnose Redux selector anti-patterns that cause render cascades, pre-merge and post-merge
+name: selector-antipattern-review
+description: Review and diagnose Redux selector antipatterns that cause render cascades, pre-merge and post-merge
 ---
 
 # Selector Anti-Pattern Review
 
-**Scope:** Redux selector anti-patterns are the dominant cause of React render cascades in the MetaMask UI. This skill covers both review phases: pre-merge PR review (grep-driven checklist) and post-merge diagnosis (WDYR-driven workflow). Both modes resolve to the same root cause and the same fix set, catalogued in the **`selector-anti-patterns`** and **`render-cascade`** knowledge files — the single source for their definitions (installed alongside this skill under `knowledge/`).
+**Scope:** Redux selector antipatterns are the dominant cause of React render cascades in the MetaMask UI. This skill covers both review phases: pre-merge PR review (grep-driven checklist) and post-merge diagnosis (WDYR-driven workflow). Both modes resolve to the same root cause and the same fix set, catalogued in the **`selector-antipatterns`** and **`render-cascade`** knowledge files — the single source for their definitions (installed alongside this skill under `knowledge/`).
 
 Both `metamask-extension` and `metamask-mobile` share the same React + Redux architecture; this skill applies to both (see overlays for repo-specific paths).
 
@@ -18,7 +18,7 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 
 ## Do Not Use When
 
-- Non-selector performance concerns (effects → use `effect-anti-pattern-review`, context providers, virtualization)
+- Non-selector performance concerns (effects → use `effect-antipattern-review`, context providers, virtualization)
 - Network-bound slowness (use the Network panel, not WDYR)
 - Startup or initial-mount perf (use startup profiling)
 - Non-React trees (worker messaging, background script perf)
@@ -27,8 +27,8 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 
 1. **List changed selector/consumer files.** `git diff --name-only origin/main...HEAD | grep -E '(selectors|useSelector)'`
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
-3. **Match each hit to a pattern** in `selector-anti-patterns` or to one of the [team-specific workarounds](#team-specific-workarounds) below.
-4. **Block on Jest warning.** If the PR's test run surfaces `"result function returned its own inputs"`, the PR introduces an identity/passthrough result (`selector-anti-patterns` §2). Do not merge.
+3. **Match each hit to a pattern** in `selector-antipatterns` or to one of the [team-specific workarounds](#team-specific-workarounds) below.
+4. **Block on Jest warning.** If the PR's test run surfaces `"result function returned its own inputs"`, the PR introduces an identity/passthrough result (`selector-antipatterns` §2). Do not merge.
 5. **Require a fix, not a justification.** None of the five patterns have a valid use case. See [Pitfalls](#common-pitfalls) for the narrow `createDeepEqualSelector` exception.
 
 ## Mode B: Post-Merge Diagnosis (WDYR-driven)
@@ -46,7 +46,7 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 
 ## Grep Checklist
 
-| Pattern (`selector-anti-patterns` §) | Detection |
+| Pattern (`selector-antipatterns` §) | Detection |
 |---|---|
 | §1 Unmemoized selector | `grep -rE 'export function get' <selectors-dir>/` |
 | §2 Identity / passthrough result | Jest warning `result function returned its own inputs` |

@@ -1,6 +1,6 @@
 ---
 maturity: experimental
-name: browser-extension-profiling
+name: extension-profiling
 description: Compare browser extension performance between branches using WDYR, React DevTools Profiler, and E2E benchmarks with statistical rigor.
 ---
 

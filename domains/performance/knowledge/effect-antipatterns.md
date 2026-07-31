@@ -1,5 +1,5 @@
 ---
-name: effect-anti-patterns
+name: effect-antipatterns
 domain: performance
 description: The React `useEffect` patterns that cause unnecessary renders, memory leaks, or race conditions — the canonical, platform-agnostic taxonomy that per-repo effect references instantiate
 ---
@@ -145,5 +145,5 @@ Pick one and apply it consistently.
 ## Related
 
 - `render-cascade` — how effect-driven re-renders propagate through the component graph.
-- `selector-anti-patterns` — the store-side counterpart; an unstable selector result is a
+- `selector-antipatterns` — the store-side counterpart; an unstable selector result is a
   common source of the unstable dependency in pattern 1.
