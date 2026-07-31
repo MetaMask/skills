@@ -385,6 +385,11 @@ Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `mandatory`, and `scope` are read by the CLI.
 
+The 1,536-character ceiling is a repo budget rather than an operator limit — the
+description is always-on context for every installed skill, so it is capped
+deliberately. It is enforced by `yarn audit:skills` from
+[`tools/skill-schema.mjs`](tools/skill-schema.mjs), which is the source of truth.
+
 ### Overlay frontmatter
 
 ```yaml
