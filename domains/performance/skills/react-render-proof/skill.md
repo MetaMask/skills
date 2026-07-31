@@ -1,6 +1,6 @@
 ---
 name: react-render-proof
-description: Prove a React rendering or memoization change actually reduced work, with a delivery gate and a reported band. Covers re-render counts (why-did-you-render), selector recomputes (reselect's real `.recomputations()` API), and A/B arms toggled at a FIXED commit rather than across a merge boundary. The falsifier is an arm whose treatment never reached the built bundle — a null from undelivered treatment is indistinguishable from a null from a small effect and reports as the second. Triggers on /react-render-proof, or when asked to prove a component stopped over-rendering, measure selector recomputation, validate a memoization/React Compiler change, run a render-count A/B, or interpret a re-render benchmark. Callable by pr-validate as the engine behind its React render & selector proof evidence category.
+description: Prove a React rendering or memoization change actually reduced work, with a delivery gate and a reported band. Covers re-render counts (why-did-you-render), selector recomputes (reselect's real `.recomputations()` API), and A/B arms toggled at a FIXED commit rather than across a merge boundary. The falsifier is an arm whose treatment never reached the built bundle — a null from undelivered treatment is indistinguishable from a null from a small effect and reports as the second. Triggers on /react-render-proof, or when asked to prove a component stopped over-rendering, measure selector recomputation, validate a memoization/React Compiler change, run a render-count A/B, or interpret a re-render benchmark. Callable by `evidence` as its React render & selector proof engine.
 maturity: experimental
 ---
 
@@ -48,8 +48,8 @@ reporting a difference between arms that never differed.
    **`.recomputations()`** on memoized selectors — a genuine API, not a patch. Read it (sample
    on an interval if the count should visibly climb). An injected `console.log` you added to a
    selector body is an authored claim, not an observation; reach for it only when no real API
-   exists, and say so when you do. *(Note: pr-validate's C4 entry long claimed there was "no
-   built-in selector-call counter". There is.)*
+   exists, and say so when you do. *(Note: the evidence catalog's render-and-selector entry long claimed there
+   was "no built-in selector-call counter". There is.)*
 
 5. **Toggle at a fixed commit, not across a merge boundary.** Same tree in both arms, one
    thing different. A commit boundary drags in unrelated change you will then be unable to
@@ -108,5 +108,5 @@ and their absence is what makes a number unfalsifiable.
 
 ## Related
 
-- `pr-validate` — packages this skill's output as its C4 evidence category.
-- `memory-leak-hunt`, `supply-chain-audit` — sibling engines behind other categories.
+- `evidence` — packages this skill's output as its [React render & selector proof category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
+- `memory-leak`, `supply-chain-audit` — sibling engines behind other categories.
