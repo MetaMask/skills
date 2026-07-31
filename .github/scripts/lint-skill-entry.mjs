@@ -9,7 +9,7 @@
 // Run against the repo:        node .github/scripts/lint-skill-entry.mjs
 // Run against another tree:     SKILLS_LINT_ROOT=/path node .github/scripts/lint-skill-entry.mjs
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,8 +40,10 @@ export function lintSkill(skill) {
   const dirName = skill.id.slice(skill.domain.length + 1);
 
   let raw;
+  let source = '';
   try {
-    raw = parseFrontmatter(readFileSync(path.join(skill.path, 'skill.md'), 'utf8'));
+    source = readFileSync(path.join(skill.path, 'skill.md'), 'utf8');
+    raw = parseFrontmatter(source);
   } catch (error) {
     return { errors: [`could not read skill.md: ${error.message}`], warnings };
   }
@@ -121,7 +123,82 @@ export function lintSkill(skill) {
     }
   }
 
+  crossReferenceChecks(skill, raw, source, errors, warnings);
+
   return { errors, warnings };
+}
+
+// Lane IDs (`B7`, `C4`) are addresses into evidence-catalog.md, not names. They carry no
+// meaning to a reader who has not opened the catalog, and a `description` cannot link out
+// to it — frontmatter is plain text. So: never in a description, and in the body only on a
+// line that also links the catalog. The catalog's own skill is exempt: it defines them.
+const LANE_ID = /(?<![\w-])[A-G]\d(?![\w-])/u;
+const CATALOG = 'evidence-catalog';
+
+// `## Related` is by convention a list of sibling skills, so every backticked kebab-case
+// token in it must name one. This is what catches a rename that swept the owning branch
+// and left every branch that referenced it pointing at a name that no longer resolves.
+// `$(?![\s\S])`, not `\z` — JS has no absolute-end anchor, and under `m` a bare `$` would
+// stop the section at its own first line break.
+const RELATED_SECTION = /^#{1,4}\s+Related\s*$([\s\S]*?)(?=^#{1,4}\s|$(?![\s\S]))/imu;
+const BACKTICKED = /`([a-z][a-z0-9]*(?:-[a-z0-9]+)+)`/gu;
+
+function crossReferenceChecks(skill, raw, source, errors, warnings) {
+  const ownsCatalog = existsSync(path.join(skill.path, 'references', `${CATALOG}.md`));
+
+  if (!ownsCatalog) {
+    if (raw.description && LANE_ID.test(raw.description)) {
+      errors.push(
+        `\`description\` cites a bare lane id (${raw.description.match(LANE_ID)[0]}); frontmatter cannot link ${CATALOG}.md, so name the category instead of indexing it`,
+      );
+    }
+    // `skill.body` is frontmatter-stripped, so its indices are not the line numbers a reader
+    // sees when they open the file. Offset by the stripped prefix — a lint message that
+    // points at the wrong line is the same unresolvable-reference defect this rule exists
+    // to catch.
+    const bodyLines = skill.body.split('\n');
+    // Locate the body in the source rather than subtracting line counts: the two differ by
+    // trailing-newline handling, which silently shifts every reported line by one.
+    const start = source.indexOf(skill.body);
+    const offset = start < 0 ? 0 : source.slice(0, start).split('\n').length - 1;
+    for (const [index, line] of bodyLines.entries()) {
+      const hit = line.match(LANE_ID);
+      if (hit && !line.includes(CATALOG)) {
+        warnings.push(
+          `line ${index + 1 + offset} cites lane ${hit[0]} without linking ${CATALOG}.md; an unresolvable index reads as noise`,
+        );
+      }
+    }
+  }
+
+  // `[[snake_case]]` is wiki-link syntax from a private authoring vault. It renders as
+  // literal brackets on GitHub and resolves nowhere for any reader here. Underscores are
+  // what separate it from JS array literals (`[[signer1.address, …]]`), which are common
+  // in workflow snippets and must not trip this.
+  for (const [, link] of skill.body.matchAll(/\[\[([a-z][a-z0-9]*(?:_[a-z0-9]+)+)\]\]/gu)) {
+    errors.push(`\`[[${link}]]\` is a private-vault wiki link; it resolves for no reader here — use a real path or URL`);
+  }
+
+  const related = skill.body.match(RELATED_SECTION);
+  if (related) {
+    const known = knownSkillNames();
+    for (const [, name] of related[1].matchAll(BACKTICKED)) {
+      if (!known.has(name) && name !== skill.name) {
+        // Warning, not error: the gate runs on the PR's own branch, where a sibling skill
+        // that ships in a concurrent PR does not exist yet. Blocking would fail a PR for a
+        // forward reference that resolves on merge.
+        warnings.push(`\`## Related\` links \`${name}\`, which is not a skill on this branch (renamed, removed, or still in an open PR?)`);
+      }
+    }
+  }
+}
+
+let nameCache;
+function knownSkillNames() {
+  // `sources` is an array of roots; passing a bare string iterates its characters and
+  // silently yields zero skills, which would make every check below vacuously pass.
+  nameCache ??= new Set(collectSkills([ROOT]).map((skill) => skill.name));
+  return nameCache;
 }
 
 // Restrict to skills touched by the given file paths (the CI gate passes the
