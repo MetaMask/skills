@@ -1,6 +1,6 @@
 ---
 name: memory-leak
-description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, only for a primitive that cannot be paired statically — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs) and escalates to a heap snapshot only where the read is inconclusive. Triggers on /memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot. Callable by pr-validate as the engine behind its memory-leak evidence category.
+description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, only for a primitive that cannot be paired statically — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs) and escalates to a heap snapshot only where the read is inconclusive. Triggers on /memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot. Callable by `evidence` as its memory-leak engine.
 maturity: experimental
 ---
 
@@ -145,11 +145,11 @@ it, go straight to Phase 2, and let the intervention test carry the causal claim
 Phase-2 counterpart to #40684: the same discipline that *proves the absence* of a leak
 (#40684, the read settles it) *proves the presence and cause* of one here.
 
-## Called by pr-validate
+## Called by `evidence`
 
-pr-validate keeps **memory leak** as an evidence category and delegates the analysis here:
+`evidence` keeps [**memory leak**](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md) as an evidence category and delegates the analysis here:
 it invokes this skill on the PR's diff, takes the verdict + the paired/unpaired sites, and
 packages them as the category's evidence (an in-situ capture of the scan, plus the lifecycle
-test or retainer graph if Phase 2 ran). This skill is the engine; pr-validate is the
+test or retainer graph if Phase 2 ran). This skill is the engine; `evidence` is the
 orchestrator that publishes the result. Usable standalone for any leak hunt, in review or in
 an incident, PR or not.
