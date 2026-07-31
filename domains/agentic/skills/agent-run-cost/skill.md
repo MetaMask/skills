@@ -18,7 +18,7 @@ Scripted automation announces its cost in wall-clock time; agentic automation do
 A fan-out of forty subagents and a single call are the same shape in a diff, and the
 difference surfaces later, on a bill, attributed to nothing in particular.
 
-This is the token-spend counterpart to a span-volume quota guard. Same
+This is the token-spend counterpart to `sentry-quota`, which guards span volume. Same
 posture: operate on **code and PRs**, before the spend exists, and produce figures.
 
 ## When to use
@@ -101,6 +101,7 @@ Cheapest first; stop at the rung that fits.
 
 ## Related
 
+- `sentry-quota` — the same guard for span volume; `fan-out × ungated × no-kill-switch`.
 - `evidence` — weighs AEP run cost when choosing an evidence lane, and tears the stack
   down after; this skill is the review-side version for workflows others will run.
 - [`MetaMask/decisions#173`](https://github.com/MetaMask/decisions/pull/173) — ADR-0058
