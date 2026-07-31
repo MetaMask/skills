@@ -1,10 +1,10 @@
 ---
-name: react-render-proof
-description: Prove a React rendering or memoization change actually reduced work, with a delivery gate and a reported band. Covers re-render counts (why-did-you-render), selector recomputes (reselect's real `.recomputations()` API), and A/B arms toggled at a FIXED commit rather than across a merge boundary. The falsifier is an arm whose treatment never reached the built bundle — a null from undelivered treatment is indistinguishable from a null from a small effect and reports as the second. Triggers on /react-render-proof, or when asked to prove a component stopped over-rendering, measure selector recomputation, validate a memoization/React Compiler change, run a render-count A/B, or interpret a re-render benchmark. Callable by `evidence` as its React render & selector proof engine.
+name: react-render-delta
+description: Prove a React rendering or memoization change actually reduced work, with a delivery gate and a reported band. Covers re-render counts (why-did-you-render), selector recomputes (reselect's real `.recomputations()` API), and A/B arms toggled at a FIXED commit rather than across a merge boundary. The falsifier is an arm whose treatment never reached the built bundle — a null from undelivered treatment is indistinguishable from a null from a small effect and reports as the second. Triggers on /react-render-delta, or when asked to prove a component stopped over-rendering, measure selector recomputation, validate a memoization/React Compiler change, run a render-count A/B, or interpret a re-render benchmark. Callable by `evidence` as its React render & selector proof engine.
 maturity: experimental
 ---
 
-# /react-render-proof
+# /react-render-delta
 
 A render-count number is worthless until two things are true: the **treatment reached the
 artifact the browser executes**, and the number is reported as a **band** rather than a point.
