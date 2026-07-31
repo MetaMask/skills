@@ -1,6 +1,6 @@
 ---
 name: race-condition-proof
-description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving rather than a value. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved — operations run to completion in sequence exercise no race and produce a vacuous green indistinguishable from a real pass, so the proof obligation is to show the interleaving occurred, not that the assertion passed. Triggers on /race-condition-proof, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race. Callable by pr-validate as the engine behind its B7 deterministic-interleaving evidence category, and named by falsifying-test as its sibling for ordering bugs.
+description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving rather than a value. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved — operations run to completion in sequence exercise no race and produce a vacuous green indistinguishable from a real pass, so the proof obligation is to show the interleaving occurred, not that the assertion passed. Triggers on /race-condition-proof, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race. Callable by `evidence` as its deterministic-interleaving engine, and named by `falsifying-test` as its sibling for ordering bugs.
 maturity: experimental
 ---
 
@@ -106,5 +106,12 @@ guarantee depends on runtime semantics — what an `AbortController` actually ca
 microtask runs before a timer callback — cite the behavior or demonstrate it in the harness rather
 than describing it.
 
-Engine for `pr-validate` category **B7 (deterministic interleaving)**; the full category note
-lives at `exogram-daemon/artifacts/evidence-taxonomy/category-concurrency-temporal-ordering.md`.
+## Related
+
+- `evidence` — this skill is its deterministic-interleaving engine: `evidence` decides that a
+  concurrency claim needs an interleaving proof, and calls here to produce one. The category note
+  is [`deterministic interleaving` in the evidence catalog](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
+  A relative path would not survive installation — skills flatten to `mms-<name>/`, so a link
+  out of one skill into another only resolves as a URL.
+- `falsifying-test` — the sibling engine for ordering bugs that reproduce without a forced
+  interleaving.
