@@ -50,12 +50,14 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 |---|---|
 | §1 Unmemoized selector | `grep -rE 'export function get' <selectors-dir>/` |
 | §2 Identity / passthrough result | Jest warning `result function returned its own inputs` |
-| §3 New collection in the result function | `grep -rnE 'new Set\|new Map\|Object\.(values\|keys\|entries)\|\?\? \{\}\|\?\? \[\]' <selectors-dir>/` |
+| §3 New collection in the result function | `grep -rnE 'new Set\|new Map\|Object\.(values\|keys\|entries)\|\?\? \{\}\|\?\? \[\]\|=> \(\{\|=> \[' <selectors-dir>/` |
 | §4 Mutation in the result function | `grep -rnE '\.sort\(\|\.reverse\(\|\.push\(\|\.splice\(' <selectors-dir>/` |
 | §5 Over-broad input | `grep -rn 'state) => state\b' <selectors-dir>/` |
 | §6 Unnecessary deep equality | `grep -rn 'createDeepEqualSelector' <selectors-dir>/` then verify each input is genuinely unstable |
 | §7 O(n) lookup | `grep -rnE '\.find\(.*=>.*address' <selectors-dir>/` |
 | §8 Chained unmemoized transforms | `grep -rnE 'export function get.*\{' <selectors-dir>/ -A5`, then look for several `.filter/.map/.sort` without memoization |
+
+The `=> ({` and `=> [` alternates catch a result function that *returns* a fresh literal rather than constructing a named collection. A trial run missed a real instance without them: `(metamask) => ({ userRegion: ..., ... })` builds a new object every recompute and matches none of the collection constructors.
 
 See the repo overlay for the concrete `<selectors-dir>` path.
 
