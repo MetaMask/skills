@@ -126,6 +126,21 @@ def audit_overrides(over, gen):
     return widened, tightened, broad, write
 
 
+def partition_escalations(rows, base, write_set):
+    """Split a human's worklist into decisions and consequences.
+
+    A capability granted to a package the base policy did not contain at all arrives
+    because the package arrived — a bundle-graph change, not a choice anyone made about
+    that capability. A capability newly granted to a package already contained is
+    somebody's decision. Under one heading the second is buried in the first: a list
+    where 23 of 24 rows are not actionable teaches its reader to skim past the one that is.
+    """
+    chosen, inherited = [], []
+    for pkg, kind, cap in rows:
+        (inherited if pkg not in base else chosen).append((pkg, kind, cap))
+    return chosen, inherited
+
+
 def main():
     args = sys.argv[1:]
     if len(args) < 2:
@@ -200,15 +215,40 @@ def main():
     ))
     if escalate:
         write_set = set(write)
+        chosen, inherited = partition_escalations(escalate, base, write_set)
         print("\n\nRAISE WITH A HUMAN — no verdict offered")
         print("-" * 74)
         print("These widen a capability class where a wrong call is not recoverable by a")
         print("follow-up PR, or grant write where read may suffice. Whether each is correct")
         print("depends on intent and threat model, neither of which is in the policy files.")
         print("This script stops here deliberately rather than guessing.\n")
-        for pkg, kind, cap in escalate:
+        def row(pkg, kind, cap):
             why = "write access" if (pkg, kind, cap) in write_set else criticality(pkg, cap)
             print(f"  [?] {pkg[:42]:44s} {kind[:3]}:{cap:20s}  {why}")
+
+        print(f"\nCHOSEN HERE — {len(chosen)} row(s), on a package the base already contained")
+        if chosen:
+            for pkg, kind, cap in chosen:
+                row(pkg, kind, cap)
+        else:
+            print("  (none — every escalation below arrived with a new package)")
+
+        if inherited:
+            print(f"\nARRIVES WITH A NEWLY-CONTAINED PACKAGE — {len(inherited)} row(s)")
+            print("  The package is new to this policy, so the grant follows from containing")
+            print("  it. The question is whether the package belongs in this bundle, not")
+            print("  whether the capability was correctly chosen.")
+            # Write access is never truncated. It is the smallest and highest-signal
+            # category, and a cap that hides it turns the section into a list whose
+            # most important row is the one the reader cannot see.
+            w = [r for r in inherited if r in write_set]
+            rest = [r for r in inherited if r not in write_set]
+            for pkg, kind, cap in w:
+                row(pkg, kind, cap)
+            for pkg, kind, cap in rest[:10]:
+                row(pkg, kind, cap)
+            if len(rest) > 10:
+                print(f"      … {len(rest) - 10} further read-only row(s) of the same kind.")
         print(f"\n  {len(escalate)} decision(s) for a human. An audit that silently resolves")
         print("  these has substituted a guess for the thing it was asked to check.")
 
