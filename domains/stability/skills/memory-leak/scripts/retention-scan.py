@@ -33,6 +33,40 @@ def scan(src_path, patch_path):
                          f"removeListener L{rln}"+(" on stream close" if onclose else "")))
         else:
             rows.append((new,'OPEN',f"{emitter}.on('{ev}', {handler})",ln,"no removeListener in file"))
+    # named-subscription listeners: onXxx(handler) / subscribe(handler) / addXxxListener(handler).
+    # The quoted-event form above cannot see these — the method name carries the event, and
+    # there is no event-name argument to pair on. Missing them yields a clean verdict over a
+    # real unpaired listener (observed: background.onNotification on extension#42823).
+    for m in re.finditer(
+        r'(\w+)\.(on[A-Z]\w*|subscribe|addEventListener|add[A-Z]\w*Listener)\(\s*([\w.]+)\s*[,)]',
+        src):
+        emitter, method, handler = m.groups()
+        if method in ('on', 'addListener'):
+            continue                      # already covered by the quoted-event pass
+        ln = src[:m.start()].count('\n') + 1
+        new = lines[ln - 1].strip() in added
+        # Release forms that correspond to this acquire form.
+        if method.startswith('on'):
+            rel = ['remove' + method[0].upper() + method[1:], 'off' + method[2:]]
+        elif method == 'subscribe':
+            rel = ['unsubscribe']
+        elif method == 'addEventListener':
+            rel = ['removeEventListener']
+        else:
+            rel = ['remove' + method[3:]]
+        found = None
+        for r in rel:
+            rm = re.search(re.escape(r) + r'\(', src)
+            if rm:
+                found = (r, src[:rm.start()].count('\n') + 1)
+                break
+        label = f"{emitter}.{method}({handler})"
+        if found:
+            rows.append((new, 'ok', label, ln, f"{found[0]} L{found[1]}"))
+        else:
+            rows.append((new, 'OPEN', label, ln,
+                         "no " + "/".join(rel) + " in file"))
+
     # pending registries: Map with set paired with delete
     for m in re.finditer(r'(#?\w*[Pp]ending\w*|#?\w*[Rr]equests?\w*)\s*[=:][^\n]*new Map', src):
         name=m.group(1); ln=src[:m.start()].count('\n')+1
@@ -46,7 +80,7 @@ def scan(src_path, patch_path):
                 rows.append((new,'OPEN',f"{name}  (.set L{sln})",ln,"no .delete — entries accumulate"))
     return rows
 
-print("RETENTION REVIEW — PR #40684, scoped to the diff  (re-run: retention-scoped.py <file> <patch>)")
+print("RETENTION REVIEW — scoped to the supplied diff  (re-run: retention-scan.py <file>:<patch> [...])")
 print("="*74)
 new_open=0
 for pair in sys.argv[1:]:
