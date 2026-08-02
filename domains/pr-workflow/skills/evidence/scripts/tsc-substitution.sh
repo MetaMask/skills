@@ -100,7 +100,16 @@ restore; trap - EXIT INT TERM
 NEW_ERRS="$(comm -13 "$STAMP-armA.set" "$STAMP-armB.set" | head -12)"
 NEW_COUNT="$(comm -13 "$STAMP-armA.set" "$STAMP-armB.set" | wc -l | tr -d ' ')"
 
-if [ "$NEW_COUNT" -gt 0 ]; then
+# TS1xxx is the syntactic family — "expression expected", "declaration expected". A
+# substitution that lands on the wrong line breaks parsing and produces a pile of them,
+# which reads as a large divergence and is worth nothing: the file never type-checked.
+# `falsify-probe` has carried this guard since a broken mutation looked like a
+# falsification; this runner shipped without it and reported six syntax errors as a
+# divergence on its first CI run.
+SYNTAX="$(comm -13 "$STAMP-armA.set" "$STAMP-armB.set" | grep -cE 'error TS1[0-9]{3}')"
+if [ "$NEW_COUNT" -gt 0 ] && [ "$SYNTAX" -eq "$NEW_COUNT" ]; then
+  VERDICT="substitution broke parsing — $NEW_COUNT syntax error(s), nothing type-checked"; CODE=2
+elif [ "$NEW_COUNT" -gt 0 ]; then
   VERDICT="divergence surfaced"; CODE=0
 else
   VERDICT="substitution silent"; CODE=1
@@ -127,8 +136,14 @@ JSON
   echo "| **new under substitution** | | **$NEW_COUNT** |"
   echo
   if [ "$NEW_COUNT" -gt 0 ]; then
+    if [ "$CODE" -eq 2 ]; then
+      echo "**No conclusion.** Every new error is syntactic, so arm B never type-checked —"
+      echo "the substitution landed on the wrong line or produced invalid TypeScript. This is"
+      echo "indistinguishable from a real divergence by error count alone."
+    else
     echo "Errors present in B and absent in A — what the local type was concealing:"
     echo; echo '```'; printf '%s\n' "$NEW_ERRS"; echo '```'
+    fi
   else
     echo "**Silent — this is not proof of agreement.** Existing call sites may satisfy both"
     echo "shapes; indexing and \`.match()\` compile against \`string\` and \`string[]\` alike."
