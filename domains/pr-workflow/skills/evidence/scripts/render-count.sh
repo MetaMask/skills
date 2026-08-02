@@ -120,7 +120,7 @@ JSON
   [ -n "$B" ] && echo "| B — $ARM_B | \`$DEFEAT:$DEFEAT_LINE\` | $B |"
   echo
   echo '```console'
-  echo "\$ yarn jest $PROBE"
+  echo "\$ git checkout --detach $HEAD_SHA && yarn jest $PROBE"
   echo "$A_LINE"
   [ -n "$B_LINE" ] && { echo "\$ yarn jest $PROBE   # $ARM_B"; echo "$B_LINE"; }
   echo '```'

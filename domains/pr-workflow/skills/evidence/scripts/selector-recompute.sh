@@ -184,7 +184,7 @@ JSON
   fi
   echo
   echo '```console'
-  echo "\$ yarn jest $PROBE"
+  echo "\$ git checkout --detach $HEAD_SHA && yarn jest $PROBE"
   # The tool's own output, not a line this script composed. A summary a script writes
   # about its own run carries the script's word; the runner's stdout carries the run's.
   grep -E "RECOMPUTE_PROBE |^Test Suites:|^Tests: |^Time: " "$STAMP.log" | head -8
