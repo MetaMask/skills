@@ -190,6 +190,16 @@ identity counts distinct values, publishing that under a fixed heading of "rende
 measurement of the wrong quantity, and every check passes. Whatever names the number is caller-
 stated, like the verdict — and the comment points at the probe, which is the definition.
 
+**9. An instrument reports what it did, never what it was asked to do.** A mutation runner that
+echoes its `--replace` argument into the artifact cannot detect its own misfire, because the two
+are the same string by construction. They came apart once: `awk -v r="$REPLACE"` escape-processes
+the assignment, so a replacement of `/^[\s\S]{1,4096}$/u` was written to the file as
+`/^[sS]{1,4096}$/u` — narrowing the regex it was meant to widen. Arm B ran the same test count as
+arm A, so every guard was satisfied, a different test failed than the one targeted, and the run
+reported the suite as having power over a mechanism it never touched. Read the mutated line back
+off disk and publish that; keep the requested text beside it. The rule generalises past mutation:
+wherever a runner takes an instruction and performs an effect, the artifact carries the effect.
+
 ### The claim is scoped to what the run could see
 
 A run measures a diff, a file, a probe. What sits behind an interface it calls is not in the
