@@ -93,6 +93,17 @@ someone, usually while shipping an unrelated feature. Presence proves authorship
    confident-sounding "this is fine" from a reviewer is exactly the artifact that lets an
    unreviewed field through.
 
+## What this does not cover
+
+This reviews **what** a field carries. It does not review whether the send is permitted at all —
+consent state, basic functionality, compliance and region gates, and what happens to data
+buffered before a user decided. A correctly masked field sent without consent is the worse
+failure of the two, and nothing here can see it.
+
+That axis is reviewed separately, in the private skills repo, because naming the conditions
+under which a control does not run is a different kind of document from describing the control.
+Run both on a change that adds collection; either alone leaves half the question open.
+
 ## Common pitfalls
 
 | Mistake | Correct approach |
