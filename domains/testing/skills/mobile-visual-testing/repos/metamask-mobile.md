@@ -54,11 +54,18 @@ yarn mm launch --device-id <UDID>
 
 # Install a specific build before launching
 yarn mm launch --app-bundle ios/build/MetaMask.app
+
+# Force-replace an existing active session (runs cleanup first)
+yarn mm launch --force
 ```
 
 There is only one supported environment: prod. Do not request or switch launch contexts. Supplying `--context e2e` is rejected.
 
+When a session is already active, `mm launch` rejects with `MM_SESSION_ALREADY_RUNNING` unless `--force` is passed (which cleans up the existing session then launches a new one).
+
 `--reinstall`, `--reset-app-data`, and `--allow-fox-code-mismatch` are destructive to the installed wallet state and are guarded (a destructive flag requires `--app-bundle`). See [references/cli-reference.md](references/cli-reference.md#destructive-launch-flags).
+
+When attaching to Metro (`--metro-port`), the workflow is **attach-only** — it never spawns Metro. If the app is already running and healthily attached to Metro (Hermes target found at `/json`), `mm launch` connects without relaunching. If the app is not healthily attached, it terminates and re-launches via the deep link. On a fresh-booted simulator, a one-time relaunch ensures the accessibility tree is valid. Release/prod builds have no Hermes inspector; Metro attach requires a dev build.
 
 ### 2. Reuse Knowledge
 
@@ -120,7 +127,7 @@ Always clean up when testing is complete.
 
 ## Metro and Runtime Inspection
 
-For JS development, attach the installed development app to Metro:
+For JS development, attach the installed development app to Metro. The workflow is attach-only — start Metro separately:
 
 ```bash
 yarn watch:clean
@@ -129,6 +136,8 @@ yarn mm launch --metro-port 8081
 # Equivalent, still supported (the flag wins when both are set)
 MM_METRO_PORT=8081 yarn mm launch
 ```
+
+If Metro is not reachable on the given port, launch fails with `MM_INVALID_CONFIG`. If the app is already running and healthily attached to Metro, `mm launch` connects without relaunching (pure-attach). Release/prod builds have no Hermes inspector; Metro attach requires a dev build.
 
 Node 20 may require `NODE_OPTIONS="--experimental-websocket"` for `mm cdp`; Node 22+ includes WebSocket support.
 
