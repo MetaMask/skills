@@ -1,12 +1,12 @@
 ---
 name: debug
-description: Locate the cause of a symptom you cannot yet explain — a crash, a leak, a flake, a production error spike, a number that moved. The sibling of pr-validate: where pr-validate is handed a claim and looks for the observation that would falsify it, this is handed a symptom and must generate the hypothesis first, then kill it. Classifies the symptom into a defect class, routes to the engine skill that owns that class (memory-leak-hunt, race-condition-proof, react-render-proof, sentry-grafana-cross-ref, extension-errors-debugging, typescript-compiler-blindspots, supply-chain-audit), and holds the investigation to the same evidence bar pr-validate applies — an instrument that cannot fail is not evidence, a null needs its sensitivity stated, and a finding is scoped to what the change introduced versus what pre-existed. Stops when the cause is located or the class is excluded, not when a plausible story is available. Triggers on /debug, or when asked to debug, diagnose, or investigate a symptom, find why something is slow, leaking, flaky, or erroring, chase a production alert to its cause, or reproduce a bug that cannot be reproduced by hand.
+description: Locate the cause of a symptom you cannot yet explain — a crash, a leak, a flake, a production error spike, a number that moved. The sibling of evidence: where evidence is handed a claim and looks for the observation that would falsify it, this is handed a symptom and must generate the hypothesis first, then kill it. Classifies the symptom into a defect class, routes to the engine skill that owns that class (memory-leak, race-condition-repro, react-render-proof, sentry-grafana-correlation, extension-errors-debugging, tsc-blindspots, supply-chain-audit), and holds the investigation to the same evidence bar evidence applies — an instrument that cannot fail is not evidence, a null needs its sensitivity stated, and a finding is scoped to what the change introduced versus what pre-existed. Stops when the cause is located or the class is excluded, not when a plausible story is available. Triggers on /debug, or when asked to debug, diagnose, or investigate a symptom, find why something is slow, leaking, flaky, or erroring, chase a production alert to its cause, or reproduce a bug that cannot be reproduced by hand.
 maturity: experimental
 ---
 
 # /debug
 
-`pr-validate` is given a claim and looks for the observation that would prove it false.
+`evidence` is given a claim and looks for the observation that would prove it false.
 This is given a **symptom** and has to produce the hypothesis before anything can falsify it.
 
 That difference is the whole skill. In review, the claim is someone else's and the social
@@ -23,8 +23,8 @@ first theory that fit the first observation.
 
 ## Do Not Use When
 
-- The PR states a claim and you need it settled — that is `/pr-validate`.
-- The cause is known and you are validating the fix — that is `/pr-validate`, or the engine
+- The PR states a claim and you need it settled — that is `/evidence`.
+- The cause is known and you are validating the fix — that is `/evidence`, or the engine
   skill directly.
 - You want an after-the-fact writeup of a resolved failure — that is a postmortem, not this.
 
@@ -46,18 +46,18 @@ first theory that fit the first observation.
 
 | Symptom | Class | Engine |
 |---|---|---|
-| Memory grows across a repeated flow; tab or worker dies over time | retention | `memory-leak-hunt` |
-| Intermittent failure; passes on rerun; order-dependent | interleaving | `race-condition-proof` |
+| Memory grows across a repeated flow; tab or worker dies over time | retention | `memory-leak` |
+| Intermittent failure; passes on rerun; order-dependent | interleaving | `race-condition-repro` |
 | UI janks, re-renders excessively, selector recomputes | wasted render work | `react-render-proof` |
-| Production error spike, latency change, or a metric that moved | production signal | `sentry-grafana-cross-ref` |
+| Production error spike, latency change, or a metric that moved | production signal | `sentry-grafana-correlation` |
 | Extension-specific: MV3 vs MV2, background vs UI context, service-worker lifecycle | platform | `extension-errors-debugging` |
-| Runtime value disagrees with its declared type; green typecheck, wrong behaviour | type/reality drift | `typescript-compiler-blindspots` |
+| Runtime value disagrees with its declared type; green typecheck, wrong behaviour | type/reality drift | `tsc-blindspots` |
 | Started after a dependency change; new capability or transitive edge | supply chain | `supply-chain-audit` |
 | None of the above, or several | — | bisect to a change first, then re-classify |
 
 ## The evidence bar carries over
 
-The engines are shared with `pr-validate`, and so are its trust gates. They matter more here,
+The engines are shared with `evidence`, and so are its trust gates. They matter more here,
 because in review a weak instrument produces a weak claim someone else will challenge — in
 debugging it produces a wrong theory nobody checks.
 
