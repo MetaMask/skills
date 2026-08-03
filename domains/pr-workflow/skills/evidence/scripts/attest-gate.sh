@@ -10,12 +10,22 @@
 #
 #   0  all checks pass       → proceed to the dispatched passes
 #   1  one or more failed    → BLOCKED, do not publish
+#
+# --target owner/repo#N is how check 12 learns where this is going. Without it the gate
+# cannot tell a live review from a merged one, and the difference is the whole point.
 #   2  usage error
 set -uo pipefail
 
-FILE="${1:-}"; REF=""
-[ $# -ge 2 ] && [ "${2:-}" = "--reference" ] && REF="${3:-}"
-[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>]" >&2; exit 2; }
+FILE="${1:-}"; REF=""; TARGET=""
+shift || true
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --reference) REF="${2:-}"; shift 2 ;;
+    --target)    TARGET="${2:-}"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>]" >&2; exit 2; }
 [ -f "$FILE" ] || { echo "attest-gate: not found: $FILE" >&2; exit 2; }
 
 FAILED=0
@@ -158,6 +168,27 @@ if [ -n "$REF" ] && [ -f "$REF" ]; then
   echo
   printf '  ratio  reference captures: %s | this artifact: %s\n' "$r" "$c"
   [ "$c" -eq 0 ] && [ "$r" -gt 0 ] && printf '         reference is capture-led and this is prose-only — see check 5\n'
+fi
+
+# 12 — the destination. Every check above tests a property of the text, and text can be
+# perfect while landing somewhere nobody will read it. Measured across one register of
+# published runs: 22 of 27 comments went onto pull requests that had ALREADY merged when
+# they were posted, median 22 days after the merge, one of them 178 days after. The gate
+# was clean on every one. A finding delivered to a closed pull request changes nothing,
+# and no property of the comment can reveal that.
+echo
+if [ -z "$TARGET" ]; then
+  fail "12 destination is open" "no --target given, so nobody checked whether the pull request is still open. Pass --target owner/repo#N."
+elif ! command -v gh >/dev/null 2>&1; then
+  printf '  ????  %s\n       %s\n' "12 destination is open" "gh not on PATH — the destination is UNVERIFIED, not passing. Check it by hand before publishing."
+else
+  t_repo="${TARGET%%#*}"; t_num="${TARGET##*#}"
+  t_state="$(gh api "repos/$t_repo/pulls/$t_num" --jq 'if .merged_at then "merged" else .state end' 2>/dev/null || echo unknown)"
+  case "$t_state" in
+    open)    pass "12 destination is open" ;;
+    unknown) fail "12 destination is open" "could not read $TARGET — do not publish to a destination you could not check" ;;
+    *)       fail "12 destination is open" "$TARGET is $t_state. A run published to a closed pull request reaches no reviewer and changes no decision." ;;
+  esac
 fi
 
 echo
