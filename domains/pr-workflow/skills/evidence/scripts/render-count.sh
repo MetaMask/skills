@@ -15,7 +15,7 @@
 #
 # Usage:
 #   render-count.sh --probe <probe.test.tsx> [--defeat <file> --defeat-line <n> --defeat-with <text>]
-#                   [--arm-b <label>] [--label <slug>] [--out <dir>]
+#                   [--arm-b <label>] [--metric <words>] [--label <slug>] [--out <dir>]
 #
 # Arm B is "the memo defeated" by default, which is the shape when a PR ADDS
 # memoisation. When a PR is the one under suspicion the arms invert — arm B applies
@@ -28,6 +28,10 @@
 # It must print a line of the form:
 #
 #   RENDER_COUNT consumer=<n> parentRenders=<m>
+#
+# `consumer=` is the field name, not a promise about what was counted — a probe for a claim
+# about context value identity counts distinct values there, and calling that "consumer
+# renders" prints a different quantity than the one measured. Pass --metric to name it.
 #
 #   0  measured           counts captured for both arms (or arm A alone if no --defeat)
 #   1  no delta           arm B identical to arm A — the memo is not doing what is claimed
@@ -49,6 +53,13 @@ capture_provenance() {
 
 OUT_DIR="evidence-artifacts"; LABEL=""; PROBE=""; DEFEAT=""; DEFEAT_LINE=""; DEFEAT_WITH=""
 ARM_B="memo defeated"
+# What the probe's `consumer=` field counts, in the caller's words. Caller-stated for the
+# same reason the verdict is: this script reads a number out of a line the probe printed and
+# has no way to know what the probe counted. A probe that counts distinct context values —
+# the right measurement when the claim is about value identity rather than one component's
+# renders — was published under the fixed heading "consumer renders", which is a different
+# quantity and was wrong. A wrong label on a correct number is still a wrong number.
+METRIC="consumer renders"
 die() { printf 'render-count: %s\n' "$1" >&2; exit 3; }
 
 while [ $# -gt 0 ]; do
@@ -58,6 +69,7 @@ while [ $# -gt 0 ]; do
     --defeat-line) DEFEAT_LINE="${2:-}"; shift 2 ;;
     --defeat-with) DEFEAT_WITH="${2:-}"; shift 2 ;;
     --arm-b)       ARM_B="${2:-}"; shift 2 ;;
+    --metric)      METRIC="${2:-}"; shift 2 ;;
     --label)       LABEL="${2:-}"; shift 2 ;;
     --out)         OUT_DIR="${2:-}"; shift 2 ;;
     -h|--help)     sed -n '2,30p' "$0"; exit 0 ;;
@@ -85,7 +97,9 @@ if [ -n "$DEFEAT" ] && [ -n "$DEFEAT_LINE" ]; then
   BACKUP="$(mktemp)"; cp "$DEFEAT" "$BACKUP"
   restore() { cp "$BACKUP" "$DEFEAT"; rm -f "$BACKUP"; }
   trap restore EXIT INT TERM
-  awk -v n="$DEFEAT_LINE" -v r="$DEFEAT_WITH" 'NR==n{print r; next}{print}' "$DEFEAT" > "$DEFEAT.tmp" && mv "$DEFEAT.tmp" "$DEFEAT"
+  # Through the environment, not `awk -v`: a `-v` assignment is escape-processed, so a
+  # replacement containing a backslash reaches the file altered. See falsify-probe.sh.
+  DEFEAT_LINE_TEXT="$DEFEAT_WITH" awk -v n="$DEFEAT_LINE" 'NR==n{print ENVIRON["DEFEAT_LINE_TEXT"]; next}{print}' "$DEFEAT" > "$DEFEAT.tmp" && mv "$DEFEAT.tmp" "$DEFEAT"
   yarn jest "$PROBE" > "$STAMP-armB.log" 2>&1
   B_LINE="$(counts_from "$STAMP-armB.log")"
   B="$(consumer_of "$B_LINE")"
@@ -95,8 +109,8 @@ else
 fi
 
 if [ -n "$B" ] && [ "$B" = "$A" ]; then VERDICT="no delta — arm B changed nothing measurable"; CODE=1
-elif [ -n "$B" ]; then VERDICT="delta measured: $A → $B renders with $ARM_B"; CODE=0
-else VERDICT="baseline only: $A consumer renders"; CODE=0; fi
+elif [ -n "$B" ]; then VERDICT="delta measured: $A → $B $METRIC with $ARM_B"; CODE=0
+else VERDICT="baseline only: $A $METRIC"; CODE=0; fi
 
 HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 DIRTY="$(git status --porcelain 2>/dev/null | grep -v '^??' | wc -l | tr -d ' ')"
@@ -104,17 +118,18 @@ NODE_V="$(node -v 2>/dev/null || echo unknown)"
 
 cat > "$STAMP.json" <<JSON
 { "probe": "$PROBE", "verdict": "$VERDICT", "exit": $CODE,
-  "consumer_renders": { "armA": ${A:-null}, "armB": ${B:-null} },
+  "metric": "$METRIC",
+  "counts": { "armA": ${A:-null}, "armB": ${B:-null} },
   "env": { "head": "$HEAD_SHA", "tracked_changes": $DIRTY, "node": "$NODE_V" },
   "logs": ["$STAMP-armA.log", "$STAMP-armB.log"] }
 JSON
 
 {
-  echo "### Consumer render count"
+  echo "### Render probe — $METRIC"
   echo
   echo "**Verdict:** $VERDICT"
   echo
-  echo "| Arm | Change | consumer renders |"
+  echo "| Arm | Change | $METRIC |"
   echo "|---|---|---|"
   echo "| A — as committed | none | ${A:-?} |"
   [ -n "$B" ] && echo "| B — $ARM_B | \`$DEFEAT:$DEFEAT_LINE\` | $B |"
@@ -125,8 +140,8 @@ JSON
   [ -n "$B_LINE" ] && { echo "\$ yarn jest $PROBE   # $ARM_B"; echo "$B_LINE"; }
   echo '```'
   echo
-  echo "This counts renders of one named consumer across a defined interaction. It is not a count"
-  echo "of consumers, and a larger consumer count does not imply a larger effect."
+  echo "The number is \`$METRIC\` as printed by \`$PROBE\` — that file is what defines the"
+  echo "quantity. It is one probe under one interaction, not a property of the application."
   echo
   echo "<sub>Produced by \`render-count.sh\`; the arm-B edit is reverted after the run. head \`$HEAD_SHA\` · $DIRTY tracked changes · node \`$NODE_V\`. $(capture_provenance)</sub>"
 } > "$STAMP.md"
