@@ -1,0 +1,51 @@
+{
+  "lane": "B3 \u2014 is this test connected to the reported bug",
+  "claim_shape": "This test would have caught <bug>.",
+  "executor": "evidence-run.yml with ref and baseline, runner capture wrapping the suite",
+  "does_not_cover": [
+    "whether the test notices the mechanism later regressing \u2014 that is mutation-power",
+    "bugs whose reproduction needs timing, a device, or an environment the harness lacks"
+  ],
+  "nodes": [
+    {
+      "id": "pre-target-open",
+      "type": "precondition",
+      "check": "target pull request state == open"
+    },
+    {
+      "id": "pre-merge-base",
+      "type": "precondition",
+      "check": "base is merge_base_commit.sha from the compare endpoint, not the base branch tip",
+      "why": "the base branch tip moves; a re-run weeks later is a different experiment"
+    },
+    {
+      "id": "baseline",
+      "type": "baseline",
+      "run": "the new test at the merge base",
+      "expect": "fails, and the failure message names the assertion that encodes the bug",
+      "on_fail": [
+        "passes \u2014 the test is not connected to the reported behaviour",
+        "fails on a load or fixture error \u2014 the test cannot run there, nothing is falsified"
+      ]
+    },
+    {
+      "id": "treatment",
+      "type": "treatment",
+      "run": "the same test at head, same command, same filter"
+    },
+    {
+      "id": "prediction",
+      "type": "prediction",
+      "expect": "passes at head; the base failure is an assertion, not an import"
+    },
+    {
+      "id": "capture",
+      "type": "capture",
+      "emit": [
+        "both arms verbatim",
+        "both SHAs",
+        "the exact command"
+      ]
+    }
+  ]
+}
