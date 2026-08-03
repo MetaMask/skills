@@ -44,10 +44,16 @@ this skill lives.
    file or suite, scope the run to the new test (by name/path) so the red is attributable. A
    suite that was already red proves nothing about your assertion.
 
-6. **Show both runs.** Base: the assertion failure, verbatim. Branch: the pass. Same command,
-   same filter, both commits identified. Captured terminal output beats a transcription —
-   retyped output is a self-report, and a real capture has caught errors that careful prose
-   missed.
+6. **Show both runs, and let a tool write them down.** Base: the assertion failure, verbatim.
+   Branch: the pass. Same command, same filter, both commits identified. Retyped output is a
+   self-report — indistinguishable from output that was never produced — so the two arms want
+   to come out of a runner rather than a paste buffer.
+
+   `evidence` ships the mechanism: its run workflow takes `ref` and `baseline`, checks out both
+   commits, executes the same command at each, and attaches the artifacts to a run URL a reader
+   can open without going through you. Wrapping the test command in `capture.sh` gets the same
+   property locally, minus the reader-verifiable half — and that runner's footer says so, in
+   the artifact, rather than leaving the gap for a reviewer to notice.
 
 7. **Pair it with the issue.** The PR's `Fixes #N` plus a test named for the behaviour makes
    the causal chain checkable by a reader who runs nothing.
@@ -78,10 +84,33 @@ Falsifying test — <test name>  (Fixes #N)
   scoped: <how the run was limited to this test>
 ```
 
+## The sibling experiment, and why it is not this one
+
+`evidence` also ships `falsify-probe.sh`, which has the same two-arm shape and answers a
+different question. The distinction is worth holding, because conflating them produces a proof
+of the wrong thing:
+
+| | arms | question |
+|---|---|---|
+| **this skill** | base commit, branch commit — same test | is the test causally connected to the reported bug? |
+| **`falsify-probe.sh`** | one commit, one line mutated | does the test fail when the mechanism it guards is removed? |
+
+A test can pass this skill and fail that one: it fails on base because the fix was not there,
+and passes under mutation because it asserts something adjacent to the mechanism. The reverse
+also happens. On a bug-fix PR you usually want both — the first proves the test is about *this
+bug*, the second proves it will keep noticing.
+
+What the runner does mechanise is step 2. Its guards refuse to call a red arm a falsification
+when the suite ran fewer tests than the baseline, or failed to load at all — which is this
+skill's falsifier, enforced rather than remembered. It also takes the names of the tests you
+expect to fail, so a red run in the wrong place is reported as such instead of passing as a
+falsification.
+
 ## Related
 
-- `evidence` — packages this skill's output as its [falsifying regression test category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
-  The deterministic-interleaving category is the sibling for concurrency and temporal-ordering
-  bugs; `race-condition-repro` drives it.
+- `evidence` — packages this skill's output as its [falsifying regression test category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md),
+  and supplies the two-commit run harness step 6 asks for. The deterministic-interleaving
+  category is the sibling for concurrency and temporal-ordering bugs; `race-condition-repro`
+  drives it.
 - `react-render-delta` — the same before/after discipline applied to a measured quantity
   rather than a boolean.
