@@ -170,6 +170,8 @@ printf 'falsify-probe: %s (exit %s)\n  %s\n  %s\n' "$VERDICT" "$CODE" "$STAMP.js
 # orchestrator reads them and writes ONE open question about THIS diff.
 printf 'limits: one line of one file was mutated. Says nothing about other paths into the
 same mechanism, whether it is reachable in production, or whether the guarded behaviour is
-correct. A falsifying test proves the test has power, not that the fix is right.%s\n' \
+correct. This probe proves the suite notices one mutated line, which is not the same as the
+base-against-branch proof that a test is connected to the reported bug -- see the red-on-base
+skill for that experiment.%s\n' \
   "$([ "$VERDICT" = vacuous ] && printf '\n  vacuous: the mechanism is unguarded by this suite — what else depends on it?')" >&2
 exit "$CODE"

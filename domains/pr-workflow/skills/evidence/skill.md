@@ -656,7 +656,7 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
 
   | category | engine |
   |---|---|
-  | B3 falsifying regression test | `/falsifying-test` |
+  | B3 falsifying regression test | `/red-on-base` |
   | B7 deterministic interleaving (concurrency / ordering) | `/race-condition-repro` |
   | C4 React render & selector proof | `/react-render-delta` |
   | C9 memory leak | `/memory-leak` |

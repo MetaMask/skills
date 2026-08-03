@@ -42,7 +42,7 @@ A good claim is **falsifiable** (observable outcome + clear falsifier), **surfac
 |---|---|
 | "Improves performance" | "Opening the Activity tab: TBT drops below 200ms (was >600ms)" — name the interaction, metric, threshold |
 | "Fixes the bug" | "With privacy mode on, the Perps tab balance is masked" — observable behavior + precondition + surface |
-| "Refactor, no behavior change" | Negation claim: "behavior of `<surface>` is unchanged" → prove via falsifying-test-stays-green / snapshot / identical output, **not** a screenshot |
+| "Refactor, no behavior change" | Negation claim: "behavior of `<surface>` is unchanged" → prove via a red-on-base test that stays green / snapshot / identical output, **not** a screenshot |
 | "Adds a null check" (restates the diff) | "No crash when `<field>` is null on `<surface>`" — the behavior, not the code |
 | Body promises X, diff does Y | Not a claim — **flag the drift** to the author |
 

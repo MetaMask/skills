@@ -46,7 +46,7 @@ falsifiable thing under test> head `<sha>` · <YYYY-MM-DD> · <check name in wor
 Icons: `✅` proven · `⚠️` partial or scoped · `📋` measured, no verdict asserted · `❌` failed.
 Never `❌` for a gap in *evidence* — that reads as a verdict on the author's work.
 
-**Check name, in words.** *falsifying-test check*, *render-count check*,
+**Check name, in words.** *red-on-base check*, *render-count check*,
 *dependency-containment check*. Never the lane id: `B3` is an address into
 [evidence-catalog.md](evidence-catalog.md), which the reviewer cannot open.
 

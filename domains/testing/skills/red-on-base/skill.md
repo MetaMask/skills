@@ -1,10 +1,10 @@
 ---
-name: falsifying-test
-description: Produce the strongest single proof that a fix targets the reported bug — a test that fails on the base commit and passes on the branch, with both runs shown. The falsifier is a test that fails on base for the wrong reason (import error, missing fixture, unrelated breakage) rather than by asserting the bug; that failure looks identical in an exit code and proves nothing. Also covers the diagnostic case: if no test can be written that fails on base, the fix's connection to the reported bug is the thing in doubt. Triggers on /falsifying-test, or when asked to write a regression test for a fix, prove a bug fix works, show a test failing before and passing after, or check whether a PR's test actually covers its claim. Callable by evidence as the engine behind its falsifying regression test evidence category.
+name: red-on-base
+description: Produce the strongest single proof that a fix targets the reported bug — a test that fails on the base commit and passes on the branch, with both runs shown. The falsifier is a test that fails on base for the wrong reason (import error, missing fixture, unrelated breakage) rather than by asserting the bug; that failure looks identical in an exit code and proves nothing. Also covers the diagnostic case: if no test can be written that fails on base, the fix's connection to the reported bug is the thing in doubt. Triggers on /red-on-base, or when asked to write a regression test for a fix, prove a bug fix works, show a test failing before and passing after, or check whether a PR's test actually covers its claim. Callable by evidence as the engine behind its falsifying regression test evidence category. Named for its own discipline rather than for that category, so it is not mistaken for `falsify-probe.sh`, which shares the two-arm shape and answers a different question.
 maturity: experimental
 ---
 
-# /falsifying-test
+# /red-on-base
 
 Reach for this on **every bug-fix PR**. A test that passes on the branch proves the branch is
 green. A test that **fails on base and passes on the branch** proves the change is causally

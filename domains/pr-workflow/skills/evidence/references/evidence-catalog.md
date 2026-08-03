@@ -54,7 +54,7 @@ Legend: **first-class lanes** are `##`-headed; closely-related variants are sub-
 
 ## B3. Falsifying regression test ⭐
 - **Proves — strongest single proof a fix targets the bug:** a new test that **fails on `main` and passes on the branch**. Show both runs.
-  - **Engine: the `falsifying-test` skill.**
+  - **Engine: the `red-on-base` skill.**
 - **Capture:** add the test, run it on the PR branch (pass) and on the PR's **merge-base** (fail) — pin the base, don't use whatever `main` points at today. Pair with the PR's `Fixes #N`. **Read the base failure's message, not its exit code:** it must fail on the assertion that encodes the bug. A `ModuleNotFoundError`, a missing fixture, or an unrelated pre-existing red produces an identical non-zero exit and falsifies nothing.
 - **Reach for it:** every bug-fix PR. If you can't write a test that fails on main, question whether the fix addresses the reported bug.
 
