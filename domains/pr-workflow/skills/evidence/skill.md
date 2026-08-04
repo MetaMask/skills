@@ -326,7 +326,7 @@ Check 5 is the one that matters and the easiest to slip past: if every character
 is one the operator typed, the run published an assertion. Pass `--reference <showcase>` to
 compare capture density against a known-good artifact.
 
-This is phase 0 of [`/attest`](https://github.com/MajorLift/Reprise); phases 1 and 2 dispatch
+This is phase 0 of `/attest`; phases 1 and 2 dispatch
 `/outframe ‖ /missing ‖ /press` then `/trim` to fresh instances, because those passes cannot be
 self-run — the author is positionally the wrong reader.
 
@@ -619,7 +619,7 @@ Three adjacent things; keep the boundary clear so they compose instead of collid
 
 - **AEP** — governed *fleet orchestration*: sandboxes, Temporal, autonomous runs at scale. The heavy engine.
 - **ADR-0058 recipes** ([decisions#173](https://github.com/MetaMask/decisions/pull/173)) — a *dev-machine inner-loop* proof artifact: a declarative per-PR recipe run against the live app over CDP, emitting `summary.json`/`trace.json`/manifest.
-- **evidence** (this skill) — the *claim→evidence methodology + taxonomy* both draw on. The Claim Card is the bridge from a PR's claim to the right proof target; the [evidence catalog](references/evidence-catalog.md) is the lane vocabulary; [lane-assertions.md](references/lane-assertions.md) maps each lane to a recipe assertion (and flags the out-of-band, non-UI lanes — the gap MajorLift's #173 review raised).
+- **evidence** (this skill) — the *claim→evidence methodology + taxonomy* both draw on. The Claim Card is the bridge from a PR's claim to the right proof target; the [evidence catalog](references/evidence-catalog.md) is the lane vocabulary; [lane-assertions.md](references/lane-assertions.md) maps each lane to a recipe assertion (and flags the out-of-band, non-UI lanes — the gap raised in review of decisions#173).
 
 evidence is the one a human drives; it can dispatch an AEP run or author a recipe as its capture step.
 
