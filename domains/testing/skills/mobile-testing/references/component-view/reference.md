@@ -67,6 +67,7 @@ Before declaring the task done, go through this checklist for every test written
 | 7   | **Any `jest.mock` for non-Engine modules is flagged** — if a service module is mocked directly, the `eslint-disable` comment is present and a tracking issue is linked                                                                                       | Add the comment and issue link                                         |
 | 8   | **AAA formatting** — blank lines between the Arrange, Act, and Assert blocks in every test                                                                                                                                                                   | Add the blank line separators                                          |
 | 9   | **Import order** — `mocks.ts` is first; remaining order follows project ESLint rules                                                                                                                                                                         | Ensure `mocks.ts` is the very first import; reorder the rest as needed |
+| 10  | **No stale press targets** — do not `fireEvent.press` a node held across `await`s when the UI re-renders (live countdown, polling). Re-query with `getByTestId` / `findByTestId` immediately before press                                                     | Re-query right before press; see What NOT to Do                        |
 
 ---
 
@@ -74,15 +75,16 @@ Before declaring the task done, go through this checklist for every test written
 
 ### Identify the error type first
 
-| Error pattern                                    | Likely cause                                       | Fix                                                               |
-| ------------------------------------------------ | -------------------------------------------------- | ----------------------------------------------------------------- |
-| `jest.mock is not allowed in *.view.test.*`      | Arbitrary `jest.mock` added to test                | Remove it; drive via state instead                                |
-| `Unable to find an element with testID: xxx`     | State not providing needed data, or element hidden | Add the relevant state via overrides or check rendering condition |
-| `Cannot read property 'X' of undefined`          | Preset missing a required state slice              | Add `.withMinimalXController()` or override in preset             |
-| `Warning: An update was not wrapped in act(...)` | Async state update not awaited                     | Use `await waitFor(...)`                                          |
-| `No QueryClient set`                             | Missing provider — not in Engine mock              | Add to mocks.ts or wrap with QueryClientProvider in renderer      |
-| Flakey number assertions                         | Non-deterministic exchange rates                   | Add `deterministicFiat: true`                                     |
-| Test passes locally, fails in CI                 | Time-sensitive assertions                          | Use `waitFor` not inline assertions after interactions            |
+| Error pattern                                                          | Likely cause                                                                                         | Fix                                                                                                                 |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `jest.mock is not allowed in *.view.test.*`                            | Arbitrary `jest.mock` added to test                                                                  | Remove it; drive via state instead                                                                                  |
+| `Unable to find an element with testID: xxx`                           | State not providing needed data, or element hidden                                                   | Add the relevant state via overrides or check rendering condition                                                   |
+| `Unable to find … route-X` after press; dump still on the source screen | Held element went stale (live clock / polling re-render); `fireEvent.press` was a no-op             | Re-query immediately before press: `fireEvent.press(getByTestId(...))` — never press a node captured across `await`s |
+| `Cannot read property 'X' of undefined`                                | Preset missing a required state slice                                                                | Add `.withMinimalXController()` or override in preset                                                               |
+| `Warning: An update was not wrapped in act(...)`                       | Async state update not awaited                                                                       | Use `await waitFor(...)`                                                                                            |
+| `No QueryClient set`                                                   | Missing provider — not in Engine mock                                                                | Add to mocks.ts or wrap with QueryClientProvider in renderer                                                        |
+| Flakey number assertions                                               | Non-deterministic exchange rates                                                                     | Add `deterministicFiat: true`                                                                                       |
+| Test passes locally, fails in CI                                       | Time-sensitive assertions, or stale press under CI load                                              | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer                                   |
 
 ### Inspect what's rendered
 
@@ -122,6 +124,11 @@ await findByTestId(`route-${Routes.SOME_SCREEN}`);
 
 // findByTestId 3rd-arg timeout (NOT 2nd arg)
 await findByTestId('my-element', {}, { timeout: 3000 });
+
+// Re-query before press when the target can re-render (live countdown, polling).
+await findByTestId(MyViewSelectorsIDs.CARD);
+await findByTestId(MyViewSelectorsIDs.LIVE_BADGE);
+fireEvent.press(getByTestId(MyViewSelectorsIDs.CARD));
 
 // Within a subtree — scope queries to avoid false positives when the same text or
 // testID appears in multiple list items (e.g., every row shows a "price" label).
@@ -164,6 +171,20 @@ renderComponentViewScreen(MyView, { name: 'X' }, {
   state: { engine: { backgroundState: { /* 200 lines */ } } },
 });
 // ✅ Instead: use a preset + minimal overrides
+
+// ❌ Hold a node across awaits when the UI re-renders (live countdown, polling)
+const card = await findByTestId(MyViewSelectorsIDs.CARD);
+await findByTestId(MyViewSelectorsIDs.LIVE_BADGE);
+fireEvent.press(card); // stale under CI — press may be a no-op
+// ✅ Re-query immediately before press
+await findByTestId(MyViewSelectorsIDs.CARD);
+await findByTestId(MyViewSelectorsIDs.LIVE_BADGE);
+fireEvent.press(getByTestId(MyViewSelectorsIDs.CARD));
+
+// ❌ Custom nested navigator only to assert navigation occurred
+extraRoutes: [{ name: Routes.FEATURE.ROOT, Component: NestedStackProbe }];
+// ✅ Default route probe when you only need to prove navigation
+extraRoutes: [{ name: Routes.FEATURE.ROOT }];
 
 // ❌ Raw string literal in getByTestId / findByTestId / queryByTestId
 getByTestId('my-view-scroll-view');

@@ -12,6 +12,8 @@ Reference: [SKILL.md](../SKILL.md) · [Writing Tests](writing-tests.md) · [Refe
 
 When navigation hits a registered route, the framework renders an element with `` testID=`route-${routeName}` `` so you can assert with ``await findByTestId(`route-${Routes.X}`)``. If you passed `Component`, the real component is shown instead. Use only `{ name }` when you just need to assert navigation; use `Component` when the test interacts with the destination screen. For cross-screen journeys, use a renderer that registers all reachable routes with `Component`.
 
+Do **not** mount a custom nested navigator (or other probe stack) solely to assert `route-${Routes.X}` — the default probe is enough and avoids extra surface area that can hide real navigation failures.
+
 ```typescript
 // tests/component-view/renderers/myFeature.ts
 export function renderMyFeatureWithRoutes(options = {}) {
