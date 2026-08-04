@@ -191,6 +191,34 @@ else
   esac
 fi
 
+# 13 — a number in the prose that appears in no exhibit. Check 9 compares verdict WORDS;
+# nothing compared the figures. Measured on a demonstration artifact built to test this
+# gate: the prose said "0 errors over 48 skills" directly above an exhibit reading
+# "47 skill(s) checked", and named a warning class with zero instances in the output it
+# was describing. Both survived every other check. Prose drifts from the exhibit it sits
+# beside, and it is the most common way one of these goes wrong.
+#
+# Deliberately narrow, because a noisy check is an ignored check: integers of two or more
+# digits only, and only those absent from every fenced block. Excluded as references
+# rather than measurements — whole URLs, issue refs, version strings, dates, SHAs,
+# file:line citations, hyphenated identifiers like P-256, and regex quantifiers. Every
+# one of those was added after a control run flagged something that was not a figure.
+echo
+NUM_ORPHANS="$(
+  awk '/^```/{f=!f; next} f{print}' "$FILE" > "$FILE.exh" 2>/dev/null
+  awk '/^```/{f=!f; next} !f{print}' "$FILE" \
+    | sed -E 's#https?://[^ )]*##g' \
+    | sed -E 's/#[0-9]+//g; s/\bv?[0-9]+\.[0-9]+(\.[0-9]+)?\b//g; s/\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b//g; s/\b[0-9a-f]{7,}\b//g; s/:[0-9]+\b//g; s/[A-Za-z]+-[0-9]+//g; s/\{[0-9,]+\}//g' \
+    | grep -oE '\b[0-9]{2,}\b' | sort -u \
+    | while read -r n; do grep -qF "$n" "$FILE.exh" || printf '%s ' "$n"; done
+  rm -f "$FILE.exh"
+)"
+if [ -n "$NUM_ORPHANS" ]; then
+  fail "13 figures trace to an exhibit" "these appear in the prose and in no exhibit: $NUM_ORPHANS — either they came from somewhere the reader cannot see, or they disagree with what is shown"
+else
+  pass "13 figures trace to an exhibit"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "attest-gate: phase 0 clean — proceed to /outframe ‖ /missing ‖ /press"
