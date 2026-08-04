@@ -20,14 +20,15 @@ https://majorlift-artifacts-share.s3.us-west-1.amazonaws.com/public/metamask/pr-
 Anonymous `GetObject` is allowed under `public/*`; bucket listing is not, so the prefix is not
 browsable — link individual files, and don't promise readers an index.
 
-**Do NOT re-host to `MajorLift/metamask-extension-skills`.** It is a **personal private** repo:
-every raw link to it returns 404 for every reader but its owner. That was the previous target
-here, and this file simultaneously said links to it were unreachable — guidance that instructed
-you to publish dead links. Verified live in a published artifact.
+**Do not re-host to a personal repo.** A personal private repo returns 404 for every reader but
+its owner, so every artifact link published from one is dead on arrival. That was the previous
+target here, and this file simultaneously said such links were unreachable — guidance that
+instructed you to publish dead links. Verified live in a published artifact.
 
-The test is **audience-reachability, not public-vs-private.** A `MetaMask/*` org repo is private
-but readable by colleagues, so an internal-audience link to one is fine. A `MajorLift/*` personal
-repo is unreachable by colleagues *and* by the public, so it fails for every audience.
+The test is **audience-reachability, not public-vs-private.** An org repo may be private and still
+readable by colleagues, so an internal-audience link to one is fine. A personal repo is unreachable
+by colleagues *and* by the public, so it fails for every audience. Re-host to an org-owned
+destination, or to the bucket above.
 
 - Path convention: `pr-<n>/<run-id>/<artifact-name>` keeps runs from colliding.
 - **Verify unauthenticated before shipping**: `curl -s -o /dev/null -w "%{http_code}"` on each
@@ -116,20 +117,20 @@ Screenshots block (injected into `### After`, or appended under `### Screenshots
 
 ## Step 3 — Choose the surface by ownership, then publish
 
-**Publish surface depends on my relationship to the PR** (see exogram
-`evidence-publish-surface-by-ownership`). Determine it FIRST:
+**Publish surface depends on your relationship to the PR.** Determine it FIRST:
 
 ```bash
 PR=<n>; REPO=MetaMask/metamask-extension
-SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits --jq '
-  if .author.login=="MajorLift" then "body"
-  elif ([.commits[] | select(.authors[].login=="MajorLift")
-         | select([.authors[].login] | map(select(.!="MajorLift" and .!="Copilot" and (test("claude|anthropic")|not))) | length == 0)] | length) > 0
+ME=$(gh api user --jq .login)
+SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits --jq --arg me "$ME" '
+  if .author.login==$me then "body"
+  elif ([.commits[] | select(.authors[].login==$me)
+         | select([.authors[].login] | map(select(.!=$me and .!="Copilot" and (test("claude|anthropic")|not))) | length == 0)] | length) > 0
   then "comment" else "skip" end')
 ```
 
-- `body` — I authored the PR → upsert into the PR body (below). Validation is
-  part of my own claim.
+- `body` — you authored the PR → upsert into the PR body (below). Validation is
+  part of your own claim.
 - `comment` — not author but I have a solo commit (no HUMAN co-author) → post a
   `gh pr comment` under the canonical `## 🧪 Validation Run` header. Never edit
   someone else's PR body.
@@ -231,7 +232,6 @@ The common loop — a run refutes a claim, the author pushes a fix, `/evidence` 
 - New head → **new hosted artifact directory keyed to the fix commit** (`pr-<n>/fix-<sha>/`), commit-pinned raw URLs; never overwrite a prior run's published files.
 - Residuals the fix intentionally leaves get their own row/section — don't round a fixed-with-residual claim up to fully proven.
 
-Source of truth: `exogram-core/memory/evidence-revalidation-delta-reports.md`.
 
 ## Lead with a lane-status ledger (no silent absence)
 
@@ -293,7 +293,7 @@ contract. `hooks/pr-evidence-gate.py` enforces the canonical literal only on bod
 trip it, which is the tell that the two are different artifacts rather than one with a
 different skin.
 
-**Per-scenario presentation (2026-07-21):** the same applies one level down — when the evidence spans multiple test scenarios (flag-on vs flag-off, control vs treatment in an A/B falsifier, numbered manual-testing steps), give each scenario its **own sub-section**: a heading naming the scenario in observation terms, one line on what it tests plus its verdict, and that scenario's artifacts co-located under it. Never bunch all scenarios' artifacts into one large evidence dump — the reviewer verifies "under condition X, artifact shows Y" one condition at a time, and a merged block destroys that mapping even when every artifact is real. For long artifact sets use a `<details>` block *per scenario*, not a merge. (Preference: exogram-core `memory/evidence-present-scenarios-separately.md`; instance #44610.)
+**Per-scenario presentation (2026-07-21):** the same applies one level down — when the evidence spans multiple test scenarios (flag-on vs flag-off, control vs treatment in an A/B falsifier, numbered manual-testing steps), give each scenario its **own sub-section**: a heading naming the scenario in observation terms, one line on what it tests plus its verdict, and that scenario's artifacts co-located under it. Never bunch all scenarios' artifacts into one large evidence dump — the reviewer verifies "under condition X, artifact shows Y" one condition at a time, and a merged block destroys that mapping even when every artifact is real. For long artifact sets use a `<details>` block *per scenario*, not a merge. (Instance: #44610.)
 
 ## Artifact contract (ADR-0058 alignment)
 
