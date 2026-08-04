@@ -24,6 +24,7 @@
 #
 # Usage:
 #   falsify-probe.sh --test <path> --source <path> --line <n> --replace <text>
+#                    [--expect-fail <test name substring>]...
 #                    [--label <slug>] [--out <dir>] [--runner "<cmd>"]
 #
 # Example:
@@ -50,6 +51,12 @@ RUNNER="yarn jest"
 OUT_DIR="evidence-artifacts"
 LABEL=""
 TEST="" SOURCE="" LINE="" REPLACE=""
+# Which test names the caller predicts will fail. Caller-stated, like every other judgement
+# word here, and checked rather than trusted: the guards ask whether arm B failed and whether
+# it ran the same tests, never whether the RIGHT ones failed. A mutation silently corrupted
+# before it reached the file failed a different case than it aimed at, ran the full suite, and
+# was reported `falsifying` — a green verdict for a mechanism the run never touched.
+EXPECT=""
 
 die() { printf 'falsify-probe: %s\n' "$1" >&2; exit 3; }
 
@@ -62,6 +69,7 @@ while [ $# -gt 0 ]; do
     --label)   LABEL="${2:-}"; shift 2 ;;
     --out)     OUT_DIR="${2:-}"; shift 2 ;;
     --runner)  RUNNER="${2:-}"; shift 2 ;;
+    --expect-fail) EXPECT="$EXPECT${EXPECT:+\n}${2:-}"; shift 2 ;;
     -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) die "unknown argument: $1" ;;
   esac
@@ -105,9 +113,21 @@ if [ "$ARM_A" != "passed" ]; then
   VERDICT="baseline-already-failing"; CODE=2; ARM_B="not-run"
   : > "$STAMP-armB.log"
 else
-  # Mutate exactly one line. `.bak` form keeps this portable across GNU/BSD sed.
-  awk -v n="$LINE" -v r="$REPLACE" 'NR==n{print r; next}{print}' "$SOURCE" > "$SOURCE.tmp" \
-    && mv "$SOURCE.tmp" "$SOURCE" || die "mutation failed"
+  # Mutate exactly one line. The replacement travels through the environment, not
+  # through `awk -v`: awk runs escape processing on a `-v` assignment, so `[\s\S]`
+  # arrived as `[sS]` and the mutation written to the file was not the mutation asked
+  # for — it narrowed the regex it was meant to widen, failed a different test, and the
+  # runner reported `falsifying` for a mechanism it never touched. `ENVIRON` does no
+  # such processing.
+  MUTANT_LINE="$REPLACE" awk -v n="$LINE" 'NR==n{print ENVIRON["MUTANT_LINE"]; next}{print}' \
+    "$SOURCE" > "$SOURCE.tmp" && mv "$SOURCE.tmp" "$SOURCE" || die "mutation failed"
+  # What the artifact reports as the mutation is read back off disk, never taken from the
+  # argument. The two differed once and nothing in the output said so.
+  APPLIED_LINE="$(sed -n "${LINE}p" "$SOURCE")"
+  if [ "$APPLIED_LINE" != "$REPLACE" ]; then
+    printf 'falsify-probe: the line written differs from --replace\n  asked:   %s\n  written: %s\n' \
+      "$REPLACE" "$APPLIED_LINE" >&2
+  fi
   ARM_B="$(run_arm "$STAMP-armB.log")"
   restore; trap - EXIT INT TERM
   A_TOTAL="$(total_tests "$STAMP-armA.log")"; A_TOTAL="${A_TOTAL:-0}"
@@ -125,6 +145,23 @@ else
   fi
 fi
 
+# Runs last, on the verdict the guards already reached: a mutation can only fail the wrong
+# case if it failed something, so this narrows `falsifying` and never widens it.
+MISSED=""
+if [ "$CODE" -eq 0 ] && [ -n "$EXPECT" ]; then
+  FAILED_SO_FAR="$(grep -E "^[[:space:]]+.[^\u203a]*\u203a" "$STAMP-armB.log" 2>/dev/null)"
+  printf '%b\n' "$EXPECT" | while IFS= read -r want; do
+    [ -n "$want" ] || continue
+    printf '%s' "$FAILED_SO_FAR" | grep -qF "$want" || printf '%s\n' "$want"
+  done > "$STAMP.missed"
+  MISSED="$(tr '\n' '|' < "$STAMP.missed" | sed 's/|$//;s/|/, /g')"
+  rm -f "$STAMP.missed"
+  if [ -n "$MISSED" ]; then
+    VERDICT="falsified a different case — predicted failure absent: $MISSED"
+    CODE=2
+  fi
+fi
+
 summarise() { grep -E '^(Tests|Test Suites):' "$1" 2>/dev/null | tr '\n' ' ' | sed 's/  */ /g'; }
 A_SUM="$(summarise "$STAMP-armA.log")"
 B_SUM="$(summarise "$STAMP-armB.log")"
@@ -137,7 +174,9 @@ cat > "$STAMP.json" <<JSON
   "test": "$TEST",
   "mutation": { "source": "$SOURCE", "line": $LINE,
                 "from": $(printf '%s' "$ORIGINAL_LINE" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'),
-                "to": $(printf '%s' "$REPLACE" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))') },
+                "to": $(printf '%s' "${APPLIED_LINE-$REPLACE}" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'),
+                "to_requested": $(printf '%s' "$REPLACE" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))') },
+  "predicted_failures_absent": $(printf '%s' "$MISSED" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'),
   "armA": { "result": "$ARM_A", "summary": "$A_SUM", "log": "$STAMP-armA.log" },
   "armB": { "result": "$ARM_B", "summary": "$B_SUM", "log": "$STAMP-armB.log" },
   "env": { "head": "$HEAD_SHA", "tracked_changes": $DIRTY, "node": "$NODE_V", "yarn_lock_sha256_16": "$LOCK_SHA" }
@@ -170,8 +209,6 @@ printf 'falsify-probe: %s (exit %s)\n  %s\n  %s\n' "$VERDICT" "$CODE" "$STAMP.js
 # orchestrator reads them and writes ONE open question about THIS diff.
 printf 'limits: one line of one file was mutated. Says nothing about other paths into the
 same mechanism, whether it is reachable in production, or whether the guarded behaviour is
-correct. This probe proves the suite notices one mutated line, which is not the same as the
-base-against-branch proof that a test is connected to the reported bug -- see the red-on-base
-skill for that experiment.%s\n' \
+correct. A falsifying test proves the test has power, not that the fix is right.%s\n' \
   "$([ "$VERDICT" = vacuous ] && printf '\n  vacuous: the mechanism is unguarded by this suite — what else depends on it?')" >&2
 exit "$CODE"

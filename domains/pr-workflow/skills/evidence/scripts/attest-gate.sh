@@ -180,7 +180,10 @@ echo
 if [ -z "$TARGET" ]; then
   fail "12 destination is open" "no --target given, so nobody checked whether the pull request is still open. Pass --target owner/repo#N."
 elif ! command -v gh >/dev/null 2>&1; then
-  printf '  ????  %s\n       %s\n' "12 destination is open" "gh not on PATH — the destination is UNVERIFIED, not passing. Check it by hand before publishing."
+  # Blocks rather than warns. An earlier version printed UNVERIFIED and exited 0, so on a
+  # machine without `gh` — which is to say, running locally — this check announced that it
+  # had not run and passed anyway. That is the shape it exists to catch, one level up.
+  fail "12 destination is open" "gh not on PATH, so the destination was not checked. Unverified is not passing: install gh, or confirm the target is open and re-run."
 else
   t_repo="${TARGET%%#*}"; t_num="${TARGET##*#}"
   t_state="$(gh api "repos/$t_repo/pulls/$t_num" --jq 'if .merged_at then "merged" else .state end' 2>/dev/null || echo unknown)"
@@ -189,6 +192,34 @@ else
     unknown) fail "12 destination is open" "could not read $TARGET — do not publish to a destination you could not check" ;;
     *)       fail "12 destination is open" "$TARGET is $t_state. A run published to a closed pull request reaches no reviewer and changes no decision." ;;
   esac
+fi
+
+# 13 — a number in the prose that appears in no exhibit. Check 9 compares verdict WORDS;
+# nothing compared the figures. Measured on a demonstration artifact built to test this
+# gate: the prose said "0 errors over 48 skills" directly above an exhibit reading
+# "47 skill(s) checked", and named a warning class with zero instances in the output it
+# was describing. Both survived every other check. Prose drifts from the exhibit it sits
+# beside, and it is the most common way one of these goes wrong.
+#
+# Deliberately narrow, because a noisy check is an ignored check: integers of two or more
+# digits only, and only those absent from every fenced block. Excluded as references
+# rather than measurements — whole URLs, issue refs, version strings, dates, SHAs,
+# file:line citations, hyphenated identifiers like P-256, and regex quantifiers. Every
+# one of those was added after a control run flagged something that was not a figure.
+echo
+NUM_ORPHANS="$(
+  awk '/^```/{f=!f; next} f{print}' "$FILE" > "$FILE.exh" 2>/dev/null
+  awk '/^```/{f=!f; next} !f{print}' "$FILE" \
+    | sed -E 's#https?://[^ )]*##g' \
+    | sed -E 's/#[0-9]+//g; s/\bv?[0-9]+\.[0-9]+(\.[0-9]+)?\b//g; s/\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b//g; s/\b[0-9a-f]{7,}\b//g; s/:[0-9]+\b//g; s/[A-Za-z]+-[0-9]+//g; s/\{[0-9,]+\}//g' \
+    | grep -oE '\b[0-9]{2,}\b' | sort -u \
+    | while read -r n; do grep -qF "$n" "$FILE.exh" || printf '%s ' "$n"; done
+  rm -f "$FILE.exh"
+)"
+if [ -n "$NUM_ORPHANS" ]; then
+  fail "13 figures trace to an exhibit" "these appear in the prose and in no exhibit: $NUM_ORPHANS — either they came from somewhere the reader cannot see, or they disagree with what is shown"
+else
+  pass "13 figures trace to an exhibit"
 fi
 
 echo
