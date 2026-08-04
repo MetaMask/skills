@@ -180,7 +180,10 @@ echo
 if [ -z "$TARGET" ]; then
   fail "12 destination is open" "no --target given, so nobody checked whether the pull request is still open. Pass --target owner/repo#N."
 elif ! command -v gh >/dev/null 2>&1; then
-  printf '  ????  %s\n       %s\n' "12 destination is open" "gh not on PATH — the destination is UNVERIFIED, not passing. Check it by hand before publishing."
+  # Blocks rather than warns. An earlier version printed UNVERIFIED and exited 0, so on a
+  # machine without `gh` — which is to say, running locally — this check announced that it
+  # had not run and passed anyway. That is the shape it exists to catch, one level up.
+  fail "12 destination is open" "gh not on PATH, so the destination was not checked. Unverified is not passing: install gh, or confirm the target is open and re-run."
 else
   t_repo="${TARGET%%#*}"; t_num="${TARGET##*#}"
   t_state="$(gh api "repos/$t_repo/pulls/$t_num" --jq 'if .merged_at then "merged" else .state end' 2>/dev/null || echo unknown)"
