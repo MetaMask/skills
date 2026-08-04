@@ -287,7 +287,7 @@ needs a tracker it does not have. The marker pairs also collide — a re-run rep
 
 **So: choose the format from the evidence kind, not from this document's default.** The
 canonical `## 🧪 Validation Run` header applies when a run produced artifacts. An engine
-skill that defines its own output contract (`lavamoat-policy-diligence`) publishes in that
+skill that defines its own output contract (`lavamoat-policy`) publishes in that
 contract. `hooks/pr-evidence-gate.py` enforces the canonical literal only on bodies that
 *claim* validation/evidence framing — a diligence comment that renders no verdict does not
 trip it, which is the tell that the two are different artifacts rather than one with a
