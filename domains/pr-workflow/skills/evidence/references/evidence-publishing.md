@@ -20,7 +20,24 @@ https://$EVIDENCE_BUCKET.s3.$EVIDENCE_REGION.amazonaws.com/public/metamask/pr-<n
 ```
 
 The bucket must allow anonymous `GetObject` under `public/*` and must **not** allow listing, so
-the prefix is not browsable — link individual files, and don't promise readers an index.
+the prefix is not browsable — link individual files, and don't promise readers an index. If you
+do not have one, that is the whole policy:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": "*",
+    "Action": "s3:GetObject",
+    "Resource": "arn:aws:s3:::YOUR-BUCKET/public/*"
+  }]
+}
+```
+
+with `BlockPublicPolicy` and `RestrictPublicBuckets` disabled on that bucket and
+`s3:ListBucket` granted to nobody. An org-owned bucket is preferable to a personal one: artifact
+links outlive the person who published them.
 
 **Do not re-host to a personal repo.** A personal private repo returns 404 for every reader but
 its owner, so every artifact link published from one is dead on arrival. That was the previous
@@ -124,7 +141,9 @@ Screenshots block (injected into `### After`, or appended under `### Screenshots
 ```bash
 PR=<n>; REPO=MetaMask/metamask-extension
 ME=$(gh api user --jq .login)
-SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits --jq --arg me "$ME" '
+# Piped to jq rather than `gh --jq`: gh's built-in filter takes no --arg, and passing one
+# fails with "accepts at most 1 arg(s)".
+SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits | jq -r --arg me "$ME" '
   if .author.login==$me then "body"
   elif ([.commits[] | select(.authors[].login==$me)
          | select([.authors[].login] | map(select(.!=$me and .!="Copilot" and (test("claude|anthropic")|not))) | length == 0)] | length) > 0
