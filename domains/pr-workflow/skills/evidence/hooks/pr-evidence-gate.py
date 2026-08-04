@@ -13,13 +13,17 @@ The trustworthiness gate is the checklist; THIS is the trigger that runs it.
 Each class below implements a numbered item of `references/evidence-trustworthiness.md`.
 
 Contract: reads PreToolUse JSON on stdin. Exit 0 = allow. Exit 2 = block
-(stderr shown to the model). Fails OPEN on anything it cannot parse, so it
-never bricks unrelated Bash commands.
+(stderr shown to the model). Fails OPEN on anything it cannot parse, so it never
+bricks unrelated Bash commands — but once it has identified a body it is going to
+publish, it fails CLOSED: if attest-gate.sh cannot be found or run, the write is
+refused rather than waved through.
 """
 import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 
 
 def _out_allow():
@@ -63,6 +67,7 @@ def main():
         _out_allow()  # can't read it -> don't block; nothing to scan
 
     violations = _scan(body)
+    violations += _run_attest_gate(body, cmd)
     if not violations:
         _out_allow()
 
@@ -90,6 +95,9 @@ def main():
 
 
 NEEDS = {
+    "attest-gate": "the check named above to pass — run scripts/attest-gate.sh yourself to iterate",
+    "gate-missing": "attest-gate.sh on disk; refusing to publish a body nothing verified",
+    "gate-error": "attest-gate.sh to run successfully; refusing to publish unverified",
     "verdict": "an inspectable ARTIFACT (https:// permalink, /blob/<sha>/, or a *.test.ts ref)",
     "observation": "an OBSERVATION artifact (screenshot/recording/log/JSON/permalink) — "
                    "a /blob/ code link witnesses code, not runtime behavior",
@@ -238,6 +246,89 @@ SCOPE_PARA = re.compile(
     r"|\bsnapshot\b|\bscreenshot|byte-identical|\bworks\s+as\s+described\b"
     r"|\bin\s+two\s+independent\s+runs\b|\bin\s+a\s+(?:real|live)\s+browser\b)"
 )
+
+
+
+# ── attest-gate delegation ────────────────────────────────────────────────────
+# The rules live in attest-gate.sh. This hook used to carry a second, narrower copy
+# of them — keyed on verdict tokens — and a diligence comment that renders no verdict
+# satisfied neither the copy here nor the copy there. Two rule sets means the weaker
+# one governs whatever falls between them, which is how a results section of hand-typed
+# terminal output reached a public PR under both gates.
+#
+# So: one rule set, invoked at the one point the model cannot route around. The model
+# runs the gate by choice; this runs it by construction.
+def _gv(kind, token, snippet):
+    """attest-gate findings, in the shape the reporter already renders."""
+    return {"kind": kind, "token": token, "snippet": snippet}
+
+
+def _repo_pr_from_cmd(cmd):
+    """owner/repo#N for check 12. A comment-update URL carries the COMMENT id, not the
+    issue's — reading it as a PR number asks the gate whether pull #5177261620 is open,
+    which 404s and reports as 'destination unknown'. So resolve it."""
+    m = re.search(r"(?:--repo\s+|github\.com/|repos/)([\w.-]+/[\w.-]+)", cmd)
+    repo = m.group(1) if m else ""
+    if not repo:
+        return ""
+    c = re.search(r"issues/comments/(\d+)", cmd)
+    if c:
+        try:
+            out = subprocess.run(
+                ["gh", "api", f"repos/{repo}/issues/comments/{c.group(1)}",
+                 "--jq", ".issue_url"],
+                capture_output=True, text=True, timeout=30)
+            n = re.search(r"/issues/(\d+)\s*$", out.stdout.strip())
+            return f"{repo}#{n.group(1)}" if n else ""
+        except Exception:  # noqa: BLE001
+            return ""
+    n = re.search(r"(?:issues|pulls?)/(\d+)|\bpr\s+(?:comment|edit|create)\s+(\d+)", cmd)
+    num = next((g for g in (n.groups() if n else ()) if g), "")
+    return f"{repo}#{num}" if num else ""
+
+
+def _find_gate():
+    here = os.path.dirname(os.path.abspath(__file__))
+    for cand in (
+        os.path.join(here, "..", "scripts", "attest-gate.sh"),
+        os.path.join(here, "attest-gate.sh"),
+        os.path.expanduser("~/.claude/skills/mms-evidence/scripts/attest-gate.sh"),
+        os.environ.get("ATTEST_GATE", ""),
+    ):
+        if cand and os.path.isfile(cand):
+            return os.path.abspath(cand)
+    return ""
+
+
+def _run_attest_gate(body, cmd):
+    gate = _find_gate()
+    if not gate:
+        # Fails CLOSED. An enforcement point that waves things through when it cannot
+        # find its rules is not an enforcement point; the whole reason this exists is
+        # that the model-invoked path was skippable.
+        return [_gv("gate-missing", "attest-gate.sh not found",
+                    "Set ATTEST_GATE to its path, or install mms-evidence.")]
+    mode = ["--diligence"] if "LAVAMOAT_DILIGENCE_START" in body else []
+    target = _repo_pr_from_cmd(cmd)
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as fh:
+        fh.write(body)
+        path = fh.name
+    try:
+        argv = ["bash", gate, path] + mode + (["--target", target] if target else [])
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=120)
+    except Exception as exc:  # noqa: BLE001 - any failure to run it is a failure to verify
+        os.unlink(path)
+        return [_gv("gate-error", str(exc), "attest-gate.sh could not be run.")]
+    os.unlink(path)
+    if proc.returncode == 0:
+        return []
+    out = proc.stdout.splitlines()
+    fails = []
+    for i, ln in enumerate(out):
+        if ln.strip().startswith("FAIL"):
+            detail = out[i + 1].strip() if i + 1 < len(out) else ""
+            fails.append(_gv("attest-gate", ln.strip()[6:].strip(), detail))
+    return fails or [_gv("attest-gate", f"exit {proc.returncode}", proc.stdout[-200:])]
 
 
 def _scan(body):

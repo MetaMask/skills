@@ -117,11 +117,24 @@ fi
 # and are actually properties of an unwitnessed local run. State them as the search
 # ("searched N files, no match") or publish the output; do not assert them as fact.
 if [ "$MODE" = diligence ]; then
-  if hasre "(complete|full) (specifier|import|require) set|byte-identical|identical across all|^Searched: .*tarball|npm pack" \
-     && ! hasre 'actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(txt|log|json)\b'; then
-    fail "5 runtime claims witnessed" "asserts a result only a local run could produce ($(grep -m1 -oiE '(complete|full) (specifier|import|require) set|byte-identical|identical across all|npm pack' "$FILE")) with nothing a reader can fetch. A /blob/ permalink witnesses a line, not your shell"
+  # A permalink is the medium for a CITATION — a reader clicks it and lands on the line. It is
+  # not the medium for anything you RAN. The first version of this branch tested for phrases
+  # ("npm pack", "complete specifier set") and passed an artifact whose entire results section
+  # was hand-typed to look like terminal output, because none of those words appeared in it.
+  # That is the regression the block below already documents as having shipped four times:
+  # every property of plaintext is forgeable by whatever emits the plaintext. So the test is
+  # the same one, on the same terms — if the artifact shows a command or a run result, it owes
+  # the reader something fetchable.
+  # `/blob/` is a CITATION, never a capture — it witnesses a line in a file, not a run.
+  # Excluding it matters: a permalink to `policy-override.json` ends in `.json` and satisfied
+  # a naive extension test, so an artifact whose entire results section was hand-typed passed
+  # on the strength of a source link.
+  if hasre '^\$ |^  *\$ |\bexit [0-9]|\bexit=[0-9]' \
+     && ! grep -qE 'actions/runs/[0-9]|/gist\.|!\[[^]]*\]\(https?://' "$FILE" \
+     && ! grep -E 'https?://[^ )]+\.(txt|log|json)\b' "$FILE" | grep -qv '/blob/'; then
+    fail "5 captured artifact" "shows a command or a run result with nothing a reader can fetch — a fenced block is your transcription, whatever produced it. Publish the log/gist/run and link it"
   else
-    pass "5 runtime claims witnessed"
+    pass "5 captured artifact"
   fi
 elif ! hasre '!\[[^]]*\]\(https?://|<img [^>]*src="https?://|actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(png|jpg|jpeg|gif|svg|txt|log|json)\b'; then
   fail "5 captured artifact" "no reader-verifiable capture — an image of the tool surface, a run link, or a hosted artifact. A fenced block is the author\'s transcription, whatever produced it"
