@@ -415,13 +415,22 @@ describe('corpus: content is safe to publish and links stay current', () => {
 
   // This repo is public. A personal path, handle, or private-repo name in a skill is
   // both a leak and a dead reference for every reader but its author.
+  //
+  // The specific names are NOT listed here. A denylist of private identifiers, committed to a
+  // public repo, publishes every identifier it protects — the guard discloses what it guards,
+  // and this test previously named five. Structural patterns that describe a *shape* are safe
+  // and stay inline; anything that names a particular person, host or repo comes from the
+  // environment. Set SKILLS_PRIVATE_PATTERNS to a newline-separated list of regex sources
+  // (CI secret, or an untracked local file) to extend this locally.
   test('no personal paths, handles, or private-repo references', () => {
     const PERSONAL = [
       [/(^|[\s"'`(])\/(home|Users)\/[a-z][a-z0-9_.-]*/u, 'absolute personal path'],
-      [/\b(majorlift|MajorLift)\b/u, 'personal handle'],
-      [/\bexogram[-a-z]*/u, 'private repo'],
-      [/metamask-extension-skills/u, 'personal repo'],
-      [/consensys-test\//u, 'personal fork'],
+      [/\bgit@[a-z0-9.-]+:[^\s]+/u, 'ssh remote'],
+      ...(process.env.SKILLS_PRIVATE_PATTERNS ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((src) => [new RegExp(src, 'u'), 'configured private identifier']),
     ];
     const hits = [];
     for (const { rel, body } of allSkillDocs()) {
