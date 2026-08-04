@@ -82,7 +82,16 @@ resolve_yalc() {
 # Run yalc regardless of how it resolved (binary or "node yalc.js").
 # NOT named `yalc` on purpose — a function named `yalc` would shadow the real
 # binary and make resolve_yalc recurse forever.
-run_yalc() { local y; y="$(resolve_yalc)" || return 1; eval "$y \"\$@\""; }
+# The resolved value is split into an argv array and invoked directly — never
+# eval'd — so a value like YALC_BIN="node /path/to/yalc.js" stays two words but
+# cannot inject shell. The first token must resolve to a real executable.
+run_yalc() {
+  local y; y="$(resolve_yalc)" || return 1
+  local -a cmd; read -ra cmd <<<"$y"
+  command -v "${cmd[0]}" >/dev/null 2>&1 || {
+    echo "ERROR: yalc invocation '${cmd[0]}' is not an executable" >&2; return 1; }
+  "${cmd[@]}" "$@"
+}
 
 # ---------------------------------------------------------------------------
 state_dir() { printf '%s/tmp/.perps-validate' "$1"; }
@@ -91,7 +100,7 @@ state_dir() { printf '%s/tmp/.perps-validate' "$1"; }
 cmd_resolve_yalc() {
   local y; y="$(resolve_yalc)" || exit 1
   echo "yalc => $y"
-  eval "$y --version"
+  run_yalc --version
 }
 
 # ---------------------------------------------------------------------------

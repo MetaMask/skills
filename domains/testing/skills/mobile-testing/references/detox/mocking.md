@@ -1,5 +1,8 @@
 # API & Feature Flag Mocking — Reference
 
+> **Nearly deprecated.** Prefer Appium for new E2E ([`../appium-e2e.md`](../appium-e2e.md)). Use these Detox docs only for migration or remaining unmigrated suites ([`../detox-to-appium.md`](../detox-to-appium.md)).
+
+
 ## How Mocking Works
 
 All E2E tests run with a proxy mock server. Requests not matched by a mock reach the real network, but the test framework warns you (and will soon enforce this). Always mock external APIs your feature calls.

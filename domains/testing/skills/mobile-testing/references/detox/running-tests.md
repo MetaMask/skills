@@ -1,5 +1,8 @@
 # Running & Debugging E2E Tests — Reference
 
+> **Nearly deprecated.** Prefer Appium for new E2E ([`../appium-e2e.md`](../appium-e2e.md)). Use these Detox docs only for migration or remaining unmigrated suites ([`../detox-to-appium.md`](../detox-to-appium.md)).
+
+
 ## Step 1: Verify the Build Exists
 
 **Always check before running.** The binary path comes from `.detoxrc.js`:

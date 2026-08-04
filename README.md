@@ -52,25 +52,22 @@ Or use the installer to drop all `web3-tools/` skills at once:
 ```bash
 metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
-metamask-skills describe testing/component-view-test
-metamask-skills describe testing/integration-test
-metamask-skills describe testing/unit-testing
+metamask-skills describe testing/mobile-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
 metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
 metamask-skills install       # lower-level installer wrapper
 ```
 
 The discovery commands make opt-in selection self-serve. Developers can find a
-skill, inspect it, then save their selection. On Mobile, prefer installing
-**component-view-test**, **integration-test**, and **unit-testing** together
-(see `domains/testing/knowledge/testing-layers.md` for layer selection):
+skill, inspect it, then save their selection. On Mobile, install **one** skill —
+**mobile-testing** — for unit, component-view, integration, Appium E2E,
+Detox→Appium migration, and test-layer placement (see
+`domains/testing/knowledge/testing-layers.md`):
 
 ```bash
 metamask-skills list --domain testing
-metamask-skills describe testing/component-view-test
-metamask-skills describe testing/integration-test
-metamask-skills describe testing/unit-testing
-metamask-skills sync --include testing/component-view-test --include testing/integration-test --include testing/unit-testing --save
+metamask-skills describe testing/mobile-testing
+metamask-skills sync --include testing/mobile-testing --save
 ```
 
 Consumer repos should prefer this CLI over copying sync/postinstall scripts.
@@ -152,7 +149,7 @@ tools/
 | `perps`        | MM product eng    | Perps feature dev + review                  |
 | `pr-workflow`  | MM product eng    | PR title, description, changelog            |
 | `swaps`        | MM product eng    | EVM and non-EVM network integration         |
-| `testing`      | MM product eng    | E2E, unit, visual, perf testing             |
+| `testing`      | MM product eng    | Mobile testing umbrella, Extension E2E/unit, visual, perf |
 | `ui`           | MM product eng    | Component development                       |
 
 ## Two distribution flows
@@ -387,6 +384,11 @@ maturity: stable          # experimental | stable | deprecated (default stable)
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `mandatory`, and `scope` are read by the CLI.
+
+The 1,536-character ceiling is a repo budget rather than an operator limit — the
+description is always-on context for every installed skill, so it is capped
+deliberately. It is enforced by `yarn audit:skills` from
+[`tools/skill-schema.mjs`](tools/skill-schema.mjs), which is the source of truth.
 
 ### Overlay frontmatter
 
