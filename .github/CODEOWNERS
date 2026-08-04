@@ -18,7 +18,12 @@
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/perps/          @MetaMask/perps
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+<<<<<<< HEAD
 /domains/stability/      @MetaMask/extension-platform @MetaMask/mobile-platform
+||||||| 4063bf1
+=======
+/domains/security/       @MetaMask/extension-platform @MetaMask/mobile-platform
+>>>>>>> origin/jongsun/add/security-domain
 /domains/swaps/          @MetaMask/swaps-engineers
 /domains/testing/        @MetaMask/qa
 /domains/ui/             @MetaMask/design-system-engineers
