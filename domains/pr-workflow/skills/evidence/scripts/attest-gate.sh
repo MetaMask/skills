@@ -167,7 +167,12 @@ else
   pass "6 no prescriptions"
 fi
 
-if hasi "I originally|correction to my earlier|filed by me|hard to calibrate|I withdraw|my earlier comment"; then
+# Drafting history is the author's, not the reader's: a reader who never saw the earlier
+# version learns nothing from being told it existed, and the byline may not be yours.
+# The list grew after a comment shipped a '### Correction:' section retracting its own
+# previous revision in place — right instinct, wrong surface. Retract by restating the
+# finding correctly; the account of how it changed belongs in a postmortem.
+if hasi "I originally|correction to my earlier|filed by me|hard to calibrate|I withdraw|my earlier comment|earlier revision|previous revision|an earlier version of this|is withdrawn|that claim was wrong|^#{1,4} *Correction[: ]|corrected below|see the correction"; then
   fail "7 no process narration" "contains first-person process commentary — the reader did not see the earlier draft, and the byline may not be yours"
 else
   pass "7 no process narration"

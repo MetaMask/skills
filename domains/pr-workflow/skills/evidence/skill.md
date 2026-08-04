@@ -326,7 +326,7 @@ Check 5 is the one that matters and the easiest to slip past: if every character
 is one the operator typed, the run published an assertion. Pass `--reference <showcase>` to
 compare capture density against a known-good artifact.
 
-This is phase 0 of `/attest`; phases 1 and 2 dispatch
+This is phase 0 of `mms-attest`; phases 1 and 2 dispatch
 `/outframe ‖ /missing ‖ /press` then `/trim` to fresh instances, because those passes cannot be
 self-run — the author is positionally the wrong reader.
 
