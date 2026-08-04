@@ -1,6 +1,6 @@
 ---
 name: supply-chain-audit
-description: Assess whether a dependency change is safe to take, across every detector that answers a different part of that question — Socket Security (malicious/anomalous package behavior, install scripts, new maintainers), `yarn npm audit` and advisories (known vulnerabilities), lockfile and manifest diffs (what actually changed, including transitive and resolution swaps), and LavaMoat policy grants (new capabilities, delegated to `lavamoat-policy-diligence`). Also covers the fronts no upstream scanner sees because they are things your own repo does to dependencies afterwards: yarn patches that modify dependency source at install, `resolutions` that force or stub versions, `npmAuditIgnoreAdvisories` suppression lists, CI actions riding mutable tags instead of pinned SHAs, and yarn plugins that execute at install. The falsifier is a lane whose finding is unaccounted for — a flagged package, an unresolved advisory, or a grant with no call site. Detection belongs to the tools; the job is disposition, and handing it to the humans who own the dependency. Triggers on /supply-chain-audit, or when asked whether a dependency bump is safe, to review a lockfile or package.json change, to triage a Socket or audit finding, or to assess supply-chain risk of a change. Callable by `evidence` as its supply-chain engine.
+description: Assess whether a dependency change is safe to take, across every detector that answers a different part of that question — Socket Security (malicious/anomalous package behavior, install scripts, new maintainers), `yarn npm audit` and advisories (known vulnerabilities), lockfile and manifest diffs (what actually changed, including transitive and resolution swaps), and LavaMoat policy grants (new capabilities, delegated to `lavamoat-policy`). Also covers the fronts no upstream scanner sees because they are things your own repo does to dependencies afterwards: yarn patches that modify dependency source at install, `resolutions` that force or stub versions, `npmAuditIgnoreAdvisories` suppression lists, CI actions riding mutable tags instead of pinned SHAs, and yarn plugins that execute at install. The falsifier is a lane whose finding is unaccounted for — a flagged package, an unresolved advisory, or a grant with no call site. Detection belongs to the tools; the job is disposition, and handing it to the humans who own the dependency. Triggers on /mms-supply-chain-audit, or when asked whether a dependency bump is safe, to review a lockfile or package.json change, to triage a Socket or audit finding, or to assess supply-chain risk of a change. Callable by `evidence` as its supply-chain engine.
 maturity: experimental
 ---
 
@@ -22,7 +22,7 @@ different question and is blind to the others, so a single green check is never 
 | what actually changed? | lockfile / `package.json` diff | direct vs transitive; resolution swaps; version range widening |
 | known-vulnerable? | `yarn npm audit`, GitHub advisories, Dependabot | fixed-in version, or an explicit accepted-risk with reachability |
 | behaving maliciously or anomalously? | **Socket Security** | per-alert disposition — see below |
-| new capability reached? | **LavaMoat** policy diff | **delegate to `lavamoat-policy-diligence`** |
+| new capability reached? | **LavaMoat** policy diff | **delegate to `lavamoat-policy`** |
 | install-time code execution? | `allowScripts` in `package.json` (`@lavamoat/allow-scripts`) | a newly-`true` entry is a finding in its own right |
 | **is dependency source modified in-repo?** | **`.yarn/patches/*.patch`** | read the diff — see below |
 | **is a version being forced?** | **`resolutions`** in `package.json` | pinned below a fix? stubbed out? |
@@ -114,10 +114,10 @@ say which lanes you ran and which you skipped, and why.
    read it, not as a unilateral assertion. This skill produces a justification for humans to
    act on; it does not approve anything.
 
-## Capability containment → `lavamoat-policy-diligence`
+## Capability containment → `lavamoat-policy`
 
 LavaMoat policy grants are a specialized lane with their own method and tooling. **Delegate to
-`lavamoat-policy-diligence`** and fold its result in as this audit's capability-containment lane.
+`lavamoat-policy`** and fold its result in as this audit's capability-containment lane.
 
 Do not restate that lane's question as "does each new capability have a call site" — the policy
 is generated from a real run, so it always does, and that check cannot fail. The lane's actual
@@ -141,7 +141,7 @@ Supply-chain assessment — <package> <old> -> <new>   (<direct|transitive|resol
   resolutions        <forced/stubbed entries touched> | unchanged
   audit ignores      <npmAuditIgnoreAdvisories added> → reason + retire-when | unchanged
   ci actions         <third-party uses: added> → SHA-pinned? | unchanged
-  capabilities       → lavamoat-policy-diligence: <removable: …; load-bearing: …>  | no policy change
+  capabilities       → lavamoat-policy: <removable: …; load-bearing: …>  | no policy change
   lanes skipped      <lane> — <why>
 Unresolved: <finding> — <what would settle it>   | none
 ```
@@ -154,5 +154,5 @@ unresolved and what would settle it.
 
 ## Related
 
-- `lavamoat-policy-diligence` — the capability-containment engine this skill delegates to.
+- `lavamoat-policy` — the capability-containment engine this skill delegates to.
 - `evidence` — packages this skill's output as its [supply-chain evidence category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).

@@ -446,7 +446,7 @@ the text, so the gate asks for a different medium rather than for better text.
 **The exception — plaintext where every claim is a citation.** The rule is about where
 verification routes, not about pixels. Line-level links are externally verifiable: the reader
 clicks and sees exactly what you saw. That is the *normal* case for the audit lanes —
-`supply-chain-audit`, `lavamoat-policy-diligence`, `privacy-egress-diligence` — whose findings
+`supply-chain-audit`, `lavamoat-policy`, `privacy-egress-diligence` — whose findings
 are facts about code that exists rather than results of running something. There an image would
 be worse: a screenshot of a policy diff is less checkable than a permalink to it.
 
@@ -660,9 +660,9 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
   | B7 deterministic interleaving (concurrency / ordering) | `/race-condition-repro` |
   | C4 React render & selector proof | `/react-render-delta` |
   | C9 memory leak | `/memory-leak` |
-  | D supply-chain / dependency change | `/supply-chain-audit` → delegates capability grants to `/lavamoat-policy-diligence` |
+  | D supply-chain / dependency change | `/supply-chain-audit` → delegates capability grants to `/lavamoat-policy` |
 
-  **An engine that defines its own output contract publishes in it.** `lavamoat-policy-diligence`
+  **An engine that defines its own output contract publishes in it.** `lavamoat-policy`
   is the live case: read-level triage, no verdict, its own header and marker pair. Do not
   re-frame it as a Validation Run — see *One comment per evidence kind* in
   [references/evidence-publishing.md](references/evidence-publishing.md).

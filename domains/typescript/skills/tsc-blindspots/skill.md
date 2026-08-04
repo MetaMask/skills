@@ -7,9 +7,11 @@ description: >-
   substituting the derived type at a fixed commit and diffing `tsc` output; and
   (2) the standing blind spots in the language and config — unchecked array/record
   indexing, bivariant method parameters, covariant arrays, `any` absorption at
-  untyped boundaries, ambient `declare module` assertions, excess-property checks
-  that only fire on fresh literals, and external data asserted rather than
-  validated. Also audits typing edits that quietly change runtime behavior:
+  untyped boundaries, precise signatures fed `any` at every call site, ambient
+  `declare module` assertions that launder an `any` into a confident type,
+  excess-property checks that only fire on fresh literals, and external data
+  asserted rather than validated. Also audits typing edits that quietly change
+  runtime behavior:
   stripped `| undefined`, deleted default parameters, literals swapped for runtime
   enum lookups, calls made optional so a throw becomes a silent no-op. Use when
   reviewing a JS→TS migration, a PR that hand-writes types for values that already
@@ -168,11 +170,34 @@ Give each claim a verdict, and say which ones the probes **cleared**. A
 substitution sweep that only ever confirms is indistinguishable from one that
 never isolated anything.
 
-## The four divergence shapes
+### Severity: "pre-existing" is about the upstream `any`, not about the annotation
 
-Four shapes to check for. All five divergences in the worked example were one of
-these, which is a small sample — treat the list as a starting checklist, not a
-partition:
+A conversion PR invites two reflexes that both understate a false-precision
+finding, and the underlying `any` is what makes each of them sound reasonable:
+
+- **"It's pre-existing."** Split the claim. The library's `any` is genuinely
+  inherited — ethers has returned `any` from dynamic contract methods since long
+  before this diff. The *annotation beside it* was written here: check `git log
+  --diff-filter=A -- <path>` and, for a `declare module`, whether the block itself
+  is added by this PR. If the file is new, nothing in it is pre-existing, because
+  with `checkJs` off the predecessor asserted nothing at all. A conversion is the
+  moment the boundary's type is **chosen**.
+- **"It's a nit."** A nit is a finding that is minor *in itself*. A value crossing
+  a boundary unchecked, under a signature that says it was checked, is a type-safety
+  defect — the class this whole skill exists to surface. Scope and severity are
+  separate axes: a substantive finding a PR need not fix is still substantive, and
+  saying so costs one sentence.
+
+The remedy follows from which one it is. Annotating the hole and filing a TODO is
+right for the inherited `any`; it is not a fix for false precision, because the
+misleading signature stays exactly as it was. Type or validate the value where it
+enters, so the precise annotations downstream are earned.
+
+## The five divergence shapes
+
+Five shapes to check for. Treat the list as a starting checklist, not a partition —
+the first four each account for at least one divergence in the worked example, and
+the fifth was found on a later pass over the same PR:
 
 1. **Widening** — `string` for a `Hex`/template-literal type, `string` for an enum,
    `number | undefined` for `number`. Admits values the real type rejects; worst
@@ -183,6 +208,14 @@ partition:
    now need every future change.
 4. **Placeholder** — `Record<string, unknown>`, `any`, or `unknown` standing in for
    a shape that is known. Pushes a cast to every use site.
+5. **False precision** — the inverse of a placeholder: the annotation is *narrower*
+   than what actually arrives. `hexValueIsEmpty(value: string | null | undefined)`
+   on a parameter fed `any` at every call site. `tsc` cannot report it, because
+   `any` satisfies every annotation, and `no-explicit-any` cannot either, because
+   no `any` was written. The narrower the type, the more confident the file reads
+   and the less any of it is checked. Find it with `IsAny` at the call sites, not
+   by reading the signature — see
+   [references/false-negatives.md](references/false-negatives.md) §7.
 
 ## Escape hatches are the tell
 

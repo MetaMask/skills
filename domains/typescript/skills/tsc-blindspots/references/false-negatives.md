@@ -147,6 +147,28 @@ annotates it, so it propagates into the module's return type unflagged.
   with a derived provider type and `hexValueIsEmpty(value: string | null | undefined)`
   reads as a checked boundary while every value crossing it is unchecked. A
   migration that adds those signatures is what creates the appearance.
+- **To ask "is this specific value `any`", use `IsAny` rather than a nonsense
+  assignment.** The exit probe above traces a module's public surface; this answers
+  the question at any single site, and its verdict is a compile error rather than an
+  absence of one:
+
+  ```ts
+  type IsAny<T> = 0 extends 1 & T ? true : false;
+
+  const resolverAddress = await registryContract.resolver(hash);
+  const a1: IsAny<typeof resolverAddress> = true; // silent  ⇒ it IS any
+  const known = 'x' as string;
+  const a3: IsAny<typeof known> = true;           // MUST error ⇒ probe discriminates
+  ```
+
+  `0 extends 1 & T` holds only for `any`, because `1 & any` is `any` and every type
+  extends `any`. **Read the polarity carefully: silence is the finding here**, which
+  is the reverse of every other probe in this file — so the known-`string` control
+  is what separates "this value is `any`" from "the probe never ran."
+
+  Verified against `metamask-extension` with the repo's own `tsconfig.json`: four
+  arms — an ethers dynamic method and an explicit `as any` both silent, a known
+  `string` and a laundered `string` (below) both `TS2322`.
 
 ### 8. Ambient `declare module` is an unverified assertion
 
@@ -176,6 +198,32 @@ later ships.
   with `typeof m.default === 'undefined'` still warrants a default declaration *if*
   `esModuleInterop` is on, and is a defect if it is not. Prefer `@types/*` or an
   upstream PR over hand-writing.
+
+#### 7 + 8 compose: a declaration launders `any` into a confident type
+
+The two blind spots above are usually audited apart, and the defect lives in their
+composition. §7 says an `any` propagates; §8 says a hand-written declaration is
+believed. Put them in sequence and the propagation **stops** — replaced by a type
+nobody checked, which every reader downstream then trusts:
+
+| hop | site | resulting type | who asserted it |
+|---|---|---|---|
+| 1 | `await resolverContract.contenthash(hash)` | `any` | ethers `readonly [key: string]: ContractFunction \| any` |
+| 2 | `contentHash.getCodec(rawContentHash)` | **`string`** | a hand-written `declare module` |
+| 3 | `return { type, hash: decoded }` | `{ type: string; hash: any }` | inferred from hop 2 |
+| 4 | `` `https://${hash}.${type.slice(0, 4)}.${gateway}` `` | `.slice` on a `string` | inferred from hop 3 |
+
+Hop 2 is declared `(contentHash: string) => string` and **called with an `any`** —
+so it neither rejects its input nor earns its output. By hop 4 the value is a URL
+segment, and the only claim it was ever a string is a line a human wrote.
+
+- **Audit rule:** for every `declare module`, list its call sites and run `IsAny` on
+  each **argument**. A parameter declared `string` and passed `any` is the laundering
+  point, and it is where the annotation or the validator belongs — not at hop 4,
+  where the value already looks trustworthy.
+- Verified in the demonstration run above: hop 1 silent under `IsAny` (it is `any`),
+  hop 2 `TS2322` (it is `string`), with the declaration block supplied locally so the
+  only variable between the two arms is the `declare module`.
 
 ### 9. External data is asserted, not validated
 
@@ -293,7 +341,9 @@ Don't run all ten as a checklist. Pick by what the diff touches:
 
 - **New indexing / destructuring** → 1, 2
 - **New message, event, or callback types** → 3, 5, 6
-- **New `declare module`, new dependency, `@types` change** → 8
+- **New `declare module`, new dependency, `@types` change** → 8, then **7 + 8** on
+  its call sites — a declaration is audited against the package by default and
+  against its *arguments* almost never
 - **Anything reading persisted state, storage, or an RPC response** → 7, 9
 - **A JS→TS conversion** → 10, plus the restated-type class in the main skill
 - **Any PR whose safety argument is "CI is green"** → section C, first

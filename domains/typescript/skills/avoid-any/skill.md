@@ -1,6 +1,13 @@
 ---
 name: avoid-any
-description: Handle `any` correctly — it is not a type but a directive that disables type checking. Substitute by position (assignee → `unknown`, assigned → `never`). Two narrow exceptions: a generic constraint, and a callback parameter caught in a bivariant position between two fixed, irresolvable function-type constraints — both declared with an inline eslint-disable.
+description: >-
+  Handle `any` correctly — it is not a type but a directive that disables type
+  checking. Substitute by position (assignee → `unknown`, assigned → `never`).
+  Two narrow exceptions: a generic constraint, and a callback parameter caught
+  in a bivariant position between two fixed, irresolvable function-type
+  constraints — both declared with an inline eslint-disable. Also covers the
+  `any` that is never written down: a precise signature fed `any` at every call
+  site, which no lint rule and no compiler check can report.
 maturity: experimental
 ---
 
@@ -72,3 +79,16 @@ Like the generic-constraint case, this `any` is **not infectious** — it is sco
 Canonical instance: a messenger `registerActionHandler` slot typed `(...args: any[]) => any` — strongly-typed handlers flow inward at registration, strongly-typed argument tuples outward at dispatch; `unknown[]` fails registration, `never[]` fails dispatch. It encodes rank-N polymorphism (`∀α. (α) => R`) that TypeScript cannot express directly.
 
 When `any` still seems unavoidable, prefer the narrower, greppable escape hatches: `as unknown as` as a documented last resort, or `@ts-expect-error` with a TODO. Never reach for `any` to unblock feature work "to fix later."
+
+## Declared `any` beats absorbed `any` — and only one of them is countable
+
+The two exceptions above are both *declared*: the `any` is written down, an inline disable sits next to it, and a reviewer can find it with `grep`. The dangerous case is the one where **no `any` appears anywhere** and the value is `any` regardless:
+
+- 🚫 **Absorbed.** A precise annotation on a parameter or return that receives `any` at every call site — `hexValueIsEmpty(value: string | null | undefined)` fed ethers dynamic-method results. `no-explicit-any` never fires, because no `any` was written. `tsc` never fires, because `any` satisfies every annotation. The file reads as checked and none of it is.
+- ✅ **Declared.** `): Promise<any>` with an inline disable and a linked issue, as `shared/lib/token-util.ts` does for the same ethers API. Nothing is safer at runtime, but the claim is now honest, greppable, and countable by CI.
+
+The absorbed form is strictly worse than the declared one, and it is what a JS→TS conversion produces by default: the writer annotates what the value *ought* to be, and `any` accepts the annotation without comment.
+
+**A conversion is where the boundary's type is chosen, so an absorbed `any` is a decision, not an inheritance.** With `checkJs` off the predecessor asserted nothing; the precise signature is new. "The `any` is pre-existing" is true of the library and false of the annotation next to it.
+
+Detect it with `IsAny<T>` at the call sites rather than by reading the signature — the probe, its controls, and the `declare module` composition that turns an `any` into a confident `string` are in the `tsc-blindspots` skill. The fix is to type or validate the value where it enters, so the precise annotations downstream are earned.
