@@ -413,6 +413,22 @@ describe('corpus: content is safe to publish and links stay current', () => {
     return out;
   }
 
+  // Who is running this, from whatever the environment knows. Short or generic values are
+  // dropped: a two-letter git username matches everywhere and would fail every file.
+  function whoAmI() {
+    const raw = [
+      process.env.GITHUB_ACTOR,
+      process.env.USER,
+      (() => {
+        const r = spawnSync('git', ['config', 'user.name'], { encoding: 'utf8' });
+        return r.status === 0 ? r.stdout.trim() : '';
+      })(),
+    ];
+    const GENERIC = new Set(['root', 'runner', 'ubuntu', 'admin', 'user', 'ci', 'build', 'node']);
+    return [...new Set(raw.filter(Boolean).map((v) => v.trim()))]
+      .filter((v) => v.length >= 4 && !GENERIC.has(v.toLowerCase()) && !v.includes(' '));
+  }
+
   // This repo is public. A personal path, handle, or private-repo name in a skill is
   // both a leak and a dead reference for every reader but its author.
   //
@@ -426,6 +442,15 @@ describe('corpus: content is safe to publish and links stay current', () => {
     const PERSONAL = [
       [/(^|[\s"'`(])\/(home|Users)\/[a-z][a-z0-9_.-]*/u, 'absolute personal path'],
       [/\bgit@[a-z0-9.-]+:[^\s]+/u, 'ssh remote'],
+      // Derived, not listed. The identifiers most likely to leak are the ones belonging to
+      // whoever is running — so ask the environment who that is instead of committing a
+      // denylist. In CI that is GITHUB_ACTOR; locally it is the git identity. This fires by
+      // default: an env-var-only version was inert everywhere, which is a check that cannot
+      // fail dressed as a check.
+      ...whoAmI().map((who) => [
+        new RegExp(`\\b${who.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}\\b`, 'iu'),
+        'your own handle or identity',
+      ]),
       ...(process.env.SKILLS_PRIVATE_PATTERNS ?? '')
         .split('\n')
         .map((line) => line.trim())
