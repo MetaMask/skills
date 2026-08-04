@@ -16,16 +16,17 @@
 #   2  usage error
 set -uo pipefail
 
-FILE="${1:-}"; REF=""; TARGET=""
+FILE="${1:-}"; REF=""; TARGET=""; MODE="run"
 shift || true
 while [ $# -gt 0 ]; do
   case "$1" in
     --reference) REF="${2:-}"; shift 2 ;;
     --target)    TARGET="${2:-}"; shift 2 ;;
+    --diligence) MODE="diligence"; shift ;;
     *) shift ;;
   esac
 done
-[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>]" >&2; exit 2; }
+[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>] [--diligence]" >&2; exit 2; }
 [ -f "$FILE" ] || { echo "attest-gate: not found: $FILE" >&2; exit 2; }
 
 FAILED=0
@@ -39,6 +40,25 @@ hasi() { grep -qiE "$1" "$FILE"; }   # case-insensitive; a separate function bec
 echo "attest-gate: $FILE"
 echo
 
+# A diligence comment (lavamoat-policy and its siblings) renders no verdict and deliberately
+# does not use the Validation Run envelope — see "One comment per evidence kind" in
+# references/evidence-publishing.md. That exemption used to mean it was checked by nothing at
+# all: attest-gate only knew the Validation Run shape, and pr-evidence-gate.py by design does
+# not trip on a body claiming no verdict. So every rule the diligence skills state about their
+# own output had no execution path, and a comment shipped with an unwitnessed local `npm pack`
+# result and untraceable integers. --diligence swaps the envelope checks for that contract's
+# own; everything downstream of the envelope is shared, because those defects are shared.
+if [ "$MODE" = diligence ]; then
+  has 'LAVAMOAT_DILIGENCE_START' && has 'LAVAMOAT_DILIGENCE_END' \
+    && pass "1 marker pair" \
+    || fail "1 marker pair" "no LAVAMOAT_DILIGENCE_START/_END — a re-run appends a duplicate instead of replacing, and the pair must not be VALIDATION_RUN_* or an evidence re-run would eat this region"
+
+  hasre '^\*\*LavaMoat grants|^LavaMoat grants' \
+    && pass "2 canonical header" \
+    || fail "2 canonical header" "missing the 'LavaMoat grants — <package> <old> -> <new>' opener"
+
+  printf '  SKIP  %s\n' "3 verdict line — a diligence comment renders none, by contract"
+else
 has 'VALIDATION_RUN_START' && has 'VALIDATION_RUN_END' \
   && pass "1 marker pair" \
   || fail "1 marker pair" "no VALIDATION_RUN_START/_END — a re-run appends a duplicate instead of replacing"
@@ -50,14 +70,27 @@ has '## 🧪 Validation Run' \
 hasre '^\*\*Verdict:\*\*.*\*\*Claim:\*\*' \
   && pass "3 verdict line" \
   || fail "3 verdict line" "no '**Verdict:** … — **Claim:** …' — valence is not legible at a glance"
+fi
 
 # A run outside the repo's toolchain pins a different thing. A browser-memory lane
 # names "Firefox 153.0"; a repo lane names a head SHA and a lockfile hash. Both are
 # pins, and a check that only knows the second one fails every run of the first —
 # telling an author their pinned environment is unpinned.
+# A diligence comment pins a read, not a run: its citations are permalinks, and the thing
+# that can rot is a branch-head link drifting out from under the line it names.
+if [ "$MODE" = diligence ]; then
+  if grep -qE 'https://github\.com/[^ )]+/blob/(main|master|develop|HEAD)/' "$FILE"; then
+    fail "4 citations pinned" "a permalink points at a branch head; it will drift off the line it cites. Pin a tag or a 40-char SHA"
+  elif grep -qE 'https://github\.com/[^ )]+/blob/[^/]+/' "$FILE"; then
+    pass "4 citations pinned"
+  else
+    fail "4 citations pinned" "no source permalink at all — the permalink IS the evidence here; a retyped 'it needs X' proves nothing about provenance"
+  fi
+else
 hasre 'head `[0-9a-f]{7,}|sha256|node `v|yarn\.lock `|[Ff]irefox [0-9]+\.[0-9]|[Cc]hrom(e|ium) [0-9]+\.|[Ss]afari [0-9]+\.|[Nn]ode v?[0-9]+\.[0-9]' \
   && pass "4 environment pinned" \
   || fail "4 environment pinned" "no head SHA, lockfile hash, or pinned toolchain/browser version"
+fi
 
 # 5 — the one that matters, and it asks for a MEDIUM, not for better text.
 #
@@ -77,7 +110,20 @@ hasre 'head `[0-9a-f]{7,}|sha256|node `v|yarn\.lock `|[Ff]irefox [0-9]+\.[0-9]|[
 # tell: it looks reproducible and cannot be run.
 # An image, a re-executing link, or a hosted artifact — verification that does not route
 # through the author. `Produced by` and `evidence-artifacts/` are provenance, not this.
-if ! hasre '!\[[^]]*\]\(https?://|<img [^>]*src="https?://|actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(png|jpg|jpeg|gif|svg|txt|log|json)\b'; then
+# In diligence mode the medium is the permalink, already required by check 4 — a reader
+# clicks it and lands on the line. What a permalink cannot witness is what the AUTHOR RAN,
+# and that is the defect this variant catches: an `npm pack` unpacked locally, a grep over a
+# tarball, a byte-comparison across policy files. Those read as properties of the package
+# and are actually properties of an unwitnessed local run. State them as the search
+# ("searched N files, no match") or publish the output; do not assert them as fact.
+if [ "$MODE" = diligence ]; then
+  if hasre "(complete|full) (specifier|import|require) set|byte-identical|identical across all|^Searched: .*tarball|npm pack" \
+     && ! hasre 'actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(txt|log|json)\b'; then
+    fail "5 runtime claims witnessed" "asserts a result only a local run could produce ($(grep -m1 -oiE '(complete|full) (specifier|import|require) set|byte-identical|identical across all|npm pack' "$FILE")) with nothing a reader can fetch. A /blob/ permalink witnesses a line, not your shell"
+  else
+    pass "5 runtime claims witnessed"
+  fi
+elif ! hasre '!\[[^]]*\]\(https?://|<img [^>]*src="https?://|actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(png|jpg|jpeg|gif|svg|txt|log|json)\b'; then
   fail "5 captured artifact" "no reader-verifiable capture — an image of the tool surface, a run link, or a hosted artifact. A fenced block is the author\'s transcription, whatever produced it"
   # No separate attribution test: a hosted artifact the reader fetches is its own
   # attribution, and requiring `Produced by` on top of it only fails runs whose
@@ -114,6 +160,10 @@ else
   pass "7 no process narration"
 fi
 
+if [ "$MODE" = diligence ]; then
+  printf '  SKIP  %s\n' "8 verdict is earned — no verdict rendered"
+  printf '  SKIP  %s\n' "9 verdict matches artifact — no verdict rendered"
+else
 if hasi '\*\*Verdict:\*\*.*proven' && ! hasre 'Produced by |actions/runs|evidence-artifacts/'; then
   fail "8 verdict is earned" "claims 'proven' with no execution artifact — reading yields 'unverified'"
 else
@@ -129,6 +179,7 @@ if printf '%s' "$HDR" | grep -q 'proven' && [ -n "$BODY" ]; then
   fail "9 verdict matches artifact" "header claims 'proven' while the embedded artifact reports '$BODY'"
 else
   pass "9 verdict matches artifact"
+fi
 fi
 
 # 10 — the positive counterpart to check 6. A run succeeds by putting concerns in front
