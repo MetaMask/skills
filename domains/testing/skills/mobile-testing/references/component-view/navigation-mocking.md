@@ -59,6 +59,18 @@ The most valuable navigation tests follow a **complete user journey across multi
 //    - Positive: new items appear (the filtered set)
 //    - Negative: old items are gone (queryByTestId(...).not.toBeOnTheScreen())
 //    Asserting only one side does not prove the list actually changed.
+//
+// ❌ Analytics / refetch alone is NOT enough — Golden Rule 10 still requires list
+//    membership assertions. Bugbot catches this when the mock returns [] so no
+//    rows exist to check:
+// await waitFor(() => expect(listSpy.mock.calls.length).toBeGreaterThan(n));
+// expect(trackFilterSpy).toHaveBeenCalled(); // still missing both-sides UI
+//
+// ✅ Seed distinct before/after datasets, then assert membership:
+// expect(await findByText('Games market')).toBeOnTheScreen();
+// fireEvent.press(getByText('Props'));
+// expect(await findByText('Props market')).toBeOnTheScreen();
+// expect(queryByText('Games market')).not.toBeOnTheScreen();
 it('displays only BNB tokens when BNB Chain network filter is selected', async () => {
   // Dynamic mock: returns different data based on the chainIds param
   getMyFeatureDataMock.mockImplementation(async (params) => {

@@ -33,8 +33,9 @@ yarn jest -c jest.config.view.js ./path/Component.view.test.tsx \
 ```
 
 3. Classify each unit `it(...)`: reason → best layer → DELETE | MIGRATE | KEEP.
-4. Apply (IMPLEMENT mode only): add CV for MIGRATE → delete DELETE/migrated unit its → residual toast matrices via pure helper + unit (**EXTRACT+UNIT**) when user accepts → re-run unit + CV.
-5. Record metrics: unit its removed, CV its added, ratio, app LOC + why, residual gaps.
+4. **Mandatory assert-parity gap check before DELETE** — Diff the deleted unit’s `expect` payloads against the CV replacement field-by-field (`tabId`, `filterId`, formatted dates, image URI, list membership, full analytics objects). If any field was dropped, restore it in CV **or** KEEP a focused unit with a reason — do **not** delete a specific assert and replace it with a weaker `objectContaining({ feedId })`. Partial parity is a regression.
+5. Apply (IMPLEMENT mode only): add CV for MIGRATE → delete DELETE/migrated unit its → residual toast matrices via pure helper + unit (**EXTRACT+UNIT**) when user accepts → re-run unit + CV.
+6. Record metrics: unit its removed, CV its added, ratio, app LOC + why, residual gaps.
 
 ## In-repo docs (keep minimal)
 

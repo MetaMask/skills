@@ -62,12 +62,15 @@ Before declaring the task done, go through this checklist for every test written
 | 2   | **No selector mocking** — no `(useSelector as jest.Mock).mockImplementation(...)` anywhere in the file                                                                                                                                                       | Remove; drive behavior through state overrides instead                 |
 | 3   | **No fake timers** — no `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`                                                                                                                                                      | Remove fake timers; use `waitFor` / `findBy` for async flows           |
 | 4   | **Data-completeness test exists** — if the view loads data asynchronously (API, Engine polling), there is one test that waits for the load and validates all fields of all items in the full base mock using `within()` per row                              | Add the data-completeness test                                         |
-| 5   | **Filter/segmentation tests have paired assertions** — every test that selects a filter or changes a network asserts both what appears (`findByTestId`) AND what disappears (`queryByTestId(...).not.toBeOnTheScreen()`) for each item from the previous set | Add the missing negative assertions                                    |
+| 5   | **Filter/segmentation tests have paired assertions** — every test that selects a filter or changes a network asserts both what appears (`findByTestId`) AND what disappears (`queryByTestId(...).not.toBeOnTheScreen()`) for each item from the previous set. Spy-only checks (refetch count / analytics) are **not** enough | Seed distinct before/after rows; add the missing negative assertions |
 | 6   | **No raw strings in `getByTestId` / `findByTestId` / `queryByTestId`** — all test IDs reference constants from the component's `ComponentName.testIds.ts`                                                                                                    | Create or update the testIds file; replace raw strings with constants  |
 | 7   | **Any `jest.mock` for non-Engine modules is flagged** — if a service module is mocked directly, the `eslint-disable` comment is present and a tracking issue is linked                                                                                       | Add the comment and issue link                                         |
 | 8   | **AAA formatting** — blank lines between the Arrange, Act, and Assert blocks in every test                                                                                                                                                                   | Add the blank line separators                                          |
 | 9   | **Import order** — `mocks.ts` is first; remaining order follows project ESLint rules                                                                                                                                                                         | Ensure `mocks.ts` is the very first import; reorder the rest as needed |
 | 10  | **No stale press targets** — do not `fireEvent.press` a node held across `await`s when the UI re-renders (live countdown, polling). Re-query with `getByTestId` / `findByTestId` immediately before press                                                     | Re-query right before press; see What NOT to Do                        |
+| 11  | **Loading asserts match real UX** — pending-phase tests assert skeleton / “not yet visible”, not optimistic titles the production screen does not show while `isLoading`                                                                                      | Rename and assert the real pending UI; resolve then assert loaded state |
+| 12  | **Pull-to-refresh uses `refreshControl.props.onRefresh`** — not `fireEvent(scrollView, 'refresh')`                                                                                                                                                            | Call the prop handler inside `act`                                     |
+| 13  | **Unit→CV migrations keep assert specificity** — deleted unit payload fields (`tabId`, formatted dates, full analytics) still appear in the CV replacement                                                                                                   | Restore dropped fields in CV or KEEP a focused unit; see unit-cv-overlap |
 
 ---
 
@@ -85,6 +88,8 @@ Before declaring the task done, go through this checklist for every test written
 | `No QueryClient set`                                                   | Missing provider — not in Engine mock                                                                | Add to mocks.ts or wrap with QueryClientProvider in renderer                                                        |
 | Flakey number assertions                                               | Non-deterministic exchange rates                                                                     | Add `deterministicFiat: true`                                                                                       |
 | Test passes locally, fails in CI                                       | Time-sensitive assertions, or stale press under CI load                                              | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer                                   |
+| Pull-to-refresh never refetches                                        | `fireEvent(scrollView, 'refresh')` did not hit the handler                                           | `await act(async () => { await scrollView.props.refreshControl.props.onRefresh(); })`                             |
+| Sheet / branch `testID` missing                                        | Remote feature flag off in Redux; UI routes elsewhere                                                | Override `RemoteFeatureFlagController` / preset so the gated UI mounts                                            |
 
 ### Inspect what's rendered
 
@@ -129,6 +134,11 @@ await findByTestId('my-element', {}, { timeout: 3000 });
 await findByTestId(MyViewSelectorsIDs.CARD);
 await findByTestId(MyViewSelectorsIDs.LIVE_BADGE);
 fireEvent.press(getByTestId(MyViewSelectorsIDs.CARD));
+
+// Pull-to-refresh — call the RefreshControl handler (fireEvent 'refresh' often no-ops)
+await act(async () => {
+  await scrollView.props.refreshControl.props.onRefresh();
+});
 
 // Within a subtree — scope queries to avoid false positives when the same text or
 // testID appears in multiple list items (e.g., every row shows a "price" label).
@@ -185,6 +195,30 @@ fireEvent.press(getByTestId(MyViewSelectorsIDs.CARD));
 extraRoutes: [{ name: Routes.FEATURE.ROOT, Component: NestedStackProbe }];
 // ✅ Default route probe when you only need to prove navigation
 extraRoutes: [{ name: Routes.FEATURE.ROOT }];
+
+// ❌ Filter/segmentation: analytics or refetch count only
+await waitFor(() => expect(listSpy.mock.calls.length).toBeGreaterThan(n));
+expect(trackFilterSpy).toHaveBeenCalled();
+// ✅ Assert both list membership sides (Golden Rule 10)
+expect(await findByText('Games market')).toBeOnTheScreen();
+fireEvent.press(getByText('Props'));
+expect(await findByText('Props market')).toBeOnTheScreen();
+expect(queryByText('Games market')).not.toBeOnTheScreen();
+
+// ❌ Claim optimistic title while loading when production shows a skeleton
+expect(getByText(routeTitle)).toBeOnTheScreen(); // while getMarket is pending
+// ✅ Assert the real pending UI, then resolve
+expect(await findByTestId(MyDetailSelectorsIDs.SKELETON)).toBeOnTheScreen();
+
+// ❌ fireEvent(scrollView, 'refresh') — often never calls onRefresh in RNTL
+// ✅ await act(async () => { await scrollView.props.refreshControl.props.onRefresh(); });
+
+// ❌ Weaken unit→CV analytics: drop tabId/filterId after deleting the full unit assert
+expect(trackSpy).toHaveBeenCalledWith(expect.objectContaining({ feedId }));
+// ✅ Keep the same payload specificity the unit had
+expect(trackSpy).toHaveBeenCalledWith(
+  expect.objectContaining({ feedId, tabId, filterId, entryPoint }),
+);
 
 // ❌ Raw string literal in getByTestId / findByTestId / queryByTestId
 getByTestId('my-view-scroll-view');
