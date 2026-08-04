@@ -192,30 +192,62 @@ know. No paragraph on why call-site search is tautological, no methodology secti
 was found.
 
 ```
+<!-- LAVAMOAT_DILIGENCE_START -->
+> <trial disclaimer, three lines, linking this skill's PR>
+
 LavaMoat grants — <package> <old> -> <new>
 
 <one line naming the findings: which grant is wider than its use, which look stale>
 
 | capability | surface used | what it does | breadth |
 |---|---|---|---|
-| <cap> | <pkg> | <permalink, named by what the code does there> | yes — <the gate our usage never opens> |
-| <cap> | <pkg> | <permalink> · <second permalink if two sites> | at a cost — <what degrades> |
-| <cap> | <pkg> | <permalink> | no |
+| <cap> | <the members actually called, counted> | <what the code does, permalinked per boundary> | wider than its use — <narrowest path covering every call> |
+| <cap> | <members> | <what it does> | <n of m members, and any property of the API worth stating> |
+| <cap> | not referenced at any spelling | — | 🔍 candidate — <why it is now unreferenced> |
 …every grant gets a row…
 
-Test for the "yes" rows: drop the grant, rebuild, run <suite>.
-Note on <cap>: <what the reading turned up that bears on security>
+<recommended override diff — see below>
+
+Test: <edit the resource, regenerate, run the suite>.
+Loose ends: <what you could not settle, and what would make a row wrong>
 Removed: <cap>, <cap>.        ← names only, no table, no justification column
-Loose ends: <what you could not settle>
-<identity across N policy files + observation artifact link>
+<!-- LAVAMOAT_DILIGENCE_END -->
 ```
 
-Order is the point: the lead frames the question, the table answers it, and a reviewer hits the
-removable rows immediately. Post it on the PR carrying the `policy.json` change, untagged.
+The marker pair is not decoration: a re-run replaces the region between them instead of appending
+a second comment. It is deliberately *not* `VALIDATION_RUN_*` — this is a diligence artifact with
+no verdict, and sharing that region would let an evidence re-run silently eat it.
 
-**Runtime claims need a runtime artifact.** "Byte-identical across all 8 policy files" is an
-observation, not something a `/blob/` link witnesses — publish the check output (JSON) and link
-it. The `pr-evidence-gate` hook enforces this and will block the post otherwise; it is right to.
+Order is the point: the lead names the findings, the table carries them, the diff makes them
+actionable. Post it on the PR carrying the `policy.json` change, untagged.
+
+**End with a diff a reviewer can apply, not a description of one.** Every narrowing or removal in
+the table gets a fenced `diff` block against the matching
+`lavamoat/webpack/<variant>/policy-override.json`, because that is the file a human edits — the
+generated `policy.json` is regenerated and would lose the change. Prose like "could be narrowed to
+`node:url.fileURLToPath`" makes the reviewer translate; a diff makes it a decision.
+
+```diff
+   "resources": {
++    "sass-loader": {
++      "builtin": {
++        "node:url.fileURLToPath": true,
++        "node:url.pathToFileURL": true,
++        "node:url": false
++      }
++    },
+```
+
+Dotted paths already work in these files — `copy-webpack-plugin>serialize-javascript` is granted
+`crypto.getRandomValues`, not bare `crypto`. Cite that precedent rather than asserting support.
+
+**Runtime claims need a runtime artifact.** A permalink witnesses what a line says; it does not
+witness what *you ran*. "The tarball's complete specifier set is X", "byte-identical across all 8
+policy files", any grep or `npm pack` result — those are claims about a local run, and the reader
+cannot check them. Publish the output and link it, or state the claim as the search it was
+("searched N files, found no match") rather than as a property of the package. Bare integers in
+prose need the same treatment: a reader who cannot trace "14 call sites" to something shown is
+being asked to take it on trust.
 
 ## Worked example — extension#42867 (@sentry/browser 8.33.1 → 10.38.0)
 
