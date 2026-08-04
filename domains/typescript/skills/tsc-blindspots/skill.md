@@ -16,7 +16,7 @@ description: >-
   enum lookups, calls made optional so a throw becomes a silent no-op. Use when
   reviewing a JS→TS migration, a PR that hand-writes types for values that already
   have them, a "rename-only" refactor, or any PR claiming a change is mechanical.
-  Triggers on /tsc-blindspots, or on phrases like "validate this TypeScript
+  Triggers on /mms-tsc-blindspots, or on phrases like "validate this TypeScript
   migration", "is this type right", "does this type match the real shape",
   "why didn't CI catch this type", "derive vs define", and "what can tsc not
   check".

@@ -45,7 +45,32 @@ don't get paragraphs.
 
 > **Falsifier.** A grant you called load-bearing that a build with it removed still passes.
 > The test is cheap and it is the only thing that settles the question: drop the grant from the
-> resource, rebuild, run the relevant e2e. Propose it; the policy owners run it.
+> resource, rebuild, run the relevant e2e.
+>
+> **Run it yourself whenever the steps are clear enough to run.** A removal candidate handed
+> over untested asks the reviewer to do the work that would settle it, and most of them will not
+> — so the finding sits. A build that passes with the capability removed converts `🔍 candidate`
+> into a demonstrated non-breaking reduction, and that is a different object: it can be merged
+> rather than considered. Publish the run as the evidence, not the conclusion drawn from it.
+>
+> Hand the test over only when you genuinely cannot run it — a variant needing credentials you
+> do not have, an e2e suite the environment cannot host, a policy whose regeneration needs CI's
+> toolchain. Say which of those it is; "propose the test" as a default is the failure mode this
+> replaces.
+>
+> **Exercise the capability, not the app.** A build that compiles, or an app that boots, with the
+> grant removed shows only that nothing on the startup path needed it. Most grants are not on the
+> startup path — that is usually *why* they look removable — so "it still builds" is the null you
+> should expect either way, and it is not evidence. Name the scenario that would actually execute
+> the read: the error path that formats a `span.url`, the source-map write, the importer resolving
+> a relative `@use`, the config flag that turns the feature on. Then run that.
+>
+> **And prove the arms differ before believing either.** Two things, both cheap. That the
+> effective policy really changed — merge the override into the base and print the resource,
+> rather than assuming an edit took. And that a fully-denied arm actually *fails*. If denying
+> everything still passes, the grant is not enforced on that path, and no arrangement of arms on
+> that path can tell you anything. Report that: "this suite does not arbitrate this grant" is a
+> real finding, and more useful than a green you cannot cash.
 
 **Corollary — the reading is where the real findings come from.** Locating each call site means
 reading the code that uses the capability, and that is when genuine issues surface: unbounded work
