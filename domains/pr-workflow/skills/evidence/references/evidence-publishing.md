@@ -10,15 +10,17 @@ Canonical source for the format: `~/Code/metamask/metamask-autonomous-engineerin
 
 Control-plane artifact URLs (`localhost:3000/v1/runs/:id/artifacts/:name`) won't render on GitHub. Re-host each artifact and link the hosted URL.
 
-**Host: the S3 bucket `majorlift-artifacts-share`, prefix `public/`.**
+**Host: an S3 bucket you configure, prefix `public/`.** Set `EVIDENCE_BUCKET` and
+`EVIDENCE_REGION` in your environment; this file does not name a bucket, because a bucket name
+published here is an anonymously-readable endpoint advertised to everyone who reads it.
 
 ```
-s3://majorlift-artifacts-share/public/metamask/pr-<n>/<run-id>/<artifact-name>
-https://majorlift-artifacts-share.s3.us-west-1.amazonaws.com/public/metamask/pr-<n>/<run-id>/<artifact-name>
+s3://$EVIDENCE_BUCKET/public/metamask/pr-<n>/<run-id>/<artifact-name>
+https://$EVIDENCE_BUCKET.s3.$EVIDENCE_REGION.amazonaws.com/public/metamask/pr-<n>/<run-id>/<artifact-name>
 ```
 
-Anonymous `GetObject` is allowed under `public/*`; bucket listing is not, so the prefix is not
-browsable — link individual files, and don't promise readers an index.
+The bucket must allow anonymous `GetObject` under `public/*` and must **not** allow listing, so
+the prefix is not browsable — link individual files, and don't promise readers an index.
 
 **Do not re-host to a personal repo.** A personal private repo returns 404 for every reader but
 its owner, so every artifact link published from one is dead on arrival. That was the previous
@@ -28,7 +30,7 @@ instructed you to publish dead links. Verified live in a published artifact.
 The test is **audience-reachability, not public-vs-private.** An org repo may be private and still
 readable by colleagues, so an internal-audience link to one is fine. A personal repo is unreachable
 by colleagues *and* by the public, so it fails for every audience. Re-host to an org-owned
-destination, or to the bucket above.
+destination, or to the configured bucket.
 
 - Path convention: `pr-<n>/<run-id>/<artifact-name>` keeps runs from colliding.
 - **Verify unauthenticated before shipping**: `curl -s -o /dev/null -w "%{http_code}"` on each
@@ -36,8 +38,8 @@ destination, or to the bucket above.
 
 ```bash
 RUN_ID=<id>; PR=<n>; CP=localhost:3000
-BUCKET=majorlift-artifacts-share
-BASE="https://$BUCKET.s3.us-west-1.amazonaws.com"
+BUCKET="$EVIDENCE_BUCKET"
+BASE="https://$BUCKET.s3.$EVIDENCE_REGION.amazonaws.com"
 for name in <artifactName1> <artifactName2>; do
   curl -fsS "$CP/v1/runs/$RUN_ID/artifacts/$name" -o "/tmp/$name"
   key="public/metamask/pr-$PR/$RUN_ID/$name"
@@ -306,7 +308,7 @@ To stay interoperable with the recipe-based verification system (MetaMask/decisi
 - [ ] Each lane passed the [trustworthiness gate](evidence-trustworthiness.md) (shows the claimed surface, signal &gt; noise, could-have-failed)
 - [ ] Multi-scenario evidence rendered **per scenario** (own heading + verdict + co-located artifacts), not bunched into one block
 - [ ] **Automated-process voice, no first person** — published validation output never says "I ran/captured/verified"; attribute to the process ("Automated validation ran…", "the harness captured…") so readers know the evidence is machine-generated, not a manual account under the author's name
-- [ ] Every image/GIF re-hosted to `majorlift-artifacts-share/public/…`; no localhost/local-path URLs in the body
+- [ ] Every image/GIF re-hosted to the configured bucket under `public/…`; no localhost/local-path URLs in the body
 - [ ] **Every published link curl'd unauthenticated and returning 200** — never a personal private repo
 - [ ] Work cited by **PR link** rather than tracking-ticket id, unless the ticket's own content (an RCA, a spec) is the referent
 - [ ] Narrative scrubbed of username/paths/internal hosts
