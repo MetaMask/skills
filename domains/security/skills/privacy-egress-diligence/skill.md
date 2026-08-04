@@ -20,7 +20,7 @@ description: >-
 inside ordinary feature PRs — onboarding, swaps, rewards, the analytics controller — with
 **no CODEOWNERS entry**, so no privacy reviewer is automatically tagged.
 
-This skill reviews that egress surface the way `lavamoat-policy-diligence` reviews
+This skill reviews that egress surface the way `lavamoat-policy` reviews
 capability grants: the diff is mechanical, the judgement is what each grant *means*.
 
 ## When to use
@@ -117,7 +117,7 @@ Run both on a change that adds collection; either alone leaves half the question
 
 ## Related
 
-- `lavamoat-policy-diligence` — same shape for capability grants; read it for the
+- `lavamoat-policy` — same shape for capability grants; read it for the
   diff-is-mechanical-judgement-is-not pattern.
 - `analytics-instrumentation` — whether an event is correctly *identified* and *gated*
   (`isOptIn`, `metaMetricsId`). This skill is about whether its payload is *sendable*.
