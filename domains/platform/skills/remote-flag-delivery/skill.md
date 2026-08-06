@@ -132,6 +132,25 @@ Prefer **(b)** when the claim involves processing (version gate, bucketing) — 
 value and therefore skips hop 4 entirely. Assert the no-fetch path with `getSeenRequests().length === 0`
 on the mocked endpoint, as `test/e2e/tests/remote-feature-flag/remote-feature-flag.spec.ts` does.
 
+> **Never seed the controller's persisted state as your capture method — for a timing claim it is
+> worse than no evidence.** Writing `RemoteFeatureFlagController.remoteFeatureFlags` straight into
+> `chrome.storage.local` (over CDP, or via a fixture) and then observing the read site is a tempting
+> capture: it survives a cold service-worker restart and the read site behaves correctly. But the
+> value is already present *before boot*, so any defect in **when** the value becomes available cannot
+> occur. That is the opposite of covering it — a green arm is then indistinguishable from a green arm
+> on genuinely fixed code, and the method reports success precisely because it disabled the mechanism
+> under test.
+>
+> The failure this hides is real and shipped: `sentry-install` reads
+> `globalThis.stateHooks.getPersistedState` before `setup-initial-state-hooks` registers it, so a
+> naive read optional-chains through `undefined` and the override silently never applies
+> (`metamask-extension#44538`). Only a *real asynchronous fetch* recreates that ordering. Seeding
+> destroys it; mocking the endpoint preserves it.
+>
+> Rule of thumb: count the hops between the mock and the assertion. `manifestFlags` skips hop 4.
+> Storage seeding skips hops 2–4 **and** the hook timing — four of the five client-side stages, leaving
+> only the read, which is the stage least likely to be wrong.
+
 > **`FixtureBuilder.withRemoteFeatureFlags(...)` does not exist.** It is cited in
 > `contributor-docs`, in `docs/ab-testing.md`, and in comments inside the registry itself, but there is
 > no implementation anywhere in `test/` — the references are stale. Copying it produces a test that
@@ -210,6 +229,7 @@ rollout percentage.
 | bucket read as rollout | "30% see it" from one local run | one id is one sample; report the id, or assert the boundary |
 | override skipped the processing | manifest-override arms pass; the version gate or bucket is never executed | serve the raw wire value via `testSpecificMock` for at least one arm |
 | off vs. never-fetched conflated | the off arm is really a disabled controller | `getSeenRequests()` in the off arm — a gate that gates and a fetch that never happened are different claims |
+| the fixture disabled the defect | a timing claim passes on a tree where the value was seeded into storage before boot, so the race could not occur | serve the value over `testSpecificMock` so the fetch is genuinely async; count the hops between mock and assertion and name the ones skipped |
 
 ## Output
 
