@@ -18,9 +18,9 @@ Full runs: claim → lanes → capture → trust-gate → publish. The visual ca
 
 ## Flag-gated — "Perps banner behind a remote feature flag"
 - **Claim (×2):** flag on → banner shows; flag off → banner absent. **Surface:** home/Perps. **Falsifier:** banner state ≠ flag state. **Baseline:** each flag state is its own baseline.
-- **Lanes:** F5 flag matrix → A1/B1 visual per state.
+- **Lanes:** F5 flag matrix (engine: `/remote-flag-delivery`) → A1/B1 visual per state.
 - **Capture:** mock the client-config response for each flag state; screenshot each.
-- **Trust gate:** the flag is actually toggled (read `remoteFeatureFlags`); two distinct states are shown, not the same frame twice.
+- **Trust gate:** the flag is actually toggled (read `remoteFeatureFlags`); two distinct states are shown, not the same frame twice; the third cell (flag absent — startup, failed fetch, basic functionality off) takes the safe branch.
 - **Publish:** a two-up before/after (flag off / flag on) in the PR body.
 
 ## Refactor / no-op — "extract a hook, no behavior change"

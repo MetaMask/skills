@@ -241,9 +241,11 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 - **Proves:** dapp integration works (injection, connect, requests).
 - **Capture:** `yarn dapp` (serves `@metamask/test-dapp` on :8080); EIP-6963 `test/e2e/provider/eip-6963.spec.js`; multi-provider `test/e2e/multi-injected-provider/`; EIP-1193 reconnect tests under `test/e2e/tests/mm-connect/`.
 
-## F5. Feature-flag matrix (on/off)
-- **Proves:** correct behavior in both remote-flag states (the Perps-gating class of bug).
+## F5. Feature-flag matrix (on/off/absent) — engine: `/remote-flag-delivery`
+- **Proves:** correct behavior in every remote-flag state (the Perps-gating class of bug), *and* that the value the flag's author published actually reaches the gate.
 - **Capture:** remote-feature-flag-controller (`app/scripts/lib/update-remote-feature-flags.ts`); flags come from `client-config.api.cx.metamask.io/v1/flags` — **not** `.metamaskrc`. In e2e, mock the response (see `test/e2e/tests/remote-feature-flag/`) to force each state; read via `uiState.metamask.remoteFeatureFlags`.
+- **Bar:** three cells, not two — **absent** is the state during startup, after a failed fetch (swallowed by `log.error`), and permanently for users with basic functionality off. Each cell needs its **delivered value read out of controller state**, because a matrix whose override never applied renders two default branches and looks like a working flag. And a green matrix says nothing about production: the E2E mock is fed from a registry in the repo, so query the live service per `(client, distribution, environment)` triple the build requests — dev builds request `environment=dev`, so a prod-only flag is invisible locally.
+- **Delegate to `/remote-flag-delivery`** for a new flag, a rollout/threshold value, a version gate, or an "on remotely, off in the app" symptom.
 
 ## F6. Snaps / multichain execution
 - **Proves:** snap behavior across multichain (e.g. `snap_startTrace`/`snap_endTrace`).
@@ -292,7 +294,7 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 | persisted-state change | **F1 migration** | F2 vault |
 | tx/confirmation behavior | F3 simulation | B2 e2e |
 | dapp/provider behavior | F4 connectivity | B2 e2e |
-| flag-gated behavior | F5 flag matrix | A1/B1 per state |
+| flag-gated behavior | **F5 flag matrix** → `/remote-flag-delivery` | A1/B1 per state |
 | snap behavior | F6 snaps | E2 trace |
 | copy/localization | F7 i18n | A1 visual |
 | CI workflow behavior | **G5 fork run** (branch named `main`) | G1 checks, G4 repro steps |

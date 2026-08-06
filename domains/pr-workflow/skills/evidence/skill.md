@@ -660,6 +660,7 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
   | B7 deterministic interleaving (concurrency / ordering) | `/race-condition-repro` |
   | C4 React render & selector proof | `/react-render-delta` |
   | C9 memory leak | `/memory-leak` |
+  | F5 feature-flag matrix (remote flag, both sides of the seam) | `/remote-flag-delivery` |
   | D supply-chain / dependency change | `/supply-chain-audit` → delegates capability grants to `/lavamoat-policy` |
 
   **An engine that defines its own output contract publishes in it.** `lavamoat-policy`
