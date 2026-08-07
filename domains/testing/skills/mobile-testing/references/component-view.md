@@ -117,7 +117,13 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 9. **Every view with async data needs one data-completeness test** — wait for the load and validate all significant fields of all items in the base mock using `within()` per row. One per independent async data flow.
 
-10. **Filter / segmentation tests must assert both sides** — after selecting a filter, assert both what appears (positive `findByTestId`) and what disappears (negative `queryByTestId(...).not.toBeOnTheScreen()`).
+10. **Filter / segmentation tests must assert both sides** — after selecting a filter, assert both what appears (positive `findByTestId`) and what disappears (negative `queryByTestId(...).not.toBeOnTheScreen()`). Spy-only checks (refetch count / analytics) are not enough — seed distinct before/after rows.
+
+11. **Match loading asserts to real UX** — pending-phase tests assert skeleton / not-yet-visible content, not optimistic titles the production screen does not show while loading.
+
+12. **Pull-to-refresh via `refreshControl.props.onRefresh`** — prefer the prop handler inside `act`; `fireEvent(scrollView, 'refresh')` often never hits the handler.
+
+13. **Await the content, not just its container** — a container arriving on screen says nothing about values inside it that have their own async source (a child query, a debounce, a skeleton). Await the gated value with `findBy*`, then re-query the container and scope the remaining synchronous assertions with `within()`.
 
 
 ## Reference files (when to use)

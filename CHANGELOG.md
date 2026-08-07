@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add opt-in stale project skill pruning via `--prune-stale` and `SKILLS_PRUNE_STALE=1`.
+- docs(testing): document CV stale-press flakiness plus high-leverage assert patterns (migration parity, filter both-sides example, loading/skeleton honesty, RefreshControl + flag overrides) in `mobile-testing` component-view and placement refs.
 
 ### Changed
 

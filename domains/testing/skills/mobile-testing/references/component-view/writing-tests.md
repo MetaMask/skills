@@ -40,11 +40,58 @@ Ask: "What can a user **do** on this screen?" — type/paste input, press a butt
 
 Drop anything that only produces a render scenario: "The screen shows X when state is Y", "Button is disabled without input", "Token name appears in header".
 
-### 3. Deduplicate against existing tests
+### 3. High-leverage interaction pitfalls (from Mobile CV migrations)
+
+These patterns prevent false-green CV and weak unit→CV migrations:
+
+**Loading / skeleton honesty** — Match the pending phase to production UX. If the screen shows a skeleton while `isLoading`, assert skeleton (or that the loaded title is not yet visible), then resolve, then assert post-load behaviour. Do not name a test “shows title while waiting” when production keeps the skeleton until data resolves.
+
+```typescript
+// ✅ Pending phase matches real UX
+it('shows the loading skeleton until the market request resolves', async () => {
+  getMarketSpy.mockImplementation(() => new Promise(() => undefined));
+
+  const { findByTestId, queryByTestId } = renderMyDetailView({
+    initialParams: { marketId: 'm1' },
+  });
+
+  expect(await findByTestId(MyDetailSelectorsIDs.SKELETON)).toBeOnTheScreen();
+  expect(queryByTestId(MyDetailSelectorsIDs.TITLE)).not.toBeOnTheScreen();
+});
+```
+
+**Await the content, not just its container** — a screen or row can mount well before the values inside it resolve. Anything fed by its own query, debounce, or skeleton (a live price, a sell-order preview, a computed balance) settles *after* its container, so `await findByTestId(CONTAINER)` followed by a synchronous `getByText(value)` is a race. Static props in the same row render immediately, which is why neighbouring assertions keep passing while the gated one flakes only under CI load. Await the gated value, then re-query the container so the scoped assertions run against the settled tree:
+
+```typescript
+// ✅ Each async source gets its own await
+await findByTestId(MyViewSelectorsIDs.POSITIONS_TAB_CONTENT);
+// The value stays behind a skeleton until the preview query settles.
+await findByText('$60');
+
+const positionsTab = getByTestId(MyViewSelectorsIDs.POSITIONS_TAB_CONTENT);
+expect(within(positionsTab).getByText('$50 on Yes to win $50')).toBeOnTheScreen();
+expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
+```
+
+When a test like this fails, the render dump shows the container present with empty `pointerEvents="none"` views where the value belongs — those are the skeleton placeholders.
+
+**RefreshControl** — Prefer calling the prop handler; `fireEvent(scrollView, 'refresh')` often never hits `onRefresh` in RNTL:
+
+```typescript
+await act(async () => {
+  await scrollView.props.refreshControl.props.onRefresh();
+});
+```
+
+**Flag-gated sheets / branches** — UI behind remote flags only mounts when the flag is on in Redux. Drive via preset / `RemoteFeatureFlagController` overrides; do not assert a sheet `testID` if the flag routes to a full screen instead.
+
+**Migration assert parity** — When moving unit → CV, compare deleted unit expects field-by-field. If the unit checked `tabId` / `filterId` / formatted dates / full analytics payloads, the CV replacement must keep that specificity. Partial `objectContaining({ feedId })` after deleting a full payload assert is a regression. See [`../placement/unit-cv-overlap.md`](../placement/unit-cv-overlap.md).
+
+### 4. Deduplicate against existing tests
 
 Read `ComponentName.view.test.tsx` (if it exists) and remove any candidate already covered.
 
-### 4. Run coverage and prioritize
+### 5. Run coverage and prioritize
 
 ```bash
 yarn test:view:coverage:folder app/components/UI/MyFeature
