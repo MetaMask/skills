@@ -123,6 +123,8 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 12. **Pull-to-refresh via `refreshControl.props.onRefresh`** — prefer the prop handler inside `act`; `fireEvent(scrollView, 'refresh')` often never hits the handler.
 
+13. **Await the content, not just its container** — a container arriving on screen says nothing about values inside it that have their own async source (a child query, a debounce, a skeleton). Await the gated value with `findBy*`, then re-query the container and scope the remaining synchronous assertions with `within()`.
+
 
 ## Reference files (when to use)
 
