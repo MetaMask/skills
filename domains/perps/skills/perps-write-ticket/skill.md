@@ -131,9 +131,9 @@ line.
 
 ## References (read installed, don't duplicate)
 
-- `../../knowledge/screens.md` — screen/area names, if you want to use precise
+- `knowledge/screens.md` — screen/area names, if you want to use precise
   surface labels (optional; plain words are fine for a product ticket).
-- `../../knowledge/formatting-rules.md` — number semantics, to describe expected
+- `knowledge/formatting-rules.md` — number semantics, to describe expected
   values correctly without prescribing decimals.
 - Related skills: `perps-breakdown-tickets` (engineering split + routing — the
   next pass), `recipe-fix-ticket` (implement a fix).

@@ -263,6 +263,24 @@ describe('managed skill pruning', () => {
   });
 });
 
+// A body names a knowledge file in whatever form the author reached for: a Markdown link,
+// inline code, or bare prose. A matcher anchored on `](` or a backtick reads the delimiter
+// rather than the citation, so it sees only the forms it was written against.
+//
+// It must also consume any leading `../`. Those are the repo-relative paths the README calls
+// broken, and they are why the prefix cannot simply be skipped: each one *ends* with a
+// correct-looking `knowledge/<file>.md`, so a matcher that ignores the prefix resolves the
+// suffix, finds the file on disk, and passes the one citation it exists to reject.
+const KNOWLEDGE_CITATION = /(?<![\w/.-])((?:\.\.\/)*)knowledge\/([\w.-]+\.md)/gu;
+
+function knowledgeCitations(body) {
+  return [...body.matchAll(KNOWLEDGE_CITATION)].map(([raw, prefix, file]) => ({
+    raw,
+    ref: `knowledge/${file}`,
+    repoRelative: prefix !== '',
+  }));
+}
+
 describe('installed knowledge references resolve', () => {
   let root;
   let source;
@@ -280,9 +298,15 @@ describe('installed knowledge references resolve', () => {
     // the way shipped skills actually do — skill-relative `knowledge/<file>`. A fixture
     // without one cannot exhibit a layout regression, which is how MetaMask/skills#87
     // shipped a change that stranded 12 such references while every test passed.
+    // Three citation forms, because a fixture carrying only the form the matcher already
+    // handles cannot exhibit the matcher's blind spot — it agrees with it. The count is
+    // asserted below for the same reason: a narrowed matcher finds a subset, every member
+    // of the subset resolves, and a resolves-only assertion passes while coverage shrinks.
     const knowledge = path.join(source, 'domains', 'testing', 'knowledge');
     mkdirSync(knowledge, { recursive: true });
     writeFileSync(path.join(knowledge, 'alpha.md'), '# Alpha\n');
+    writeFileSync(path.join(knowledge, 'beta.md'), '# Beta\n');
+    writeFileSync(path.join(knowledge, 'gamma.md'), '# Gamma\n');
     const dir = path.join(source, 'domains', 'testing', 'skills', 'consumer');
     mkdirSync(dir, { recursive: true });
     writeFileSync(
@@ -294,6 +318,8 @@ describe('installed knowledge references resolve', () => {
         'maturity: stable',
         '---',
         'Read [alpha](knowledge/alpha.md) before starting.',
+        'The `knowledge/beta.md` file covers the rest.',
+        'See knowledge/gamma.md for the layer choice.',
       ].join('\n'),
     );
   });
@@ -304,7 +330,7 @@ describe('installed knowledge references resolve', () => {
 
   test('every knowledge/ reference in an emitted skill resolves on disk', () => {
     const result = spawnSync(
-      'bash',
+      '/bin/bash',
       [INSTALL, '--target', target, '--repo', 'core', '--source', source],
       { encoding: 'utf8' },
     );
@@ -318,12 +344,20 @@ describe('installed knowledge references resolve', () => {
     for (const [base, name, file] of emitted) {
       const skillDir = path.join(target, base, name);
       const body = readFileSync(path.join(skillDir, file), 'utf8');
-      const refs = [...body.matchAll(/\]\((knowledge\/[\w.-]+)\)/gu)].map((m) => m[1]);
-      assert.ok(refs.length > 0, `${base}/${name}: expected a knowledge reference in the emitted body`);
-      for (const ref of refs) {
+      const refs = knowledgeCitations(body);
+      assert.deepEqual(
+        refs.map((r) => r.ref).sort(),
+        ['knowledge/alpha.md', 'knowledge/beta.md', 'knowledge/gamma.md'],
+        `${base}/${name}: every citation form the fixture uses must be seen — link, inline code, and bare prose`,
+      );
+      for (const { raw, ref, repoRelative } of refs) {
+        assert.ok(
+          !repoRelative,
+          `${base}/${name}: repo-relative knowledge reference ${raw} — resolves in this repo, 404s once installed`,
+        );
         assert.ok(
           existsSync(path.join(skillDir, ref)),
-          `${base}/${name}: dangling knowledge reference ${ref} — the body cites it but install did not place it there`,
+          `${base}/${name}: dangling knowledge reference ${raw} — the body cites it but install did not place it there`,
         );
       }
     }
@@ -356,9 +390,8 @@ describe('corpus: knowledge citations resolve within their own domain', () => {
           if (!rel.includes('/skills/')) continue;
           const domain = rel.split('/')[1];
           const body = readFileSync(full, 'utf8');
-          for (const m of body.matchAll(/\]\((knowledge\/[\w.-]+\.md)\)|`(knowledge\/[\w.-]+\.md)`/gu)) {
-            const ref = m[1] || m[2];
-            found.push({ rel, domain, ref, key: `${rel} → ${ref}` });
+          for (const c of knowledgeCitations(body)) {
+            found.push({ rel, domain, ...c, key: `${rel} → ${c.raw}` });
           }
         }
       }
@@ -379,6 +412,21 @@ describe('corpus: knowledge citations resolve within their own domain', () => {
       unexpected.map((c) => c.key),
       [],
       'new dangling knowledge citation(s) — a skill may only cite its own domain\'s knowledge',
+    );
+  });
+
+  test('no skill cites knowledge by a repo-relative path', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const repoRelative = collectCitations(domainsDir).filter((c) => c.repoRelative);
+
+    // Not covered by the resolves-within-its-domain test above: `../../knowledge/x.md`
+    // normalizes to a file the domain really does ship, so it resolves there and passes.
+    // The path is still wrong in the only tree that matters — the installed one.
+    assert.deepEqual(
+      repoRelative.map((c) => c.key),
+      [],
+      'a `../knowledge/…` path resolves in this repo and 404s once installed — cite it as `knowledge/<file>.md`',
     );
   });
 
