@@ -71,6 +71,7 @@ Before declaring the task done, go through this checklist for every test written
 | 11  | **Loading asserts match real UX** — pending-phase tests assert skeleton / “not yet visible”, not optimistic titles the production screen does not show while `isLoading`                                                                                      | Rename and assert the real pending UI; resolve then assert loaded state |
 | 12  | **Pull-to-refresh uses `refreshControl.props.onRefresh`** — not `fireEvent(scrollView, 'refresh')`                                                                                                                                                            | Call the prop handler inside `act`                                     |
 | 13  | **Unit→CV migrations keep assert specificity** — deleted unit payload fields (`tabId`, formatted dates, full analytics) still appear in the CV replacement                                                                                                   | Restore dropped fields in CV or KEEP a focused unit; see unit-cv-overlap |
+| 14  | **Awaits cover the asserted content, not just its container** — after `await findByTestId(CONTAINER)`, no synchronous `getBy*` asserts a value that has its own async source (child query, debounce, skeleton)                                                | Await the gated value with `findBy*` first, then re-query the container and scope the sync asserts |
 
 ---
 
@@ -83,11 +84,12 @@ Before declaring the task done, go through this checklist for every test written
 | `jest.mock is not allowed in *.view.test.*`                            | Arbitrary `jest.mock` added to test                                                                  | Remove it; drive via state instead                                                                                  |
 | `Unable to find an element with testID: xxx`                           | State not providing needed data, or element hidden                                                   | Add the relevant state via overrides or check rendering condition                                                   |
 | `Unable to find … route-X` after press; dump still on the source screen | Held element went stale (live clock / polling re-render); `fireEvent.press` was a no-op             | Re-query immediately before press: `fireEvent.press(getByTestId(...))` — never press a node captured across `await`s |
+| `Unable to find an element with text: X`, but the dump shows the container and empty `pointerEvents="none"` views where the value belongs | The value is still behind a `Skeleton` — a child query / debounce has not settled, while the container rendered on the first tick | `await findByText('X')` before the sync `within(...)` asserts; the container appearing does not mean its values have loaded |
 | `Cannot read property 'X' of undefined`                                | Preset missing a required state slice                                                                | Add `.withMinimalXController()` or override in preset                                                               |
 | `Warning: An update was not wrapped in act(...)`                       | Async state update not awaited                                                                       | Use `await waitFor(...)`                                                                                            |
 | `No QueryClient set`                                                   | Missing provider — not in Engine mock                                                                | Add to mocks.ts or wrap with QueryClientProvider in renderer                                                        |
 | Flakey number assertions                                               | Non-deterministic exchange rates                                                                     | Add `deterministicFiat: true`                                                                                       |
-| Test passes locally, fails in CI                                       | Time-sensitive assertions, or stale press under CI load                                              | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer                                   |
+| Test passes locally, fails in CI                                       | Time-sensitive assertions, stale press under CI load, or a sync assert on content that is still loading | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer; await each async-gated value    |
 | Pull-to-refresh never refetches                                        | `fireEvent(scrollView, 'refresh')` did not hit the handler                                           | `await act(async () => { await scrollView.props.refreshControl.props.onRefresh(); })`                             |
 | Sheet / branch `testID` missing                                        | Remote feature flag off in Redux; UI routes elsewhere                                                | Override `RemoteFeatureFlagController` / preset so the gated UI mounts                                            |
 
@@ -147,6 +149,14 @@ import { within } from '@testing-library/react-native';
 const card = getByTestId(MyViewSelectorsIDs.TOKEN_CARD_ETH);
 expect(within(card).getByText('ETH')).toBeOnTheScreen();
 expect(within(card).getByText('$2,000.00')).toBeOnTheScreen();
+
+// Async-gated value inside a container — await the value itself, then re-query the
+// container so the scoped sync asserts run against the settled tree.
+await findByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
+await findByText('$60'); // behind a skeleton until a child query resolves
+const row = getByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
+expect(within(row).getByText('$60')).toBeOnTheScreen();
+expect(within(row).getByTestId(MyViewSelectorsIDs.CASH_OUT_BUTTON)).toBeOnTheScreen();
 ```
 
 ---
@@ -190,6 +200,18 @@ fireEvent.press(card); // stale under CI — press may be a no-op
 await findByTestId(MyViewSelectorsIDs.CARD);
 await findByTestId(MyViewSelectorsIDs.LIVE_BADGE);
 fireEvent.press(getByTestId(MyViewSelectorsIDs.CARD));
+
+// ❌ Treat the container's arrival as proof its values have loaded
+const row = await findByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
+expect(within(row).getByText('$50 on Yes to win $50')).toBeOnTheScreen(); // static prop — always there
+expect(within(row).getByText('$60')).toBeOnTheScreen(); // still a skeleton under CI timing
+// ✅ Await the gated value, then re-query the container for the scoped sync asserts
+await findByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
+await findByText('$60');
+const settledRow = getByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
+expect(within(settledRow).getByText('$60')).toBeOnTheScreen();
+// Static props in the same row render immediately, so a neighbouring assert
+// passing proves nothing about the gated one.
 
 // ❌ Custom nested navigator only to assert navigation occurred
 extraRoutes: [{ name: Routes.FEATURE.ROOT, Component: NestedStackProbe }];

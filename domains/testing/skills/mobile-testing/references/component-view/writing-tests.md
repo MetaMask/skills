@@ -60,6 +60,21 @@ it('shows the loading skeleton until the market request resolves', async () => {
 });
 ```
 
+**Await the content, not just its container** — a screen or row can mount well before the values inside it resolve. Anything fed by its own query, debounce, or skeleton (a live price, a sell-order preview, a computed balance) settles *after* its container, so `await findByTestId(CONTAINER)` followed by a synchronous `getByText(value)` is a race. Static props in the same row render immediately, which is why neighbouring assertions keep passing while the gated one flakes only under CI load. Await the gated value, then re-query the container so the scoped assertions run against the settled tree:
+
+```typescript
+// ✅ Each async source gets its own await
+await findByTestId(MyViewSelectorsIDs.POSITIONS_TAB_CONTENT);
+// The value stays behind a skeleton until the preview query settles.
+await findByText('$60');
+
+const positionsTab = getByTestId(MyViewSelectorsIDs.POSITIONS_TAB_CONTENT);
+expect(within(positionsTab).getByText('$50 on Yes to win $50')).toBeOnTheScreen();
+expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
+```
+
+When a test like this fails, the render dump shows the container present with empty `pointerEvents="none"` views where the value belongs — those are the skeleton placeholders.
+
 **RefreshControl** — Prefer calling the prop handler; `fireEvent(scrollView, 'refresh')` often never hits `onRefresh` in RNTL:
 
 ```typescript
