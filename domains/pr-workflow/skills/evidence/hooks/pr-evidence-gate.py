@@ -55,6 +55,12 @@ def main():
 
     cmd = (payload.get("tool_input") or {}).get("command", "")
 
+    # Resolve the repo the claim is about, so repo-relative artifact paths can be checked
+    # against that checkout rather than against wherever this shell happens to be.
+    global _TARGET_REPO_NAME  # noqa: PLW0603 - one value, set once, read by _repo_roots
+    _m = re.search(r"(?:--repo\s+|github\.com/|repos/)[\w.-]+/([\w.-]+)", cmd)
+    _TARGET_REPO_NAME = _m.group(1) if _m else ""
+
     is_porcelain = bool(GH_PORCELAIN.search(cmd))
     is_api = bool(GH_API.search(cmd)) and re.search(r"(?:-F|-f|--field|--raw-field)\s+body=|--input\b", cmd)
     if not (is_porcelain or is_api):
@@ -559,13 +565,57 @@ def _url_is_credible(url):
     return True
 
 
-def _local_ref_exists(ref):
+# Set from the publish command's --repo, so a repo-relative path can be resolved against
+# the repository the claim is actually about rather than against wherever the hook ran.
+_TARGET_REPO_NAME = ""
+
+
+def _repo_roots():
+    """Directories a repo-relative reference could resolve against.
+
+    The hook does not run from the repo under review — it runs wherever the publishing
+    shell happened to be. Checking only cwd meant a real `shared/lib/trace.test.ts` was
+    reported as fabricated whenever the publish came from a parent directory, which is
+    the normal case.
+    """
+    roots = [os.getcwd(), os.environ.get("CLAUDE_PROJECT_DIR") or ""]
+    try:
+        top = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=5)
+        if top.returncode == 0:
+            roots.append(top.stdout.strip())
+    except Exception:  # noqa: BLE001 - absence of git is not a verdict
+        pass
+    if _TARGET_REPO_NAME:
+        base = os.getcwd()
+        for cand in (os.path.join(base, _TARGET_REPO_NAME),
+                     os.path.join(os.path.dirname(base), _TARGET_REPO_NAME)):
+            roots.append(cand)
+    return [r for r in roots if r and os.path.isdir(r)]
+
+
+def _local_ref_state(ref):
+    """'found' | 'missing' | 'unverifiable'.
+
+    The three are genuinely different and collapsing them is what broke this. 'missing'
+    means we looked in a real checkout and it is not there — that is a fabricated path.
+    'unverifiable' means there was nowhere to look, and reporting that as fabricated
+    blocks legitimate publishing from outside the repo.
+    """
     if os.path.isabs(ref):
-        return os.path.exists(ref)
-    for root in (os.getcwd(), os.environ.get("CLAUDE_PROJECT_DIR") or ""):
-        if root and os.path.exists(os.path.join(root, ref)):
-            return True
-    return False
+        return "found" if os.path.exists(ref) else "missing"
+    roots = _repo_roots()
+    if not roots:
+        return "unverifiable"
+    for root in roots:
+        if os.path.exists(os.path.join(root, ref)):
+            return "found"
+    # Only claim 'missing' from a root that actually looks like a checkout; otherwise we
+    # are asserting absence from a tree that was never going to contain it.
+    for root in roots:
+        if os.path.isdir(os.path.join(root, ".git")):
+            return "missing"
+    return "unverifiable"
 
 
 def _has_credible_artifact(unit, pattern):
@@ -576,8 +626,19 @@ def _has_credible_artifact(unit, pattern):
         if _url_is_credible(url):
             return True
     for m in _LOCAL_REF_RE.finditer(unit):
-        ref = m.group(1) or m.group(2)
-        if ref and _local_ref_exists(ref):
+        test_ref, capture_ref = m.group(1), m.group(2)
+        ref = test_ref or capture_ref
+        if not ref:
+            continue
+        state = _local_ref_state(ref)
+        if state == "found":
+            return True
+        # A test/spec path is listed in this gate's own contract as an acceptable
+        # artifact — the reviewer resolves it in the PR's repo, not on the publisher's
+        # disk. So when there is no checkout to check against, accept it. A capture
+        # (.png/.log/.json) is not accepted on the same terms: a local path to a capture
+        # is not something a reader can open, so it has to be real or re-hosted.
+        if state == "unverifiable" and test_ref:
             return True
     return False
 
