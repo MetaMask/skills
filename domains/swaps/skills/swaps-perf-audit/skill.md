@@ -49,8 +49,9 @@ Do not use for:
    simulator, runs the watcher, installs the dev build, opens the `mm` session
    and unlocks the wallet; one read-only script then verifies all of it and
    exits non-zero with the fixing command if anything is missing. A failed gate
-   ends the run — report it and stop. Never work around it, and never type a
-   password.
+   ends the run — report it to the user with the command it printed, then
+   terminate the session. Never attempt to resolve the issue yourself, never
+   work around it, and never type a password.
 3. **Navigate to the surface.** Reuse recorded knowledge when it exists, observe
    before every action, and never assume wallet credentials.
 4. **Sweep statically.** Rank candidate anti-patterns from the code. The sweep

@@ -11,6 +11,13 @@
 # Exit 0 means every gate passed and the audit may start. Any other exit means
 # it may not, and the failing gate names the command that fixes it.
 #
+# Run this unsandboxed. It shells out to `xcrun simctl`, `idb`, `lsof`, and
+# `curl` against localhost (Metro, the inspector) — a default agent sandbox
+# commonly blocks or partially blocks those, which then reads as a failed
+# gate even though nothing is actually wrong. The script is read-only, so a
+# sandbox buys no safety here, only false failures. In Cursor, pass
+# required_permissions: ["all"] on the Shell tool call.
+#
 # Env overrides:
 #   MM_AUDIT_DEVICE_ID    simulator UDID to target (required when several are booted)
 #   MM_AUDIT_METRO_PORT   Metro port to check (default: .js.env WATCHER_PORT, else 8081)
@@ -56,7 +63,7 @@ die() { fail "$*"; exit 1; }
 record_failure() { fail "$*"; FAILURES=$((FAILURES + 1)); }
 
 case "${1:-}" in
-  -h|--help) sed -n '3,28p' "$0"; exit 0 ;;
+  -h|--help) sed -n '3,35p' "$0"; exit 0 ;;
   "")        : ;;
   *)         die "Unknown argument: $1 (this script takes none; try --help)" ;;
 esac

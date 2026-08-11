@@ -64,18 +64,49 @@ Four things about that sequence matter enough to repeat:
 ```bash
 cd <metamask-mobile>
 
-# The script ships inside this skill. Use whichever path your operator
-# installed it to — do not confuse it with the repo's own scripts/ directory.
-SP=.claude/skills/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh
-# SP=.cursor/rules/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh
-# SP=.agents/skills/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh
+# The script ships inside this skill, installed under whichever harness
+# directory `yarn skills` wrote to — do not confuse it with the repo's own
+# scripts/ directory. Which of these exists depends on which harnesses were
+# synced, and that can differ per directory, so probe instead of guessing one:
+for SP in \
+  .claude/skills/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh \
+  .cursor/rules/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh \
+  .agents/skills/mms-swaps-perf-audit/scripts/swaps-perf-preflight.sh
+do
+  [ -f "$SP" ] && break
+done
+if [ ! -f "${SP:-}" ]; then
+  echo "swaps-perf-preflight.sh not found under .claude, .cursor, or .agents." >&2
+  echo "Run 'yarn skills' to (re)sync it, then retry." >&2
+  exit 1
+fi
 
 bash "$SP"
 ```
 
-It is **read-only**. It boots nothing, starts nothing, installs nothing, never
-runs `mm launch`, and never touches an existing session. It takes a couple of
-seconds and answers exactly one question: may the audit start?
+Never hardcode one of those three paths and stop if it is missing — that is
+what produces the "isn't at the .agents/skills path, let me check other
+locations" hunt-and-guess loop. Probe all of them in one shot as above, and if
+none exist the skill is not synced into this repo at all; tell the user to run
+`yarn skills` rather than searching further.
+
+**Run it unsandboxed.** It is **read-only** — it boots nothing, starts
+nothing, installs nothing, never runs `mm launch`, and never touches an
+existing session — so a restricted/sandboxed shell buys no safety here and
+only costs false failures. The gates shell out to `xcrun simctl`, `idb`,
+`lsof`, and `curl` against `localhost` (Metro, the inspector), which a default
+agent sandbox commonly blocks or partially blocks; a blocked syscall then
+reads as a failed gate even though nothing is actually wrong. Invoke it with
+full/unrestricted permissions:
+
+- Cursor: pass `required_permissions: ["all"]` on the `Shell` tool call (or
+  the equivalent "run outside the sandbox" option in your harness).
+- If a run fails and the output looks like a permission or sandbox denial
+  rather than one of the named gates below, re-run once, unsandboxed, before
+  reporting it as a real failure.
+
+It takes a couple of seconds and answers exactly one question: may the audit
+start?
 
 It gates on eight things, in this order:
 
@@ -115,11 +146,14 @@ Two overrides exist, both for disambiguation only:
 | `MM_AUDIT_DEVICE_ID` | Which booted simulator to audit. Required when several are booted. |
 | `MM_AUDIT_METRO_PORT` | Which port to expect Metro on. Defaults to `.js.env` `WATCHER_PORT`, else 8081. |
 
-**Do not work around a failing gate.** Each one guards a way for the audit to
-produce numbers that look real and are not: a lock screen renders no swaps
-components, a detached app answers no CDP, a release build has no inspector,
-and a wallet with no accounts cannot reach the swaps screen at all. Report the
-failure to the user with the command it printed and stop.
+**Do not work around a failing gate, and do not attempt to resolve it
+yourself.** Each one guards a way for the audit to produce numbers that look
+real and are not: a lock screen renders no swaps components, a detached app
+answers no CDP, a release build has no inspector, and a wallet with no
+accounts cannot reach the swaps screen at all. Report the failure to the user
+with the command it printed, then terminate the session. Fixing the
+environment (booting a device, restarting Metro, installing a build, unlocking
+the wallet, and so on) is the user's to do, never the skill's.
 
 ### The one thing preflight cannot check
 
@@ -293,4 +327,4 @@ git diff | grep -n "__mmPerf" && echo "INSTRUMENTATION STILL PRESENT"
 | `MM_INVALID_CONFIG` | No app and no `--app-bundle`, or Metro unreachable on the given port. Check `curl localhost:<port>/status`. |
 | `MM_WAIT_TIMEOUT` on `bridge-view-scroll` | The swaps screen did not mount. `describe-screen` to see where the flow actually stopped — often an unlock screen or a network/token-selection modal. |
 | `mm cdp` connection refused | The app is not attached to Metro, or the build is a release build. Re-run the preflight: gates 4, 5 and 8 each isolate one of the causes. |
-| Preflight gate fails mid-audit | Something changed under you — the wallet auto-locked, Metro died, the app was backgrounded. Re-run the preflight before trusting another number, and discard any measurement taken after the last passing run. |
+| Preflight gate fails mid-audit | Something changed under you — the wallet auto-locked, Metro died, the app was backgrounded. Discard any measurement taken after the last passing run, report the failure to the user, and terminate the session. Do not attempt to resolve it yourself. |
