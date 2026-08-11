@@ -19,6 +19,7 @@ import {
   DESCRIPTION_MAX,
   INSTALLED_PREFIX,
   KNOWN_FRONTMATTER,
+  KNOWN_KNOWLEDGE_FRONTMATTER,
   KNOWN_REPOS,
   MATURITY_VALUES,
   NAME_PATTERN,
@@ -135,7 +136,8 @@ function skillsForPaths(skills, paths) {
 }
 
 // A changed path under domains/ must live at domains/<domain>/skills/<name>/… and that
-// skill root must have a readable skill.md.
+// skill root must have a readable skill.md — or be domain knowledge at
+// domains/<domain>/knowledge/<file>.md.
 //
 // This has to run BEFORE the collectSkills filter, not inside the per-skill loop.
 // collectSkills only returns directories that already match the expected layout and parse,
@@ -144,10 +146,14 @@ function skillsForPaths(skills, paths) {
 // green run. The shape has to be checked from the path side, where the malformed cases
 // actually exist.
 export const SKILL_PATH = /^domains\/([^/]+)\/skills\/([^/]+)\/(?:[^/]+\/)*[^/]+$/u;
+export const KNOWLEDGE_PATH = /^domains\/([^/]+)\/knowledge\/([^/]+)$/u;
 
 export function validatePathShape(file, root = ROOT) {
   const normalized = file.split(path.sep).join('/');
   if (!normalized.startsWith('domains/')) {
+    return null;
+  }
+  if (KNOWLEDGE_PATH.test(normalized)) {
     return null;
   }
   const match = SKILL_PATH.exec(normalized);
@@ -164,17 +170,89 @@ export function validatePathShape(file, root = ROOT) {
   return null;
 }
 
+export function lintKnowledgeFile(file, root = ROOT) {
+  const errors = [];
+  const warnings = [];
+  const normalized = file.split(path.sep).join('/');
+  const match = KNOWLEDGE_PATH.exec(normalized);
+  if (!match) {
+    return { errors, warnings };
+  }
+  const [, domain, basename] = match;
+  if (!basename.endsWith('.md')) {
+    errors.push(`knowledge file "${normalized}" must be a .md file`);
+    return { errors, warnings };
+  }
+  const stem = basename.slice(0, -3);
+  let raw;
+  try {
+    raw = parseFrontmatter(readFileSync(path.join(root, file), 'utf8'));
+  } catch (error) {
+    return { errors: [`could not read ${normalized}: ${error.message}`], warnings };
+  }
+
+  if (!raw.name) {
+    errors.push('missing required `name` in frontmatter');
+  } else {
+    if (raw.name !== stem) {
+      errors.push(`\`name\` "${raw.name}" must match the filename stem "${stem}"`);
+    }
+    if (!NAME_PATTERN.test(raw.name)) {
+      errors.push(`\`name\` "${raw.name}" must be kebab-case`);
+    }
+  }
+
+  if (!raw.domain) {
+    errors.push('missing required `domain` in frontmatter');
+  } else if (raw.domain !== domain) {
+    errors.push(`\`domain\` "${raw.domain}" must match the parent domain "${domain}"`);
+  }
+
+  if (!raw.description) {
+    errors.push('missing required `description` in frontmatter');
+  } else if (raw.description.length > DESCRIPTION_MAX) {
+    errors.push(`\`description\` is ${raw.description.length} chars, over the ${DESCRIPTION_MAX}-char budget`);
+  }
+
+  for (const key of Object.keys(raw)) {
+    if (!KNOWN_KNOWLEDGE_FRONTMATTER.includes(key)) {
+      warnings.push(`unknown knowledge frontmatter key "${key}" (allowed: ${KNOWN_KNOWLEDGE_FRONTMATTER.join(', ')})`);
+    }
+  }
+
+  return { errors, warnings };
+}
+
 function main() {
   const paths = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
   let errorCount = 0;
   let warningCount = 0;
+  let knowledgeChecked = 0;
 
   for (const file of paths) {
     const problem = validatePathShape(file);
     if (problem) {
       console.log(`\nerror:   ${problem}`);
       errorCount += 1;
+      continue;
     }
+    const normalized = file.split(path.sep).join('/');
+    if (!KNOWLEDGE_PATH.test(normalized)) {
+      continue;
+    }
+    knowledgeChecked += 1;
+    const { errors, warnings } = lintKnowledgeFile(file);
+    if (errors.length > 0 || warnings.length > 0) {
+      console.log(`\n${normalized}`);
+      for (const message of errors) {
+        console.log(`  error:   ${message}`);
+      }
+      for (const message of warnings) {
+        console.log(`  warning: ${message}`);
+      }
+    }
+    errorCount += errors.length;
+    warningCount += warnings.length;
   }
 
   // '*' rather than undefined: the linter never reads repoApplicable, but relying on that
@@ -197,7 +275,11 @@ function main() {
     warningCount += warnings.length;
   }
 
-  console.log(`\n${skills.length} skill(s) checked, ${errorCount} error(s), ${warningCount} warning(s).`);
+  const checkedBits = [`${skills.length} skill(s) checked`];
+  if (paths.length > 0 || knowledgeChecked > 0) {
+    checkedBits.push(`${knowledgeChecked} knowledge file(s) checked`);
+  }
+  console.log(`\n${checkedBits.join(', ')}, ${errorCount} error(s), ${warningCount} warning(s).`);
   // Set exitCode rather than process.exit() so buffered stdout flushes when it
   // is a pipe (e.g. under CI or execFileSync), instead of being truncated.
   process.exitCode = errorCount > 0 ? 1 : 0;
