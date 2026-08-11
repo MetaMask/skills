@@ -25,13 +25,13 @@ before writing any test. `references/layers.md` is only a redirect stub.
 
 ## Open next
 
-| If the work is…                                    | Open                                                           |
-| -------------------------------------------------- | -------------------------------------------------------------- |
-| Pure logic / helpers / selectors / CV fallback     | [`references/unit.md`](references/unit.md)                     |
-| Screen UI via real Redux / `*.view.test.tsx`       | [`references/component-view.md`](references/component-view.md) |
-| App↔controller seam / `*.integration.test.ts`      | [`references/integration.md`](references/integration.md)       |
-| Justified device/native journey (after layer gate) | [`references/appium-e2e.md`](references/appium-e2e.md)         |
-| Area / Jira / PR coverage audit across layers      | [`references/placement.md`](references/placement.md)           |
+| If the work is… | Open |
+| --- | --- |
+| Pure logic / helpers / selectors / CV fallback | [`references/unit.md`](references/unit.md) |
+| Screen UI via real Redux / `*.view.test.tsx` | [`references/component-view.md`](references/component-view.md) |
+| App↔controller seam / `*.integration.test.ts` | [`references/integration.md`](references/integration.md) |
+| Justified device/native journey / run Appium locally (after layer gate) | [`references/appium-e2e.md`](references/appium-e2e.md) → mobile `docs/testing/appium-smoke-testing.md` |
+| Area / Jira / PR coverage audit across layers | [`references/placement.md`](references/placement.md) |
 
 Do not read every reference up front. Follow the decision tree in installed
 `knowledge/testing-layers.md`, then open nested files only when that doc sends

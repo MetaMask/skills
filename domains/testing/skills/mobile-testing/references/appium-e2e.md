@@ -118,24 +118,26 @@ Only branch when the flow genuinely differs. See
 11. Fix lint/tsc before running.
 12. No `try/catch` in POM methods.
 
-## Build and run (summary)
+## Build and run
 
-Appium needs a **main-e2e release** binary (`HAS_TEST_OVERRIDES=true`).
+**Source of truth:** `docs/testing/appium-smoke-testing.md` (download, prep,
+Android ABI/arm64, troubleshooting). Do not copy recipes into the skill.
+
+Local run rules:
+
+1. **main-e2e release** only (`HAS_TEST_OVERRIDES=true`) — not debug /
+   Expo Connect-to-Metro builds.
+2. Prefer **iOS** on Mac. Set `IOS_APP_PATH` (and `IOS_SIMULATOR_UDID` after
+   `prepare-ios-appium-runner.mjs`) so `.e2e.env` `PREBUILT_*` debug paths lose.
+3. Prefer CI artifacts via `gh run download`; warn before a local native build.
+4. Run a targeted `--grep` / spec path. Do not claim green without output.
 
 ```bash
-# Prefer CI main-e2e artifacts — see docs/testing/appium-smoke-testing.md
 IOS_APP_PATH=build/ci-main-e2e/MetaMask.app \
 IOS_SIMULATOR_UDID="$IOS_SIMULATOR_UDID" \
-yarn appium-smoke:ios
-
-# Single spec / tag
 yarn appium-smoke:ios --grep SmokeAccounts \
   tests/smoke-appium/accounts/<spec>.spec.ts
 ```
-
-Prepare iOS with `scripts/e2e/prepare-ios-appium-runner.mjs` when needed. Full
-env vars, Android notes, and troubleshooting live in
-`docs/testing/appium-smoke-testing.md`.
 
 ## Review checklist
 
@@ -146,4 +148,4 @@ env vars, Android notes, and troubleshooting live in
 - [ ] Descriptions on gestures and assertions
 - [ ] Correct smoke/regression tag
 - [ ] Lint + tsc clean
-- [ ] Ran locally (or documented why not) against main-e2e build
+- [ ] Ran locally against main-e2e (or documented why not) with real output
