@@ -208,6 +208,22 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 - **Trust-gate:** state machine, core count, N, and cache handling per arm, or the number is unreproducible. A null result states the smallest effect the sample could have detected — "no difference" from N=3 is not a finding. Renders **no ship verdict**: a change that costs build time and buys runtime is a trade, and pricing it is not the same as taking it.
 - **Corroborate:** `G6` for the CI half (different machine, different confounds), `C5` for the runtime half. A toolchain claim is not closed by one surface.
 
+## D8. Upstream behaviour delta *(read-level; lead for "this bump is behaviour-preserving" claims)*
+- **Proves:** what a dependency bump changes in **runtime behaviour** — the question `D3` and `D4` do not ask. Those cover capability and permission scope; a bump can leave both untouched and still change what the code does. The failure mode is a review that reads "policy clean, manifest clean, CI green" and concludes nothing changed.
+- **Shape:** a structured read, not a measurement. Output is a set of *shapes the old and new code treat differently*, plus the call sites in this repo that could produce them. No build, no stack.
+- **Capture:**
+  - **Take the delta from the lockfile, not `package.json`.** Ranges lie in both directions, and `pkg` and `@types/pkg` are separate packages with separate versions that a naive grep for `version:` interleaves. Read each `"pkg@npm:^X"` block whole.
+  - **Classify every release across the span** as runtime / build / packaging / logging. Distance is not risk: four minors reduced to one behavioural change in the case that motivated this lane.
+  - **Diff the source of the runtime-relevant releases, not the release note.** "Fix no-op check for Safari" does not say the predicate changed from a prototype test to a `runtime.id` test.
+  - **Grep this repo for the shapes that now differ,** then check whether each consumer distinguishes them.
+- **Falsifiers:**
+  - A shape that differs but is unreachable — no caller can produce it. Reachable-in-principle is not reachable.
+  - A shape that differs and reaches a consumer that cannot tell: `{...null}` and `{...undefined}` are the same spread, so a `undefined → null` change is inert at a spread site and load-bearing at an `=== undefined` site.
+  - A test stub the bump silently replaces — a stub is defined by shape, and a bump that changes which shapes are recognised changes what the tests under it receive.
+- **Trust-gate:** name the lockfile versions, not the range; say which releases were classified and on what basis; and for every shape reported as reachable, name the caller. An unreachable shape is not a finding, and "the changelog says X" is not a claim about this repo.
+- **Corroborate:** `D3`/`D4` for capability and permission, `B3` where a differing shape is worth pinning with a test. Nothing here substitutes for running the app.
+
+
 # E. Production telemetry
 
 ## E1. Sentry query links (before/after)

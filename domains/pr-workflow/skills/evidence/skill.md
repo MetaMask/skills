@@ -73,7 +73,7 @@ A claim must be falsifiable, surface-specific, **anchored to the diff** (if the 
 | Interaction responsiveness / startup timing | **C2 INP · C3 TBT · C5 benchmark (paired A/B)** | C1 phase traces, C6 profile |
 | Telemetry / error-rate / latency in prod | **E1 Sentry links** (before/after) | E2 Tempo; span-volume → `/sentry-quota` |
 | Bundle / build output | **D1 size · D2 chunk membership** | — |
-| A dependency change is safe | **D3 LavaMoat policy + D4 manifest diff** | D1 size |
+| A dependency change is safe | **D3 LavaMoat policy + D4 manifest diff** | **D8 upstream behaviour delta** — D3/D4 cover capability, not what the code does; D1 size |
 | Persisted-state change | **⭐ F1 migration** (`changedKeys`, old→new state) | F2 vault round-trip |
 | Tx / dapp / flag / snap / i18n behavior | **F3 sim · F4 provider · F5 flag matrix · F6 snaps · F7 i18n** | B2 e2e trace |
 | Behavior with no UI | **B3 test + G4 repro** | G1 CI checks |
