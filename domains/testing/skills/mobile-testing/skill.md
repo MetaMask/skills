@@ -3,10 +3,10 @@ name: mobile-testing
 description: >
   Single MetaMask Mobile testing entrypoint. Routes unit, component-view,
   integration, Appium E2E, Detox→Appium migration, and test-layer placement
-  work to the right references. Use when writing, fixing, reviewing, placing,
-  or running Mobile tests locally (Appium main-e2e); when the user mentions
-  Jest layers, *.view.test.tsx, *.integration.test.ts, Appium smoke, Detox
-  migration, MMQA test-layer tickets, or asks which testing skill to install.
+  work to the right references. Use when writing, fixing, reviewing, or
+  placing Mobile tests; when the user mentions Jest layers, *.view.test.tsx,
+  *.integration.test.ts, Appium smoke, Detox migration, MMQA test-layer
+  tickets, or asks which testing skill to install.
 maturity: stable
 ---
 
@@ -30,8 +30,7 @@ Read [`references/layers.md`](references/layers.md) (or installed
 | Pure logic / helpers / selectors / CV fallback | [`references/unit.md`](references/unit.md) |
 | Screen UI via real Redux / `*.view.test.tsx` | [`references/component-view.md`](references/component-view.md) |
 | App↔controller seam / `*.integration.test.ts` | [`references/integration.md`](references/integration.md) |
-| New or preferred device journey | [`references/appium-e2e.md`](references/appium-e2e.md) |
-| Run / validate Appium smoke locally | [`references/running-appium-locally.md`](references/running-appium-locally.md) → mobile `docs/testing/appium-smoke-testing.md` |
+| New or preferred device journey / run Appium locally | [`references/appium-e2e.md`](references/appium-e2e.md) → mobile `docs/testing/appium-smoke-testing.md` |
 | Migrating or touching remaining Detox tests | [`references/detox-to-appium.md`](references/detox-to-appium.md) |
 | Area / Jira / PR coverage audit across layers | [`references/placement.md`](references/placement.md) |
 
