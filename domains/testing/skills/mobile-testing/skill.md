@@ -30,7 +30,7 @@ Read [`references/layers.md`](references/layers.md) (or installed
 | Pure logic / helpers / selectors / CV fallback | [`references/unit.md`](references/unit.md) |
 | Screen UI via real Redux / `*.view.test.tsx` | [`references/component-view.md`](references/component-view.md) |
 | App↔controller seam / `*.integration.test.ts` | [`references/integration.md`](references/integration.md) |
-| New or preferred device journey | [`references/appium-e2e.md`](references/appium-e2e.md) |
+| Justified device/native journey (after layer gate) | [`references/appium-e2e.md`](references/appium-e2e.md) |
 | Migrating or touching remaining Detox tests | [`references/detox-to-appium.md`](references/detox-to-appium.md) |
 | Area / Jira / PR coverage audit across layers | [`references/placement.md`](references/placement.md) |
 
@@ -39,14 +39,18 @@ doc, then open nested files only when that doc sends you there.
 
 ## Hard rules
 
-1. **Default new device E2E to Appium.** Detox is nearly deprecated.
-2. Prefer migrating Detox specs to Appium over extending Detox.
-3. Do not add new Detox tests unless the user explicitly requires work on an
+1. **Layer gate first.** Prefer **CV → integration → unit fallback → E2E**. Do not
+   propose E2E until CV and integration have been ruled out in writing (why CV
+   fails, why integration fails, required device/native boundary).
+2. **If and only if E2E is justified**, implement new device E2E in **Appium**
+   (not Detox). Detox is nearly deprecated.
+3. Prefer migrating Detox specs to Appium over extending Detox.
+4. Do not add new Detox tests unless the user explicitly requires work on an
    unmigrated Detox suite.
-4. For E2E, inspect existing Appium specs, POMs, fixtures, flows, and nearby
+5. For E2E, inspect existing Appium specs, POMs, fixtures, flows, and nearby
    feature examples in the mobile repo before proposing code.
-5. E2E POM methods must not use `try/catch`.
-6. Placement work defaults to **ANALYZE** — implement only when the user asks.
+6. E2E POM methods must not use `try/catch`.
+7. Placement work defaults to **ANALYZE** — implement only when the user asks.
 
 ## Examples
 
@@ -62,9 +66,13 @@ Agent: layers → integration → references/integration.md
 
 ```
 User: Add an Appium smoke for account rename
-Agent: references/appium-e2e.md → mirror nearby tests/smoke-appium examples
+Agent: layers gate first — if only UI/nav, prefer CV; if device boundary required → appium-e2e.md
 ```
 
+```
+User: Cover a multi-screen filter journey on Predict
+Agent: layers → CV (cross-screen routes) → references/component-view.md — not E2E
+```
 ```
 User: Migrate this Detox smoke to Appium
 Agent: references/detox-to-appium.md (Detox refs only if still needed)

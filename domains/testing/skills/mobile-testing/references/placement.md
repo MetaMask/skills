@@ -37,7 +37,7 @@ Before classifying or writing tests, load as needed (do not reinvent layer rules
 | Screen UI via Redux | [`component-view.md`](component-view.md) |
 | Pure helpers / CV fallback | [`unit.md`](unit.md) |
 | App↔controller seam | [`integration.md`](integration.md) |
-| Device journeys (default) | [`appium-e2e.md`](appium-e2e.md) |
+| Device/native E2E (only after CV + integration ruled out) | [`appium-e2e.md`](appium-e2e.md) |
 | Detox migration / remaining Detox | [`detox-to-appium.md`](detox-to-appium.md) |
 | Unit↔CV overlap migrate/delete | [`placement/unit-cv-overlap.md`](placement/unit-cv-overlap.md) — if personal Cursor skill `test-layer-overlap-audit` is available, load it too and prefer its process for that sub-pass |
 
@@ -75,9 +75,10 @@ Summarize per component/module:
 
 For each meaningful scenario (especially each `it(...)` in shallow screen units, and each gap in production behavior):
 
-1. **What does this protect?** (UI visibility, nav destination, pure math, controller seam, multi-screen device journey, …)
-2. **Best layer?** Use `knowledge/testing-layers.md`.
-3. **Decision:**
+1. **Worth covering?** Distinct realistic regression — not duplicate of existing coverage. If no → **GAP / ACCEPT**.
+2. **What does this protect?** (UI visibility, nav destination, pure math, controller seam, device/native boundary, …)
+3. **Best layer?** Use `knowledge/testing-layers.md` / [`layers.md`](layers.md). Order: **CV → integration → unit fallback → E2E**.
+4. **Decision:**
 
 | Decision | Meaning |
 | --- | --- |
@@ -91,7 +92,13 @@ For each meaningful scenario (especially each `it(...)` in shallow screen units,
 **Hard rules**
 
 - Screen UI / Redux-driven visibility / press→nav belonging in unit files with mocked hooks → **MIGRATE** to CV, do not “fix” mocks in place.
-- E2E is not a substitute for single-view CV.
+- Multi-screen / navigation journeys are **CV-first** when routes can be registered and state/API driven in CV.
+- E2E is **not** a substitute for any scenario CV or integration can cover with equivalent confidence.
+- **ADD E2E** is forbidden unless the disposition row includes all three:
+  1. Why CV is insufficient
+  2. Why integration is insufficient
+  3. Required device/native boundary
+- If those three cannot be filled, disposition must be **ADD CV**, **ADD integration**, or **GAP / ACCEPT** — never E2E by default.
 - Integration owns app↔controller seams, not full-screen RTL with mocked Engine internals unless the integration skill says otherwise.
 - Production changes: **tests + minimal pure extracts only**. No intentional product UX change. Call out any app LOC in the report.
 
@@ -106,7 +113,7 @@ Present a concise plan:
 
 - Scope + ticket/PR
 - Inventory table
-- Disposition table (scenario → decision → target layer/file)
+- Disposition table (scenario → decision → target layer/file). For any **ADD E2E** row, include columns or notes for: why CV insufficient / why integration insufficient / required device boundary
 - Estimated volume deltas (unit/CV/integration/e2e `it`s)
 - Residual risks / open questions
 - Proposed PR task checklist (unchecked)

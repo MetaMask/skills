@@ -1,7 +1,12 @@
-# Appium E2E (default Mobile device journeys)
+# Appium E2E (justified Mobile device journeys)
 
-**Default** for new MetaMask Mobile multi-screen / device E2E. Prefer Appium over
-Detox for all new coverage.
+**If and only if** the layer gate in [`layers.md`](layers.md) / installed
+`knowledge/testing-layers.md` justifies E2E, implement new device coverage in
+**Appium** (not Detox). Appium is the default *framework* for justified E2E —
+not the default *layer* for every journey.
+
+Multi-screen / navigation journeys are **CV-first** when routes and state/API
+can be driven in the CV framework. Controller seams belong in integration.
 
 Live source of truth in the mobile repo (read these when details change):
 
@@ -15,6 +20,11 @@ Detox is nearly deprecated. For migration or remaining Detox suites, see
 
 ## Before writing
 
+0. **Layer gate** — Confirm CV and integration cannot cover this scenario with
+   equivalent confidence. Document: why CV is insufficient, why integration is
+   insufficient, and the required device/native boundary. If you cannot fill
+   those three, stop and open [`layers.md`](layers.md) or
+   [`placement.md`](placement.md) instead of writing Appium.
 1. Inspect existing Appium specs in the same feature folder.
 2. Reuse page objects, flows, fixtures, and tags already used there.
 3. Prefer cross-framework `Gestures` / `Assertions` / `Matchers` — avoid
