@@ -187,16 +187,36 @@ home. If the wallet locked itself since, ask the user to unlock it by hand —
 ```bash
 yarn mm type --testid login-password-input "<password from the user>"
 yarn mm click --testid log-in-button
-yarn mm wait-for --testid wallet-swap-button --timeout 20000
+yarn mm wait-for --testid tab-bar-item-Trade --timeout 20000
 ```
 
-Open swaps from the wallet home:
+Open swaps from the wallet home's **Trade** tab (bottom nav) — verified live
+against a running dev build:
 
 ```bash
-yarn mm click --testid wallet-swap-button
-yarn mm wait-for --testid bridge-view-scroll --timeout 20000
+yarn mm click --testid tab-bar-item-Trade
+yarn mm wait-for --testid wallet-actions-bottom-sheet-swap-button --timeout 10000
+yarn mm click --testid wallet-actions-bottom-sheet-swap-button
+yarn mm wait-for --testid source-token-area-input --timeout 20000
 yarn mm screenshot --name "swaps-baseline"
 ```
+
+`tab-bar-item-Trade` opens a bottom sheet offering Batch Sell, Swap, Perps,
+Predictions and Earn; `wallet-actions-bottom-sheet-swap-button` is the "Swap"
+row in that sheet. This is the same test ID the wallet-actions sheet already
+used from other entry points — only the path to reach the sheet changed.
+
+**`wallet-swap-button` (the old direct entry point) no longer works** — it
+still exists in `WalletView.testIds.ts` but clicking it now fails
+(`MM_CLICK_FAILED`); it is not wired to a visible control on the current home
+screen. Use the Trade-tab flow above instead.
+
+**Wait on `source-token-area-input`, not `bridge-view-scroll`.** The
+`bridge-view-scroll` test ID is still applied to the screen's `ScrollView` in
+`app/components/UI/Bridge/Views/BridgeView/index.tsx`, but it does not appear
+in `mm describe-screen`'s testId/accessibility output, so waiting on it times
+out even though the screen has mounted. `source-token-area-input` is a
+reliable, already-documented stand-in for "the swaps screen is up."
 
 Test IDs for the swaps screen, from
 `tests/selectors/Bridge/QuoteView.selectors.ts` and
@@ -205,11 +225,11 @@ for their own surfaces:
 
 | Element | Test ID |
 |---|---|
-| Swap entry (wallet home) | `wallet-swap-button` |
+| Swap entry (Trade tab bottom nav) | `tab-bar-item-Trade` |
+| Swap entry (Trade tab sheet) | `wallet-actions-bottom-sheet-swap-button` |
 | Swap entry (homepage grid) | `homepage-action-buttons-grid-swap` |
-| Swap entry (wallet actions sheet) | `wallet-actions-bottom-sheet-swap-button` |
 | Swap entry (token page) | `token-swap-button` |
-| Swaps screen root (scroll view) | `bridge-view-scroll` |
+| Swaps screen root (scroll view; not exposed to `mm describe-screen`, see above) | `bridge-view-scroll` |
 | Source token area | `source-token-area` |
 | Source amount input | `source-token-area-input` |
 | Destination token area | `dest-token-area` |
@@ -224,107 +244,8 @@ for their own surfaces:
 Element matching is fuzzy substring matching on accessibility label or
 identifier, so prefer these exact IDs over partial strings.
 
-### Navigating to a non-default surface
-
-`bridge-view-scroll` is where every surface starts. Surfaces are grouped by
-area; the area files under `references/checks/` list which components to
-instrument on each.
-
-| Area | Surface | From the swaps screen, do this | Wait for |
-|---|---|---|---|
-| swaps-screen | `quote-entry` | already there | `bridge-view-scroll` |
-| swaps-screen | `quote-details` | enter an amount, wait for a quote, click `rate-arrow-button` | describe-screen to confirm |
-| swaps-screen | `slippage` | click `bridge-slippage-settings-button` | `input-stepper-plus-button` |
-| swaps-screen | `trending-tokens` | already there in the zero state, below the inputs | `bridge-trending-tokens-section` |
-| swaps-screen | `post-trade` | enter an amount, click `bridge-confirm-button` | describe-screen to confirm |
-| asset-picker | `token-list` | click `select-source-token-selector` | `bridge-token-list` |
-| asset-picker | `network-filter` | from `token-list`, click `network-pills-more-button` | `network-list-modal-scroll` |
-| batch-sell | `batch-sell-token-select` | not recorded | `batch-sell-token-select-token-list` |
-| batch-sell | `batch-sell-review` | from token select, click `batch-sell-token-select-next-button` | `batch-sell-review-container` |
-| batch-sell | `batch-sell-sheets` | not recorded | — |
-
-Some surfaces need a quote before their entry control exists — `quote-details`
-and `post-trade` both require a valid amount and a returned quote, so run
-`SWAPS-S1` before trying to reach them.
-
-Where the path is not recorded, discover it with `mm describe-screen` and add
-it to this table as part of that audit. Do not take test IDs from `*.test.tsx`
-files: most of those are mocks and do not exist at run time. The batch sell IDs
-above come from `*.testIds.ts` modules, which are real, but their entry paths
-have never been driven.
-
-**`tests/selectors/**` is not a source of truth either.** It is the E2E
-selector registry, and it contains IDs that no component applies —
-`expand-quote-details` is one, which is why this table used to point at a
-control that does not exist. Confirm an ID against `mm describe-screen` output
-or a `testID=` in a non-test `.tsx`/`.testIds.ts` file before recording it.
-
-`post-trade` submits a real transaction on whatever network the wallet is on.
-Confirm the account and network with the user before driving that surface.
-
-## Step 3 — Audit
-
-Follow the protocol in `references/audit-protocol.md`, using the counter
-recipes in `references/instrumentation.md`. In short: sweep statically for
-candidates, instrument the candidates, measure fixed scenarios, fix,
-re-measure, then revert the instrumentation.
-
-Read `references/checks.md` for how the standard is organised, then the area
-file this run is scoped to plus `references/checks/common.md`. Those set the
-surfaces, the scenarios and the counters you need. The report must carry a
-result for every check in scope, plus whatever the open-ended sweep found, plus
-the area it covered.
-
-Rank findings and pick fixes with `mms-performance` — in particular
-`references/mm-audit-playbook.md` for the sweep, and the guides it maps to for
-each anti-pattern. This skill supplies evidence; that skill supplies judgement.
-
-## Step 4 — Close out
-
-The skill started no watcher, booted no simulator and opened no session, so it
-has nothing to tear down: **leave the environment as you found it.** Shutting
-down a simulator or a Metro process the user is still working in is a worse
-outcome than leaving a session open. If they want the session released, that is
-theirs to run:
-
-```bash
-yarn mm cleanup --shutdown
-```
-
-What the skill *must* clean up is the source tree. Before reporting, confirm
-the working tree has no instrumentation left:
-
-```bash
-git diff --stat
-git diff | grep -n "__mmPerf" && echo "INSTRUMENTATION STILL PRESENT"
-```
-
-## Gotchas
-
-- **`--testid` is lowercase.** `--testId` is parsed as a positional target and
-  silently hits the wrong element.
-- **`--selector` and `--within` are rejected** by the iOS driver even though
-  the shared CLI parses them.
-- **`mm type` clears the field first** (idb does `cmd+a` → delete → type), so
-  measuring "typing" scenarios means one `type` call, not incremental keys.
-  For per-keystroke render counts, type single characters in sequence.
-- **A fresh simulator has no wallet.** Preflight gate 8 catches this, and
-  onboarding is the user's to do. Boot a device that already has a wallet
-  instead, and name it with `MM_AUDIT_DEVICE_ID` if several are up.
-- **Metro must already be running** before `mm launch --metro-port`; the mm
-  workflow is attach-only and never spawns a bundler.
-- **Background churn is real.** The swaps screen re-renders from controller
-  polling even when idle. That is why every scenario needs an idle baseline
-  subtracted from it — see `references/audit-protocol.md`.
-
-## Error recovery
-
-| Error | Meaning and fix |
-|---|---|
-| `MM_SESSION_ALREADY_RUNNING` | Another mm session owns this worktree. Stop it (`yarn mm cleanup --shutdown`) or use a separate worktree. Do not use `--force` on someone else's session. |
-| `MM_DEPENDENCIES_MISSING` | `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb` |
-| `MM_DEVICE_NOT_AVAILABLE` | UDID does not exist or nothing is booted. `xcrun simctl list devices`, then boot one. |
-| `MM_INVALID_CONFIG` | No app and no `--app-bundle`, or Metro unreachable on the given port. Check `curl localhost:<port>/status`. |
-| `MM_WAIT_TIMEOUT` on `bridge-view-scroll` | The swaps screen did not mount. `describe-screen` to see where the flow actually stopped — often an unlock screen or a network/token-selection modal. |
-| `mm cdp` connection refused | The app is not attached to Metro, or the build is a release build. Re-run the preflight: gates 4, 5 and 8 each isolate one of the causes. |
-| Preflight gate fails mid-audit | Something changed under you — the wallet auto-locked, Metro died, the app was backgrounded. Discard any measurement taken after the last passing run, report the failure to the user, and terminate the session. Do not attempt to resolve it yourself. |
+Do not take test IDs from `*.test.tsx` files: most of those are mocks and do
+not exist at run time. `tests/selectors/**` is not a source of truth either —
+it is the E2E selector registry, and it contains IDs that no component
+applies. Confirm an ID against `mm describe-screen` output or a `testID=` in a
+non-test `.tsx`/`.testIds.ts` file before recording it.

@@ -42,8 +42,8 @@ Do not use for:
 ## Workflow
 
 1. **Resolve the scope.** An audit measures one area. Match what the user asked
-   for against the surface aliases in the area files, default to `swaps-screen`
-   when nothing is named, and confirm the resolved scope before provisioning
+   for against the areas in Scope below, default to `swaps-screen` when
+   nothing is named, and confirm the resolved scope before provisioning
    anything.
 2. **Check the environment.** The skill provisions nothing. A human boots the
    simulator, runs the watcher, installs the dev build, opens the `mm` session
@@ -58,43 +58,42 @@ Do not use for:
    covers the whole Bridge directory regardless of scope — it costs seconds.
    Findings are hypotheses at this point, not facts.
 5. **Instrument and measure.** Apply render, stylesheet, subscription-balance
-   and reference-identity counters over Fast Refresh, run the scenarios that
-   surface lists, and read the counters back through `mm cdp`.
-6. **Evaluate the conformance checks.** Report a result for every check in the
-   area's file and in `checks/common.md`, on top of whatever the open-ended
-   investigation turned up. Checks marked `provisional` have thresholds nobody
-   has confirmed on device — a failure there is a prompt to calibrate, and
-   correcting the threshold in the area file is part of the run.
-7. **Fix, re-measure, report.** Re-run the identical scenarios and report
-   before/after deltas per component, the conformance table, and the area the
-   audit covered.
-8. **Revert instrumentation.** No counter may survive into the diff. The
+   and reference-identity counters over Fast Refresh, drive whatever scenario
+   the investigation calls for, and read the counters back through `mm cdp`.
+   There is no fixed scenario catalogue right now (see the note above) — pick
+   scenarios that isolate the hypothesis from step 4.
+6. **Fix, re-measure, report.** Re-run the identical scenario and report
+   before/after deltas per component, plus the area the audit covered. There is
+   no conformance table to fill in until the standard is rebuilt.
+7. **Revert instrumentation.** No counter may survive into the diff. The
    environment is the user's and was theirs before the run, so leave the
    simulator, the watcher and the session exactly as they were found.
 
-The mobile procedure, the exact commands, and the test IDs are in the
-repo overlay. Load these on demand:
+The mobile procedure, the exact commands, and the test IDs are in the repo
+overlay (`repos/metamask-mobile.md`).
 
-- `references/checks.md` — how the standard is organised: areas, ID scheme, the
-  mergeability rule, waivers, and how to contribute. Read it before adding
-  anything.
-- `references/checks/common.md` — always in scope, whatever the area.
-- `references/checks/<area>.md` — the surfaces, scenarios and checks for the
-  area this run is scoped to. This is the living part of the standard.
-- `references/instrumentation.md` — counter recipes, `mm cdp` readout, the
-  stable-identity rule, and the revert checklist.
-- `references/audit-protocol.md` — scope resolution, scenario discipline,
-  deltas, severity, report format.
+**The conformance-check standard (`references/`) has been reset.** The areas,
+scenarios, checks, instrumentation recipes and audit protocol that used to live
+there — including calibrated, on-device-measured thresholds — were deleted
+wholesale rather than repaired piecemeal, so there is currently no scored
+checklist, no scenario catalogue and no report format to follow. Until it is
+rebuilt, an audit is open-ended: sweep the Bridge tree statically, instrument
+and measure what looks suspicious, and report findings with real numbers, but
+do not claim conformance against checks that no longer exist. Propose
+`references/checks.md`, `references/checks/<area>.md`,
+`references/instrumentation.md` and `references/audit-protocol.md` as the
+shape to rebuild into once a new run has fresh findings worth codifying.
 
 ## Scope
 
-One area per run:
+One area per run. There is no area file to load anymore (see the note in
+Workflow) — these are just the named surfaces to resolve a request against:
 
-| Area | Covers | File |
-|---|---|---|
-| `swaps-screen` | Amount input, quote details and selection, slippage, post-trade. **Default.** | `checks/swaps-screen.md` |
-| `asset-picker` | Token list, search, network filter. | `checks/asset-picker.md` |
-| `batch-sell` | Batch sell selection, review, and its sheets. | `checks/batch-sell.md` |
+| Area | Covers |
+|---|---|
+| `swaps-screen` | Amount input, quote details and selection, slippage, post-trade. **Default.** |
+| `asset-picker` | Token list, search, network filter. |
+| `batch-sell` | Batch sell selection, review, and its sheets. |
 
 ```
 audit swaps performance            → swaps-screen (default)
@@ -105,10 +104,5 @@ audit batch sell review            → batch-sell
 audit swaps, all of it             → each area in turn, one report each
 ```
 
-An unrecognised screen is audited ad hoc against `common.md` only, and the skill
-proposes registering it. An ambiguous request is a question, not a guess.
-
-`asset-picker` and `batch-sell` have no checks of their own yet — nothing there
-has been measured on device. Both files carry surfaces, scenarios and
-candidates, so a first audit has somewhere to start and somewhere to record
-what it finds.
+An unrecognised screen is audited ad hoc the same way. An ambiguous request is
+a question, not a guess.
