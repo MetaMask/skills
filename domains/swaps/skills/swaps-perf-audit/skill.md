@@ -16,7 +16,7 @@ description: >-
   swaps performance", "why does swaps re-render", "verify the swaps perf fix",
   "measure swaps renders on device", "audit the token selector", and "profile
   the bridge view". MetaMask Mobile only — iOS Simulator, dev build required.
-maturity: stable
+maturity: experimental
 ---
 
 # Swaps Performance Audit
@@ -54,20 +54,29 @@ Do not use for:
    work around it, and never type a password.
 3. **Navigate to the surface.** Reuse recorded knowledge when it exists, observe
    before every action, and never assume wallet credentials.
-4. **Sweep statically.** Rank candidate anti-patterns from the code. The sweep
-   covers the whole Bridge directory regardless of scope — it costs seconds.
-   Findings are hypotheses at this point, not facts.
-5. **Instrument and measure.** Apply render, stylesheet, subscription-balance
-   and reference-identity counters over Fast Refresh, drive whatever scenario
-   the investigation calls for, and read the counters back through `mm cdp`.
-   There is no fixed scenario catalogue right now (see the note above) — pick
-   scenarios that isolate the hypothesis from step 4.
-6. **Fix, re-measure, report.** Re-run the identical scenario and report
+4. **Instrument and measure.** Skip the static sweep by default — go straight
+   to instrumentation unless the user asked for a sweep (see below). Apply
+   render, stylesheet, subscription-balance and reference-identity counters
+   over Fast Refresh, drive whatever scenario the investigation calls for, and
+   read the counters back through `mm cdp`. There is no fixed scenario
+   catalogue right now (see the note above) — pick scenarios that isolate
+   whatever behavior prompted the audit.
+5. **Fix, re-measure, report.** Re-run the identical scenario and report
    before/after deltas per component, plus the area the audit covered. There is
    no conformance table to fill in until the standard is rebuilt.
-7. **Revert instrumentation.** No counter may survive into the diff. The
+6. **Revert instrumentation.** No counter may survive into the diff. The
    environment is the user's and was theirs before the run, so leave the
    simulator, the watcher and the session exactly as they were found.
+
+### Static sweep — on request only
+
+Ranking candidate anti-patterns from the code (the whole Bridge directory,
+regardless of scope) is not part of a default audit — it produces hypotheses,
+not measurements, and this skill's contract is numbers taken off a running
+device. Run it only when the user explicitly asks for a static sweep, a code
+review, or a list of suspects before measuring anything. When asked, do it
+before step 4 and treat the results as hypotheses to confirm or reject with
+real counters, not as findings on their own.
 
 The mobile procedure, the exact commands, and the test IDs are in the repo
 overlay (`repos/metamask-mobile.md`).
@@ -77,9 +86,11 @@ scenarios, checks, instrumentation recipes and audit protocol that used to live
 there — including calibrated, on-device-measured thresholds — were deleted
 wholesale rather than repaired piecemeal, so there is currently no scored
 checklist, no scenario catalogue and no report format to follow. Until it is
-rebuilt, an audit is open-ended: sweep the Bridge tree statically, instrument
-and measure what looks suspicious, and report findings with real numbers, but
-do not claim conformance against checks that no longer exist. Propose
+rebuilt, an audit is open-ended: instrument and measure what looks suspicious
+on the surface in scope, and report findings with real numbers, but do not
+claim conformance against checks that no longer exist. A static sweep of the
+Bridge tree is available on request (see Workflow) but is not part of the
+default run. Propose
 `references/checks.md`, `references/checks/<area>.md`,
 `references/instrumentation.md` and `references/audit-protocol.md` as the
 shape to rebuild into once a new run has fresh findings worth codifying.
