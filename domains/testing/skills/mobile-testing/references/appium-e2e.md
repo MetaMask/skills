@@ -113,25 +113,24 @@ Only branch when the flow genuinely differs. See
 11. Fix lint/tsc before running.
 12. No `try/catch` in POM methods.
 
-## Build and run (summary)
+## Build and run
 
 Appium needs a **main-e2e release** binary (`HAS_TEST_OVERRIDES=true`). Detox
 debug builds are wrong for Appium.
 
+When asked to **run**, **validate**, or **debug** Appium smoke locally, follow
+[`running-appium-locally.md`](running-appium-locally.md) (agent order + checklist).
+Full recipes live in the mobile repo — do not duplicate them here:
+
+→ `docs/testing/appium-smoke-testing.md`
+
 ```bash
-# Prefer CI main-e2e artifacts — see docs/testing/appium-smoke-testing.md
+# Prefer CI main-e2e artifacts — see mobile doc for download / prep
 IOS_APP_PATH=build/ci-main-e2e/MetaMask.app \
 IOS_SIMULATOR_UDID="$IOS_SIMULATOR_UDID" \
-yarn appium-smoke:ios
-
-# Single spec / tag
 yarn appium-smoke:ios --grep SmokeAccounts \
   tests/smoke-appium/accounts/<spec>.spec.ts
 ```
-
-Prepare iOS with `scripts/e2e/prepare-ios-appium-runner.mjs` when needed. Full
-env vars, Android notes, and troubleshooting live in
-`docs/testing/appium-smoke-testing.md`.
 
 ## Review checklist
 

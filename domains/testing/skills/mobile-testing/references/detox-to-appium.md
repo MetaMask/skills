@@ -27,7 +27,7 @@ When Detox is fully removed from Mobile, delete this doc and `references/detox/`
    `resolve` / `encapsulated` / `encapsulatedAction` (see mobile
    `docs/testing/e2e-testing.md`).
 6. Lint, typecheck, run `yarn appium-smoke:ios` (or android) against a
-   **main-e2e** build.
+   **main-e2e** build — follow [`running-appium-locally.md`](running-appium-locally.md).
 7. After Appium coverage is green, remove or stop extending the Detox twin
    when the team is ready (do not delete Detox specs unless asked).
 
