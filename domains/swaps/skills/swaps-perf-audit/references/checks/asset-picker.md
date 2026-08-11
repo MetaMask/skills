@@ -32,8 +32,13 @@ are advisory. Calibrate one and promote it, recording the device and build.
 - **Test IDs:** `bridge-token-search-input`, `bridge-token-list`,
   `bridge-token-selector-empty-state`. Per row:
   `asset-<chainId>-<symbol>`, `token-logo-<symbol>` (or `network-logo-<symbol>`
-  for natives), `token-verified-icon-<symbol>`. `SkeletonItem` has none, so a
-  loading list is invisible to `describe-screen`.
+  for natives), `token-verified-icon-<symbol>`. `SkeletonItem` renders only
+  `Skeleton` primitives with no `Text` and no `accessibilityLabel` anywhere in
+  it — there is no by-label fallback to look for, and none should be searched
+  for. A loading list is invisible to `describe-screen` by construction; its
+  presence can only be inferred indirectly, via row count or the
+  `PICKER-R005` render counter this skill already instruments for this exact
+  case.
 - **Instrument:** the row (`BridgeTokenSelectorRow` and/or
   `TokenSelectorItem`) plus `BridgeTokenSelector` itself. Two components, no
   more — a row counter fires once per visible row and dominates everything else

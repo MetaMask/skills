@@ -160,7 +160,10 @@ is half the cost of an audit.
    scope-resolution mechanism.
 2. Record the entry path with real test IDs, verified against a running app.
    Do not take IDs from `*.test.tsx` — most are mocks that do not exist at run
-   time.
+   time. Before recording or re-verifying a surface's IDs, run the freshness
+   sweep in `audit-protocol.md`'s Step 1 ("Test-ID freshness") against the
+   surface's `Code:` paths — a documented ID with no matching source hit is
+   drift, not a candidate for a live-app search.
 3. List the code it owns, so the static sweep and future scope inference can
    map a diff onto it.
 4. Name at most five components to instrument. A surface needing more is

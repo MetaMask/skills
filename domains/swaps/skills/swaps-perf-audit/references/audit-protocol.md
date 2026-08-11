@@ -106,6 +106,30 @@ guardrails — notably: never flag missing `estimatedItemSize` (FlashList v2
 deprecated it), and never propose `useMemo`/`useCallback` without evidence or a
 concrete correctness reason.
 
+### Test-ID freshness
+
+Before trusting any test ID this run's area file documents, verify it against
+source — documented IDs drift as components change, and a stale ID costs a
+live `wait-for` timeout instead of a few seconds of `rg`.
+
+For every path listed under the resolved surface's **Code:** entry, print
+every literal `testID` actually defined there right now:
+
+```bash
+rg -o 'testID=\{?["'"'"']([A-Za-z0-9_<>-]+)' <path-from-the-surface's-Code-list>
+```
+
+Treat this output as authoritative for the run. The area file's documented ID
+table stays useful for context the grep can't carry — which ID serves which
+purpose, and which are dynamic templates like `asset-<chainId>-<symbol>` — but
+any mismatch between the table and this sweep is a documentation bug to note
+in the report, not a reason to keep searching for the "right" ID by hand.
+
+This does not attempt to auto-diff the markdown table against the sweep
+output — that's a fragile parsing exercise for a low-value automation gain.
+Read both and reconcile by eye, the same way the rest of Step 1's sweep
+results are read.
+
 ## Step 2 — Scenario set
 
 Scenarios are defined per area, not here. `COMMON-S0` and `COMMON-S6` live in

@@ -41,7 +41,11 @@ Calibrate one and promote it, recording the device and build.
   `arrow-button` (the flip control), `bridge-slippage-settings-button`,
   `bridge-confirm-button`, `bridge-confirm-button-keypad`, `bridge-no-quotes`,
   `bridge-missing-price-banner`, `bridge-fee-disclaimer`.
-  `SwapsKeypad` and the underlying `Keypad` have **none**.
+  `SwapsKeypad` itself has no testID on its container, but the underlying
+  `Keypad` (`app/components/Base/Keypad/index.tsx`) does:
+  `keypad-key-0` through `keypad-key-9`, `keypad-key-dot`,
+  `keypad-delete-button`. The previous claim that the keypad has no test IDs
+  was stale — caught by the Test-ID freshness check in `audit-protocol.md`.
 - **Instrument:** `BridgeViewContent`, `TokenInputArea` (source and dest),
   `FlipQuoteButton`, and either `SwapsKeypad` or the context identity counter.
   `QuoteCountdownTimer` lives inside `QuoteDetailsCard` and only exists once a
@@ -78,7 +82,14 @@ Calibrate one and promote it, recording the device and build.
   `price-impact-info-button`, `bridge-rewards-row`,
   `recipient-selector-button`, `bridge-quote-details-skeleton`.
   `QuoteSelectorView`, `QuoteList` and `QuoteRowView` have **no runtime test
-  IDs** — drive them positionally or add IDs first.
+  IDs** — drive them positionally or add IDs first. A by-label recipe cannot
+  fully substitute here: `QuoteRowView`'s visible text is mostly per-quote
+  data (the provider name, the receive amount), and its only fixed strings —
+  "Total Cost" (`bridge.total_cost`) and the "Lowest cost" tag
+  (`bridge.lowest_cost`) — repeat once per row, so a label match alone cannot
+  disambiguate rows. Match by role plus one of those substrings, then
+  disambiguate positionally with a fresh `describe-screen`; do not assume a
+  single label match is the intended row.
 - **Instrument:** `QuoteDetailsCard` and one `KeyValueRow` instance
 - **Scenarios:** COMMON-S0, SWAPS-S5, SWAPS-S8
 - **Checks:** SWAPS-R005, R011
@@ -103,7 +114,14 @@ Calibrate one and promote it, recording the device and build.
 - **Test IDs:** `bridge-slippage-settings-button`, `edit-slippage-button`,
   `input-stepper-minus-button`, `input-stepper-plus-button`,
   `input-stepper-input`. The modal screens themselves carry **no runtime test
-  IDs** — only the stepper inside them does.
+  IDs** — only the stepper inside them does. All four variants
+  (`DefaultSlippageModal`, `CustomSlippageModal`, and their `BatchSell*`
+  counterparts) share the same header and footer content, so by-label
+  targeting is consistent across all of them: the header title reads
+  "Slippage" (`bridge.slippage`), the close control's accessibility label is
+  "Close" (`bridge.close`), and the default modal's submit button reads
+  "Submit" (`bridge.submit`) while the custom modal's footer has "Cancel"
+  (`bridge.cancel`) and "Confirm" (`bridge.confirm`) buttons instead.
 - **Instrument:** the modal body and the stepper
 - **Scenarios:** COMMON-S0, SWAPS-S6
 - **Checks:** SWAPS-R012
