@@ -17,7 +17,7 @@ If the case is pure logic / helpers, or CV cannot cover it yet, open [`unit.md`]
 
 ## Testing layers (read first)
 
-Follow [`layers.md`](layers.md) or installed `knowledge/testing-layers.md` for the full decision tree. Choose by layer inside **mobile-testing**. Prefer **CV → integration → unit fallback → E2E**; multi-screen journeys are CV-first when routes can be registered — do not jump to Appium for “journey” alone.
+Follow installed `knowledge/testing-layers.md` for the full decision tree. Choose by layer inside **mobile-testing**. Prefer **CV → integration → unit fallback → E2E**; multi-screen journeys are CV-first when routes can be registered — do not jump to Appium for “journey” alone.
 
 Your job is to figure out whether the user needs to **write a new test**, **fix a failing test**, or **update tests after a component/preset change**, then follow the corresponding path and open the relevant reference when that path indicates.
 

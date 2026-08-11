@@ -61,7 +61,7 @@ metamask-skills install       # lower-level installer wrapper
 The discovery commands make opt-in selection self-serve. Developers can find a
 skill, inspect it, then save their selection. On Mobile, install **one** skill —
 **mobile-testing** — for unit, component-view, integration, Appium E2E,
-Detox→Appium migration, and test-layer placement (see
+and test-layer placement (see
 `domains/testing/knowledge/testing-layers.md`):
 
 ```bash

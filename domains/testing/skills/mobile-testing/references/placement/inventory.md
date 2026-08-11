@@ -34,13 +34,13 @@ ls tests/integration 2>/dev/null | head
 
 ## E2E
 
-Search Appium (default) and remaining Detox specs/page objects that mention the feature screen names / testIDs:
+Search Appium specs/page objects that mention the feature screen names / testIDs:
 
 ```bash
-rg -l "FeatureName|ScreenName" e2e/ appium/ 2>/dev/null | head -50
+rg -l "FeatureName|ScreenName" tests/smoke-appium/ 2>/dev/null | head -50
 ```
 
-Prefer existing e2e skill conventions for exact folders in this checkout.
+Prefer existing Appium conventions for exact folders in this checkout.
 
 ## Count `it(` for metrics
 
