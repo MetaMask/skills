@@ -32,6 +32,11 @@ the un-guarded third: https://github.com/o/r/blob/abc123/src/migrate.ts#L40
 
 That leaves the rollback lane unaccounted for, which is worth its own pass before this lands.
 BODY
+# Addressing people is the one violation that cannot be walked back, so it gets both arms.
+# The handles here are synthetic on purpose: a fixture that names a real account would page
+# them the moment anyone pasted this file's contents into a body.
+printf 'Ready for another look — @nobody-example-0000 can you take it from here?\n' > "$tmp/mention.md"
+printf 'Pinned the workflow to @v6 so the step resolves the same way on every run.\n' > "$tmp/actionpin.md"
 
 probe() { printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$1")"; }
 
@@ -100,6 +105,14 @@ check "positive: finding via comment" 2 "gh issue comment 1 --repo o/r --body-fi
 check "negative: unrelated command"   0 "ls -la"
 check "negative: gh read, no body"    0 "gh pr view 1 --repo o/r"
 check "negative: a reply is a reply"  0 "gh issue comment 1 --repo o/r --body-file $tmp/reply.md"
+
+# The mentions check runs over the WHOLE body rather than the evidence-scoped paragraphs,
+# so its positive arm is a body that violates nothing else — proving the block comes from
+# the handle and not from something the other checks would have caught anyway. The negative
+# arm is the shape that shares the syntax and pages nobody: an action pin. Without it, a
+# rule that blocked every `@` at all would look identical here.
+check "positive: body addresses a person" 2 "gh pr comment 1 --repo o/r --body-file $tmp/mention.md"
+check "negative: @v6 action pin"          0 "gh pr comment 1 --repo o/r --body-file $tmp/actionpin.md"
 
 # The gate reads the command as text, so a body it cannot resolve is a body it cannot
 # check. These three are how an entire session of publishes went ungated while every

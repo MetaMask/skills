@@ -24,6 +24,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 
 def _out_allow():
@@ -102,9 +103,58 @@ def main():
             "what you are about to publish.\n"
         )
 
+    # Contacting people is default-deny, and it is checked before anything else
+    # because it is the one violation that cannot be walked back: edits do not
+    # re-notify and deletion does not unsend. Scanned over the WHOLE payload, not
+    # via _scan(), which only visits evidence-scoped paragraphs — a handle in a
+    # sign-off or a table cell pages someone just as hard as one in a claim.
+    mentions = _scan_mentions(body)
+    if mentions:
+        _block(
+            "EVIDENCE GATE (PreToolUse) — blocked an outward-facing write that "
+            "addresses people.\n\n"
+            "Found: " + ", ".join(sorted(set(mentions))) + "\n\n"
+            "An @-mention is an action, not a citation: it pages a third party "
+            "irreversibly, and the benefit accrues to this artifact while the cost "
+            "lands on someone who did not join the thread.\n\n"
+            "Attribute by venue instead — 'raised in review', 'reported internally', "
+            "'per the release thread'. If a notification is genuinely needed, surface "
+            "it as an action for the user to take: name who, name why, and stop.\n\n"
+            "Only the user naming the person authorizes this. Reviewer requests, "
+            "assignees and cc are the same act in different syntax and are covered by "
+            "the same rule (see ~/.claude/CLAUDE.md, 'Contacting people').\n"
+        )
+
+    # A reply to a review comment is the shape an unattended tick writes in, and the
+    # one a bot finding pulls hardest. Receipt or nothing — see exogram-core
+    # memory/an-unattended-ticks-outward-write-is-a-receipt.md.
+    if _is_reply_write(cmd) and not _receipt_shaped(body):
+        ok, why = _long_reply_marker_ok()
+        if not ok:
+            _block(
+                "EVIDENCE GATE (PreToolUse) — blocked a reply that is not receipt-shaped.\n\n"
+                f"Reason: {why}\n\n"
+                "A reply to a review comment publishes without the user having read it. "
+                "That authorization gap, not style, sets the length. What ships is one "
+                "line:\n\n"
+                "    Fixed: <commit sha or permalink>\n\n"
+                "`Addressed:` / `Resolved:` / `Done:` are the same form. No restatement of "
+                "the finding, no explanation of the fix, no reasoning about a suggestion "
+                "not taken, no acknowledgement, no emoji, no apology. This binds hardest on "
+                "bot replies: there is no reader to persuade, so the explanation is pure "
+                "cost — public, notifying, and written by a process nobody has read.\n\n"
+                "The explanation does not disappear, it changes venue. Present it in the "
+                "conversation as a draft with its follow-ups, and prompt. It publishes on "
+                "an explicit yes.\n\n"
+                "If the user HAS read this text and authorized it, certify it in a "
+                "SEPARATE Bash call immediately before the write (chaining it into the same "
+                "command self-certifies and is not honored):\n\n"
+                f"    touch {_REPLY_MARKER}\n"
+            )
+
     violations = _scan(body)
     if re.search(r"\bgh\s+issue\s+comment\b", cmd):
-        violations += _scan_enrichment_via_comment(body)
+        violations += _scan_enrichment_via_comment(body, cmd)
     violations += _run_attest_gate(body, cmd)
     if not violations:
         _out_allow()
@@ -146,6 +196,16 @@ NEEDS = {
     "observation": "an OBSERVATION artifact (screenshot/recording/log/JSON/permalink) — "
                    "a /blob/ code link witnesses code, not runtime behavior",
     "deferral": "a co-located TRACKER (#issue, issues/pull URL, 'triage', 'tracked in')",
+    "context-leak": "the CLAIM without its provenance — the reader has the diff, not "
+                    "your terminal or your drafts. State the finding, not how you came to "
+                    "know it: drop 'I ran/verified locally' (give the command and its "
+                    "output), drop 'correcting my earlier' (state the current claim), drop "
+                    "'as discussed/per your request' (give the technical reason)",
+    "adhoc-artifact-host": "the ESTABLISHED artifact destination, not personal hosting — "
+                           "re-upload to s3://majorlift-artifacts-share/public/... and link "
+                           "the https://majorlift-artifacts-share.s3.us-west-1.amazonaws.com "
+                           "URL (verify 200 unauthenticated). See "
+                           "mms-evidence/references/evidence-publishing.md",
     "ci-restatement": "removal of the CLAIM, not of the link — 'green at head' hands the "
                       "reviewer their own Checks tab back. Citing a specific run and job "
                       "whose log holds the figure you are reporting is evidence and is "
@@ -218,6 +278,9 @@ VERDICT = re.compile(
     r"(?i)(?:\bcapture[ds]?\s+confirm\w*|\bconfirm(?:s|ed)\b|\bverif(?:y|ies|ied)\b"
     r"|\bproven\b|\bobserved\b|\bingested\b|\bdemonstrat(?:e|es|ed)\b"
     r"|\blive-proven\b|\bsuccessful\b|\bvalidated\b"
+    r"|\b(?:is|it'?s|says\s+it'?s)\s+safe\b|\bsafe\s+to\s+(?:merge|land|ship|remove)\b"
+    r"|\bbehavior-neutral\b|\bharmless\b|\bno\s+regressions?\b"
+    r"|\bchecked\s+(?:against|directly)\b|\bpass(?:es|ed)?\s+(?:compiler\s+)?analysis\b"
     r"|does not drop\b|✅)"
 )
 ARTIFACT = re.compile(
@@ -443,7 +506,46 @@ REPLY_TEMPLATE_OPENER = re.compile(
 )
 
 
-def _scan_enrichment_via_comment(body):
+def _issue_is_foreign(cmd):
+    """True when `gh issue comment` targets a ticket somebody else filed.
+
+    The enrichment rule below assumes the alternative to a comment is a body
+    edit. That holds only on a ticket you authored. On someone else's — and on
+    bot-filed audit trackers especially — rewriting the body overwrites their
+    artifact and renders your analysis in their voice, indistinguishable from
+    what the bot generated and clobberable on its next run. There the comment IS
+    the correct form, and this rule must not push you off it.
+
+    Fails CLOSED: if authorship cannot be determined the rule stays active, so a
+    network hiccup never silently disables the check. Reading stdout alone does
+    NOT achieve that — `gh api` writes its error envelope to stdout, so a 404
+    yields `{"message":"Not Found",...}`, which is truthy and never equal to the
+    caller's login, and every failed lookup reports "somebody else's ticket" and
+    waves the rule through. Caught by the enrichment arm of gate-controls.sh,
+    whose fixture repo does not exist: the check went silent while its own
+    docstring said it could not. So gate on the return code, not the bytes.
+    """
+    m = re.search(r"--repo\s+([\w.-]+/[\w.-]+)", cmd)
+    n = re.search(r"\bissue\s+comment\s+(\d+)", cmd)
+    if not (m and n):
+        return False
+    try:
+        issue = subprocess.run(
+            ["gh", "api", f"repos/{m.group(1)}/issues/{n.group(1)}",
+             "--jq", ".user.login"],
+            capture_output=True, text=True, timeout=15)
+        viewer = subprocess.run(
+            ["gh", "api", "user", "--jq", ".login"],
+            capture_output=True, text=True, timeout=15)
+    except Exception:  # noqa: BLE001
+        return False
+    if issue.returncode != 0 or viewer.returncode != 0:
+        return False  # authorship unknown — the rule stays active
+    author, me = issue.stdout.strip(), viewer.stdout.strip()
+    return bool(author and me and author.lower() != me.lower())
+
+
+def _scan_enrichment_via_comment(body, cmd=""):
     """`gh issue comment` posting a standalone finding — should be a body edit.
 
     Structural signal, not a vocabulary one: the real instance this is modeled
@@ -460,6 +562,8 @@ def _scan_enrichment_via_comment(body):
     """
     if REPLY_TEMPLATE_OPENER.search(body.strip()):
         return []
+    if _issue_is_foreign(cmd):
+        return []  # not yours to body-edit; a comment is the correct form
     paras = [p.strip() for p in re.split(r"\n\s*\n", body) if p.strip()]
     if len(paras) < 3:
         return []  # short reply, even with a link, isn't a standalone report
@@ -480,6 +584,89 @@ def _body_arg_is_unresolvable(cmd):
         return False
     arg = m.group(1)
     return bool(re.search(r"\$|`", arg))
+
+
+# ── reply receipts ──────────────────────────────────────────────────────────
+# Both spellings of "reply to an existing review comment". Anything else — a new
+# top-level comment, a PR body, an issue — is out of scope here.
+_REPLY_CMD = re.compile(
+    r"(?:/pulls/comments/\d+/replies\b"
+    r"|(?:-F|-f|--field|--raw-field)\s+in_reply_to=)"
+)
+
+_RECEIPT = re.compile(
+    r"(?i)^(?:fixed|fixes|addressed|resolved|done|reverted|dropped|no longer applies)\b"
+)
+
+_SESSION = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+_REPLY_MARKER = os.environ.get(
+    "CC_REPLY_MARKER",
+    f"/tmp/.cc-longreply-marker.{_SESSION}" if _SESSION else "/tmp/.cc-longreply-marker",
+)
+_REPLY_TTL = 120
+
+
+def _receipt_shaped(body):
+    """One line, opening with a completion verb, short enough to be a pointer.
+
+    The length bound is what makes this a receipt rather than a one-line essay —
+    a single line can hold a paragraph, and semicolons are how it would.
+    """
+    lines = [ln.strip() for ln in body.strip().splitlines() if ln.strip()]
+    if len(lines) != 1:
+        return False
+    return bool(_RECEIPT.match(lines[0])) and len(lines[0]) <= 200
+
+
+def _is_reply_write(cmd):
+    return bool(_REPLY_CMD.search(cmd))
+
+
+def _long_reply_marker_ok():
+    """Consumed on use, so one certification licenses exactly one long reply.
+
+    Same construction as commit-guard: PreToolUse sees the whole command string
+    before any of it runs, so a marker written inside the same Bash call has not
+    happened yet at check time. That is deliberate — a same-command write would
+    self-certify and reopen exactly the gap this closes.
+    """
+    try:
+        age = time.time() - os.path.getmtime(_REPLY_MARKER)
+    except OSError:
+        return False, "no marker — this reply has not been read and authorized by the user"
+    if age > _REPLY_TTL:
+        return False, f"marker is stale ({int(age)}s old, TTL {_REPLY_TTL}s)"
+    try:
+        os.unlink(_REPLY_MARKER)
+    except OSError:
+        pass
+    return True, ""
+
+
+# ── addressing people ──────────────────────────────────────────────────────
+def _scan_mentions(body):
+    """Handles in the payload that would notify a person or a team.
+
+    Excludes only the shapes that cannot page anyone: action pins (`@v6`) and
+    emails. Code fences and inline code are skipped — quoting a log line that
+    contains a handle does not notify, and package names belong in backticks
+    anyway (`@metamask/utils`), which is already the convention in these bodies.
+
+    `@scope/name` is NOT allowlisted by scope, because `@metamask/qa` (a team,
+    pages everyone in it) and `@metamask/utils` (a package) are syntactically
+    identical. A false block costs a rewrite; a false pass pages people, and
+    cannot be undone. So the ambiguous form blocks and the author backticks it.
+    """
+    stripped = re.sub(r"```.*?```", "", body, flags=re.DOTALL)
+    stripped = re.sub(r"`[^`\n]*`", "", stripped)
+    hits = []
+    for m in re.finditer(r"(?<![\w./-])@([A-Za-z0-9][A-Za-z0-9-]{1,38})(/[A-Za-z0-9._-]+)?",
+                         stripped):
+        handle, sub = m.group(1), m.group(2) or ""
+        if re.fullmatch(r"v\d[\w.-]*", handle):        # @v1, @v6.2 action pins
+            continue
+        hits.append("@" + handle + sub)
+    return hits
 
 
 def _scan(body):
@@ -560,6 +747,32 @@ _EXTRA_HOSTS = tuple(
     h.strip().lower()
     for h in (os.environ.get("EVIDENCE_GATE_ARTIFACT_HOSTS") or "").split(",")
     if h.strip()
+)
+# ── item 18: evidence parked on ad-hoc personal hosting ────────────────────
+# The established destination is s3://majorlift-artifacts-share/public/... (see
+# references/evidence-publishing.md). A personal gist or a raw link to a personal
+# repo is not that store: it is outside the team's ownership, undiscoverable, and
+# deletable by one account. Matches only self-owned personal hosting — citing
+# someone else's gist as a source is unaffected.
+ADHOC_ARTIFACT_HOST = re.compile(
+    r"(?i)https?://(?:gist\.github\.com/MajorLift/\w+"
+    r"|raw\.githubusercontent\.com/MajorLift/"
+    r"|github\.com/MajorLift/[\w.-]+/raw/)"
+)
+# ── item 19: context leak (coldread as a precondition, not a command) ──────
+# Session-internal context that resolves only because the author was there.
+# These break nothing mechanically, which is why every other check passes them
+# and why they were previously caught only by running /coldread by hand AFTER
+# publication. High-precision tokens only: the author's process narrated at the
+# reader ("I ran", "verified locally"), the draft's own revision history
+# ("correcting my", "the initial analysis"), and conversation dynamics
+# ("as discussed", "per your request").
+CONTEXT_LEAK = re.compile(
+    r"(?i)(?:\bI\s+(?:ran|tried|verified|checked|measured|re-?measured|first\s+reported)\b"
+    r"|\bverified\s+locally\b|\bcorrecting\s+my\b|\bmy\s+earlier\s+(?:read|look|comment)\b"
+    r"|\bthe\s+initial\s+(?:analysis|draft|version|read)\b"
+    r"|\bas\s+discussed\b|\bper\s+your\s+(?:request|message|ask)\b|\byou\s+asked\b"
+    r"|\bas\s+requested\b|\bworth\s+saying\s+what\s+this\b)"
 )
 _URL_RE = re.compile(r"https?://[^\s)>\]\"']+")
 _LOCAL_REF_RE = re.compile(
@@ -750,6 +963,22 @@ def _scan_unit(unit, violations):
     if _positive_verdict(unit) and TELEMETRY_VOCAB.search(unit) \
             and not IMAGE_EMBED.search(unit) and not LIVE_LINK.search(unit):
         _add(violations, "data-only-exhibit", TELEMETRY_VOCAB.search(unit).group(0), unit)
+
+    # ── AD-HOC ARTIFACT HOST (item 18): evidence parked on personal hosting
+    #    instead of the established artifact destination. The link may resolve
+    #    today, but it is outside the store the team owns and the one the
+    #    publishing reference names, so it is not durable and not discoverable.
+    hm = ADHOC_ARTIFACT_HOST.search(unit)
+    if hm:
+        _add(violations, "adhoc-artifact-host", hm.group(0)[:60], unit)
+
+    # ── CONTEXT LEAK (item 19): session-internal context that resolves only
+    #    because the author was there. Mechanically harmless, which is exactly
+    #    why it survives every other check and used to be caught by a manual
+    #    /coldread pass after the write instead of before it.
+    cl = CONTEXT_LEAK.search(unit)
+    if cl:
+        _add(violations, "context-leak", cl.group(0)[:60], unit)
 
 
 _INLINE_CODE = re.compile(r"`[^`\n]+`")
