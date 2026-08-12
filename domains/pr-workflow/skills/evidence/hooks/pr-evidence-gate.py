@@ -138,6 +138,11 @@ NEEDS = {
     "gate-missing": "attest-gate.sh on disk; refusing to publish a body nothing verified",
     "gate-error": "attest-gate.sh to run successfully; refusing to publish unverified",
     "verdict": "an inspectable ARTIFACT (https:// permalink, /blob/<sha>/, or a *.test.ts ref)",
+    "relative-window": "an ABSOLUTE window on the query link (start=/end=, not "
+                       "statsPeriod=/period=/from=now-). A relative window resolves "
+                       "against the reader's clock, so the counts you typed stop "
+                       "matching the link without anything being edited. Also give each "
+                       "cited breakdown a link whose view performs that grouping",
     "observation": "an OBSERVATION artifact (screenshot/recording/log/JSON/permalink) — "
                    "a /blob/ code link witnesses code, not runtime behavior",
     "deferral": "a co-located TRACKER (#issue, issues/pull URL, 'triage', 'tracked in')",
@@ -272,6 +277,15 @@ RESOLVER = re.compile(r"(?i)https?://\S+")
 # ── item 16: mutable ref — /blob/<branch>/ instead of /blob/<sha>/ ─────────
 MUTABLE_REF = re.compile(
     r"(?i)https?://github\.com/[\w.-]+/[\w.-]+/blob/(?![0-9a-f]{7,40}[/#])[\w.-]+/"
+)
+# ── item 16b: relative-window query link ───────────────────────────────────
+# The telemetry analogue of MUTABLE_REF. `statsPeriod=7d` / `period=24h` /
+# `from=now-7d` resolve against the READER's clock, so a link published beside
+# typed counts stops producing them without anything having been edited. Pin
+# start/end absolutely at publication. Same failure as an unpinned /blob/ ref:
+# looks auditable, silently ceases to be.
+RELATIVE_WINDOW = re.compile(
+    r"(?i)https?://\S*?(?:[?&](?:statsPeriod|period)=\d+[hdwmy]\b|[?&]from=now-)"
 )
 # ── item 13: dump-as-resolver ──────────────────────────────────────────────
 DUMP_LINK = re.compile(r"(?i)https?://\S+\.(?:log|json|har|txt)\b")
@@ -712,6 +726,11 @@ def _scan_unit(unit, violations):
     mm = MUTABLE_REF.search(unit)
     if mm:
         _add(violations, "mutable-ref", mm.group(0)[:60], unit)
+
+    # ── RELATIVE WINDOW (item 16b): pin telemetry links to an absolute window.
+    rw = RELATIVE_WINDOW.search(unit)
+    if rw:
+        _add(violations, "relative-window", rw.group(0)[:60], unit)
 
     # ── DUMP RESOLVER (item 13): a positive verdict whose only resolver is a
     #    raw dump behind a link. The digging moved a hop away, it did not
