@@ -1,0 +1,284 @@
+# Evidence runner — lives in ONE repo and measures any other.
+#
+# It does not need to be installed in the repo under review, and there is no reason to
+# fork that repo either: `target_repo` is an input and the job checks it out read-only.
+# Put this in whatever repo you want the runs and artifacts to belong to.
+#
+# Why this exists rather than running the measurement locally: a validation run is a
+# claim that a command produced an output, and the reader has to be able to check that
+# without going through the author. A local run's only witness is the author. Every
+# failure class this suite has shipped was a local-environment failure — a helper script
+# in /tmp, a probe deleted after the run, an absolute path, a toolchain that drifted, a
+# contended host producing numbers that had to be retracted.
+#
+# In CI none of those is expressible. The workflow file is the recipe, the workspace is
+# the repo, the run records its own ref, and the run URL is itself the capture —
+# `actions/runs/<id>` is what the publish gate accepts.
+#
+# Trigger from the CLI:
+#   gh workflow run evidence-run.yml \
+#     -f runner=falsify-probe \
+#     -f ref=<sha> \
+#     -f args='--test path/to.test.ts --source path/to.ts --line 9 --replace "  return x;"'
+#
+# Then cite the run URL in the comment. The artifacts are attached to the run; the
+# orchestrator reads them to write the finding.
+name: Evidence run
+
+'on':
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner to execute
+        required: true
+        type: choice
+        options:
+          - falsify-probe
+          - selector-recompute
+          - render-count
+          - tsc-substitution
+          - capture
+      target_repo:
+        description: >-
+          Repository to measure. No default on purpose: a default here is a standing
+          decision about what every unthinking dispatch touches, and this workflow's whole
+          argument is that it should be proved somewhere harmless first.
+        required: true
+        type: string
+      ref:
+        description: Commit SHA to measure. Pin it — a branch name makes the run unrepeatable.
+        required: true
+        type: string
+      args:
+        description: Arguments passed to the runner, verbatim
+        required: true
+        type: string
+      needs_install:
+        description: >-
+          Install the target's dependencies. Required for the jest and tsc runners; a waste
+          of ten minutes for `capture` wrapping git or a policy audit, which read files only.
+        required: false
+        default: true
+        type: boolean
+      baseline:
+        description: >-
+          Second SHA to measure identically. Twice now a run reported "no finding" when it
+          had no comparison, so the baseline arm is offered here rather than left to memory.
+        required: false
+        type: string
+      skills_repo:
+        description: >-
+          Where to source the runners. Defaults to upstream. Overridable because a runner
+          fix and the run that needs it cannot both wait on a review: point this at a fork
+          branch, and say in the artifact that you did.
+        required: false
+        default: MetaMask/skills
+        type: string
+      skills_ref:
+        description: >-
+          Ref within skills_repo. Overrides the EVIDENCE_SKILLS_REF variable.
+        required: false
+        type: string
+      probe_path:
+        description: >-
+          Path, within skills_repo, of a probe file to copy into the target tree before the
+          runner executes. `render-count` takes a hand-written probe, and a probe that lives
+          only on the author's disk is the exact defect the run URL exists to remove.
+        required: false
+        type: string
+      probe_dest:
+        description: Where in the target tree to place probe_path. Required with probe_path.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Reject a moving ref
+        env:
+          REF: ${{ inputs.ref }}
+          BASE: ${{ inputs.baseline }}
+        run: |
+          # A branch name makes the artifact unrepeatable, which is the property this
+          # workflow exists to provide. Checked before anything is fetched.
+          for r in "$REF" ${BASE:+"$BASE"}; do
+            case "$r" in
+              *[!0-9a-f]* | "") echo "::error::'$r' is not a commit SHA"; exit 1 ;;
+            esac
+            [ ${#r} -eq 40 ] || { echo "::error::'$r' must be the full 40-char SHA"; exit 1; }
+          done
+
+      - name: Checkout the target at the measured ref
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.target_repo }}
+          ref: ${{ inputs.ref }}
+          fetch-depth: 2 # the runners diff against the parent
+
+      # Before setup-node, not after. A target that pins its package manager through
+      # `packageManager` in package.json makes setup-node's `cache: yarn` probe run
+      # `yarn cache dir` under the runner's global yarn 1.22, which refuses and fails
+      # the step — so every jest runner died at setup with nothing measured. The target
+      # repo's own workflows order it exactly this way.
+      - name: Enable corepack
+        if: inputs.needs_install
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        if: inputs.needs_install
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install
+        if: inputs.needs_install
+        run: yarn --immutable
+
+      # Pinned to a commit, for the same reason the measured ref must be: a branch name
+      # makes the run unrepeatable, and "which version of the runner produced this" is
+      # exactly the question a reader asks. Override per-repo with the EVIDENCE_SKILLS_REF
+      # variable; bump the default when the runners land on the skills repo's main.
+      - name: Fetch the runners at a pinned version
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.skills_repo || 'MetaMask/skills' }}
+          ref: ${{ inputs.skills_ref || vars.EVIDENCE_SKILLS_REF || '56578cee0f679881e6f928177ef3cf6d45a5bfec' }}
+          path: .evidence-skills
+          # The security-domain analysis scripts (policy-audit.py and its siblings) are
+          # wrapped by the `capture` runner rather than being runners themselves, so they
+          # need no entry in the `runner` choice list — but they do need to be on disk.
+          # A sparse path absent from the chosen ref is silently empty, so listing it here
+          # costs nothing when it is not there.
+          sparse-checkout: |
+            domains/pr-workflow/skills/evidence/scripts
+            domains/pr-workflow/skills/evidence/probes
+            domains/security/skills
+
+      - name: Verify the runners arrived
+        env:
+          RUNNER: ${{ inputs.runner }}
+        run: |
+          # A sparse checkout of a path that does not exist on the chosen ref succeeds and
+          # produces an empty directory, so the next step would fail with "No such file"
+          # and no indication that the REF was the problem.
+          F=".evidence-skills/domains/pr-workflow/skills/evidence/scripts/$RUNNER.sh"
+          [ -f "$F" ] || {
+            echo "::error::$RUNNER.sh not present at the pinned skills ref."
+            echo "::error::Set the EVIDENCE_SKILLS_REF repository variable to a commit that has it."
+            exit 1
+          }
+          echo "runner $RUNNER.sh sourced from ${{ inputs.skills_repo || 'MetaMask/skills' }} @ ${{ inputs.skills_ref || vars.EVIDENCE_SKILLS_REF || 'pinned default' }}" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Place the probe
+        if: inputs.probe_path != ''
+        env:
+          SRC: .evidence-skills/${{ inputs.probe_path }}
+          DEST: ${{ inputs.probe_dest }}
+        run: |
+          # Copied from the runners checkout, so the probe has a permalink of its own and
+          # the reader can see the file that produced the count rather than taking the
+          # count on the author's word.
+          [ -n "$DEST" ] || { echo "::error::probe_dest is required with probe_path"; exit 1; }
+          [ -f "$SRC" ] || { echo "::error::probe not found at $SRC on the chosen skills ref"; exit 1; }
+          mkdir -p "$(dirname "$DEST")"
+          cp "$SRC" "$DEST"
+          echo "probe $SRC -> $DEST" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run
+        id: run
+        continue-on-error: true # the exit code IS the verdict; a finding is not a failure
+        env:
+          RUNNER: ${{ inputs.runner }}
+          ARGS: ${{ inputs.args }}
+        run: |
+          RUNNERS=.evidence-skills/domains/pr-workflow/skills/evidence/scripts
+          mkdir -p evidence-artifacts
+          set +e
+          eval "bash \"$RUNNERS/$RUNNER.sh\" --label \"$RUNNER-head\" --out evidence-artifacts $ARGS"
+          code=$?
+          set -e
+          echo "head_exit=$code" >> "$GITHUB_OUTPUT"
+          echo "runner exited $code — the exit code is the verdict, not a build failure" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Baseline arm
+        if: inputs.baseline != ''
+        continue-on-error: true
+        env:
+          RUNNER: ${{ inputs.runner }}
+          ARGS: ${{ inputs.args }}
+          BASE: ${{ inputs.baseline }}
+        run: |
+          git checkout --detach "$BASE"
+          if [ "${{ inputs.needs_install }}" = "true" ]; then yarn --immutable; fi
+          RUNNERS=.evidence-skills/domains/pr-workflow/skills/evidence/scripts
+          eval "bash \"$RUNNERS/$RUNNER.sh\" --label \"$RUNNER-base\" --out evidence-artifacts $ARGS"
+
+      - name: Determinism check
+        # Contention produced numbers that were published and then retracted. Running the
+        # head arm twice and diffing costs one repeat and turns that into a pre-publish
+        # signal rather than a correction.
+        #
+        # Deliberately NOT continue-on-error, unlike the two runner steps above. There the
+        # exit code is the verdict and a finding is not a failure. Here a difference is not
+        # a finding about the code — it says the instrument did not return the same answer
+        # twice, so neither answer can be published. With continue-on-error the step's own
+        # `exit 1` was swallowed and the run went green anyway.
+        env:
+          RUNNER: ${{ inputs.runner }}
+          ARGS: ${{ inputs.args }}
+          REF: ${{ inputs.ref }}
+        run: |
+          RUNNERS=.evidence-skills/domains/pr-workflow/skills/evidence/scripts
+          git checkout --detach "$REF"
+          eval "bash \"$RUNNERS/$RUNNER.sh\" --label \"$RUNNER-repeat\" --out evidence-artifacts $ARGS" || true
+          A="evidence-artifacts/$RUNNER-head.json"
+          B="evidence-artifacts/$RUNNER-repeat.json"
+          if [ -f "$A" ] && [ -f "$B" ]; then
+            # `label`, `log` and `logs` name the arm, and `env` carries timing — all differ
+            # between the two runs by construction. Comparing them makes the check fire on
+            # every run, which is the same as not having it. `logs` was missing from this
+            # list, so `render-count` — the only runner that writes the plural key — failed
+            # the check on every run while reporting identical counts. A warning that is
+            # always wrong for one runner teaches the operator to publish through it.
+            if diff <(jq -S 'del(.env, .label, .log, .logs)' "$A") \
+                    <(jq -S 'del(.env, .label, .log, .logs)' "$B") > determinism.diff; then
+              echo "deterministic across two runs" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              # Hard fail, not a warning. The instruction this step emits is "do not
+              # publish these numbers", and a warning cannot enforce it — the run goes
+              # green, the artifact is produced, and the numbers publish anyway. A
+              # control whose only effect is advisory text is the failure this whole
+              # package is about, restated one level up.
+              echo "::error::runner is NOT deterministic at this ref — these numbers are not publishable"
+              cat determinism.diff >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          fi
+
+      - name: Publish the run summary
+        if: always()
+        run: |
+          for f in evidence-artifacts/*.md; do
+            [ -f "$f" ] || continue
+            { echo; cat "$f"; } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ inputs.runner }}-${{ inputs.ref }}
+          # the artifact name carries what was measured, so a downloaded zip is
+          # self-describing rather than needing the run page to interpret
+          path: |
+            evidence-artifacts/**
+            determinism.diff
+          retention-days: 90
+          if-no-files-found: error
