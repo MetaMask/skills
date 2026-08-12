@@ -12,3 +12,9 @@ updates:
       interval: weekly
     commit-message:
       prefix: 'ci'
+    # A pin is only as good as the moment it is bumped. Without a cooldown Dependabot
+    # opens the bump PR as soon as a tag moves, which is exactly when a compromised
+    # release is freshest and least likely to have been caught. Waiting lets the
+    # ecosystem find it first; the pin holds the old hash in the meantime.
+    cooldown:
+      default-days: 7
