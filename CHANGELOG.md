@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
 
+### Fixed
+
+- Preserve `METAMASK_SKILLS_DIR` and `CONSENSYS_SKILLS_DIR` entries when `sync --save` rewrites `.skills.local`.
+
 ## [0.2.0]
 
 ### Added
