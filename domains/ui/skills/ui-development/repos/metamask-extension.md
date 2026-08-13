@@ -19,14 +19,20 @@ Always prioritize `@metamask/design-system-react` components and Tailwind CSS pa
 1. **FIRST**: Use `@metamask/design-system-react` components
    - **Availability is dynamic**: read the installed package export index before deciding a component is unavailable.
    - **Rule**: If the installed package exports the component, you MUST use it.
-   - **Common examples**: Box, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Avatar variants, Badge variants, ModalOverlay, ModalBody, ModalFocus, ModalFooter, BannerAlert/BannerBase, ButtonFilter, ButtonHero, Input.
+   - **Common examples**: Box, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Input, Avatar variants, Badge variants, BannerAlert/BannerBase, ButtonFilter, ButtonHero.
+   - **The full Modal family**: Modal, ModalContent, ModalHeader, ModalOverlay, ModalBody, ModalFocus, ModalFooter.
+   - **Popover**: Popover, PopoverHeader, plus the PopoverPosition and PopoverRole enums.
+   - **Form components**: TextField, FormTextField, TextFieldSearch, TextArea, Label, HelpText.
+   - **Utility components**: Skeleton, SensitiveText, Tag, HeaderBase.
    - **ButtonBase**: Only for highly custom button patterns (prefer Button component)
 
 2. **SECOND**: Use `ui/components/component-library` ONLY if design system lacks it
-   - **Navigation Components**: Modal, ModalContent, ModalHeader, Popover, PopoverHeader
-   - **Form Components**: FormTextField, TextFieldSearch, TextField, TextArea, Label, HelpText, SelectButton, SelectWrapper, SelectOption
-   - **Utility Components**: Skeleton, SensitiveText, Tag
+   - **Layout/polymorphic helpers**: Container, PolymorphicRef, PolymorphicComponentPropWithRef, BoxComponent, StyleUtilityProps
+   - **Button variants not yet ported**: ButtonLink, ButtonPrimary, ButtonSecondary (and their size enums)
+   - **Select components**: SelectButton, SelectWrapper, SelectOption, SelectContext, useSelectContext
+   - **Other MetaMask-specific components**: BannerTip, PickerNetwork, SuccessPill, TagUrl, HeaderSearch, InvisibleCharacter
    - **Rule**: These are MetaMask-specific implementations not (yet) in the design system
+   - **Do NOT reach here for Modal, Popover, TextField, Tag, Label, or Skeleton.** The design system exports all of them and the `component-library` versions are marked `@deprecated`.
    - **Avoid "Base" components**: Components with "Base" in the name generally should not be used unless for custom implementations. We use the base/variant pattern for component development.
 
 3. **THIRD**: Feature-specific components
@@ -47,8 +53,11 @@ Need a component?
   ├─ Does the installed @metamask/design-system-react package export it?
   │  └─ YES → Use @metamask/design-system-react [STOP]
   │
-  ├─ Is it Modal shell/content/header, Popover, Label, Tag, Textarea, Select, or another component not exported by @metamask/design-system-react?
+  ├─ Is it Container, a polymorphic helper, ButtonLink/ButtonPrimary/ButtonSecondary,
+  │  Select*, BannerTip, PickerNetwork, SuccessPill, TagUrl, HeaderSearch, or another
+  │  component genuinely not exported by @metamask/design-system-react?
   │  └─ YES → Use ui/components/component-library [STOP]
+  │     (NOT Modal, Popover, TextField, Tag, Label, or Skeleton — those are in the design system)
   │
   ├─ Is it feature-specific UI (e.g., ConnectAccountsModal, AssetPicker)?
   │  ├─ Does it already exist? (search codebase for similar components)
@@ -95,10 +104,35 @@ import {
   ButtonIcon,
   TextButton,
   Icon,
+  // Modal family — ALL of it, including the shell
+  Modal,
+  ModalContent,
+  ModalContentSize,
+  ModalHeader,
   ModalOverlay,
   ModalBody,
   ModalFocus,
   ModalFooter,
+  // Popover
+  Popover,
+  PopoverHeader,
+  PopoverPosition,
+  PopoverRole,
+  // Form components
+  TextField,
+  TextFieldSize,
+  TextFieldType,
+  FormTextField,
+  TextFieldSearch,
+  TextArea,
+  Label,
+  HelpText,
+  HelpTextSeverity,
+  // Utility components
+  Skeleton,
+  SensitiveText,
+  Tag,
+  TagSeverity,
   ButtonsAlignment,
   TextVariant,
   IconName,
@@ -145,10 +179,12 @@ All `@metamask/design-system-react` components have comprehensive TypeScript def
 - **Box**: `/node_modules/@metamask/design-system-react/dist/components/Box/*.d.cts`
 - **Text**: `/node_modules/@metamask/design-system-react/dist/components/Text/*.d.cts`
 - **Button**: `/node_modules/@metamask/design-system-react/dist/components/Button/*.d.cts`
-- **ModalOverlay**: `/node_modules/@metamask/design-system-react/dist/components/ModalOverlay/*.d.cts`
-- **ModalBody**: `/node_modules/@metamask/design-system-react/dist/components/ModalBody/*.d.cts`
-- **ModalFocus**: `/node_modules/@metamask/design-system-react/dist/components/ModalFocus/*.d.cts`
-- **ModalFooter**: `/node_modules/@metamask/design-system-react/dist/components/ModalFooter/*.d.cts`
+- **Modal family**: `/node_modules/@metamask/design-system-react/dist/components/{Modal,ModalContent,ModalHeader,ModalOverlay,ModalBody,ModalFocus,ModalFooter}/*.d.cts`
+- **Popover**: `/node_modules/@metamask/design-system-react/dist/components/{Popover,PopoverHeader}/*.d.cts`
+- **TextField**: `/node_modules/@metamask/design-system-react/dist/components/TextField/*.d.cts`
+- **Tag**: `/node_modules/@metamask/design-system-react/dist/components/Tag/*.d.cts`
+- **Label**: `/node_modules/@metamask/design-system-react/dist/components/Label/*.d.cts`
+- **Skeleton**: `/node_modules/@metamask/design-system-react/dist/components/Skeleton/*.d.cts`
 
 When unsure about component APIs:
 
@@ -279,19 +315,31 @@ const MyComponent = () => {
 
 ### Modal Sections:
 
+The **entire** Modal family comes from `@metamask/design-system-react`. Do not import
+the shell (`Modal`, `ModalContent`, `ModalHeader`) from `component-library`.
+
 ```tsx
 import {
+  Modal,
+  ModalContent,
+  ModalHeader,
   ModalOverlay,
   ModalBody,
   ModalFooter,
   ButtonsAlignment,
 } from '@metamask/design-system-react';
-import { Modal, ModalContent, ModalHeader } from 'ui/components/component-library';
 
 <Modal isOpen onClose={handleClose}>
   <ModalOverlay />
   <ModalContent>
-    <ModalHeader onClose={handleClose}>Title</ModalHeader>
+    {/* `onClose` and `closeButtonProps` are co-required, and `ariaLabel` is
+        mandatory — the component has no i18n fallback. */}
+    <ModalHeader
+      onClose={handleClose}
+      closeButtonProps={{ ariaLabel: t('close') }}
+    >
+      Title
+    </ModalHeader>
     <ModalBody>
       <Text variant={TextVariant.BodyMd}>Content</Text>
     </ModalBody>
@@ -472,7 +520,12 @@ Use `div` with `className` when:
 | `<div>` (for layout)                 | `<Box>`                                                  |
 | `<span>`, `<p>`, `<h1>`, etc.        | `<Text variant={TextVariant.BodyMd}>`                    |
 | `<button>` (styled)                  | `<Button variant={ButtonVariant.Primary}>`               |
-| component-library ModalOverlay/Body/Focus/Footer | `@metamask/design-system-react` ModalOverlay/Body/Focus/Footer |
+| component-library Modal/ModalContent/ModalHeader/ModalOverlay/ModalBody/ModalFocus/ModalFooter | `@metamask/design-system-react` equivalents |
+| component-library Popover/PopoverHeader | `@metamask/design-system-react` Popover/PopoverHeader |
+| component-library TextField/FormTextField/TextFieldSearch/TextArea | `@metamask/design-system-react` equivalents |
+| component-library Tag                | `@metamask/design-system-react` Tag                      |
+| component-library Label / HelpText   | `@metamask/design-system-react` Label / HelpText         |
+| component-library Skeleton           | `@metamask/design-system-react` Skeleton                 |
 | SASS files (`.scss`)                 | Design system props + Tailwind `className`               |
 | `style={{ backgroundColor: 'red' }}` | Box: `backgroundColor={BoxBackgroundColor.ErrorDefault}` |
 | `style={{ display: 'flex' }}`        | Box: `flexDirection={BoxFlexDirection.Row}`              |
@@ -508,6 +561,29 @@ Use `div` with `className` when:
 5. Convert arbitrary colors → design system color tokens
 6. Delete `.scss` files after migration
 7. Test thoroughly - layout can shift during migration
+
+### A Matching Name Is Not a Drop-In Swap
+
+The same identifier exported from both places usually has a different API. Read the
+design system's `.d.cts` types before rewriting call sites, and expect snapshot churn.
+Known differences:
+
+- **Enum casing differs.** The design system uses PascalCase members (`TextVariant.BodyMd`,
+  `IconColor.ErrorDefault`); the legacy equivalents are camelCase (`TextVariant.bodyMd`,
+  `IconColor.errorDefault`).
+- **Enum import source differs.** Legacy `Text` takes its variants from
+  `ui/helpers/constants/design-system`, while the design system exports `TextVariant` and
+  `TextColor` from the component package itself. Migrating `Text` means changing two import
+  sources, not one.
+- **`ModalHeader` co-requires `closeButtonProps`.** If you pass `onClose` you must also pass
+  `closeButtonProps={{ ariaLabel: t('close') }}`. There is no built-in i18n fallback, and the
+  same rule applies to `onBack`/`backButtonProps`.
+- **`BannerAlert` prefers `description` over children.** `BannerBase` exposes `title`,
+  `description`, `actionButtonLabel`/`actionButtonOnClick`, and `onClose`; reach for those
+  props before nesting a `Text` child.
+- **Severity values happen to match.** `BannerAlertSeverity` is a const object in the design
+  system and a string enum in `component-library`, but both resolve to `'danger'`, `'warning'`,
+  `'info'`, and `'success'` — so that particular swap is behavior-preserving.
 
 ### Example Migration
 
@@ -568,7 +644,8 @@ import {
 
 - [ ] No SASS files (`.scss`) created or modified
 - [ ] Design system components used when appropriate (prefer over raw elements)
-- [ ] ModalOverlay, ModalBody, ModalFocus, and ModalFooter imported from `@metamask/design-system-react`
+- [ ] The whole Modal family (Modal, ModalContent, ModalHeader, ModalOverlay, ModalBody, ModalFocus, ModalFooter) imported from `@metamask/design-system-react`
+- [ ] Popover, TextField, Tag, Label, and Skeleton imported from `@metamask/design-system-react`, not `component-library`
 - [ ] Variant components used before base components (Button > ButtonBase, BannerAlert > BannerBase)
 - [ ] If using base component: confirmed no variant component works
 - [ ] If using base component: considered if this indicates design inconsistency
@@ -586,7 +663,8 @@ import {
 
 - Any `.scss` file → Design system components + Tailwind utilities
 - Any custom CSS → Design system props + Tailwind utilities
-- Any `ui/components/component-library/modal-overlay`, `modal-body`, `modal-focus`, or `modal-footer` import → equivalent `@metamask/design-system-react` export
+- Any `ui/components/component-library` import of a Modal-family component (`modal`, `modal-content`, `modal-header`, `modal-overlay`, `modal-body`, `modal-focus`, `modal-footer`) → equivalent `@metamask/design-system-react` export
+- Any `ui/components/component-library` import of `popover`, `popover-header`, `text-field`, `form-text-field`, `text-field-search`, `textarea`, `tag`, `label`, `help-text`, or `skeleton` → equivalent `@metamask/design-system-react` export
 - Any arbitrary color values → Design system semantic tokens
 - Static `className="bg-*"` on **Box** → `backgroundColor` prop with `BoxBackgroundColor` enum
 - Static `className="border-*"` color on **Box** → `borderColor` prop with `BoxBorderColor` enum
