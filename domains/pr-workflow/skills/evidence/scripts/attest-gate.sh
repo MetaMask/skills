@@ -291,17 +291,19 @@ else
   pass "13 figures trace to an exhibit"
 fi
 
-# 14 — which reasoning passes ran. Every check above tests a property of the artifact's TEXT;
-# none can see whether the right question was asked before the lanes were chosen. A run that
-# takes its scope from the request inherits the requester's framing, and the effects nobody
-# claimed are exactly the ones no description-led run produces. That is not detectable from
-# the output, so the run declares it: a `Passes run:` line naming what was executed. Fails
-# closed — an artifact that skipped them cannot report clean by staying silent about it.
-PASSES="$(grep -n -iE '^[^|]*passes run:' "$FILE" | head -1)"
+# 14 — which reasoning passes ran, recorded where an AUDITOR reads it and a REVIEWER does not.
+# No check above can see whether the right question was asked before the lanes were chosen; a run
+# that takes its scope from the request inherits the requester's framing. So the run declares it.
+# It goes in an HTML comment beside the marker: internal skill names mean nothing to a reviewer and
+# reading them in the body is a context leak, so a gate demanding reader-facing provenance would
+# manufacture the very defect the coldread pass exists to catch. Fails closed either way.
+PASSES="$(grep -iE '^[[:space:]]*<!--[[:space:]]*passes-run:' "$FILE" | head -1)"
 if [ -z "$PASSES" ]; then
-  fail "14 reasoning passes declared" "no 'Passes run:' line — the reader cannot tell which analyses stand behind this finding, or which were not attempted"
+  fail "14 reasoning passes declared" "no '<!-- passes-run: ... -->' comment — an auditor cannot tell which analyses stand behind this finding, or which were not attempted"
 elif ! printf '%s' "$PASSES" | grep -qiE 'falsifiers-first|none'; then
-  fail "14 reasoning passes declared" "'Passes run:' does not name falsifiers-first (or state 'none') — lane selection that follows the request inherits its framing"
+  fail "14 reasoning passes declared" "'passes-run' does not name falsifiers-first (or state 'none') — lane selection that follows the request inherits its framing"
+elif grep -qiE '^[^<]*\bpasses run:' "$FILE"; then
+  fail "14 reasoning passes declared" "'Passes run:' appears in reader-facing prose — provenance belongs in the comment, not the body"
 else
   pass "14 reasoning passes declared"
 fi
