@@ -9,8 +9,9 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
-   and review heuristics for `metamask-extension`, `metamask-mobile`, and `core`.
+   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`,
+   `domains/shield/`, etc. carry the conventions and review heuristics for
+   `metamask-extension`, `metamask-mobile`, `core`, and `shield-contracts`.
    These install into consumer repos via a small CLI.
 
 Single source of truth, multi-operator output (Claude Code, Cursor,
@@ -369,6 +370,7 @@ domains/<area>/
     repos/metamask-extension.md   # optional repo overlay
     repos/metamask-mobile.md      # optional repo overlay
     repos/core.md                 # optional Core monorepo overlay
+    repos/shield-contracts.md     # optional Shield contracts overlay
 ```
 
 ### `skill.md` frontmatter
@@ -394,7 +396,7 @@ deliberately. It is enforced by `yarn audit:skills` from
 
 ```yaml
 ---
-repo: metamask-extension  # or metamask-mobile / core
+repo: metamask-extension  # or metamask-mobile / core / shield-contracts
 parent: <skill-name>
 ---
 ```

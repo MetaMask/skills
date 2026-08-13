@@ -95,7 +95,7 @@ questions above, which no check can answer.
    - `scripts/` — Helper scripts (bash, Python, etc.)
    - `adapters/` — Optional runtime payloads used by scripts
    - `repos/<consuming-repo>.md` — Repo-specific overlays (`metamask-extension.md`,
-     `metamask-mobile.md`, `core.md`)
+     `metamask-mobile.md`, `core.md`, `shield-contracts.md`)
 
 6. **Test your skill** — Install locally against a consumer repo before submitting.
    `--repo` must match the repo you are installing into:

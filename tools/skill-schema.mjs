@@ -23,7 +23,7 @@ export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'work
 // delivers it via copy_domain_knowledge.
 export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos'];
 
-export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
+export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core', 'shield-contracts'];
 
 // The description is always loaded into the operator's discovery surface, so it is the
 // per-skill always-on cost, and the only part of a skill that carries its own trigger
