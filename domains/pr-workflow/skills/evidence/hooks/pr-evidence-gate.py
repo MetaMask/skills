@@ -184,10 +184,17 @@ def main():
 
 NEEDS = {
     "enrichment": "a BODY EDIT instead (`gh issue edit --body-file`) — this reads like a resolved finding, not a reply",
-    "attest-gate": "the check named above to pass — run scripts/attest-gate.sh yourself to iterate",
+    "attest-gate": "the check named above to pass — run scripts/attest-gate.sh yourself "
+                   "to iterate. The gate runs on the artifact as it will ship, so a body "
+                   "that clears it locally is the one the reader receives; iterating here "
+                   "costs a rerun, iterating after publication costs a notification that "
+                   "cannot be recalled",
     "gate-missing": "attest-gate.sh on disk; refusing to publish a body nothing verified",
     "gate-error": "attest-gate.sh to run successfully; refusing to publish unverified",
-    "verdict": "an inspectable ARTIFACT (https:// permalink, /blob/<sha>/, or a *.test.ts ref)",
+    "verdict": "an inspectable ARTIFACT (https:// permalink, /blob/<sha>/, or a *.test.ts "
+               "ref) — a verdict is the one sentence a reader acts on without re-deriving "
+               "it, so it is the sentence least able to rest on your word. Whatever "
+               "would fabricate the finding is what formats the claim about it",
     "relative-window": "an ABSOLUTE window on the query link (start=/end=, not "
                        "statsPeriod=/period=/from=now-). A relative window resolves "
                        "against the reader's clock, so the counts you typed stop "
@@ -195,14 +202,20 @@ NEEDS = {
                        "cited breakdown a link whose view performs that grouping",
     "observation": "an OBSERVATION artifact (screenshot/recording/log/JSON/permalink) — "
                    "a /blob/ code link witnesses code, not runtime behavior",
-    "deferral": "a co-located TRACKER (#issue, issues/pull URL, 'triage', 'tracked in')",
+    "deferral": "a co-located TRACKER (#issue, issues/pull URL, 'triage', 'tracked in') — "
+                "an untracked 'remains pending' decays to never, and it decays silently: "
+                "nobody is assigned to notice that the follow-up did not happen, and the "
+                "sentence reads as diligence for as long as it survives",
     "context-leak": "the CLAIM without its provenance — the reader has the diff, not "
                     "your terminal or your drafts. State the finding, not how you came to "
                     "know it: drop 'I ran/verified locally' (give the command and its "
                     "output), drop 'correcting my earlier' (state the current claim), drop "
                     "'as discussed/per your request' (give the technical reason)",
-    "adhoc-artifact-host": "the ESTABLISHED artifact destination, not personal hosting — "
-                           "re-upload to s3://majorlift-artifacts-share/public/... and link "
+    "adhoc-artifact-host": "the ESTABLISHED artifact destination, not personal hosting. "
+                           "Fetching a file proves it is fetchable, never that its author "
+                           "did not write it, so an author-controlled host downgrades the "
+                           "exhibit from independent to merely reachable. "
+                           "Re-upload to s3://majorlift-artifacts-share/public/... and link "
                            "the https://majorlift-artifacts-share.s3.us-west-1.amazonaws.com "
                            "URL (verify 200 unauthenticated). See "
                            "mms-evidence/references/evidence-publishing.md",
@@ -214,7 +227,9 @@ NEEDS = {
                         "'not exercised' is inflated; borrowed evidence never "
                         "upgrades an uncaptured lane",
     "bare-identifier": "a resolving link for the id (permalink or absolute-windowed "
-                       "query) OR the re-hosted capture showing it",
+                       "query) OR the re-hosted capture showing it — a bare hash hands the "
+                       "reader a digging assignment and no way to tell a real id from a "
+                       "plausible one, since both are hex of the right length",
     "truncated-identifier": "the FULL identifier, quoted verbatim — an ellipsized id "
                             "cannot be grepped against any artifact, and a co-located "
                             "resolver does not excuse it",
