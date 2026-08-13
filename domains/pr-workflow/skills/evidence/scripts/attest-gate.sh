@@ -291,6 +291,21 @@ else
   pass "13 figures trace to an exhibit"
 fi
 
+# 14 — which reasoning passes ran. Every check above tests a property of the artifact's TEXT;
+# none can see whether the right question was asked before the lanes were chosen. A run that
+# takes its scope from the request inherits the requester's framing, and the effects nobody
+# claimed are exactly the ones no description-led run produces. That is not detectable from
+# the output, so the run declares it: a `Passes run:` line naming what was executed. Fails
+# closed — an artifact that skipped them cannot report clean by staying silent about it.
+PASSES="$(grep -n -iE '^[^|]*passes run:' "$FILE" | head -1)"
+if [ -z "$PASSES" ]; then
+  fail "14 reasoning passes declared" "no 'Passes run:' line — the reader cannot tell which analyses stand behind this finding, or which were not attempted"
+elif ! printf '%s' "$PASSES" | grep -qiE 'falsifiers-first|none'; then
+  fail "14 reasoning passes declared" "'Passes run:' does not name falsifiers-first (or state 'none') — lane selection that follows the request inherits its framing"
+else
+  pass "14 reasoning passes declared"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "attest-gate: phase 0 clean — proceed to /outframe ‖ /missing ‖ /press"
