@@ -675,7 +675,7 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
 - [references/worked-examples.md](references/worked-examples.md) — end-to-end runs for perf / migration / flag-gated / refactor claims.
 - [references/lane-assertions.md](references/lane-assertions.md) — lane → declarative recipe-assertion mapping (ADR-0058 bridge).
 - [references/aep-local-run.md](references/aep-local-run.md) — full local-stack bring-up + every gotcha.
-- `~/Code/metamask/metamask-autonomous-engineering-platform` — the AEP repo (`docs/demo-runbook.md`, `packages/agent-chain/src/graphs/{visual,perf}-validation/`, `packages/github/src/pr-body-builder.ts`).
+- `$AEP_HOME` — the AEP repo checkout: `docs/demo-runbook.md`, `packages/agent-chain/src/graphs/{visual,perf}-validation/`, `packages/github/src/pr-body-builder.ts`. Set it; unset, the examples fall back to `~/Code/metamask/metamask-autonomous-engineering-platform`.
 - `MetaMask/decisions#173` — ADR-0058 Recipe-Based Verification (the adjacent inner-loop proof system).
 - `/sentry-quota` — sibling skill for span-volume PR review; `/review`, `/code-review` — code correctness.
 - **Engine skills — delegate the analysis, package the result.** Each owns a category in

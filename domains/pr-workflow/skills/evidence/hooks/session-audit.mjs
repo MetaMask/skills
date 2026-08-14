@@ -23,10 +23,13 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
+// Installed location before any source checkout: every operator has the first,
+// only a contributor has the second, and resolving to a clone that happens to
+// exist on this machine is how a personal layout becomes a silent requirement.
 const AUDIT_CANDIDATES = [
   process.env.SKILL_AUDIT,
-  `${process.env.HOME}/Code/metamask/skills/tools/skill-audit.mjs`,
   `${process.env.HOME}/.claude/skills/mms-evidence/hooks/skill-audit.mjs`,
+  `${process.env.HOME}/Code/metamask/skills/tools/skill-audit.mjs`,
 ].filter(Boolean);
 
 let stdin = '';

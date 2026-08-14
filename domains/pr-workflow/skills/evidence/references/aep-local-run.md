@@ -18,7 +18,7 @@ The hosted AEP doesn't resolve (`aep.dev.web3factory.consensys.net` is dead as o
 Fast checks:
 
 ```bash
-AEP=~/Code/metamask/metamask-autonomous-engineering-platform
+AEP=${AEP_HOME:-~/Code/metamask/metamask-autonomous-engineering-platform}
 curl -fsS localhost:3000/health >/dev/null && echo "control-plane up"   || echo "control-plane DOWN"
 curl -fsS localhost:8233 >/dev/null && echo "temporal UI up"            || echo "temporal DOWN"
 docker ps --format '{{.Names}}' | grep -E 'mm-aep-postgres-dev|mm-aep-temporal-dev'

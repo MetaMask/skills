@@ -2,7 +2,7 @@
 
 How to take run artifacts + complementary evidence and write a clean, idempotent, reviewer-familiar section into the PR body — **matching AEP's own format** so a re-run replaces in place instead of stacking duplicates.
 
-Canonical source for the format: `~/Code/metamask/metamask-autonomous-engineering-platform/packages/github/src/pr-body-builder.ts` (`upsertVisualValidationSection`). Mirror it.
+Canonical source for the format: `$AEP_HOME/packages/github/src/pr-body-builder.ts` (`upsertVisualValidationSection`). Mirror it.
 
 > **Publishing is public and outward-facing. Always render the section and get explicit confirmation before writing the PR body. Use `publishEvidence: false` on the run; this manual flow is the only publish path.**
 
