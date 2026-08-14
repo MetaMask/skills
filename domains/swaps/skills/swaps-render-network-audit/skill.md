@@ -16,6 +16,28 @@ Command details and artifact layout: `tests/performance/swaps/README.md`.
 
 Run from the MetaMask Mobile repository root. Use iOS only for this scenario.
 
+## When To Use
+
+Use when the user:
+
+- Wants to measure the MetaMask Mobile Swaps quote flow (open Swaps, select
+  Ethereum USDC, enter 1 ETH, wait for the first quote).
+- Asks to collect render counts and sanitized JavaScript network/console logs
+  for that scenario, compare repeat runs, or prepare temporary development
+  instrumentation.
+- Needs the checked-in scenario locators updated after the Swaps UI or test
+  IDs change.
+
+Do not use for:
+
+- Auditing an already-recorded Hermes `.cpuprofile` — that is
+  `swaps-cpu-profile-audit`.
+- MetaMask Extension, Android, or any scenario other than iOS Simulator
+  scenario 001.
+- Submitting the swap, reinstalling the app, or resetting wallet data.
+
+## Workflow
+
 ### 1. Preflight before modifying source
 
 1. Inspect `git status --short` and preserve all existing user changes.
