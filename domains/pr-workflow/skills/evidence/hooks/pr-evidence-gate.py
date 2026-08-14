@@ -122,7 +122,9 @@ def main():
             "it as an action for the user to take: name who, name why, and stop.\n\n"
             "Only the user naming the person authorizes this. Reviewer requests, "
             "assignees and cc are the same act in different syntax and are covered by "
-            "the same rule (see ~/.claude/CLAUDE.md, 'Contacting people').\n"
+            "the same rule. Attribute by venue instead — 'raised in review',\n"
+            "'reported internally' — and surface a genuinely needed notification\n"
+            "as an action for a human to take.\n"
         )
 
     # A reply to a review comment is the shape an unattended tick writes in, and the

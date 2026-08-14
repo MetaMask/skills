@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Which of the skill's non-negotiables does the machinery actually enforce?
 
 The proposal was "every principle with a hook class becomes one line pointing at the
@@ -20,8 +21,14 @@ GATE = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hooks", "pr-evidence-gate.py")
 D = os.path.dirname(os.path.abspath(__file__))
 PATH = os.path.join(tempfile.mkdtemp(), "case.md")
-PUBLISH = " ".join(["gh", "pr", "comment", "45249", "--repo",
-                    "MetaMask/metamask-extension", "--body-file"])
+# The target only has to be a real PR the gate can resolve — the coverage run scores
+# which principles the machinery enforces, not anything about this PR. It is pinned to
+# a live one today, which means the day that PR merges attest-gate check 12 answers
+# "merged", the control stops passing, and the harness goes uninterpretable for
+# everyone at once — reading as a content failure rather than a stale constant.
+# Override before that happens; this is the fragility, written down where it bites.
+_TARGET = os.environ.get("EVIDENCE_COVERAGE_TARGET") or "45249 --repo MetaMask/metamask-extension"
+PUBLISH = " ".join(["gh", "pr", "comment", _TARGET, "--body-file"])
 
 # A body that PASSES everything, so each case below differs by one violation only.
 CLEAN = open(os.path.join(D, "principle-coverage-baseline.md")).read()

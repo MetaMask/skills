@@ -12,6 +12,22 @@ This skill **executes**: it brings up the local stack, runs the harness, capture
 
 > **Hard rule — demonstrate, don't claim.** Every verdict must *demonstrate that the **ticket objective** is achieved* with an inspectable artifact (link / screenshot / screen recording / run / Sentry query / CDP capture) — never explain or claim in prose that it is achieved. Anchor to the linked issue's objective, not just the PR body's self-description. An unbacked "objective achieved" narrative is a vacuous pass → report **⚠️ inconclusive** and name what's missing; never upgrade prose to **✅ proven**.
 
+## Preconditions
+
+**Authenticated `gh` is required, not optional.** `attest-gate.sh` check 12 asks whether the
+destination is still open, and it cannot answer without it — so an unauthenticated operator
+fails that check, publishes nothing, and `scripts/principle-coverage.py` cannot pass its own
+control. Run `gh auth login` first. Nothing else in the skill needs credentials.
+
+Also assumed present: `git`, `node`, `python3`. Supplied by the repo under review, not by this
+skill: `yarn` (the falsifying-test, render-count, selector-recompute and tsc-substitution lanes
+shell out to it). Optional: `ffmpeg`, needed only for the screen-recording → GIF lane; its
+absence degrades nothing else. `jq` and `docker` are not dependencies.
+
+Publishing additionally needs an artifact store you own — set `EVIDENCE_BUCKET` and
+`EVIDENCE_REGION` per `references/evidence-publishing.md`. Unset, the gate still runs and its
+block messages state the requirement instead of naming a destination you cannot write to.
+
 ## Principles
 
 Twenty rules the rest of this skill implements. When a situation isn't covered below, decide by these.

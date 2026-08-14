@@ -41,11 +41,24 @@ printf 'Pinned the workflow to @v6 so the step resolves the same way on every ru
 probe() { printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$1")"; }
 
 fails=0
-check() { # name expected command
-  local name="$1" want="$2" cmd="$3" got
-  probe "$cmd" | python3 "$tmp/hook.py" >/dev/null 2>&1; got=$?
-  if [ "$got" = "$want" ]; then printf '  ok    %-34s exit=%s\n' "$name" "$got"
-  else printf '  FAIL  %-34s exit=%s want=%s\n' "$name" "$got" "$want"; fails=$((fails+1)); fi
+# An exit code alone cannot distinguish "blocked for the reason under test" from
+# "blocked because the gate could not find attest-gate.sh". Both are exit 2, and the
+# second is what a fresh operator gets: _find_gate's last resort is an installed path
+# the CLI never creates, so on the author's machine these arms exercise attest-gate
+# and on everyone else's they exercise the fail-closed path — printing the same green
+# either way. So a blocking arm asserts on the block REASON, and gate-missing is never
+# an acceptable reason for one.
+check() { # name expected command [reason-must-not-match]
+  local name="$1" want="$2" cmd="$3" forbid="${4:-gate-missing}" got err
+  err=$(probe "$cmd" | python3 "$tmp/hook.py" 2>&1 >/dev/null); got=$?
+  if [ "$got" != "$want" ]; then
+    printf '  FAIL  %-34s exit=%s want=%s\n' "$name" "$got" "$want"; fails=$((fails+1)); return
+  fi
+  if [ "$want" = 2 ] && printf '%s' "$err" | grep -q "\[$forbid\]"; then
+    printf '  FAIL  %-34s exit=2 but blocked as [%s] — the arm proved nothing\n' "$name" "$forbid"
+    fails=$((fails+1)); return
+  fi
+  printf '  ok    %-34s exit=%s\n' "$name" "$got"
 }
 
 # ── wiring ───────────────────────────────────────────────────────────────────────
