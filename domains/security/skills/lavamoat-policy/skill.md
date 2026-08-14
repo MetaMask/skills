@@ -324,3 +324,16 @@ question is "why does it need that".
 **supply-chain** as an evidence category and packages the per-grant justification (accept /
 reject, each with its permalink) posted where the policy is reviewed. Engine helper:
 `scripts/policy-audit.py`. Usable standalone whenever a policy grant needs a reason.
+
+## Background — extension messaging and isolation
+
+Containment questions on this codebase keep running into the same few architectural facts, and
+the intuitive answer is reliably the wrong one: whether a page can reach a background listener,
+whether a port-based content script is in a `runtime.onMessage` sender set, whether an ISOLATED
+content script carries the LavaMoat runtime, and whether scuttling can be disabled for one chunk
+without affecting its neighbours.
+
+They are written down, each checked against the repo, in
+[`domains/security/knowledge/extension-messaging-and-isolation.md`](../../knowledge/extension-messaging-and-isolation.md).
+Read it before concluding that a sender check, a world boundary, or a manifest key does or does
+not hold — the reviewer checklist at the end of that file is the short version.

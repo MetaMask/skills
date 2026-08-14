@@ -156,3 +156,4 @@ unresolved and what would settle it.
 
 - `lavamoat-policy` — the capability-containment engine this skill delegates to.
 - `evidence` — packages this skill's output as its [supply-chain evidence category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
+- [`extension-messaging-and-isolation`](../../knowledge/extension-messaging-and-isolation.md) — who can reach a background handler, which isolation boundaries actually hold, and what a deeplink signature covers.
