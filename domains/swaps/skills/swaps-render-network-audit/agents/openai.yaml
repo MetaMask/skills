@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swaps Render and Network Audit"
+  short_description: "Analyze Swaps render and network performance"
+  default_prompt: "Use $mms-swaps-render-network-audit to collect and compare three successful runs of the iOS Swaps quote scenario."

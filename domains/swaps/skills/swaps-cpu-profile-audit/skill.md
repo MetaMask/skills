@@ -11,7 +11,7 @@ description: >-
   `docs/readme/release-build-profiler.md` and asks to audit, analyze, explain,
   or find why the swaps/bridge flow is slow based on that trace. This is an
   offline, file-based analysis — no simulator, device, Metro, or `mm` session
-  is required, unlike `swaps-perf-audit` (which measures live render counts on
+  is required, unlike `swaps-render-network-audit` (which measures live render counts on
   a running simulator). Findings and fix proposals are scoped strictly to
   `app/components/UI/Bridge/**`; hot frames elsewhere in the trace are never
   reported, not even as context. The report always leads with a timing table
@@ -29,7 +29,7 @@ in the capture, which surface they belong to (main screen, quote select,
 post-trade, batch sell, asset picker, ...), and what to change. This skill
 owns the profile-parsing protocol and the swaps-tree scoping; the fix recipes
 themselves live in the `performance` skill, and the live on-device
-measurement counterpart is `swaps-perf-audit`.
+measurement counterpart is `swaps-render-network-audit`.
 
 ## When To Use
 
@@ -50,7 +50,7 @@ Do not use for:
   Stop). This skill starts only once a `.cpuprofile` file already exists on
   disk.
 - Live render-count / re-render measurement on a running simulator — use
-  `swaps-perf-audit`.
+  `swaps-render-network-audit`.
 - Non-swaps screens, or hot frames outside `app/components/UI/Bridge/**` —
   never report or propose fixes for these, not even as context; point the
   user at the general `performance` skill instead if they ask about
