@@ -178,7 +178,7 @@ bare_blocks_closed "bare hook: fails closed" "gh pr comment 1 --repo o/r --body-
 # other arm above was green: the path was assembled from a shell variable each time.
 check "positive: body path via \$VAR"     2 'gh pr comment 1 --repo o/r --body-file $D/c.md' gate-missing "could not be read"
 check "positive: body via \$(cat ...)"    2 'gh pr comment 1 --repo o/r --body "$(cat c.md)"' gate-missing "could not be read"
-check "positive: gh api body via \$VAR"   2 'gh api repos/o/r/issues/1/comments -F body=@$D/c.md' 
+check "positive: gh api body via \$VAR"   2 'gh api repos/o/r/issues/1/comments -F body=@$D/c.md' gate-missing "could not be read"
 
 echo
 if [ "$fails" -eq 0 ]; then
