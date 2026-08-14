@@ -23,6 +23,7 @@ while [ $# -gt 0 ]; do
     --reference) REF="${2:-}"; shift 2 ;;
     --target)    TARGET="${2:-}"; shift 2 ;;
     --diligence) MODE="diligence"; shift ;;
+    --reply)     MODE="reply"; shift ;;
     *) shift ;;
   esac
 done
@@ -40,6 +41,20 @@ hasi() { grep -qiE "$1" "$FILE"; }   # case-insensitive; a separate function bec
 echo "attest-gate: $FILE"
 echo
 
+# A thread reply is a third artifact class. It answers a person in a conversation: no marker
+# pair to replace on re-run, no canonical header, no verdict, no trial disclaimer, and it is
+# not a run so it declares no reasoning passes. Handed to the default mode it fails eight
+# envelope checks on shape alone and reports BLOCKED, which reads as "this gate does not apply
+# here" — so it stopped being run at all, and never-submitted is indistinguishable from passed.
+# --reply skips the envelope by name and keeps every content check, because those defects
+# (prescriptions, process narration, unearned verdicts, dead destinations, untraceable figures,
+# hard-wrapped prose) are shared across all three classes.
+envelope_na() {
+  [ "$MODE" = reply ] || return 1
+  printf '  SKIP  %s\n' "$1 — not applicable to a thread reply"
+  return 0
+}
+
 # A diligence comment (lavamoat-policy and its siblings) renders no verdict and deliberately
 # does not use the Validation Run envelope — see "One comment per evidence kind" in
 # references/evidence-publishing.md. That exemption used to mean it was checked by nothing at
@@ -48,7 +63,11 @@ echo
 # own output had no execution path, and a comment shipped with an unwitnessed local `npm pack`
 # result and untraceable integers. --diligence swaps the envelope checks for that contract's
 # own; everything downstream of the envelope is shared, because those defects are shared.
-if [ "$MODE" = diligence ]; then
+if [ "$MODE" = reply ]; then
+  envelope_na "1 marker pair"
+  envelope_na "2 canonical header"
+  envelope_na "3 verdict line"
+elif [ "$MODE" = diligence ]; then
   has 'LAVAMOAT_DILIGENCE_START' && has 'LAVAMOAT_DILIGENCE_END' \
     && pass "1 marker pair" \
     || fail "1 marker pair" "no LAVAMOAT_DILIGENCE_START/_END — a re-run appends a duplicate instead of replacing, and the pair must not be VALIDATION_RUN_* or an evidence re-run would eat this region"
@@ -78,7 +97,9 @@ fi
 # telling an author their pinned environment is unpinned.
 # A diligence comment pins a read, not a run: its citations are permalinks, and the thing
 # that can rot is a branch-head link drifting out from under the line it names.
-if [ "$MODE" = diligence ]; then
+if [ "$MODE" = reply ]; then
+  envelope_na "4 environment pinned"
+elif [ "$MODE" = diligence ]; then
   if grep -qE 'https://github\.com/[^ )]+/blob/(main|master|develop|HEAD)/' "$FILE"; then
     fail "4 citations pinned" "a permalink points at a branch head; it will drift off the line it cites. Pin a tag or a 40-char SHA"
   elif grep -qE 'https://github\.com/[^ )]+/blob/[^/]+/' "$FILE"; then
@@ -116,7 +137,13 @@ fi
 # tarball, a byte-comparison across policy files. Those read as properties of the package
 # and are actually properties of an unwitnessed local run. State them as the search
 # ("searched N files, no match") or publish the output; do not assert them as fact.
-if [ "$MODE" = diligence ]; then
+# A reply owes a capture on the same terms as a diligence comment, not on the Validation
+# Run's unconditional terms: a run's job is to show a measurement, a reply's is to answer a
+# person, and its fenced blocks are usually a suggested change rather than something ran.
+# So the trigger is "did this artifact show a command or a run result", which is the
+# diligence conditional, already reviewed. A reply that pastes terminal output still owes
+# the reader something fetchable.
+if [ "$MODE" = diligence ] || [ "$MODE" = reply ]; then
   # A permalink is the medium for a CITATION — a reader clicks it and lands on the line. It is
   # not the medium for anything you RAN. The first version of this branch tested for phrases
   # ("npm pack", "complete specifier set") and passed an artifact whose entire results section
@@ -210,7 +237,8 @@ fi
 # it blind to a limit phrased outside the list — a real run stated its limit as "what it
 # does not establish" and the check called it absent. Add phrases when that happens;
 # judging whether the stated limit is substantive is the dispatched passes' job.
-if hasi 'open for review|raise with a human|falsifier|worth a look|left unmeasured|not covered by this run|no verdict offered|does not establish|what it does not|cannot attribute'; then
+if envelope_na "10 floats something for review"; then :
+elif hasi 'open for review|raise with a human|falsifier|worth a look|left unmeasured|not covered by this run|no verdict offered|does not establish|what it does not|cannot attribute'; then
   pass "10 floats something for review"
 else
   fail "10 floats something for review" "no limit, open question, or falsifier named — an artifact that floats nothing implies its measurement was the whole surface"
@@ -220,6 +248,7 @@ fi
 # the reader needs before they read a verdict on their own PR from an unfamiliar source.
 # Compressed and moved to the foot of the page — which is what happens when it is edited
 # by the same rules as prose — it arrives after the reaction it exists to shape.
+if envelope_na "11 disclaimer present and early"; then DISC="skip"; else
 DISC="$(grep -n -i 'trial run' "$FILE" | head -1 | cut -d: -f1)"
 FIRST_EXHIBIT="$(grep -n '^```' "$FILE" | head -1 | cut -d: -f1)"
 if [ -z "$DISC" ]; then
@@ -230,6 +259,7 @@ elif [ -n "$FIRST_EXHIBIT" ] && [ "$DISC" -gt "$FIRST_EXHIBIT" ]; then
   fail "11 disclaimer present and early" "disclaimer is at line $DISC, after the first exhibit at line $FIRST_EXHIBIT — it frames nothing from there"
 else
   pass "11 disclaimer present and early"
+fi
 fi
 
 if [ -n "$REF" ] && [ -f "$REF" ]; then
@@ -297,6 +327,7 @@ fi
 # It goes in an HTML comment beside the marker: internal skill names mean nothing to a reviewer and
 # reading them in the body is a context leak, so a gate demanding reader-facing provenance would
 # manufacture the very defect the coldread pass exists to catch. Fails closed either way.
+if envelope_na "14 reasoning passes declared"; then PASSES="skip"; else
 PASSES="$(grep -iE '^[[:space:]]*<!--[[:space:]]*passes-run:' "$FILE" | head -1)"
 if [ -z "$PASSES" ]; then
   fail "14 reasoning passes declared" "no '<!-- passes-run: ... -->' comment — an auditor cannot tell which analyses stand behind this finding, or which were not attempted"
@@ -306,6 +337,35 @@ elif grep -qiE '^[^<]*\bpasses run:' "$FILE"; then
   fail "14 reasoning passes declared" "'Passes run:' appears in reader-facing prose — provenance belongs in the comment, not the body"
 else
   pass "14 reasoning passes declared"
+fi
+fi
+
+# 15. GitHub renders a single newline inside a comment as <br>, so prose hard-wrapped at the
+# ~95 columns that is correct for a file on disk arrives as a ragged stack of forced breaks.
+# Authoring in a file is mandatory here (the body must be readable before publication), which
+# makes the file's line convention ride along into every artifact unless it is undone at the
+# boundary. Counts soft breaks - a non-empty line followed by a non-empty line, outside fenced
+# code - ignoring the structures that legitimately want their breaks: quotes, tables, lists,
+# headings and HTML. Fix with exogram-core/scripts/unwrap-for-gfm.py --write.
+SOFT="$(awk '
+  /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
+  fence { next }
+  { line[NR] = $0 }
+  END {
+    n = 0
+    for (i = 1; i <= NR; i++) {
+      cur = line[i]; nxt = line[i+1]
+      if (cur ~ /^[[:space:]]*$/ || nxt ~ /^[[:space:]]*$/) continue
+      if (cur ~ /^[[:space:]]*([>|#<*+-]|[0-9]+[.)])/) continue
+      if (nxt ~ /^[[:space:]]*([>|#<*+-]|[0-9]+[.)]|(```|~~~))/) continue
+      n++
+    }
+    print n
+  }' "$FILE")"
+if [ "${SOFT:-0}" -gt 3 ]; then
+  fail "15 prose is not hard-wrapped" "$SOFT soft line breaks in prose - GitHub renders each as <br>, so this publishes as a ragged column instead of paragraphs. Run: python3 exogram-core/scripts/unwrap-for-gfm.py --write $FILE"
+else
+  pass "15 prose is not hard-wrapped"
 fi
 
 echo
