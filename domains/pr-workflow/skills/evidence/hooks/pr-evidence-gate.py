@@ -182,6 +182,28 @@ def main():
     _block("\n".join(lines) + "\n")
 
 
+# Where re-hosted evidence belongs. Set EVIDENCE_GATE_ARTIFACT_DEST to your team's
+# store so the block message names a place the author can actually write to; an
+# unset default states the requirement instead of pointing at somebody else's
+# bucket, because a remediation naming an unwritable destination is not one.
+# EVIDENCE_BUCKET is what references/evidence-publishing.md already asks the
+# operator to set, so derive from it rather than making them configure the same
+# destination twice under a second name. EVIDENCE_GATE_ARTIFACT_DEST overrides,
+# for a store that is not an S3 bucket.
+_BUCKET = (os.environ.get("EVIDENCE_BUCKET") or "").strip()
+_ARTIFACT_DEST = (
+    (os.environ.get("EVIDENCE_GATE_ARTIFACT_DEST") or "").strip()
+    or (f"s3://{_BUCKET}/public/" if _BUCKET else "")
+)
+_ARTIFACT_DEST_HINT = (
+    f"Re-upload to {_ARTIFACT_DEST} and link the resulting URL "
+    "(verify it returns 200 unauthenticated)."
+    if _ARTIFACT_DEST else
+    "Re-upload to the artifact store your team owns and link that URL (verify it "
+    "returns 200 unauthenticated). Set EVIDENCE_GATE_ARTIFACT_DEST to have this "
+    "message name it, and EVIDENCE_GATE_ARTIFACT_HOSTS so links to it pass."
+)
+
 NEEDS = {
     "enrichment": "a BODY EDIT instead (`gh issue edit --body-file`) — this reads like a resolved finding, not a reply",
     "attest-gate": "the check named above to pass — run scripts/attest-gate.sh yourself "
@@ -215,10 +237,8 @@ NEEDS = {
                            "Fetching a file proves it is fetchable, never that its author "
                            "did not write it, so an author-controlled host downgrades the "
                            "exhibit from independent to merely reachable. "
-                           "Re-upload to s3://majorlift-artifacts-share/public/... and link "
-                           "the https://majorlift-artifacts-share.s3.us-west-1.amazonaws.com "
-                           "URL (verify 200 unauthenticated). See "
-                           "mms-evidence/references/evidence-publishing.md",
+                           + _ARTIFACT_DEST_HINT +
+                           " See mms-evidence/references/evidence-publishing.md",
     "ci-restatement": "removal of the CLAIM, not of the link — 'green at head' hands the "
                       "reviewer their own Checks tab back. Citing a specific run and job "
                       "whose log holds the figure you are reporting is evidence and is "
@@ -764,15 +784,22 @@ _EXTRA_HOSTS = tuple(
     if h.strip()
 )
 # ── item 18: evidence parked on ad-hoc personal hosting ────────────────────
-# The established destination is s3://majorlift-artifacts-share/public/... (see
-# references/evidence-publishing.md). A personal gist or a raw link to a personal
-# repo is not that store: it is outside the team's ownership, undiscoverable, and
-# deletable by one account. Matches only self-owned personal hosting — citing
-# someone else's gist as a source is unaffected.
+# A personal gist or a raw link to a personal repo is not a team artifact store:
+# it sits outside the team's ownership, it is undiscoverable, and one account can
+# delete it. Name your store in EVIDENCE_GATE_ARTIFACT_DEST so the remediation can
+# point at it; register its host in EVIDENCE_GATE_ARTIFACT_HOSTS so links to it pass.
+#
+# EVIDENCE_GATE_SELF narrows this to one owner's hosting — set it to your GitHub
+# handle if you routinely cite other people's gists as sources and do not want
+# those flagged. UNSET IS DELIBERATELY BROAD: matching every personal host
+# over-flags and costs a justification, while matching one hardcoded handle is a
+# check that is silently dead for everyone else. Fail safe, not fail quiet.
+_SELF = (os.environ.get("EVIDENCE_GATE_SELF") or "").strip()
+_OWNER = re.escape(_SELF) if _SELF else r"[\w.-]+"
 ADHOC_ARTIFACT_HOST = re.compile(
-    r"(?i)https?://(?:gist\.github\.com/MajorLift/\w+"
-    r"|raw\.githubusercontent\.com/MajorLift/"
-    r"|github\.com/MajorLift/[\w.-]+/raw/)"
+    r"(?i)https?://(?:gist\.github\.com/" + _OWNER + r"/\w+"
+    r"|raw\.githubusercontent\.com/" + _OWNER + r"/"
+    r"|github\.com/" + _OWNER + r"/[\w.-]+/raw/)"
 )
 # ── item 19: context leak (coldread as a precondition, not a command) ──────
 # Session-internal context that resolves only because the author was there.

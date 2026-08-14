@@ -54,7 +54,14 @@ def run(body):
     with open(PATH, "w") as fh:
         fh.write(body)
     env = dict(os.environ)
-    env["EVIDENCE_GATE_ARTIFACT_HOSTS"] = "majorlift-artifacts-share.s3.us-west-1.amazonaws.com"
+    # A registered host, so fixtures citing the team store are not scored as ad-hoc
+    # hosting. Any value works — the coverage run cares that the host is registered,
+    # not which one it is — so this reads the operator's own setting and falls back
+    # to a placeholder rather than pinning one account's bucket into the harness.
+    env["EVIDENCE_GATE_ARTIFACT_HOSTS"] = (
+        os.environ.get("EVIDENCE_GATE_ARTIFACT_HOSTS")
+        or "artifacts.example.invalid"
+    )
     payload = {"tool_name": "Bash", "tool_input": {"command": f"{PUBLISH} {PATH}"}}
     r = subprocess.run([sys.executable, GATE], input=json.dumps(payload),
                        capture_output=True, text=True, env=env)
