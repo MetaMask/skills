@@ -17,6 +17,22 @@ HOOK="${1:-$(cd "$(dirname "$0")" && pwd)/pr-evidence-gate.py}"
 [ -f "$HOOK" ] || { echo "usage: gate-controls.sh [path/to/pr-evidence-gate.py]" >&2; exit 2; }
 
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+
+# Two layouts, because production has two and this harness used to model only one.
+#   $tmp/installed/hooks/hook.py  — hooks/ beside scripts/, which is what `metamask-skills
+#     install` actually ships, so _find_gate resolves attest-gate via ../scripts and the
+#     behavioural arms exercise the real thing.
+#   $tmp/hook.py                  — the hook copied alone, which is how the incident in the
+#     header happened: a bare file wired into settings with no siblings.
+# Modelling only the second sent every arm down the fail-closed path on any machine where
+# _find_gate's ~/.claude last resort does not exist — that is to say, everyone's but the
+# author's — while still printing "all arms behave".
+mkdir -p "$tmp/installed/hooks" "$tmp/installed/scripts"
+cp "$HOOK" "$tmp/installed/hooks/hook.py"
+_src_scripts="$(cd "$(dirname "$HOOK")/../scripts" 2>/dev/null && pwd || true)"
+if [ -n "$_src_scripts" ] && [ -f "$_src_scripts/attest-gate.sh" ]; then
+  cp "$_src_scripts"/*.sh "$tmp/installed/scripts/" 2>/dev/null || true
+fi
 cp "$HOOK" "$tmp/hook.py"
 
 printf '<!-- LAVAMOAT_DILIGENCE_START -->\n**LavaMoat grants — x**\n\n```\n$ yarn build\n  exit 0\n```\n<!-- LAVAMOAT_DILIGENCE_END -->\n' > "$tmp/bad.md"
@@ -50,7 +66,7 @@ fails=0
 # an acceptable reason for one.
 check() { # name expected command [reason-must-not-match]
   local name="$1" want="$2" cmd="$3" forbid="${4:-gate-missing}" got err
-  err=$(probe "$cmd" | python3 "$tmp/hook.py" 2>&1 >/dev/null); got=$?
+  err=$(probe "$cmd" | python3 "$tmp/installed/hooks/hook.py" 2>&1 >/dev/null); got=$?
   if [ "$got" != "$want" ]; then
     printf '  FAIL  %-34s exit=%s want=%s\n' "$name" "$got" "$want"; fails=$((fails+1)); return
   fi
