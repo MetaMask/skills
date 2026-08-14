@@ -248,6 +248,12 @@ fi
 echo
 if [ -z "$TARGET" ]; then
   fail "12 destination is open" "no --target given, so nobody checked whether the pull request is still open. Pass --target owner/repo#N."
+elif command -v gh >/dev/null 2>&1 && ! gh auth status >/dev/null 2>&1; then
+  # Presence is not authentication. Checking only `command -v gh` sent every unauthenticated
+  # operator down the generic "could not read owner/repo#N" path, which reads as a broken
+  # target rather than a missing login — the single environmental failure a fresh-operator
+  # audit found, surfaced thirteen checks deep and diagnosable only by rerunning gh by hand.
+  fail "12 destination is open" "gh is installed but not authenticated, so the destination was not checked. Run: gh auth login"
 elif ! command -v gh >/dev/null 2>&1; then
   # Blocks rather than warns. An earlier version printed UNVERIFIED and exited 0, so on a
   # machine without `gh` — which is to say, running locally — this check announced that it

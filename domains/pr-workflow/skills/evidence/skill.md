@@ -14,15 +14,33 @@ This skill **executes**: it brings up the local stack, runs the harness, capture
 
 ## Preconditions
 
-**Authenticated `gh` is required, not optional.** `attest-gate.sh` check 12 asks whether the
-destination is still open, and it cannot answer without it — so an unauthenticated operator
-fails that check, publishes nothing, and `scripts/principle-coverage.py` cannot pass its own
-control. Run `gh auth login` first. Nothing else in the skill needs credentials.
+Nothing here is checked before use. Every tool below fails at the point it is reached, so read
+this section rather than discovering it thirteen checks deep.
 
-Also assumed present: `git`, `node`, `python3`. Supplied by the repo under review, not by this
-skill: `yarn` (the falsifying-test, render-count, selector-recompute and tsc-substitution lanes
-shell out to it). Optional: `ffmpeg`, needed only for the screen-recording → GIF lane; its
-absence degrades nothing else. `jq` and `docker` are not dependencies.
+**Authenticated `gh` — hard, and the one that actually stops you.** `attest-gate.sh` check 12
+asks whether the destination is still open and cannot answer without it, so an unauthenticated
+operator fails that check, publishes nothing, and `scripts/principle-coverage.py` cannot pass
+its own control. The gate checks that `gh` *exists*, never that it is authenticated. Run
+`gh auth login` first.
+
+**`docker` — required by the primary engine.** The AEP harness this skill opens by naming runs
+`yarn dev:postgres` (`postgres:16-alpine`) plus a temporal dev server; `references/aep-local-run.md`
+drives them through `docker ps`. Without a working docker daemon the A1/A2 lanes do not run at
+all — which is worth stating plainly, since the front page announces that engine and used to
+say nothing about its runtime.
+
+**`jq` — required by the publishing lane.** `references/evidence-publishing.md` uses the real
+binary for authorship detection, deliberately rather than `gh --jq`, because gh's built-in
+filter takes no `--arg`.
+
+**`ffmpeg` — the screen-recording lane only.** Its absence degrades nothing else.
+
+**macOS only:** the same-window app + DevTools capture lane (`screencapture`, `osascript`).
+That lane does not exist on Linux.
+
+**Assumed present:** `git`, `node` (the repo declares `^18.18 || >=20`), `python3`, `bash`.
+**Supplied by the repo under review, not by you:** `yarn` — the falsifying-test, render-count,
+selector-recompute and tsc-substitution lanes shell out to it.
 
 Publishing additionally needs an artifact store you own — set `EVIDENCE_BUCKET` and
 `EVIDENCE_REGION` per `references/evidence-publishing.md`. Unset, the gate still runs and its
