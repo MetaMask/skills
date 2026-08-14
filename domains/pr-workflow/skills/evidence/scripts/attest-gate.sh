@@ -16,7 +16,7 @@
 #   2  usage error
 set -uo pipefail
 
-FILE="${1:-}"; REF=""; TARGET=""; MODE="run"
+FILE="${1:-}"; REF=""; TARGET=""; PARENT=""; MODE="run"
 shift || true
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,10 +24,11 @@ while [ $# -gt 0 ]; do
     --target)    TARGET="${2:-}"; shift 2 ;;
     --diligence) MODE="diligence"; shift ;;
     --reply)     MODE="reply"; shift ;;
+    --parent)    PARENT="${2:-}"; shift 2 ;;
     *) shift ;;
   esac
 done
-[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>] [--diligence]" >&2; exit 2; }
+[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>] [--diligence|--reply] [--parent <file>]" >&2; exit 2; }
 [ -f "$FILE" ] || { echo "attest-gate: not found: $FILE" >&2; exit 2; }
 
 FAILED=0
@@ -366,6 +367,37 @@ if [ "${SOFT:-0}" -gt 3 ]; then
   fail "15 prose is not hard-wrapped" "$SOFT soft line breaks in prose - GitHub renders each as <br>, so this publishes as a ragged column instead of paragraphs. Run: python3 exogram-core/scripts/unwrap-for-gfm.py --write $FILE"
 else
   pass "15 prose is not hard-wrapped"
+fi
+
+# 16. Restating the other party's own argument back to them. Every sentence is true, which is
+# why it survives every other check and every read - it is the appeasing move that looks like
+# rigour. It costs their reading time and implies they need corroboration from me. Detected as
+# the longest verbatim prose run shared with the comment being answered, after stripping code
+# spans, fences and link targets so shared identifiers do not trip it. Calibrated on a real
+# instance: the echo scored 55 chars, its replacement 10.
+if [ -n "$PARENT" ] && [ -f "$PARENT" ]; then
+  ECHO_N="$(python3 - "$FILE" "$PARENT" <<'PYEOF'
+import re, sys, difflib
+def prose(t):
+    t = re.sub(r'```.*?```', ' ', t, flags=re.S)
+    t = re.sub(r'`[^`\n]*`', ' ', t)
+    t = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', t)
+    t = re.sub(r'[^a-z0-9 ]+', ' ', t.lower())
+    return re.sub(r'\s+', ' ', t).strip()
+a = prose(open(sys.argv[1]).read()); b = prose(open(sys.argv[2]).read())
+m = difflib.SequenceMatcher(None, a, b, autojunk=False).find_longest_match(0, len(a), 0, len(b))
+print(m.size); print(a[m.a:m.a+m.size])
+PYEOF
+)"
+  ECHO_LEN="$(printf '%s' "$ECHO_N" | head -1)"
+  ECHO_TXT="$(printf '%s' "$ECHO_N" | tail -1)"
+  if [ "${ECHO_LEN:-0}" -ge 30 ]; then
+    fail "16 no echo of the other party" "$ECHO_LEN chars restated back at the person you are answering: \"$ECHO_TXT\" — they wrote it; repeating it costs their reading time and implies they need corroboration. Cut it and keep what is yours"
+  else
+    pass "16 no echo of the other party"
+  fi
+elif [ "$MODE" = reply ]; then
+  printf '  SKIP  %s\n' "16 no echo of the other party — no --parent given, so nothing checked the reply against what it answers"
 fi
 
 echo
