@@ -27,7 +27,16 @@ PATH = os.path.join(tempfile.mkdtemp(), "case.md")
 # "merged", the control stops passing, and the harness goes uninterpretable for
 # everyone at once — reading as a content failure rather than a stale constant.
 # Override before that happens; this is the fragility, written down where it bites.
-_TARGET = os.environ.get("EVIDENCE_COVERAGE_TARGET") or "45249 --repo MetaMask/metamask-extension"
+# Accepts the shape the rest of the skill teaches — owner/repo#N, which is what
+# `attest-gate --target` takes — and normalises it. Interpolating raw meant the override
+# added to survive the pinned PR merging reproduced the exact symptom it exists to prevent
+# when written the obvious way, and the failure was indistinguishable from the stale one.
+_RAW = os.environ.get("EVIDENCE_COVERAGE_TARGET") or "MetaMask/metamask-extension#45249"
+if "#" in _RAW:
+    _repo, _num = _RAW.rsplit("#", 1)
+    _TARGET = f"{_num.strip()} --repo {_repo.strip()}"
+else:
+    _TARGET = _RAW
 PUBLISH = " ".join(["gh", "pr", "comment", _TARGET, "--body-file"])
 
 # A body that PASSES everything, so each case below differs by one violation only.

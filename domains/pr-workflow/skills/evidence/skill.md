@@ -14,14 +14,15 @@ This skill **executes**: it brings up the local stack, runs the harness, capture
 
 ## Preconditions
 
-Nothing here is checked before use. Every tool below fails at the point it is reached, so read
-this section rather than discovering it thirteen checks deep.
+Only one of these is checked before use — `attest-gate.sh` preflights `gh auth status`. Every
+other tool below fails at the point it is reached, so read this section rather than discovering
+it thirteen checks deep.
 
 **Authenticated `gh` — hard, and the one that actually stops you.** `attest-gate.sh` check 12
 asks whether the destination is still open and cannot answer without it, so an unauthenticated
 operator fails that check, publishes nothing, and `scripts/principle-coverage.py` cannot pass
-its own control. The gate checks that `gh` *exists*, never that it is authenticated. Run
-`gh auth login` first.
+its own control. Check 12 distinguishes gh-absent from gh-unauthenticated and names the fix, so
+you will be told — but only once you reach it. Run `gh auth login` first.
 
 **`docker` — required by the primary engine.** The AEP harness this skill opens by naming runs
 `yarn dev:postgres` (`postgres:16-alpine`) plus a temporal dev server; `references/aep-local-run.md`
@@ -38,7 +39,8 @@ filter takes no `--arg`.
 **macOS only:** the same-window app + DevTools capture lane (`screencapture`, `osascript`).
 That lane does not exist on Linux.
 
-**Assumed present:** `git`, `node` (the repo declares `^18.18 || >=20`), `python3`, `bash`.
+**Assumed present:** `git`, `node` (the repo declares `^18.18 || >=20`), `python3`, `bash`,
+`curl` — the AEP control-plane calls and the mandatory unauthenticated-200 check both use it.
 **Supplied by the repo under review, not by you:** `yarn` — the falsifying-test, render-count,
 selector-recompute and tsc-substitution lanes shell out to it.
 

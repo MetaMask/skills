@@ -34,6 +34,7 @@ if [ -n "$_src_scripts" ] && [ -f "$_src_scripts/attest-gate.sh" ]; then
   cp "$_src_scripts"/*.sh "$tmp/installed/scripts/" 2>/dev/null || true
 fi
 cp "$HOOK" "$tmp/hook.py"
+mkdir -p "$tmp/nohome"
 
 printf '<!-- LAVAMOAT_DILIGENCE_START -->\n**LavaMoat grants — x**\n\n```\n$ yarn build\n  exit 0\n```\n<!-- LAVAMOAT_DILIGENCE_END -->\n' > "$tmp/bad.md"
 printf 'Addressed: see the linked run.\n' > "$tmp/reply.md"
@@ -64,8 +65,11 @@ fails=0
 # and on everyone else's they exercise the fail-closed path — printing the same green
 # either way. So a blocking arm asserts on the block REASON, and gate-missing is never
 # an acceptable reason for one.
-check() { # name expected command [reason-must-not-match]
-  local name="$1" want="$2" cmd="$3" forbid="${4:-gate-missing}" got err
+check() { # name expected command [reason-must-not-match] [substring-that-must-appear]
+  # Four of the positive arms block with prose rather than a bulleted [class] finding, so the
+  # forbid-guard cannot fire on them — vacuous, not satisfied. Those pass a required substring
+  # instead, so every blocking arm asserts something about WHY it blocked.
+  local name="$1" want="$2" cmd="$3" forbid="${4:-gate-missing}" require="${5:-}" got err
   err=$(probe "$cmd" | python3 "$tmp/installed/hooks/hook.py" 2>&1 >/dev/null); got=$?
   if [ "$got" != "$want" ]; then
     printf '  FAIL  %-34s exit=%s want=%s\n' "$name" "$got" "$want"; fails=$((fails+1)); return
@@ -74,7 +78,32 @@ check() { # name expected command [reason-must-not-match]
     printf '  FAIL  %-34s exit=2 but blocked as [%s] — the arm proved nothing\n' "$name" "$forbid"
     fails=$((fails+1)); return
   fi
+  if [ -n "$require" ] && ! printf '%s' "$err" | grep -qi -- "$require"; then
+    printf '  FAIL  %-34s exit=%s but the block never mentions %s\n' "$name" "$got" "$require"
+    fails=$((fails+1)); return
+  fi
   printf '  ok    %-34s exit=%s\n' "$name" "$got"
+}
+
+# The bare layout — hook copied alone, no sibling scripts/ — is the shape the incident in
+# this file's header actually took. Modelling it is not optional: it was the ONLY layout
+# tested before, and briefly the only one NOT tested after, because keeping the copy is not
+# keeping the case. Here it asserts the fail-closed path fires, which is correct behaviour
+# for a hook that cannot find its gate, rather than being forbidden as it is above.
+bare_blocks_closed() {
+  # HOME is pinned to an empty dir for this arm alone. _find_gate's last resort is
+  # ~/.claude/skills/mms-evidence/scripts/attest-gate.sh, so on a machine where the skill
+  # happens to be installed there — the author's — even a bare hook resolves it and this
+  # arm would silently assert nothing. Controlling HOME is what makes the arm mean the same
+  # thing everywhere, which is the whole complaint this file exists to answer.
+  local name="$1" cmd="$2" got err
+  err=$(probe "$cmd" | HOME="$tmp/nohome" python3 "$tmp/hook.py" 2>&1 >/dev/null); got=$?
+  if [ "$got" = 2 ] && printf '%s' "$err" | grep -q '\[gate-missing\]'; then
+    printf '  ok    %-34s exit=2 [gate-missing]\n' "$name"
+  else
+    printf '  FAIL  %-34s exit=%s — a hook with no reachable attest-gate must fail closed\n' "$name" "$got"
+    fails=$((fails+1))
+  fi
 }
 
 # ── wiring ───────────────────────────────────────────────────────────────────────
@@ -140,14 +169,15 @@ check "negative: a reply is a reply"  0 "gh issue comment 1 --repo o/r --body-fi
 # the handle and not from something the other checks would have caught anyway. The negative
 # arm is the shape that shares the syntax and pages nobody: an action pin. Without it, a
 # rule that blocked every `@` at all would look identical here.
-check "positive: body addresses a person" 2 "gh pr comment 1 --repo o/r --body-file $tmp/mention.md"
+check "positive: body addresses a person" 2 "gh pr comment 1 --repo o/r --body-file $tmp/mention.md" gate-missing "addresses people"
 check "negative: @v6 action pin"          0 "gh pr comment 1 --repo o/r --body-file $tmp/actionpin.md"
+bare_blocks_closed "bare hook: fails closed" "gh pr comment 1 --repo o/r --body-file $tmp/bad.md"
 
 # The gate reads the command as text, so a body it cannot resolve is a body it cannot
 # check. These three are how an entire session of publishes went ungated while every
 # other arm above was green: the path was assembled from a shell variable each time.
-check "positive: body path via \$VAR"     2 'gh pr comment 1 --repo o/r --body-file $D/c.md'
-check "positive: body via \$(cat ...)"    2 'gh pr comment 1 --repo o/r --body "$(cat c.md)"'
+check "positive: body path via \$VAR"     2 'gh pr comment 1 --repo o/r --body-file $D/c.md' gate-missing "could not be read"
+check "positive: body via \$(cat ...)"    2 'gh pr comment 1 --repo o/r --body "$(cat c.md)"' gate-missing "could not be read"
 check "positive: gh api body via \$VAR"   2 'gh api repos/o/r/issues/1/comments -F body=@$D/c.md' 
 
 echo
