@@ -1,6 +1,7 @@
 ---
 name: swaps-render-network-audit
 description: Run, analyze, and compare at least three successful repetitions of the deterministic MetaMask Mobile iOS Swaps performance scenario that opens Swaps, selects Ethereum USDC, enters 1 ETH, and waits for the first quote. Defaults to three runs when the user does not specify a count. Use when measuring this Swaps flow, collecting render counts and sanitized JavaScript network/console logs, comparing repeat runs, preparing temporary development instrumentation, or updating the checked-in scenario locators after the Swaps UI or test IDs change.
+maturity: experimental
 ---
 
 # Swaps Render and Network Audit
