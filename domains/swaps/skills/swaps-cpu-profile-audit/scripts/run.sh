@@ -6,10 +6,13 @@
 # This script itself lives in the skill's own scripts/ directory (alongside
 # analyze-cpuprofile.cjs). Everything it EXTRACTS, CONVERTS, or WRITES —
 # staged input, extracted archives, the *-converted.json, the final Markdown
-# report — is written under a throwaway run folder created *inside the
+# report — ends up under a throwaway run folder created *inside the
 # target repo* (not the OS tmp directory). That run folder, and everything
 # under it, is removed automatically when the script exits, whether it
 # succeeds, fails, or is interrupted — nothing is left on disk afterwards.
+# (The profiler CLI has no output-path flag: it always writes its converted
+# JSON into the process cwd, i.e. the repo root, so this script moves that
+# file into the run folder immediately after conversion.)
 #
 # Why not the OS tmp directory: routing the working folder through
 # $TMPDIR/os.tmpdir() and then calling `yarn --cwd <repo> ...` from inside it
@@ -22,7 +25,14 @@
 # `yarn` with the repo itself as cwd) avoids that entirely.
 #
 # Usage:
-#   run.sh --repo <path-to-metamask-mobile> --profile <path> [--sourcemaps <path>] [--scope <substring>] [--top <n>]
+#   run.sh --repo <path-to-metamask-mobile> --profile <path> [--sourcemaps <path>]
+#          [--scope <substring>] [--top <n>] [--context-min-pct <n>]
+#          [--trigger-min-pct <n>] [--swaps-only]
+#
+# --scope, --context-min-pct, --trigger-min-pct and --swaps-only are forwarded to
+# analyze-cpuprofile.cjs untouched, and omitted entirely when not given so the
+# analyzer applies its own defaults (notably its full list of swaps-owned
+# paths, which is wider than the Bridge screen tree alone).
 #
 # <path> for --profile can be:
 #   - a raw .cpuprofile
@@ -37,9 +47,13 @@
 #     with `samples` + `stackFrames`), regardless of its name
 #
 # <path> for --sourcemaps (optional) can be:
-#   - a directory containing index.js.map / index.android.bundle.map
+#   - the source map file itself (index.js.map / index.android.bundle.map)
+#   - a directory containing one of those
 #   - a .zip archive of a sourcemaps CI artifact (it will be extracted into
 #     the run folder first)
+# In every case this script resolves it down to a single .map FILE before
+# calling the profiler CLI, which JSON-parses whatever it is handed and so
+# cannot take a directory.
 #
 # All intermediate and output files are written under a per-run subdirectory
 # created inside the repo, e.g.:
@@ -51,18 +65,23 @@ set -euo pipefail
 REPO=""
 PROFILE=""
 SOURCEMAPS=""
-SCOPE="components/UI/Bridge"
 TOP="40"
+# Collected as an array so unset options are simply not forwarded, leaving the
+# analyzer's own defaults in charge.
+ANALYZER_OPTS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --repo) REPO="$2"; shift 2 ;;
     --profile) PROFILE="$2"; shift 2 ;;
     --sourcemaps) SOURCEMAPS="$2"; shift 2 ;;
-    --scope) SCOPE="$2"; shift 2 ;;
+    --scope) ANALYZER_OPTS+=(--scope "$2"); shift 2 ;;
+    --context-min-pct) ANALYZER_OPTS+=(--context-min-pct "$2"); shift 2 ;;
+    --trigger-min-pct) ANALYZER_OPTS+=(--trigger-min-pct "$2"); shift 2 ;;
+    --swaps-only) ANALYZER_OPTS+=(--swaps-only); shift ;;
     --top) TOP="$2"; shift 2 ;;
     -h|--help)
-      sed -n '2,30p' "$0"
+      sed -n '2,60p' "$0"
       exit 0
       ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
@@ -70,7 +89,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$REPO" ] || [ -z "$PROFILE" ]; then
-  echo "Usage: run.sh --repo <path-to-metamask-mobile> --profile <path> [--sourcemaps <path>] [--scope <substring>] [--top <n>]" >&2
+  echo "Usage: run.sh --repo <path-to-metamask-mobile> --profile <path> [--sourcemaps <path>] [--scope <substring>] [--top <n>] [--context-min-pct <n>] [--trigger-min-pct <n>] [--swaps-only]" >&2
   exit 1
 fi
 
@@ -174,15 +193,49 @@ if [ -z "$CONVERTED" ] && [ -z "$RAW_CPUPROFILE" ] && [ -z "$RAW_JSON" ]; then
 fi
 
 if [ -z "$CONVERTED" ] && [ -n "$RAW_CPUPROFILE" ]; then
-  echo "Converting raw .cpuprofile via yarn react-native-release-profiler (output stays in the run folder)..." >&2
-  # Always invoke yarn with the repo itself as cwd (not the run folder) so
-  # Corepack resolves the repo's pinned packageManager version correctly —
-  # see the header comment above for why this matters.
-  if [ -n "$SOURCEMAPS" ] && [ -n "$(ls -A "$RUNDIR/sourcemaps" 2>/dev/null)" ]; then
-    ( cd "$REPO" && yarn --cwd "$REPO" react-native-release-profiler --local "$RAW_CPUPROFILE" --sourcemap-path "$RUNDIR/sourcemaps" --output "$RUNDIR/input" )
+  # --sourcemap-path must point at the source map FILE, not at a directory:
+  # the transformer behind the CLI does readFile() + JSON.parse() on it, so a
+  # directory (such as the one we just unzipped a CI artifact into) fails with
+  # EISDIR. Pick the map out of whatever was staged.
+  SOURCEMAP_FILE=""
+  if [ -n "$SOURCEMAPS" ]; then
+    for NAME in index.js.map index.android.bundle.map; do
+      SOURCEMAP_FILE="$(find "$RUNDIR/sourcemaps" -type f -name "$NAME" -print -quit)"
+      if [ -n "$SOURCEMAP_FILE" ]; then break; fi
+    done
+    if [ -z "$SOURCEMAP_FILE" ]; then
+      SOURCEMAP_FILE="$(find "$RUNDIR/sourcemaps" -type f -name '*.map' -print -quit)"
+    fi
+    if [ -n "$SOURCEMAP_FILE" ]; then
+      echo "Using source map: $SOURCEMAP_FILE" >&2
+    else
+      echo "WARNING: --sourcemaps was given but contains no .map file (expected index.js.map or index.android.bundle.map)." >&2
+    fi
+  fi
+
+  # The CLI has no --output/--dstPath flag — it always writes
+  # <profile-basename>-converted.json into the *process cwd*, and that cwd has
+  # to be the repo so Corepack resolves the pinned Yarn version (see the
+  # header comment). So predict the name and move the result into the run
+  # folder afterwards, keeping the repo clean.
+  CONVERTED_NAME="$(basename "$RAW_CPUPROFILE")"
+  CONVERTED_NAME="${CONVERTED_NAME%.cpuprofile}-converted.json"
+  echo "Converting raw .cpuprofile via yarn react-native-release-profiler..." >&2
+  if [ -n "$SOURCEMAP_FILE" ]; then
+    ( cd "$REPO" && yarn --cwd "$REPO" react-native-release-profiler --local "$RAW_CPUPROFILE" --sourcemap-path "$SOURCEMAP_FILE" )
   else
-    echo "WARNING: no sourcemaps provided — findings will stay at the minified-bundle level and almost nothing will resolve to app/components/UI/Bridge/**." >&2
-    ( cd "$REPO" && yarn --cwd "$REPO" react-native-release-profiler --local "$RAW_CPUPROFILE" --output "$RUNDIR/input" )
+    echo "WARNING: converting without source maps — frames stay at the minified-bundle level, so nothing resolves to a real file path and the ownership/area columns collapse to \"unknown\"." >&2
+    # With no --sourcemap-path, the CLI tries to *invent* one: it looks for an
+    # Android debug build map and otherwise downloads `/index.map` from a
+    # running Metro server on --port (default 8081). A Metro dev-bundle map
+    # cannot symbolicate a release Hermes capture — it either crashes the
+    # transformer or produces confidently wrong attributions — so point --port
+    # at a port nothing listens on. The fetch then fails, and the CLI
+    # continues mapless, which is the honest outcome here.
+    ( cd "$REPO" && yarn --cwd "$REPO" react-native-release-profiler --local "$RAW_CPUPROFILE" --port 0 )
+  fi
+  if [ -f "$REPO/$CONVERTED_NAME" ]; then
+    mv "$REPO/$CONVERTED_NAME" "$RUNDIR/input/"
   fi
   CONVERTED="$(find "$RUNDIR/input" -iname '*-converted.json' -print -quit)"
 fi
@@ -224,7 +277,7 @@ if [ -z "$ANALYZER" ]; then
 fi
 
 REPORT="$RUNDIR/report.md"
-node "$ANALYZER" --profile "$CONVERTED" --scope "$SCOPE" --top "$TOP" --out "$REPORT"
+node "$ANALYZER" --profile "$CONVERTED" --top "$TOP" --out "$REPORT" "${ANALYZER_OPTS[@]+"${ANALYZER_OPTS[@]}"}"
 
 # Capture the report content now — the run folder (including this file) is
 # removed by the EXIT trap as soon as the script returns.

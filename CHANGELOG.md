@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
+- `swaps-cpu-profile-audit` now audits the whole capture instead of swaps-owned files only: non-swaps frames that ran while the user was on a swaps screen are classified by their relation to the swaps call stacks (called by swaps, hosts the swaps screen, or concurrent with it), bucketed into named context areas, and reported alongside swaps rows. Every reported row carries an `Owned by swaps` column, and fix depth is gated on it. New `--context-min-pct` and `--swaps-only` analyzer flags.
+- `swaps-cpu-profile-audit` reports swaps-owned areas, non-swaps areas on the swaps path, and non-swaps areas running concurrently as separate tables, so the per-area swaps detail is no longer diluted by context rows. The swaps table gained an inclusive-time column, and the report explains that self time on a leaf means a screen can trigger heavy work while showing ~0 ms of its own. Non-swaps rows in the fix table are now capped to the few that matter.
 
 ### Fixed
 
