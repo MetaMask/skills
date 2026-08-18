@@ -4,10 +4,9 @@ Agent checklist for Page Object Model defects under `test/e2e/`. These are
 maintainability defects that cause flakes and expensive rewrites — treat them as
 must-fix when creating or reviewing E2E code.
 
-Canonical review rules also live in the Extension repo:
+The same rules exist as **local** review rules in the Extension repo:
 
 - `.cursor/BUGBOT.md` (sections 3.3–3.9)
-- `test/e2e/.cursor/BUGBOT.md` (path-scoped copy)
 
 ## Checklist (flag and fix)
 
@@ -27,15 +26,18 @@ Canonical review rules also live in the Extension repo:
 - When fixing flakes: if the root cause is structural, fix here first, then apply
   [`flakiness.md`](flakiness.md) patterns.
 
-## Cursor Bugbot reality (MMQA-2248)
+## Where Bugbot fits (MMQA-2248 outcome)
 
-| Fact | Guidance |
+Bugbot is used **locally only** — as a last-resort safety net, never as a merge
+gate:
+
+| Where | Behaviour |
 | --- | --- |
-| Project `BUGBOT.md` rules are loaded on PR review (verify with `bugbot run verbose=true`) | Keep rules in the Cursor-documented regex → “Add a Bug” format |
-| Bugbot often reports **no new issues** even when POM violations are in the diff | Team/learned rules and Default effort bias toward high-confidence bugs, not style/POM gates |
-| Local CODEBOT / `/review` use the same files more reliably | Prefer local self-check + this skill over expecting Bugbot CI to block merges |
-| Effort level, learned rules, and team rate-limits are dashboard-only | Agents cannot disable them from the repo |
-| Deterministic ESLint/CI lint for POM is a future option | Out of scope for the testing-skills v1; do not claim Bugbot is the merge gate |
+| Local CODEBOT / `/review` / local Bugbot run | Reads `.cursor/BUGBOT.md` and applies sections 3.1–3.9 reliably. Run it before you push. |
+| Bugbot on the PR | Often reports **no new issues** even with POM violations in the diff: team/learned rules and the Default effort level bias it toward high-confidence bugs, not style/POM gates. Not enforced, not relied on. |
+| Cursor dashboard settings | Effort level, learned rules, and team rate limits are dashboard-only; a repo cannot change them. |
+| Deterministic ESLint rules for POM | Possible future work; out of scope here. |
 
-**Bottom line:** prevent bad E2E by following this skill when writing and
-maintaining tests. Do not wait for Bugbot to catch POM anti-patterns on the PR.
+**Bottom line:** prevent bad E2E by following this skill while writing and
+maintaining tests, then self-check with this checklist. Treat a local Bugbot
+finding as a backstop for something you missed — not as the primary gate.

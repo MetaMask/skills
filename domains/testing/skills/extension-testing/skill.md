@@ -53,8 +53,8 @@ doc sends you there.
    hardcoded delays without a justifying comment.
 5. Maintain mode: diagnose with `references/e2e/flakiness.md`, enforce structure
    with `references/e2e/pom-antipatterns.md`. Prefer waits and mocks over retries.
-6. Do not treat Cursor Bugbot CI as a reliable POM merge gate — see
-   `pom-antipatterns.md`. Use local review / self-check instead.
+6. Bugbot is a **local** safety net only (`.cursor/BUGBOT.md`), never a PR merge
+   gate — see `pom-antipatterns.md`. Get the code right in this skill first.
 
 ## Examples
 

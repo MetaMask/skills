@@ -576,7 +576,7 @@ await withFixtures(
 
 ## Deprecated Patterns
 
-For a complete list of E2E test anti-patterns with regex detection patterns, see [BUGBOT.md](../BUGBOT.md).
+For a complete list of E2E test anti-patterns with regex detection patterns, see [`pom-antipatterns.md`](pom-antipatterns.md).
 
 ## Code Review Checklist
 

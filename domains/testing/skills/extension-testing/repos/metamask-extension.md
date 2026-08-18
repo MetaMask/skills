@@ -17,8 +17,8 @@ Follow the router in the skill body. Layer policy: installed
 - Driver API: `test/e2e/webdriver/README.md`
 - Visual (`mm` CLI): `test/e2e/playwright/llm-workflow/README.md` — use
   separate `visual-testing` skill, not this skill
-- Bugbot / POM review rules: `.cursor/BUGBOT.md`, `test/e2e/.cursor/BUGBOT.md`
-  (local review guidance; not a reliable CI enforcer — see
+- Bugbot / POM review rules: `.cursor/BUGBOT.md` sections 3.1–3.9 (**local**
+  review only — CODEBOT / `/review` / local Bugbot run; see
   `references/e2e/pom-antipatterns.md`)
 
 ## Common commands

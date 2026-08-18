@@ -30,10 +30,10 @@ anti-patterns. For greenfield specs, start at [`writing-tests.md`](writing-tests
 - Do not paper over races with `driver.delay` unless a comment explains why a
   condition wait is impossible.
 - Do not move locators into the spec or flow “temporarily”.
-- Do not rely on Cursor Bugbot CI to catch regressions — self-check and local
-  review; see [`pom-antipatterns.md`](pom-antipatterns.md).
+- Do not rely on Cursor Bugbot on the PR to catch regressions — self-check and
+  run review locally; see [`pom-antipatterns.md`](pom-antipatterns.md).
 
 ## Related in-repo docs
 
 - `test/e2e/AGENTS.md`
-- `.cursor/BUGBOT.md` / `test/e2e/.cursor/BUGBOT.md`
+- `.cursor/BUGBOT.md` (local review rules, sections 3.1–3.9)
