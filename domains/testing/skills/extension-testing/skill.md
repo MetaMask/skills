@@ -14,20 +14,41 @@ maturity: stable
 One skill for MetaMask Extension functional testing. Classify the task, pick the
 layer, then open **only** the matching reference.
 
-**Out of scope:** performance, visual (`visual-testing` / `mm` CLI), A/B, i18n,
-Mobile layers, and cross-layer placement audits (phase 2). Keep those separate.
-
 **Flakiness note:** Unlike Mobile (where Jest unit flakiness is a separate
 skill), Extension **E2E** flakiness lives **inside** this skill under
 `references/e2e/flakiness.md` — create and maintain share one tree.
 
-## First step — choose the layer
+## When To Use
+
+- Writing, fixing, or reviewing MetaMask Extension unit, integration, or Selenium
+  E2E tests
+- Choosing the right Extension test layer (unit vs integration vs E2E)
+- Creating or updating page objects, flows, or fixtures (`FixtureBuilderV2`)
+- Fixing E2E flakes or auditing POM anti-patterns
+- MMQA testing-skills work that targets Extension (for example MMQA-2274)
+
+**Out of scope:** performance, visual (`visual-testing` / `mm` CLI), A/B, i18n,
+Mobile layers, and cross-layer placement audits (phase 2). Keep those separate.
+
+## Prerequisites
+
+- Consumer repo: MetaMask Extension (`metamask-extension`)
+- Skill installed via `yarn skills` / `@metamask/skills` for
+  `testing/extension-testing`
+- Familiarity with Extension test layout: colocated `*.test.ts(x)`,
+  `test/integration/`, `test/e2e/`
+- For E2E: a test build (`yarn build:test` or `yarn start:test`) and Chrome (or
+  Firefox MV2) available
+
+## Workflow
+
+### 1. Choose the layer
 
 Read installed `knowledge/extension-testing-layers.md` (source:
 [`../../knowledge/extension-testing-layers.md`](../../knowledge/extension-testing-layers.md))
 before writing any test. `references/layers.md` is only a redirect stub.
 
-## Open next
+### 2. Open only the matching reference
 
 | If the work is… | Open |
 | --- | --- |
@@ -40,7 +61,7 @@ Do not read every reference up front. Follow the decision tree in installed
 `knowledge/extension-testing-layers.md`, then open nested files only when that
 doc sends you there.
 
-## Hard rules
+### 3. Hard rules
 
 1. **Layer gate first.** Prefer **unit → integration (only when justified) →
    E2E**. Document why unit is insufficient before proposing new E2E.
@@ -77,3 +98,44 @@ Agent: references/e2e.md → maintain.md → flakiness.md
 User: Audit this PR for POM anti-patterns / try/catch in page objects
 Agent: references/e2e.md → pom-antipatterns.md
 ```
+
+## Troubleshooting
+
+### Agent opened every reference
+
+**Problem:** Context bloat; conflicting guidance.
+
+**Solution:** Stop after the layer decision. Open only the one row in the
+Workflow table that matches the task.
+
+### E2E proposed for pure logic
+
+**Problem:** Slow, flake-prone coverage for something unit can own.
+
+**Solution:** Re-read `knowledge/extension-testing-layers.md`. Document why unit
+(and integration, if relevant) cannot cover the case before adding E2E.
+
+### POM / Bugbot confusion
+
+**Problem:** Expecting Bugbot CI on the PR to block POM anti-patterns.
+
+**Solution:** Follow `references/e2e/pom-antipatterns.md` while writing. Use
+local CODEBOT / `/review` / local Bugbot against `.cursor/BUGBOT.md` as a
+backstop — not CI.
+
+### Deprecated skill still selected
+
+**Problem:** Agent loads old `e2e-testing`, `unit-testing`, or
+`e2e-flakiness-patterns`.
+
+**Solution:** Those are redirect stubs. Prefer this skill
+(`testing/extension-testing`) and re-sync with `yarn skills`.
+
+## Security considerations
+
+- Do not put secrets, private keys, seed phrases, or API keys in skill files,
+  fixtures committed for demos, or example snippets.
+- E2E fixtures and mocks must not embed production credentials.
+- This skill guides test generation only; it is not an enforcement layer. Pair
+  with local review (`.cursor/BUGBOT.md`) and normal CI lint/tests for hard
+  gates.
