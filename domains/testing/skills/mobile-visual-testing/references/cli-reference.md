@@ -1,19 +1,18 @@
-# MM CLI Command Reference for Mobile (iOS)
+# MM CLI Command Reference for Mobile (iOS and Android)
 
-Command reference for the prod-only MetaMask Mobile consumer. The generic core CLI exposes commands for multiple consumers; availability here is determined by the iOS platform driver and mobile session manager.
+Command reference for the prod-only MetaMask Mobile consumer. The generic core CLI exposes commands for multiple consumers. Availability here is determined by the iOS or Android platform driver and mobile session manager.
 
 ## Contents
 
 - [Syntax Rules](#syntax-rules)
 - [Lifecycle](#lifecycle)
-- [Destructive Launch Flags](#destructive-launch-flags)
 - [Installed State](#installed-state)
 - [Interaction](#interaction)
 - [Discovery](#discovery)
 - [Knowledge Store](#knowledge-store)
 - [Batching](#batching)
 - [Hermes CDP](#hermes-cdp)
-- [Simulator Selection](#simulator-selection)
+- [Device and Emulator Selection](#device-and-emulator-selection)
 - [Not Available on Mobile](#not-available-on-mobile)
 
 ## Syntax Rules
@@ -32,7 +31,7 @@ yarn mm click --testId unlock-submit
 yarn mm click --test-id unlock-submit
 ```
 
-The shared CLI parses `--testid`, `--selector`, `--timeout`, and `--within`, but the iOS driver only supports `--testid` (and positional a11y refs). `--selector` and `--within` are accepted by the parser and then **rejected at runtime by the mobile driver** — see [Targeting on iOS](#targeting-on-ios).
+The shared CLI parses `--testid`, `--selector`, `--timeout`, and `--within`, but mobile drivers only support `--testid` (and positional a11y refs). `--selector` and `--within` are accepted by the parser and then rejected at runtime by the mobile driver. See [Targeting on Mobile Platforms](#targeting-on-mobile-platforms).
 
 ### Accessibility references are positional
 
@@ -54,22 +53,22 @@ Use exactly one targeting method per command: a positional accessibility referen
 | Type by test ID | `yarn mm type --testid X "text"` |
 | Type by accessibility reference | `yarn mm type e2 "text"` |
 
-### Targeting on iOS
+### Targeting on Mobile Platforms
 
-- **Supported:** `--testid <id>` and positional a11y refs (`e1`, `e2`, ...).
-- **Not supported:** `--selector <css>` throws `CSS selectors are not supported on mobile`. `--within <scope>` throws `Scoped element search (within) is not supported on mobile`. The parser accepts both flags, but the iOS driver rejects them at runtime.
-- **Matching is fuzzy and case-insensitive.** idb matches accessibility label/identifier by substring, so `--testid Confirm` can match `Confirm Transaction`. Use exact, unique test IDs to disambiguate; there is no `--within` scoping fallback on mobile.
-- **`--testid` is lowercase.** `--testId` is not recognized as a flag and its value is treated as a positional target.
+* **Supported:** `--testid <id>` and positional accessibility references (`e1`, `e2`, ...).
+* **Not supported:** `--selector <css>` throws `CSS selectors are not supported on mobile`. `--within <scope>` throws `Scoped element search (within) is not supported on mobile`. The parser accepts both flags, but the mobile driver rejects them at runtime.
+* **Matching is fuzzy and case-insensitive.** iOS IDB matches accessibility label and identifier by substring, so `--testid Confirm` can match `Confirm Transaction`. Android ADB/UIAutomator matches resource ID, content-description, or text by substring. Use exact, unique test IDs to disambiguate. There is no `--within` scoping fallback on mobile.
+* **`--testid` is lowercase.** `--testId` is not recognized as a flag and its value is treated as a positional target.
 
 ## Lifecycle
 
 | Command | Description |
 | --- | --- |
-| `yarn mm launch [options]` | Start the daemon and launch an iOS session using the installed app state |
+| `yarn mm launch [options]` | Start the daemon and launch a mobile session using the installed app state |
 | `yarn mm cleanup` | Close the app and clear the active session |
-| `yarn mm cleanup --shutdown` | Clean up the session and stop the daemon |
+| `yarn mm cleanup --shutdown` | Clean up the session and request iOS Simulator shutdown. iOS-only; on Android use plain `yarn mm cleanup`, which never stops or wipes the emulator |
 | `yarn mm status` | Show daemon and session status |
-| `yarn mm stop [--force]` | Stop the daemon; `--force` also clears stale daemon state |
+| `yarn mm stop [--force]` | Stop the daemon. `--force` also clears stale daemon state |
 | `yarn mm serve [--background]` | Start the daemon without launching a session |
 
 ### Supported launch flags
@@ -78,42 +77,19 @@ The locally installed core CLI parser exposes these launch flags that are meanin
 
 | Flag | Description |
 | --- | --- |
-| `--platform ios` | Explicitly select the iOS platform (plain launch is preferred, as the mobile consumer automatically handles it) |
-| `--device-id <UDID>` | Select an iOS Simulator by UDID |
-| `--app-bundle <path>` | Install a specific `.app` bundle before launching (for example `ios/build/MetaMask.app`). Required before any destructive flag |
-| `--metro-port <port>` | Attach to a running Metro bundler on the given port. Equivalent to `MM_METRO_PORT`; the flag wins when both are set |
+| `--platform <platform>` | Explicitly select the target platform. Accepted values are `browser`, `ios`, or `android`. `--platform browser` is a compatibility alias that routes to iOS. Plain launch defaults to iOS. |
+| `--device-id <id>` | Select an iOS Simulator by UDID, or an Android emulator by serial (e.g., `emulator-5554`). Do not use `--device`. |
 | `--goal <text>` | Record the session goal in knowledge metadata |
 | `--flow-tags <tags>` | Record comma-separated flow tags |
-| `--force` | Replace an existing active session |
+| `--force` | Request replacement of an active session |
 
-Launch timeout is 120 seconds. The project CLI does not build MetaMask. Install the intended app on the simulator before launching, or pass `--app-bundle <path>` to install a specific build.
+Android readiness allows up to 120 seconds, and the daemon request budget is 180 seconds so cold Metro startup and observation can complete. The project CLI does not build MetaMask. Install the intended app on the simulator or emulator before launching.
 
-The destructive flags `--reinstall`, `--reset-app-data`, and `--allow-fox-code-mismatch` are also parsed but guarded — see [Destructive Launch Flags](#destructive-launch-flags). For command-line Metro attachment, use `--metro-port <port>` or the `MM_METRO_PORT` environment variable as documented below.
-
-## Destructive Launch Flags
-
-These flags replace the installed app and destroy the wallet state it holds, so this prod-only consumer guards them. Do not use them on a wallet you need to preserve.
-
-| Flag | Description |
-| --- | --- |
-| `--reinstall` | Uninstall and reinstall the app before launching. Rejected unless `--app-bundle` is also supplied |
-| `--reset-app-data` | Clear the app container/wallet state before launching. Rejected unless `--app-bundle` is also supplied |
-| `--allow-fox-code-mismatch` | Bypass the app-identity guard so a bundle with a different `fox_code` can be installed. May make existing wallet/keychain data unreadable |
-
-Guardrails enforced at launch:
-
-- `--reinstall` and `--reset-app-data` are rejected unless `--app-bundle` is also supplied, because the installed app is otherwise the only copy and would be destroyed by the uninstall step. The rejection surfaces as `MM_INVALID_CONFIG`.
-- Installing a bundle whose `fox_code` differs from the installed app is rejected (`MM_INVALID_CONFIG`) unless `--reinstall` or `--allow-fox-code-mismatch` is passed.
-- A warning is printed to stderr whenever a destructive flag is honored.
-
-```bash
-# Replace the installed app with a local build, discarding wallet state
-yarn mm launch --app-bundle ios/build/MetaMask.app --reinstall
-```
+For command-line Metro attachment, pass `--metro-port <port>` at launch or set the `MM_METRO_PORT` environment variable. When both are supplied, the `--metro-port` flag wins. See [Hermes CDP](#hermes-cdp).
 
 ## Installed State
 
-`yarn mm launch` opens the MetaMask app already installed on the selected simulator and preserves its current wallet state. The workflow does not guarantee:
+`yarn mm launch` opens the MetaMask app already installed on the selected simulator or emulator and preserves its current wallet state. The workflow does not guarantee:
 
 - an onboarding or unlocked screen
 - a password
@@ -132,20 +108,20 @@ The generic core package may display environment-selection and test-state comman
 | `yarn mm get-text <ref>` | Read an element's text |
 | `yarn mm wait-for <ref>` | Wait for an element to become visible |
 
-All interaction commands accept on iOS:
+All interaction commands accept on mobile:
 
 - `--timeout <ms>`: one deadline for visibility and action
 - `--testid <id>`: target by test ID
 
-`--selector` and `--within` are parsed but rejected by the iOS driver (see [Targeting on iOS](#targeting-on-ios)). To disambiguate duplicate targets, use a unique test ID or the exact element's fresh a11y ref — there is no scoped-search fallback on mobile.
+`--selector` and `--within` are parsed but rejected by the mobile driver. See [Targeting on Mobile Platforms](#targeting-on-mobile-platforms). To disambiguate duplicate targets, use a unique test ID or the exact element's fresh a11y ref. There is no scoped-search fallback on mobile.
 
 ## Discovery
 
 | Command | Description |
 | --- | --- |
 | `yarn mm describe-screen` | Return app state, visible test IDs, accessibility tree, and prior knowledge |
-| `yarn mm screenshot [--name <name>]` | Capture the current simulator screen |
-| `yarn mm accessibility-snapshot` | Return a trimmed accessibility tree (the shared `--root <selector>` flag is ignored on iOS; the full tree is always returned) |
+| `yarn mm screenshot [--name <name>]` | Capture the current screen |
+| `yarn mm accessibility-snapshot` | Return a trimmed accessibility tree. The shared `--root <selector>` flag is ignored on mobile; the full tree is always returned. |
 | `yarn mm list-testids [--limit <n>]` | List visible test IDs |
 | `yarn mm get-state` | Return the current app-state snapshot |
 | `yarn mm get-context` | Report the static prod environment and available mobile capabilities |
@@ -171,15 +147,15 @@ The argument must be a JSON object containing a `steps` array:
 yarn mm run-steps '{"steps":[
   {"tool":"click","args":{"a11yRef":"e3"}},
   {"tool":"wait_for","args":{"testId":"home-screen","timeoutMs":10000}}
-]}'
+ ]}'
 ```
 
 | Parameter | Description |
 | --- | --- |
 | `steps` | Required array of `{tool, args}` objects |
-| `stopOnError` | Stop after the first failure; defaults to `false` (remaining steps still run). Set `true` to abort on the first error |
+| `stopOnError` | Stop after the first failure. Defaults to `false` (remaining steps still run). Set `true` to abort on the first error |
 | `includeObservations` | `'all'`, `'none'`, or `'failures'` |
-| `batchTimeoutMs` | Overall deadline; remaining steps are skipped after expiry |
+| `batchTimeoutMs` | Overall deadline. Remaining steps are skipped after expiry |
 
 Each step is independently checked for mobile platform support. Do not put browser-only commands in a mobile batch.
 
@@ -212,27 +188,61 @@ Read-only, mobile-only. Lists and diagnoses the debuggable React Native Hermes t
 
 The driver verifies app identity and device pinning before executing commands.
 
-Start Metro attachment before runtime inspection, using either the `--metro-port` flag or the `MM_METRO_PORT` environment variable (the flag wins when both are set):
+Start Metro attachment before runtime inspection. Pass the port with the `--metro-port` flag or the `MM_METRO_PORT` environment variable (the flag wins when both are set):
 
 ```bash
 yarn watch:clean
-yarn mm launch --metro-port 8081
 
-# Equivalent, still supported
-MM_METRO_PORT=8081 yarn mm launch
+# iOS
+yarn mm launch --platform ios --metro-port 8081
+
+# Android
+yarn mm launch --platform android --metro-port 8081
+
+# Environment-variable form (equivalent when the flag is absent)
+MM_METRO_PORT=8081 yarn mm launch --platform android
 ```
 
 On Node 20, add `NODE_OPTIONS="--experimental-websocket"` when launching. Run `yarn mm describe-screen` after runtime mutation to resynchronize observations.
 
-## Simulator Selection
+### Android Metro Safety and ADB Reverse Mappings
+
+When using Metro with the Android emulator:
+1. Status Check: The workflow verifies the Metro `/status` response, checking for the canonical body `packager-status:running` before performing any ADB reverse port mapping.
+2. Identical Mappings: Existing identical port mapping configurations on the emulator are reused.
+3. Conflict Rejection: Any conflicting port mappings fail the launch to prevent cross-worktree interference.
+4. Clean Teardown: Session cleanup removes only the specific, matching session-created reverse port mapping.
+5. Deep Links: Deep-link triggers use the explicit launcher path `io.metamask/io.metamask.MainActivity`, pass only the Metro origin in Expo's `url` parameter, and keep `disableOnboarding=1` as a separate Expo parameter. Do not put a pre-built `/index.bundle?...` URL in `url` because it breaks custom Metro asset resolution, including `.riv` files.
+
+## Device and Emulator Selection
+
+### iOS Simulator
 
 ```bash
 xcrun simctl list devices
 xcrun simctl boot <UDID>
-yarn mm launch --device-id <UDID>
+yarn mm launch --platform ios --device-id <UDID>
 ```
 
-Prefer one booted simulator and one Metro process per worktree, especially during Hermes inspection.
+### Android Emulator
+
+Ensure the emulator is already running and authorized. Physical devices are unsupported. The workflow does not start or stop emulators, and does not install APKs.
+
+```bash
+adb devices -l
+```
+
+For Android selection, omitting `--device-id` requires exactly one online authorized `emulator-*` to exist. Supplying an explicit `--device-id` allows other emulators to coexist, but the selected serial must be online and authorized.
+
+```bash
+# Automatic selection (requires exactly one online/authorized emulator)
+yarn mm launch --platform android
+
+# Explicit selection
+yarn mm launch --platform android --device-id emulator-5554
+```
+
+Prefer one booted simulator/emulator and one Metro process per worktree, especially during Hermes inspection.
 
 ## Not Available on Mobile
 
@@ -242,15 +252,15 @@ The core CLI is shared across consumers, so its help lists commands that this pr
 
 | Command | Mobile behavior or alternative |
 | --- | --- |
-| `yarn mm navigate <url>` | Browser-only; navigate through visible UI elements |
-| `yarn mm navigate-home` | Not implemented; click the Wallet tab in the UI |
-| `yarn mm navigate-settings` | Not implemented; click the Settings tab in the UI |
+| `yarn mm navigate <url>` | Browser-only. Navigate through visible UI elements |
+| `yarn mm navigate-home` | Not implemented. Click the Wallet tab in the UI |
+| `yarn mm navigate-settings` | Not implemented. Click the Settings tab in the UI |
 | `yarn mm switch-to-tab` | Browser tabs do not exist in the mobile session |
 | `yarn mm close-tab` | Browser tabs do not exist in the mobile session |
 | `yarn mm wait-for-notification` | Browser notification-page command |
 | `yarn mm clipboard` | Browser command in the current CLI surface |
 | `yarn mm mock-network` | Browser-only network interception |
-| `yarn mm build` | No mobile build capability; build and install separately |
+| `yarn mm build` | No mobile build capability. Build and install separately |
 
 ### E2E-context only (not applicable to prod-only mobile)
 
@@ -258,8 +268,7 @@ This consumer always reports the static `prod` environment and provides no local
 
 | Command | Mobile behavior or alternative |
 | --- | --- |
-| `yarn mm set-context` | Environment switching is unavailable; the mobile consumer is always `prod` |
-| `yarn mm get-state` | E2E fixture/state snapshot; use `yarn mm describe-screen` for live UI state |
+| `yarn mm set-context` | Environment switching is unavailable. The mobile consumer is always `prod` |
 | `yarn mm seed-contract` | Contract seeding needs the e2e chain, which this consumer does not run |
 | `yarn mm seed-contracts` | Contract seeding needs the e2e chain, which this consumer does not run |
 | `yarn mm get-contract-address` | Depends on seeded e2e contracts that do not exist here |
