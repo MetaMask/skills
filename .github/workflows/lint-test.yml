@@ -35,6 +35,14 @@ jobs:
           is-high-risk-environment: false
           node-version: ${{ matrix.node-version }}
       - run: yarn lint
+      - name: Bundle contract
+        shell: bash
+        run: |
+          # BUNDLE_DIRS in tools/skill-schema.mjs decides what the linter accepts beside a
+          # skill.md. The bundle loop in tools/install decides what reaches a consuming
+          # repo. A directory declared in one and missing from the other installs nothing
+          # and reports nothing: the skill still loads and answers without it.
+          tools/check-bundle-contract.sh
       - name: Validate RC changelog
         if: ${{ startsWith(github.head_ref, 'release/') }}
         run: yarn lint:changelog --rc

@@ -1,0 +1,57 @@
+{
+  "lane": "B3 \u2014 does the suite notice the mechanism going away",
+  "claim_shape": "This test guards <mechanism>.",
+  "executor": "evidence-run.yml, runner falsify-probe",
+  "does_not_cover": [
+    "other paths into the same mechanism \u2014 one line of one file is mutated",
+    "whether the guarded behaviour is correct, only that the suite reacts",
+    "whether the mechanism is reachable in production"
+  ],
+  "nodes": [
+    {
+      "id": "pre-target-open",
+      "type": "precondition",
+      "check": "target pull request state == open",
+      "why": "a run published to a merged pull request reaches no reviewer; measured at 22 of 27"
+    },
+    {
+      "id": "pre-ref-pinned",
+      "type": "precondition",
+      "check": "ref is a 40-char SHA, and is the pull request head",
+      "why": "a branch name makes the run unrepeatable"
+    },
+    {
+      "id": "baseline",
+      "type": "baseline",
+      "run": "suite at ref, unmutated",
+      "expect": "passes, and the test count is recorded",
+      "on_fail": "baseline-already-failing \u2014 nothing can be concluded"
+    },
+    {
+      "id": "treatment",
+      "type": "treatment",
+      "run": "replace exactly one line; read the line back off disk",
+      "expect": "the line on disk equals the line requested",
+      "on_fail": "the mutation was altered in transit \u2014 do not report a verdict"
+    },
+    {
+      "id": "prediction",
+      "type": "prediction",
+      "expect": "named tests fail, and the arm ran the same test count as baseline",
+      "on_fail": [
+        "fewer tests ran \u2014 the module broke, nothing was falsified",
+        "different tests failed \u2014 the mutation landed somewhere unintended"
+      ]
+    },
+    {
+      "id": "capture",
+      "type": "capture",
+      "emit": [
+        "json",
+        "log",
+        "markdown"
+      ],
+      "cite": "the workflow run URL"
+    }
+  ]
+}
