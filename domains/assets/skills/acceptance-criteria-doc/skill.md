@@ -1,7 +1,7 @@
 ---
 name: acceptance-criteria-doc
 description: Generate an Acceptance Criteria (AC) live Confluence doc for a Jira epic, following the Assets team's standard structure (Overview, Documentation table, Testing Scenarios table with Given/When/Then criteria and QA sign-off checkboxes), then link it from the epic and its stories. Use this whenever the user asks to create acceptance criteria, ACs, an "AC doc", testing scenarios, or QA sign-off criteria for an epic or feature — even if they only paste a Jira epic link and say "create the ACs for this". Also use it when asked to update or regenerate an existing "<EPIC-KEY> - ACs" Confluence page.
-maturity: stable
+maturity: experimental
 ---
 
 # Acceptance Criteria Doc Generator
