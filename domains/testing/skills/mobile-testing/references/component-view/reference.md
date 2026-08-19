@@ -72,6 +72,7 @@ Before declaring the task done, go through this checklist for every test written
 | 12  | **Pull-to-refresh uses `refreshControl.props.onRefresh`** — not `fireEvent(scrollView, 'refresh')`                                                                                                                                                            | Call the prop handler inside `act`                                     |
 | 13  | **Unit→CV migrations keep assert specificity** — deleted unit payload fields (`tabId`, formatted dates, full analytics) still appear in the CV replacement                                                                                                   | Restore dropped fields in CV or KEEP a focused unit; see unit-cv-overlap |
 | 14  | **Awaits cover the asserted content, not just its container** — after `await findByTestId(CONTAINER)`, no synchronous `getBy*` asserts a value that has its own async source (child query, debounce, skeleton)                                                | Await the gated value with `findBy*` first, then re-query the container and scope the sync asserts |
+| 15  | **No nested `find*` inside `waitFor`** — no `waitFor(async () => { await findBy*(...) })`. `findBy*` already polls with the same 1s default timeout                                                                                                         | Use `await findBy*` **or** `waitFor(() => { getBy*; expect(...) })` with `{ timeout }` |
 
 ---
 
@@ -90,6 +91,7 @@ Before declaring the task done, go through this checklist for every test written
 | `No QueryClient set`                                                   | Missing provider — not in Engine mock                                                                | Add to mocks.ts or wrap with QueryClientProvider in renderer                                                        |
 | Flakey number assertions                                               | Non-deterministic exchange rates                                                                     | Add `deterministicFiat: true`                                                                                       |
 | Test passes locally, fails in CI                                       | Time-sensitive assertions, stale press under CI load, or a sync assert on content that is still loading | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer; await each async-gated value    |
+| `Timed out in waitFor.` with no assertion detail                       | Nested `find*` inside `waitFor` — both share the 1s default; the outer waiter expires first             | Use `await findBy*` **or** `waitFor(() => getBy*)` with `{ timeout }`; never `waitFor(async () => findBy*)`      |
 | Pull-to-refresh never refetches                                        | `fireEvent(scrollView, 'refresh')` did not hit the handler                                           | `await act(async () => { await scrollView.props.refreshControl.props.onRefresh(); })`                             |
 | Sheet / branch `testID` missing                                        | Remote feature flag off in Redux; UI routes elsewhere                                                | Override `RemoteFeatureFlagController` / preset so the gated UI mounts                                            |
 
@@ -125,6 +127,17 @@ expect(getByTestId('cta-button')).toBeDisabled();
 // After interaction
 fireEvent.press(getByTestId('some-button'));
 await waitFor(() => expect(getByText('Result')).toBeOnTheScreen());
+
+// findBy* already waits — do not wrap it in waitFor
+expect(await findByText('Token A')).toBeOnTheScreen();
+
+// waitFor + getBy* when you need extra time or a length check
+await waitFor(
+  () => {
+    expect(getAllByTestId(MyViewSelectorsIDs.ROW)).toHaveLength(3);
+  },
+  { timeout: 5000 },
+);
 
 // Navigation assertion
 await findByTestId(`route-${Routes.SOME_SCREEN}`);
@@ -212,6 +225,20 @@ const settledRow = getByTestId(MyViewSelectorsIDs.ROW_CONTAINER);
 expect(within(settledRow).getByText('$60')).toBeOnTheScreen();
 // Static props in the same row render immediately, so a neighbouring assert
 // passing proves nothing about the gated one.
+
+// ❌ Nest find* inside waitFor — double polling, both default to 1s
+await waitFor(async () => {
+  expect(await findByText('Token A')).toBeOnTheScreen();
+});
+// ✅ One waiter: findBy* already polls
+expect(await findByText('Token A')).toBeOnTheScreen();
+// ✅ Or waitFor + synchronous getBy* when you need extra time or a count
+await waitFor(
+  () => {
+    expect(getAllByTestId(MyViewSelectorsIDs.ROW)).toHaveLength(3);
+  },
+  { timeout: 5000 },
+);
 
 // ❌ Custom nested navigator only to assert navigation occurred
 extraRoutes: [{ name: Routes.FEATURE.ROOT, Component: NestedStackProbe }];
