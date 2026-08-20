@@ -365,13 +365,21 @@ describe('installed knowledge references resolve', () => {
 });
 
 describe('corpus: knowledge citations resolve within their own domain', () => {
-  // `knowledge/` is copied per DOMAIN, so a skill can only cite files from its own
-  // domain's knowledge dir. A citation naming another domain's file can never resolve
-  // for any consumer or operator — the skill installs fine and the reference dangles.
+  // This asserts a SOURCE-TREE convention: a skill cites knowledge from its own domain,
+  // so the citation is readable in this repo without knowing the installer. It is not the
+  // same property as "does the operator receive the file" — the installer now delivers
+  // cross-domain knowledge (`copy_cited_knowledge`, below), so every entry in the list
+  // resolves for an operator while still breaking the convention here.
   //
-  // Known-unresolved, tracked separately; the list must only ever shrink. Each entry is
-  // a cross-domain citation of testing/knowledge/testing-layers.md, which the installer
-  // has no way to deliver into these domains.
+  // Saying that precisely matters, because the earlier version of this comment claimed the
+  // citations "can never resolve for any consumer or operator" and that the installer "has
+  // no way to deliver into these domains". Both were true when written and are false now,
+  // in the same commit that made them false — an impossibility claim is the kind a reader
+  // trusts instead of re-checking.
+  //
+  // Known-unresolved, tracked separately; the list must only ever shrink. Each entry cites
+  // testing/knowledge/testing-layers.md from another domain. Emptying it means moving the
+  // file, or agreeing that cross-domain citation is allowed and deleting this test.
   const KNOWN_UNRESOLVED = new Set([
     'domains/coding/skills/coding-guidelines/repos/metamask-mobile.md → knowledge/testing-layers.md',
     'domains/perps/skills/perps-review-pr/skill.md → knowledge/testing-layers.md',
@@ -531,5 +539,91 @@ describe('corpus: content is safe to publish and links stay current', () => {
       });
     }
     assert.deepEqual(hits, [], 'link points into a frozen branch — use the repo\'s default branch, or pin a SHA');
+  });
+});
+
+describe('cross-domain knowledge references', () => {
+  let root;
+  let source;
+  let target;
+
+  function seed(domain, skill, body, knowledgeFiles = {}) {
+    const dir = path.join(source, 'domains', domain, 'skills', skill);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      ['---', `name: ${skill}`, `description: ${skill}`, 'maturity: stable', '---', body].join('\n'),
+    );
+    for (const [file, contents] of Object.entries(knowledgeFiles)) {
+      const kdir = path.join(source, 'domains', domain, 'knowledge');
+      mkdirSync(kdir, { recursive: true });
+      writeFileSync(path.join(kdir, file), contents);
+    }
+    return dir;
+  }
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-xdomain-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+
+    // `testing` owns the file; `coding` cites it. Knowledge is delivered per domain, so
+    // before this the citation could not resolve for any consumer on any operator.
+    seed('testing', 'unit-testing', 'Body.', { 'testing-layers.md': '# Layers\n' });
+    seed('coding', 'guidelines', 'Read [layers](knowledge/testing-layers.md) first.');
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('a skill receives knowledge it cites from another domain', () => {
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    for (const base of ['.claude/skills', '.cursor/rules', '.agents/skills']) {
+      assert.ok(
+        existsSync(path.join(target, base, 'mms-guidelines', 'knowledge', 'testing-layers.md')),
+        `${base}: cross-domain knowledge not delivered`,
+      );
+    }
+  });
+
+  test('the owning domain still gets its own knowledge', () => {
+    assert.ok(
+      existsSync(path.join(target, '.claude/skills', 'mms-unit-testing', 'knowledge', 'testing-layers.md')),
+    );
+  });
+
+  test('an ambiguous filename fails rather than picking one', () => {
+    const clash = mkdtempSync(path.join(os.tmpdir(), 'mms-clash-'));
+    const clashSource = path.join(clash, 'source');
+    const clashTarget = path.join(clash, 'target');
+    mkdirSync(path.join(clashSource, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(clashSource, 'tools', 'install'));
+    mkdirSync(clashTarget, { recursive: true });
+
+    const saved = source;
+    source = clashSource;
+    // Two domains ship the same filename; a third cites it by name alone.
+    seed('testing', 'a', 'Body.', { 'shared.md': '# one\n' });
+    seed('perps', 'b', 'Body.', { 'shared.md': '# two\n' });
+    seed('coding', 'c', 'Read [x](knowledge/shared.md).');
+    source = saved;
+
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', clashTarget, '--repo', 'core', '--source', clashSource],
+      { encoding: 'utf8' },
+    );
+    assert.notEqual(result.status, 0, 'ambiguous reference should fail the install');
+    assert.match(result.stderr, /exists in more than one domain/u);
+    rmSync(clash, { recursive: true, force: true });
   });
 });
