@@ -14,7 +14,7 @@ export const MATURITY_VALUES = ['experimental', 'stable', 'deprecated'];
 export const SCOPE_VALUES = ['user', 'project'];
 
 // Directories the installer copies alongside skill.md (see tools/install).
-export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows'];
+export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows', 'hooks'];
 
 // Directories allowed beside skill.md: the bundle dirs plus the repo-overlay
 // dir. Anything else is rejected, because the installer does not ship it and any

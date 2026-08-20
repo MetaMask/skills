@@ -307,3 +307,26 @@ describe('changed-files mode', () => {
     assert.match(output, /over the \d+-char budget/u);
   });
 });
+
+describe('description names the installed command', () => {
+  test('a bare /<name> trigger fails', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'demo', 'name: demo\ndescription: Triggers on /demo when asked.');
+    const { code, output } = lint(root);
+    assert.equal(code, 1, output);
+    assert.match(output, /advertises `\/demo` but the installer emits `mms-demo`/u);
+  });
+
+  test('the prefixed form passes', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'demo', 'name: demo\ndescription: Triggers on /mms-demo when asked.');
+    assert.equal(lint(root).code, 0);
+  });
+
+  test('a scoped package name is not a slash command', () => {
+    // `@metamask/gator-cli` tripped the first version of this rule.
+    const root = makeRoot();
+    writeSkill(root, 'web3-tools', 'gator-cli', 'name: gator-cli\ndescription: Operate the @metamask/gator-cli package.');
+    assert.equal(lint(root).code, 0);
+  });
+});

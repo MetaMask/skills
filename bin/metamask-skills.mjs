@@ -22,6 +22,7 @@ Usage:
   metamask-skills describe <skill|domain/skill> [options]
   metamask-skills sync [options]
   metamask-skills postinstall [options]
+  metamask-skills hooks [options]
   metamask-skills install [options]
 
 Options:
@@ -799,6 +800,55 @@ function invokedDirectly() {
   }
 }
 
+
+/**
+ * Print the Claude Code registration for every hook an installed skill ships.
+ *
+ * The installer copies `hooks/` like any other bundle directory, but a hook does nothing
+ * until it is registered in settings.json — and the path to register is absolute, so it
+ * differs per machine and per consumer repo and cannot be documented as a constant. This
+ * resolves it against the actual install.
+ */
+function printHookRegistration(args) {
+  const { target } = parseGlobalArgs(args);
+  const skillsDir = path.join(target, '.claude', 'skills');
+
+  let entries = [];
+  try {
+    for (const skill of readdirSync(skillsDir, { withFileTypes: true })) {
+      if (!skill.isDirectory()) continue;
+      const hooks = path.join(skillsDir, skill.name, 'hooks');
+      if (!dirExists(hooks)) continue;
+      for (const file of readdirSync(hooks)) {
+        if (file.endsWith('.py')) entries.push(path.join(hooks, file));
+      }
+    }
+  } catch {
+    warn(`no installed skills found under ${skillsDir}`);
+    return 1;
+  }
+
+  if (entries.length === 0) {
+    process.stdout.write('No installed skill ships a hook.\n');
+    return 0;
+  }
+
+  const commands = entries
+    .map((f) => `            { "type": "command", "command": "python3 ${f}" }`)
+    .join(',\n');
+
+  process.stdout.write(
+    `${entries.length} hook(s) installed. Copying a hook does not activate it — Claude Code\n` +
+      `runs one only once it is registered. Add this to ~/.claude/settings.json, or to\n` +
+      `${path.join(target, '.claude', 'settings.json')} to scope it to this repo:\n\n` +
+      '  {\n    "hooks": {\n      "PreToolUse": [\n        {\n          "matcher": "Bash",\n          "hooks": [\n' +
+      `${commands}\n` +
+      '          ]\n        }\n      ]\n    }\n  }\n',
+  );
+  return 0;
+}
+
+
 if (invokedDirectly()) {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === '-h' || command === '--help') {
@@ -817,6 +867,8 @@ if (invokedDirectly()) {
       exitCode = sync(args);
     } else if (command === 'postinstall') {
       exitCode = postinstall(args);
+    } else if (command === 'hooks') {
+      exitCode = printHookRegistration(args);
     } else if (command === 'install') {
       exitCode = install(args);
     } else {
