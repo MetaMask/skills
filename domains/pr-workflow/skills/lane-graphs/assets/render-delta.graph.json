@@ -1,0 +1,51 @@
+{
+  "lane": "C4 \u2014 did the work actually decrease",
+  "claim_shape": "This change stops <consumer> re-rendering / <selector> recomputing.",
+  "executor": "evidence-run.yml with ref and baseline, runner render-count or selector-recompute",
+  "does_not_cover": [
+    "consumers other than the one the probe mounts",
+    "interactions the probe does not perform",
+    "whether the rendered output is equivalent \u2014 it counts, it does not compare"
+  ],
+  "nodes": [
+    {
+      "id": "pre-target-open",
+      "type": "precondition",
+      "check": "target pull request state == open"
+    },
+    {
+      "id": "pre-probe-placed",
+      "type": "precondition",
+      "check": "the probe resolves its imports at the destination it was copied to",
+      "why": "a probe whose imports climb past the repo root reports a clean run that measured nothing"
+    },
+    {
+      "id": "baseline",
+      "type": "baseline",
+      "run": "probe at the merge base",
+      "expect": "emits the count line",
+      "on_fail": "probe-failed \u2014 no comparison exists"
+    },
+    {
+      "id": "treatment",
+      "type": "treatment",
+      "run": "the same probe at head"
+    },
+    {
+      "id": "prediction",
+      "type": "prediction",
+      "expect": "the counts differ in the direction the claim asserts",
+      "on_fail": "no delta \u2014 the mechanism is not doing what the claim says"
+    },
+    {
+      "id": "capture",
+      "type": "capture",
+      "emit": [
+        "both arms",
+        "the metric name, caller-stated",
+        "the probe's permalink"
+      ],
+      "why": "the runner reads a field out of a line the probe printed; it does not know what was counted"
+    }
+  ]
+}
