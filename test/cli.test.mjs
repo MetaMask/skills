@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -260,5 +260,370 @@ describe('managed skill pruning', () => {
 
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(stale), true);
+  });
+});
+
+// A body names a knowledge file in whatever form the author reached for: a Markdown link,
+// inline code, or bare prose. A matcher anchored on `](` or a backtick reads the delimiter
+// rather than the citation, so it sees only the forms it was written against.
+//
+// It must also consume any leading `../`. Those are the repo-relative paths the README calls
+// broken, and they are why the prefix cannot simply be skipped: each one *ends* with a
+// correct-looking `knowledge/<file>.md`, so a matcher that ignores the prefix resolves the
+// suffix, finds the file on disk, and passes the one citation it exists to reject.
+const KNOWLEDGE_CITATION = /(?<![\w/.-])((?:\.\.\/)*)knowledge\/([\w.-]+\.md)/gu;
+
+function knowledgeCitations(body) {
+  return [...body.matchAll(KNOWLEDGE_CITATION)].map(([raw, prefix, file]) => ({
+    raw,
+    ref: `knowledge/${file}`,
+    repoRelative: prefix !== '',
+  }));
+}
+
+describe('installed knowledge references resolve', () => {
+  let root;
+  let source;
+  let target;
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-knowledge-refs-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+
+    // The fixture carries a real CONSUMER: a skill body that cites a knowledge file
+    // the way shipped skills actually do — skill-relative `knowledge/<file>`. A fixture
+    // without one cannot exhibit a layout regression, which is how MetaMask/skills#87
+    // shipped a change that stranded 12 such references while every test passed.
+    // Three citation forms, because a fixture carrying only the form the matcher already
+    // handles cannot exhibit the matcher's blind spot — it agrees with it. The count is
+    // asserted below for the same reason: a narrowed matcher finds a subset, every member
+    // of the subset resolves, and a resolves-only assertion passes while coverage shrinks.
+    const knowledge = path.join(source, 'domains', 'testing', 'knowledge');
+    mkdirSync(knowledge, { recursive: true });
+    writeFileSync(path.join(knowledge, 'alpha.md'), '# Alpha\n');
+    writeFileSync(path.join(knowledge, 'beta.md'), '# Beta\n');
+    writeFileSync(path.join(knowledge, 'gamma.md'), '# Gamma\n');
+    const dir = path.join(source, 'domains', 'testing', 'skills', 'consumer');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      [
+        '---',
+        'name: consumer',
+        'description: Cites a domain knowledge file',
+        'maturity: stable',
+        '---',
+        'Read [alpha](knowledge/alpha.md) before starting.',
+        'The `knowledge/beta.md` file covers the rest.',
+        'See knowledge/gamma.md for the layer choice.',
+      ].join('\n'),
+    );
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('every knowledge/ reference in an emitted skill resolves on disk', () => {
+    const result = spawnSync(
+      '/bin/bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+
+    const emitted = [
+      ['.claude/skills', 'mms-consumer', 'SKILL.md'],
+      ['.cursor/rules', 'mms-consumer', 'RULE.md'],
+      ['.agents/skills', 'mms-consumer', 'SKILL.md'],
+    ];
+    for (const [base, name, file] of emitted) {
+      const skillDir = path.join(target, base, name);
+      const body = readFileSync(path.join(skillDir, file), 'utf8');
+      const refs = knowledgeCitations(body);
+      assert.deepEqual(
+        refs.map((r) => r.ref).sort(),
+        ['knowledge/alpha.md', 'knowledge/beta.md', 'knowledge/gamma.md'],
+        `${base}/${name}: every citation form the fixture uses must be seen — link, inline code, and bare prose`,
+      );
+      for (const { raw, ref, repoRelative } of refs) {
+        assert.ok(
+          !repoRelative,
+          `${base}/${name}: repo-relative knowledge reference ${raw} — resolves in this repo, 404s once installed`,
+        );
+        assert.ok(
+          existsSync(path.join(skillDir, ref)),
+          `${base}/${name}: dangling knowledge reference ${raw} — the body cites it but install did not place it there`,
+        );
+      }
+    }
+  });
+});
+
+describe('corpus: knowledge citations resolve within their own domain', () => {
+  // This asserts a SOURCE-TREE convention: a skill cites knowledge from its own domain,
+  // so the citation is readable in this repo without knowing the installer. It is not the
+  // same property as "does the operator receive the file" — the installer now delivers
+  // cross-domain knowledge (`copy_cited_knowledge`, below), so every entry in the list
+  // resolves for an operator while still breaking the convention here.
+  //
+  // Saying that precisely matters, because the earlier version of this comment claimed the
+  // citations "can never resolve for any consumer or operator" and that the installer "has
+  // no way to deliver into these domains". Both were true when written and are false now,
+  // in the same commit that made them false — an impossibility claim is the kind a reader
+  // trusts instead of re-checking.
+  //
+  // Known-unresolved, tracked separately; the list must only ever shrink. Each entry cites
+  // testing/knowledge/testing-layers.md from another domain. Emptying it means moving the
+  // file, or agreeing that cross-domain citation is allowed and deleting this test.
+  const KNOWN_UNRESOLVED = new Set([
+    'domains/coding/skills/coding-guidelines/repos/metamask-mobile.md → knowledge/testing-layers.md',
+    'domains/perps/skills/perps-review-pr/skill.md → knowledge/testing-layers.md',
+    'domains/pr-workflow/skills/pr-guidelines/repos/metamask-mobile.md → knowledge/testing-layers.md',
+    'domains/pr-workflow/skills/pr-readiness-check/repos/metamask-mobile.md → knowledge/testing-layers.md',
+  ]);
+
+  function collectCitations(domainsDir) {
+    const found = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && entry.name.endsWith('.md')) {
+          const rel = path.relative(path.join(domainsDir, '..'), full).split(path.sep).join('/');
+          if (!rel.includes('/skills/')) continue;
+          const domain = rel.split('/')[1];
+          const body = readFileSync(full, 'utf8');
+          for (const c of knowledgeCitations(body)) {
+            found.push({ rel, domain, ...c, key: `${rel} → ${c.raw}` });
+          }
+        }
+      }
+    };
+    walk(domainsDir);
+    return found;
+  }
+
+  test('no skill cites a knowledge file its own domain does not ship', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const unresolved = collectCitations(domainsDir).filter(
+      (c) => !existsSync(path.join(domainsDir, c.domain, c.ref)),
+    );
+
+    const unexpected = unresolved.filter((c) => !KNOWN_UNRESOLVED.has(c.key));
+    assert.deepEqual(
+      unexpected.map((c) => c.key),
+      [],
+      'new dangling knowledge citation(s) — a skill may only cite its own domain\'s knowledge',
+    );
+  });
+
+  test('no skill cites knowledge by a repo-relative path', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const repoRelative = collectCitations(domainsDir).filter((c) => c.repoRelative);
+
+    // Not covered by the resolves-within-its-domain test above: `../../knowledge/x.md`
+    // normalizes to a file the domain really does ship, so it resolves there and passes.
+    // The path is still wrong in the only tree that matters — the installed one.
+    assert.deepEqual(
+      repoRelative.map((c) => c.key),
+      [],
+      'a `../knowledge/…` path resolves in this repo and 404s once installed — cite it as `knowledge/<file>.md`',
+    );
+  });
+
+  test('the known-unresolved list has no stale entries', () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const stillBroken = new Set(
+      collectCitations(domainsDir)
+        .filter((c) => !existsSync(path.join(domainsDir, c.domain, c.ref)))
+        .map((c) => c.key),
+    );
+    const fixed = [...KNOWN_UNRESOLVED].filter((k) => !stillBroken.has(k));
+    assert.deepEqual(fixed, [], 'these citations now resolve — remove them from KNOWN_UNRESOLVED');
+  });
+});
+
+describe('corpus: content is safe to publish and links stay current', () => {
+  function allSkillDocs() {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const domainsDir = path.join(repoRoot, 'domains');
+    const out = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile() && /\.(md|py|sh|ts|mjs)$/u.test(entry.name)) {
+          out.push({ rel: path.relative(repoRoot, full).split(path.sep).join('/'), body: readFileSync(full, 'utf8') });
+        }
+      }
+    };
+    walk(domainsDir);
+    return out;
+  }
+
+  // Who is running this, from whatever the environment knows. Short or generic values are
+  // dropped: a two-letter git username matches everywhere and would fail every file.
+  function whoAmI() {
+    const raw = [
+      process.env.GITHUB_ACTOR,
+      process.env.USER,
+      (() => {
+        const r = spawnSync('git', ['config', 'user.name'], { encoding: 'utf8' });
+        return r.status === 0 ? r.stdout.trim() : '';
+      })(),
+    ];
+    const GENERIC = new Set(['root', 'runner', 'ubuntu', 'admin', 'user', 'ci', 'build', 'node']);
+    return [...new Set(raw.filter(Boolean).map((v) => v.trim()))]
+      .filter((v) => v.length >= 4 && !GENERIC.has(v.toLowerCase()) && !v.includes(' '));
+  }
+
+  // This repo is public. A personal path, handle, or private-repo name in a skill is
+  // both a leak and a dead reference for every reader but its author.
+  //
+  // The specific names are NOT listed here. A denylist of private identifiers, committed to a
+  // public repo, publishes every identifier it protects — the guard discloses what it guards,
+  // and this test previously named five. Structural patterns that describe a *shape* are safe
+  // and stay inline; anything that names a particular person, host or repo comes from the
+  // environment. Set SKILLS_PRIVATE_PATTERNS to a newline-separated list of regex sources
+  // (CI secret, or an untracked local file) to extend this locally.
+  test('no personal paths, handles, or private-repo references', () => {
+    const PERSONAL = [
+      [/(^|[\s"'`(])\/(home|Users)\/[a-z][a-z0-9_.-]*/u, 'absolute personal path'],
+      [/\bgit@[a-z0-9.-]+:[^\s]+/u, 'ssh remote'],
+      // Derived, not listed. The identifiers most likely to leak are the ones belonging to
+      // whoever is running — so ask the environment who that is instead of committing a
+      // denylist. In CI that is GITHUB_ACTOR; locally it is the git identity. This fires by
+      // default: an env-var-only version was inert everywhere, which is a check that cannot
+      // fail dressed as a check.
+      ...whoAmI().map((who) => [
+        new RegExp(`\\b${who.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}\\b`, 'iu'),
+        'your own handle or identity',
+      ]),
+      ...(process.env.SKILLS_PRIVATE_PATTERNS ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((src) => [new RegExp(src, 'u'), 'configured private identifier']),
+    ];
+    const hits = [];
+    for (const { rel, body } of allSkillDocs()) {
+      body.split('\n').forEach((line, i) => {
+        for (const [re, label] of PERSONAL) {
+          if (re.test(line)) hits.push(`${rel}:${i + 1} (${label})`);
+        }
+      });
+    }
+    assert.deepEqual(hits, [], 'personal or private references must not ship in a public skill');
+  });
+
+  // A frozen branch is worse than a deleted one: the link loads, and the reader gets
+  // stale source with no signal. `metamask-extension` moved to `main`; `develop` still
+  // exists but stopped receiving commits in January 2026.
+  const FROZEN_BRANCHES = ['develop'];
+  test('no links into a known-frozen branch', () => {
+    const hits = [];
+    for (const { rel, body } of allSkillDocs()) {
+      body.split('\n').forEach((line, i) => {
+        for (const branch of FROZEN_BRANCHES) {
+          const re = new RegExp(`github\\.com/[^\\s)]+/(blob|tree)/${branch}/`, 'u');
+          if (re.test(line)) hits.push(`${rel}:${i + 1} (→ ${branch})`);
+        }
+      });
+    }
+    assert.deepEqual(hits, [], 'link points into a frozen branch — use the repo\'s default branch, or pin a SHA');
+  });
+});
+
+describe('cross-domain knowledge references', () => {
+  let root;
+  let source;
+  let target;
+
+  function seed(domain, skill, body, knowledgeFiles = {}) {
+    const dir = path.join(source, 'domains', domain, 'skills', skill);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      ['---', `name: ${skill}`, `description: ${skill}`, 'maturity: stable', '---', body].join('\n'),
+    );
+    for (const [file, contents] of Object.entries(knowledgeFiles)) {
+      const kdir = path.join(source, 'domains', domain, 'knowledge');
+      mkdirSync(kdir, { recursive: true });
+      writeFileSync(path.join(kdir, file), contents);
+    }
+    return dir;
+  }
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-xdomain-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+
+    // `testing` owns the file; `coding` cites it. Knowledge is delivered per domain, so
+    // before this the citation could not resolve for any consumer on any operator.
+    seed('testing', 'unit-testing', 'Body.', { 'testing-layers.md': '# Layers\n' });
+    seed('coding', 'guidelines', 'Read [layers](knowledge/testing-layers.md) first.');
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('a skill receives knowledge it cites from another domain', () => {
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', target, '--repo', 'core', '--source', source],
+      { encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    for (const base of ['.claude/skills', '.cursor/rules', '.agents/skills']) {
+      assert.ok(
+        existsSync(path.join(target, base, 'mms-guidelines', 'knowledge', 'testing-layers.md')),
+        `${base}: cross-domain knowledge not delivered`,
+      );
+    }
+  });
+
+  test('the owning domain still gets its own knowledge', () => {
+    assert.ok(
+      existsSync(path.join(target, '.claude/skills', 'mms-unit-testing', 'knowledge', 'testing-layers.md')),
+    );
+  });
+
+  test('an ambiguous filename fails rather than picking one', () => {
+    const clash = mkdtempSync(path.join(os.tmpdir(), 'mms-clash-'));
+    const clashSource = path.join(clash, 'source');
+    const clashTarget = path.join(clash, 'target');
+    mkdirSync(path.join(clashSource, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(clashSource, 'tools', 'install'));
+    mkdirSync(clashTarget, { recursive: true });
+
+    const saved = source;
+    source = clashSource;
+    // Two domains ship the same filename; a third cites it by name alone.
+    seed('testing', 'a', 'Body.', { 'shared.md': '# one\n' });
+    seed('perps', 'b', 'Body.', { 'shared.md': '# two\n' });
+    seed('coding', 'c', 'Read [x](knowledge/shared.md).');
+    source = saved;
+
+    const result = spawnSync(
+      'bash',
+      [INSTALL, '--target', clashTarget, '--repo', 'core', '--source', clashSource],
+      { encoding: 'utf8' },
+    );
+    assert.notEqual(result.status, 0, 'ambiguous reference should fail the install');
+    assert.match(result.stderr, /exists in more than one domain/u);
+    rmSync(clash, { recursive: true, force: true });
   });
 });

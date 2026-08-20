@@ -307,3 +307,108 @@ describe('changed-files mode', () => {
     assert.match(output, /over the \d+-char budget/u);
   });
 });
+
+describe('cross-reference checks', () => {
+  const FM = 'name: probe\ndescription: A probe skill';
+  const SECTIONS = '## When To Use\n\n- always\n\n## Workflow\n\n1. do the thing\n';
+
+  test('a lane id in the description fails', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'probe', 'name: probe\ndescription: Runs the B7 lane');
+    const { code, output } = lint(root);
+    assert.equal(code, 1, output);
+    assert.match(output, /cites a bare lane id \(B7\)/u);
+  });
+
+  test('a lane id in the body warns, naming the line the reader sees', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\nSee B7 for details.\n`);
+
+    // Derived by scanning the written file, not by repeating the linter's arithmetic. The
+    // frontmatter it strips is exactly what shifts the numbers, so a test that recomputed
+    // the offset the same way would agree with the defect it exists to catch.
+    const lines = readFileSync(path.join(dir, 'skill.md'), 'utf8').split('\n');
+    const expected = lines.findIndex((line) => line.includes('See B7')) + 1;
+    assert.ok(expected > 1, 'the fixture must place the citation below the frontmatter');
+
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+    assert.match(output, new RegExp(`line ${expected} cites lane B7`, 'u'));
+  });
+
+  test('a lane id on a line that links the catalog is accepted', () => {
+    const root = makeRoot();
+    const body = '## When To Use\n\n- always\n\n## Workflow\n\n1. Run B7, per [the catalog](references/evidence-catalog.md).\n';
+    writeSkill(root, 'testing', 'probe', FM, body);
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+    assert.doesNotMatch(output, /cites lane/u);
+  });
+
+  test('the skill that owns the catalog may use lane ids freely', () => {
+    const root = makeRoot();
+    const dir = writeSkill(root, 'testing', 'probe', 'name: probe\ndescription: Runs the B7 lane', `${SECTIONS}\nRun B7.\n`);
+    mkdirSync(path.join(dir, 'references'), { recursive: true });
+    writeFileSync(path.join(dir, 'references', 'evidence-catalog.md'), '# catalog\n');
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+    assert.doesNotMatch(output, /lane id|cites lane/u, 'the skill that defines the ids is exempt');
+  });
+
+  test('a private-vault wiki link fails', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\nSee [[some_note]].\n`);
+    const { code, output } = lint(root);
+    assert.equal(code, 1, output);
+    assert.match(output, /`\[\[some_note\]\]` is a private-vault wiki link/u);
+  });
+
+  test('a nested JS array literal is not a wiki link', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\nPass \`[[signer1.address, signer2.address]]\`.\n`);
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+    assert.doesNotMatch(output, /wiki link/u, 'workflow snippets must not trip the vault-link rule');
+  });
+
+  test('`## Related` naming a skill that does not exist warns without failing', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\n## Related\n\n- \`no-such-skill\`\n`);
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output, 'a forward reference to a concurrent PR must not block the branch');
+    assert.match(output, /links `no-such-skill`, which is not a skill on this branch/u);
+  });
+
+  test('`## Related` naming an existing sibling is accepted', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'sibling-skill', 'name: sibling-skill\ndescription: A sibling');
+    writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\n## Related\n\n- \`sibling-skill\`\n`);
+    const { code, output } = lint(root);
+    assert.equal(code, 0, output);
+    assert.doesNotMatch(output, /is not a skill on this branch/u);
+  });
+
+  test('`## Related` may name the skill itself', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'probe', FM, `${SECTIONS}\n## Related\n\n- \`probe\`\n`);
+    const { output } = lint(root);
+    assert.doesNotMatch(output, /is not a skill on this branch/u);
+    // Guards the behaviour, not the `name !== skill.name` clause that appears to deliver
+    // it: the linted skill is collected from the same tree as the known-name set, so its
+    // own name is always in that set and the clause never decides this case. Deleting the
+    // clause leaves this test green — which is how it was found.
+  });
+
+  test('`## Related` ends at the next heading', () => {
+    const root = makeRoot();
+    const body = `${SECTIONS}\n## Related\n\n- \`inside-the-section\`\n\n## Notes\n\n- \`outside-the-section\`\n`;
+    writeSkill(root, 'testing', 'probe', FM, body);
+    const { output } = lint(root);
+    assert.match(output, /links `inside-the-section`/u);
+    assert.doesNotMatch(
+      output,
+      /outside-the-section/u,
+      'a backticked token after the next heading is not a Related entry',
+    );
+  });
+});
