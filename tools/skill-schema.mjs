@@ -2,7 +2,7 @@
 //
 // Imported by the lint-skill-entry validator so that the documented schema and
 // the enforced schema cannot drift apart. The installer's bundle-directory list
-// in tools/install (Bash) mirrors BUNDLE_DIRS; keep the two in sync.
+// in tools/install (Bash) mirrors BUNDLE_DIRS; tools/check-bundle-contract.sh asserts it.
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
 export const OPTIONAL_FRONTMATTER = ['maturity', 'mandatory', 'scope', 'metadata'];
@@ -14,7 +14,7 @@ export const MATURITY_VALUES = ['experimental', 'stable', 'deprecated'];
 export const SCOPE_VALUES = ['user', 'project'];
 
 // Directories the installer copies alongside skill.md (see tools/install).
-export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows'];
+export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows', 'hooks'];
 
 // Directories allowed beside skill.md: the bundle dirs plus the repo-overlay
 // dir. Anything else is rejected, because the installer does not ship it and any
