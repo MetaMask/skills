@@ -11,9 +11,11 @@
 #   2. SKILLS_DOMAINS env var      (CI-friendly)
 #   3. saved selection in <target>/.skills.local
 #   4. interactive prompt (TTY)
-#   5. all domains (fallback)
+#   5. base skills only (fallback)
 #
-# Skills with `mandatory: true` install regardless of selection.
+# Skills with `base: true` install regardless of selection — a fresh clone with
+# no configuration lands exactly the base set. Use `all` to select every domain,
+# `none` for base only.
 # Skills with `scope: user` install at user-level (~/.claude, ~/.codex).
 #
 # Env (at least one required):
@@ -21,6 +23,7 @@
 #   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills source (private overlay).
 #                         When both set, private overrides public on name conflict.
 #   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
+#                         'none' = base skills only (default), 'all' = every domain.
 #   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
 #   SKILLS_INCLUDE        Comma-separated skill opt-ins (domain/skill or skill).
 #   SKILLS_EXCLUDE        Comma-separated skill opt-outs (domain/skill or skill).
@@ -61,7 +64,8 @@ Required:
 
 Options:
   --repo <name>        Consumer repo (auto-detected from <target>/package.json)
-  --domain <list>      Comma-separated domain opt-in filter (overrides default-all)
+  --domain <list>      Comma-separated domain opt-in filter ('none' = base only,
+                       'all' = every domain; default: base only)
   --maturity <level>    Minimum maturity: experimental, stable, deprecated
   --include <list>      Comma-separated skill opt-ins (domain/skill or skill).
                        Repeatable. Alias: --skill.
@@ -69,8 +73,8 @@ Options:
                        Repeatable.
   --save               Persist CLI domain/maturity/include/exclude to .skills.local
   --select             Interactively pick which domains to install (requires
-                       a TTY). Default behavior is install all — use this to
-                       opt out of some.
+                       a TTY). Base skills install either way — use this to
+                       opt into more.
   --include-user       Also install skills with \`scope: user\` (writes to
                        \$HOME — outside this repo). Off by default.
   --prune-stale        Remove installed project-scope mms-* skills that are not
@@ -83,7 +87,7 @@ Options:
 Env:
   METAMASK_SKILLS_DIR  Path to local MetaMask/skills checkout (public, no auth)
   CONSENSYS_SKILLS_DIR Path to local Consensys/skills checkout (private overlay)
-  SKILLS_DOMAINS       Domain filter (overrides saved selection; blank = all)
+  SKILLS_DOMAINS       Domain filter; 'none' = base only (default), 'all' = every domain
   SKILLS_MATURITY      Minimum maturity filter (default: stable)
   SKILLS_INCLUDE       Skill opt-ins; explicit includes bypass domain/maturity
   SKILLS_EXCLUDE       Skill opt-outs; explicit excludes win
@@ -275,9 +279,9 @@ if [[ "${SKILLS_PRUNE_STALE:-}" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
 fi
 
 
-domain_has_mandatory() {
+domain_has_base() {
   local domain_dir="$1"
-  grep -lE '^mandatory:[[:space:]]*(true|yes|1)' "$domain_dir"/skills/*/skill.md >/dev/null 2>&1
+  grep -lE '^base:[[:space:]]*(true|yes|1)' "$domain_dir"/skills/*/skill.md >/dev/null 2>&1
 }
 
 list_domains() {
@@ -308,18 +312,23 @@ interactive_select() {
     i=$((i+1))
     local marker=""
     while IFS= read -r dd; do
-      domain_has_mandatory "$dd" && { marker=" ★"; break; }
+      domain_has_base "$dd" && { marker=" ★"; break; }
     done < <(domain_dirs_for "$d")
     printf "  %2d) %s%s\n" "$i" "$d" "$marker" >&2
   done
   echo >&2
-  echo "  ★ = contains mandatory skills (always installed regardless)" >&2
+  echo "  ★ = contains base skills (always installed regardless)" >&2
   echo >&2
 
   local choice
-  echo "Default is install ALL domains. Pick a subset to opt out of the rest." >&2
-  read -rp "Pick (numbers comma-separated, blank/'a' = all [recommended]): " choice
-  if [[ -z "$choice" || "$choice" == "a" || "$choice" == "all" ]]; then
+  echo "Base skills (★) install either way. Pick the extra domains you want." >&2
+  read -rp "Pick (numbers comma-separated, blank = base only, 'a' = all): " choice
+  if [[ "$choice" == "a" || "$choice" == "all" ]]; then
+    echo "all"
+    return 0
+  fi
+  if [[ -z "$choice" ]]; then
+    echo "none"
     return 0
   fi
 
@@ -336,7 +345,7 @@ interactive_select() {
   echo "$out"
 }
 
-# Resolution order: --domain > env > saved > --select prompt > all (default)
+# Resolution order: --domain > env > saved > --select prompt > base only (default)
 DOMAINS=""
 SOURCE=""
 if [[ -n "$DOMAIN_OVERRIDE" ]]; then
@@ -350,16 +359,18 @@ else
   if [[ -n "$saved" ]]; then
     DOMAINS="$saved"; SOURCE="saved (.skills.local)"
   else
-    SOURCE="all (default — pass --select to choose)"
+    DOMAINS="none"; SOURCE="base only (default — use --select or --domain to add more)"
   fi
 fi
 
 echo
 echo "Maturity: $MATURITY_FILTER  (source: $MATURITY_SOURCE)"
-if [[ -n "$DOMAINS" ]]; then
-  echo "Domains: $DOMAINS  (source: $SOURCE)"
-else
+if [[ "$DOMAINS" == "none" ]]; then
+  echo "Domains: <base skills only>  (source: $SOURCE)"
+elif [[ -z "$DOMAINS" || "$DOMAINS" == "all" ]]; then
   echo "Domains: <all>  (source: $SOURCE)"
+else
+  echo "Domains: $DOMAINS  (source: $SOURCE)"
 fi
 if [[ -n "$INCLUDE_FILTER" ]]; then
   echo "Include skills: $INCLUDE_FILTER  (source: $INCLUDE_SOURCE)"

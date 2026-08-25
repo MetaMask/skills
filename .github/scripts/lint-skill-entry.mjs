@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { collectSkills, parseFrontmatter } from '../../bin/metamask-skills.mjs';
 import {
   ALLOWED_SIBLING_DIRS,
+  BASE_DESCRIPTION_MIN,
   DESCRIPTION_MAX,
   INSTALLED_PREFIX,
   KNOWN_FRONTMATTER,
@@ -71,15 +72,30 @@ export function lintSkill(skill) {
     errors.push(`\`maturity\` "${raw.maturity}" must be one of: ${MATURITY_VALUES.join(', ')}`);
   }
 
-  // `scope` and `mandatory` change installer behaviour, and a typo in either is a silent
+  // `scope` and `base` change installer behaviour, and a typo in either is a silent
   // no-op today: the key is accepted, no enum runs, and the skill installs in a way the
-  // author did not intend. `scope: users` falls back to project scope; `mandatory: ture`
+  // author did not intend. `scope: users` falls back to project scope; `base: ture`
   // is falsy. Warnings rather than errors — the blocking surface stays small.
   if (raw.scope !== undefined && !SCOPE_VALUES.includes(raw.scope)) {
     warnings.push(`\`scope\` "${raw.scope}" is not one of: ${SCOPE_VALUES.join(', ')} (installs as project scope)`);
   }
-  if (raw.mandatory !== undefined && !TRUTHY.has(String(raw.mandatory).toLowerCase()) && !FALSY.has(String(raw.mandatory).toLowerCase())) {
-    warnings.push(`\`mandatory\` "${raw.mandatory}" is neither truthy nor falsy (treated as false)`);
+  if (raw.base !== undefined && !TRUTHY.has(String(raw.base).toLowerCase()) && !FALSY.has(String(raw.base).toLowerCase())) {
+    warnings.push(`\`base\` "${raw.base}" is neither truthy nor falsy (treated as false)`);
+  }
+
+  const isBase = raw.base !== undefined && TRUTHY.has(String(raw.base).toLowerCase());
+
+  // `base: true` installs for every engineer in every applicable repo, so it
+  // cannot also be experimental — that would push unfinished guidance to
+  // everyone. Promote the skill to stable first, or drop `base`.
+  if (isBase && raw.maturity === 'experimental') {
+    errors.push('`base: true` conflicts with `maturity: experimental` — a base skill installs for everyone, so promote it to stable or remove `base`');
+  }
+
+  if (isBase && raw.description && raw.description.length < BASE_DESCRIPTION_MIN) {
+    warnings.push(
+      `\`description\` is only ${raw.description.length} chars; a base skill needs enough trigger cues to be selected (aim for ${BASE_DESCRIPTION_MIN}+, saying what it does and when to use it)`,
+    );
   }
 
   // On-demand-only contract: a source skill must not force persistent loading.

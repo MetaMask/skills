@@ -241,8 +241,36 @@ function isGitDir(dir) {
   return dirExists(path.join(dir, '.git'));
 }
 
+// Git operations here run during `postinstall`, on the critical path of
+// `yarn install`. Two things must not happen there:
+//
+//   - A credential prompt. A fetch against a private source (the Consensys
+//     overlay) can block on stdin forever, hanging the install with no output.
+//     GIT_TERMINAL_PROMPT=0 and an empty GIT_ASKPASS turn that into an
+//     immediate, reportable failure.
+//   - An unbounded wait. A stalled connection would hang just as long, so every
+//     spawn is capped. Callers can override with an explicit `timeout`.
+//
+// Both belong here rather than in a consumer's package.json: this is where the
+// risky call is made, and an env prefix on the npm script would leak the setting
+// to the whole process tree.
+//
+// The cap is generous on purpose. It exists to stop an indefinite hang, not to
+// enforce a performance budget — the slowest call is a shallow clone of the
+// skills repo, which is quick on a good connection but can take minutes on a
+// poor one or through a VPN. Cutting a legitimately slow clone short would drop
+// the engineer to the stale bundled snapshot, which is worse than waiting.
+// Override per call with an explicit `timeout`.
+const SPAWN_TIMEOUT_MS = 300_000;
+
 function run(cmd, args, options = {}) {
-  return spawnSync(cmd, args, { stdio: options.stdio ?? 'pipe', encoding: 'utf8', ...options });
+  return spawnSync(cmd, args, {
+    stdio: options.stdio ?? 'pipe',
+    encoding: 'utf8',
+    timeout: SPAWN_TIMEOUT_MS,
+    ...options,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', ...options.env },
+  });
 }
 
 function repoNameFromGitHubUrl(url) {
@@ -343,7 +371,10 @@ function pickBash() {
   ].filter(Boolean);
 
   for (const candidate of new Set(candidates)) {
-    const result = run(candidate, ['--version']);
+    // Local, and probed up to four times per delegate call — the network cap
+    // would be absurd here. An interpreter that can't print its version in
+    // seconds is not one to hand a script to.
+    const result = run(candidate, ['--version'], { timeout: 10_000 });
     if (result.status !== 0) {
       continue;
     }
@@ -373,7 +404,11 @@ function validateConfiguredSource(name, dir) {
 }
 
 function buildDelegatedEnv(target) {
-  const env = { ...process.env };
+  // tools/sync runs `git pull` against each configured source, and one of them is
+  // a private repo. Without this, an engineer whose credentials aren't cached gets
+  // a git prompt blocking on stdin during `yarn install`, with no indication why.
+  // Fail fast instead; the caller reports it and continues.
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '' };
   const localConfig = readSkillsLocal(target);
 
   for (const key of SOURCE_ENV_KEYS) {
@@ -560,7 +595,7 @@ function collectSkills(sources, repo) {
           installedName: `mms-${name}`,
           description: metadata.description || '',
           maturity: metadata.maturity || 'stable',
-          mandatory: isTruthy(metadata.mandatory),
+          base: isTruthy(metadata.base),
           scope: metadata.scope || 'project',
           source,
           path: skillDir,
@@ -737,11 +772,18 @@ function postinstall(args) {
     return 0;
   }
 
-  const cacheReady = ensurePublicSkillsCache(target);
-  const autoUpdate = isTruthy(getConfigValue(process.env, localConfig, 'SKILLS_AUTO_UPDATE'));
+  // Auto-update is on by default so a fresh clone lands the base set from a
+  // plain `yarn install`, with no flags and nothing to read first. Engineers who
+  // want to manage skills by hand set SKILLS_AUTO_UPDATE=0 (or
+  // SKILLS_SKIP_POSTINSTALL=1 to skip this entirely).
+  const configured = getConfigValue(process.env, localConfig, 'SKILLS_AUTO_UPDATE');
+  const unset = configured === undefined || configured === '';
+  const autoUpdate = unset ? true : isTruthy(configured);
   if (!autoUpdate) {
     return 0;
   }
+
+  const cacheReady = ensurePublicSkillsCache(target);
 
   try {
     const { env } = buildDelegatedEnv(target);

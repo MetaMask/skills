@@ -52,6 +52,7 @@ Optional:
                       repo containing this script.
   --domain <list>     Comma-separated domain filter (default: all)
                       e.g., --domain perps,testing
+                      'none' installs only base skills; 'all' installs everything
   --maturity <level>  Minimum maturity: experimental, stable, deprecated
                       (default: stable; matches stable+deprecated when set to stable)
   --include <list>    Comma-separated skill opt-ins. Each item may be
@@ -177,7 +178,11 @@ body_after_frontmatter() {
 
 domain_allowed() {
   local domain="$1"
-  [[ -z "$DOMAIN_FILTER" ]] && return 0
+  # `none` selects no domains at all, leaving only `base: true` skills (which
+  # bypass this filter) and anything named by --include. `all` and the empty
+  # filter select every domain.
+  [[ "$DOMAIN_FILTER" == "none" ]] && return 1
+  [[ -z "$DOMAIN_FILTER" || "$DOMAIN_FILTER" == "all" ]] && return 0
   local d
   IFS=',' read -ra ds <<< "$DOMAIN_FILTER"
   for d in "${ds[@]}"; do [[ "$d" == "$domain" ]] && return 0; done
@@ -455,7 +460,7 @@ process_skill() {
   [[ -f "$base" ]] || { echo "Warning: no skill.md in $skill_dir, skipping" >&2; return; }
 
   local maturity;  maturity=$(frontmatter_value "$base" "maturity")
-  local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
+  local is_base;   is_base=$(frontmatter_value "$base" "base")
   local scope;     scope=$(frontmatter_value "$base" "scope")
 
   if skill_excluded "$domain_name" "$skill_name"; then
@@ -471,10 +476,10 @@ process_skill() {
     return
   fi
 
-  # Domain filter — but mandatory skills and explicit skill includes bypass.
+  # Domain filter — but base skills and explicit skill includes bypass.
   if ! $explicit_include && ! domain_allowed "$domain_name"; then
-    if is_truthy "$mandatory"; then
-      log "(mandatory — included despite domain filter)"
+    if is_truthy "$is_base"; then
+      log "(base — included despite domain filter)"
     else
       log "skipped (domain=$domain_name excluded by --domain)"
       return
@@ -546,7 +551,7 @@ preflight_skill() {
   [[ -f "$base" ]] || return 0
 
   local maturity;  maturity=$(frontmatter_value "$base" "maturity")
-  local mandatory; mandatory=$(frontmatter_value "$base" "mandatory")
+  local is_base;   is_base=$(frontmatter_value "$base" "base")
 
   local skill_name; skill_name=$(basename "$skill_dir")
   skill_excluded "$domain_name" "$skill_name" && return 0
@@ -559,7 +564,7 @@ preflight_skill() {
   fi
 
   if ! $explicit_include && ! domain_allowed "$domain_name"; then
-    is_truthy "$mandatory" || return 0
+    is_truthy "$is_base" || return 0
   fi
 
   local name;        name=$(frontmatter_value "$base" "name")

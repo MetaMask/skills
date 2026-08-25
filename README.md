@@ -384,7 +384,7 @@ maturity: stable          # experimental | stable | deprecated (default stable)
 
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
-`maturity`, `mandatory`, and `scope` are read by the CLI.
+`maturity`, `base`, and `scope` are read by the CLI.
 
 The 1,536-character ceiling is a repo budget rather than an operator limit — the
 description is always-on context for every installed skill, so it is capped
