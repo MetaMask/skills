@@ -448,7 +448,7 @@ function delegate(script, target, repo, args, options = {}) {
 
   const result = spawnSync(bash, delegatedArgs, {
     stdio: options.stdio ?? 'inherit',
-    env,
+    env: { ...env, ...options.env },
   });
   return result.status ?? 1;
 }
@@ -792,7 +792,16 @@ function postinstall(args) {
       return 0;
     }
     const repo = resolveRepo(target, repoOverride);
-    const result = delegate('sync', target, repo, passthrough);
+    // An automatic install nobody asked for should be the minimum that works:
+    // the base set. An explicit `yarn skills` still defaults to every domain,
+    // because the engineer asked for skills and expects to get them.
+    //
+    // This only changes sync's *fallback*. A saved SKILLS_DOMAINS, an env var,
+    // or a --domain flag all still win, so an engineer who opted into a domain
+    // does not silently lose it on their next install.
+    const result = delegate('sync', target, repo, passthrough, {
+      env: { SKILLS_DEFAULT_SCOPE: 'base' },
+    });
     return result === 0 ? 0 : 0;
   } catch (error) {
     warn(`auto-update failed: ${error instanceof Error ? error.message : String(error)}`);

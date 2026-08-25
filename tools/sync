@@ -11,9 +11,10 @@
 #   2. SKILLS_DOMAINS env var      (CI-friendly)
 #   3. saved selection in <target>/.skills.local
 #   4. interactive prompt (TTY)
-#   5. base skills only (fallback)
+#   5. fallback: base skills only for an automatic install (postinstall sets
+#      SKILLS_DEFAULT_SCOPE=base); every domain for an explicit `yarn skills`
 #
-# Skills with `base: true` install regardless of selection — a fresh clone with
+# Skills with `base: true` install regardless of selection, so a fresh clone with
 # no configuration lands exactly the base set. Use `all` to select every domain,
 # `none` for base only.
 # Skills with `scope: user` install at user-level (~/.claude, ~/.codex).
@@ -23,7 +24,9 @@
 #   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills source (private overlay).
 #                         When both set, private overrides public on name conflict.
 #   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
-#                         'none' = base skills only (default), 'all' = every domain.
+#                         'none' = base skills only, 'all' = every domain.
+#   SKILLS_DEFAULT_SCOPE  Set to 'base' to make the fallback base-only. Exported by
+#                         `metamask-skills postinstall`; not intended to be set by hand.
 #   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
 #   SKILLS_INCLUDE        Comma-separated skill opt-ins (domain/skill or skill).
 #   SKILLS_EXCLUDE        Comma-separated skill opt-outs (domain/skill or skill).
@@ -65,7 +68,7 @@ Required:
 Options:
   --repo <name>        Consumer repo (auto-detected from <target>/package.json)
   --domain <list>      Comma-separated domain opt-in filter ('none' = base only,
-                       'all' = every domain; default: base only)
+                       'all' = every domain; default: all for an explicit run)
   --maturity <level>    Minimum maturity: experimental, stable, deprecated
   --include <list>      Comma-separated skill opt-ins (domain/skill or skill).
                        Repeatable. Alias: --skill.
@@ -87,7 +90,7 @@ Options:
 Env:
   METAMASK_SKILLS_DIR  Path to local MetaMask/skills checkout (public, no auth)
   CONSENSYS_SKILLS_DIR Path to local Consensys/skills checkout (private overlay)
-  SKILLS_DOMAINS       Domain filter; 'none' = base only (default), 'all' = every domain
+  SKILLS_DOMAINS       Domain filter; 'none' = base only, 'all' = every domain
   SKILLS_MATURITY      Minimum maturity filter (default: stable)
   SKILLS_INCLUDE       Skill opt-ins; explicit includes bypass domain/maturity
   SKILLS_EXCLUDE       Skill opt-outs; explicit excludes win
@@ -345,7 +348,17 @@ interactive_select() {
   echo "$out"
 }
 
-# Resolution order: --domain > env > saved > --select prompt > base only (default)
+# Resolution order: --domain > env > --select prompt > saved > fallback.
+#
+# The fallback differs by how sync was reached. An automatic install nobody
+# asked for should be the minimum that works — the base set. An explicit
+# `yarn skills` defaults to every domain, because the engineer asked for skills
+# and expects to get them. `postinstall` signals the former by exporting
+# SKILLS_DEFAULT_SCOPE=base.
+#
+# Only the fallback changes: a --domain flag, SKILLS_DOMAINS, the picker, and a
+# saved selection all still win, so an engineer who opted into a domain does not
+# silently lose it on their next install.
 DOMAINS=""
 SOURCE=""
 if [[ -n "$DOMAIN_OVERRIDE" ]]; then
@@ -358,8 +371,10 @@ else
   saved=$(load_saved || true)
   if [[ -n "$saved" ]]; then
     DOMAINS="$saved"; SOURCE="saved (.skills.local)"
+  elif [[ "${SKILLS_DEFAULT_SCOPE:-}" == "base" ]]; then
+    DOMAINS="none"; SOURCE="base only (automatic install — run \`yarn skills\` for the rest)"
   else
-    DOMAINS="none"; SOURCE="base only (default — use --select or --domain to add more)"
+    DOMAINS="all"; SOURCE="all domains (default — pass --select or --domain to narrow)"
   fi
 fi
 
