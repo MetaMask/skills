@@ -1,7 +1,7 @@
 ---
 maturity: experimental
 name: extension-lifecycle-decoupling
-description: Verify platform lifecycle events before assuming they cause application-level side effects
+description: Verify that a platform lifecycle event actually causes the application-level effect attributed to it, before building on the assumption. Covers MV3 service worker restarts, cold starts, idle termination and the `browser.storage.session` keepalive that mitigates it, and the gap between the worker restarting and application state resetting — indistinguishable in a Sentry breadcrumb, different fixes. Use when an error is blamed on an SW restart, when reasoning about what survives a background restart, or when a fix assumes a lifecycle event fires.
 ---
 
 # Extension Lifecycle Decoupling

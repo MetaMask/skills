@@ -1,7 +1,7 @@
 ---
 maturity: experimental
 name: selector-antipattern-scan
-description: Review and diagnose Redux selector antipatterns that cause render cascades, pre-merge and post-merge
+description: Scan Redux selectors for the recomputation patterns behind render cascades — selectors returning a fresh object or array identity on every call, one `createSelector` instance shared across components passing different arguments, derived state computed inline in `useSelector` instead of memoized, and selectors reading a whole slice to use one field. Use when reviewing a diff that adds or changes a selector, when a component rerenders on unrelated state changes, or when reselect's `recomputations()` runs close to call count.
 ---
 
 # Selector Anti-Pattern Review

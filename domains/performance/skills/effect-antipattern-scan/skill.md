@@ -1,7 +1,7 @@
 ---
 maturity: experimental
 name: effect-antipattern-scan
-description: Review PR diffs that add or modify `useEffect` for the systemic React effect antipatterns
+description: Scan a diff for the React effect antipatterns that have no symptom at author time — effects synchronizing state that is derivable during render, dependency arrays that lie about what the effect reads, chained effects that turn one render into several, subscriptions and listeners with no matching teardown, and effects refiring because an object or callback identity changes every render. Use when reviewing a PR that adds or modifies `useEffect`, when asked why a component renders more than expected, or before merging a change to a hook other components consume.
 ---
 
 # Effect Anti-Pattern Review

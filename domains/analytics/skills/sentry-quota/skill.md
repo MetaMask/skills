@@ -1,7 +1,7 @@
 ---
 maturity: experimental
 name: sentry-quota
-description: Catch quota-risky Sentry span instrumentation in code and PRs — fan-out × ungated × no-kill-switch — before it blows the span budget
+description: Assess whether new Sentry span instrumentation is safe to add before it merges. Quota risk is fan-out times trigger frequency times the absence of a gate or kill switch, and all three are readable in the diff while the quota alert only arrives after the spend. Use when a PR adds spans or transactions, when instrumenting a hot path or a loop, when a span is created per item rather than per operation, or when asked whether an integration's default instrumentation should stay enabled.
 ---
 
 # Sentry Span Quota Guard
