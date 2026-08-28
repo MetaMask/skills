@@ -79,9 +79,11 @@ Need a component?
 - **Performance**: Optimized components reduce bundle size
 - **No SASS**: Reduces CSS file size and build complexity
 
-## Required Availability Check
+## Fallback Availability Check
 
-Before choosing `ui/components/component-library` or building custom UI, inspect the consumer repo's installed package. Do not rely on this skill's examples as a complete component list.
+When Storybook MCP is unavailable, inspect the consumer repo's installed package before
+choosing `ui/components/component-library` or building custom UI. Do not rely on this
+skill's examples as a complete component list.
 
 1. Check `node_modules/@metamask/design-system-react/dist/components/index.d.cts` for exported components and enums.
 2. If the package uses a different build layout, inspect `node_modules/@metamask/design-system-react/dist/components/index.d.ts` or `node_modules/@metamask/design-system-react/src/components/index.ts`.
@@ -90,107 +92,50 @@ Before choosing `ui/components/component-library` or building custom UI, inspect
 
 This lookup costs a few file reads, but it prevents stale skill guidance from overriding the version actually installed in Extension. The package version is the source of truth.
 
-## Required Imports for Extension
+## Current MMDS Knowledge Through Storybook MCP
 
-```tsx
-// ALWAYS prefer these imports
-import {
-  Box,
-  Text,
-  Button,
-  ButtonBase,
-  ButtonFilter,
-  ButtonHero,
-  ButtonIcon,
-  TextButton,
-  Icon,
-  // Modal family — ALL of it, including the shell
-  Modal,
-  ModalContent,
-  ModalContentSize,
-  ModalHeader,
-  ModalOverlay,
-  ModalBody,
-  ModalFocus,
-  ModalFooter,
-  // Popover
-  Popover,
-  PopoverHeader,
-  PopoverPosition,
-  PopoverRole,
-  // Form components
-  TextField,
-  TextFieldSize,
-  TextFieldType,
-  FormTextField,
-  TextFieldSearch,
-  TextArea,
-  Label,
-  HelpText,
-  HelpTextSeverity,
-  // Utility components
-  Skeleton,
-  SensitiveText,
-  Tag,
-  TagSeverity,
-  ButtonsAlignment,
-  TextVariant,
-  IconName,
-  IconColor,
-  IconSize,
-  FontWeight,
-  TextColor,
-  ButtonVariant,
-  ButtonSize,
-  ButtonBaseSize,
-  BannerAlert,
-  BannerBase,
-  // Avatar components
-  AvatarAccount,
-  AvatarBase,
-  AvatarFavicon,
-  AvatarGroup,
-  AvatarIcon,
-  AvatarNetwork,
-  AvatarToken,
-  // Badge components
-  BadgeCount,
-  BadgeIcon,
-  BadgeNetwork,
-  BadgeStatus,
-  BadgeWrapper,
-  // Box enums
-  BoxAlignItems,
-  BoxFlexDirection,
-  BoxJustifyContent,
-  BoxFlexWrap,
-  BoxBackgroundColor,
-  BoxBorderColor,
-  // ... other design system components
-} from '@metamask/design-system-react';
-```
+Do not maintain or rely on a hand-written component inventory in this skill. Component
+exports, props, variants, tokens, and examples change with MMDS releases. Extension's
+preferred source is the `storybook-broker-mcp` MCP toolset, which provides the current
+Storybook documentation and manifest.
 
-## Component Documentation Access
+Before answering a UI question or taking UI action:
 
-### Type Definitions & Documentation
+1. Query `storybook-broker-mcp` `list-all-documentation` to find relevant components and docs.
+2. Query `get-documentation` for each candidate component before choosing it.
+3. Query `get-documentation-for-story` when the component docs do not answer the question.
+4. Query `get-storybook-story-instructions` before creating or changing a story.
+5. Use only props, variants, tokens, and patterns explicitly documented or shown in stories.
+6. Query `run-story-tests` for relevant stories after making a UI change, including accessibility checks when configured.
+7. Use `preview-stories` to inspect the result when the tool is available.
 
-All `@metamask/design-system-react` components have comprehensive TypeScript definitions:
+Never infer a prop from its name or from another component library. If MCP documentation
+does not cover a needed API, stop and verify it through the fallback sources below. If the
+API remains unclear, call out the gap instead of guessing.
 
-- **Box**: `/node_modules/@metamask/design-system-react/dist/components/Box/*.d.cts`
-- **Text**: `/node_modules/@metamask/design-system-react/dist/components/Text/*.d.cts`
-- **Button**: `/node_modules/@metamask/design-system-react/dist/components/Button/*.d.cts`
-- **Modal family**: `/node_modules/@metamask/design-system-react/dist/components/{Modal,ModalContent,ModalHeader,ModalOverlay,ModalBody,ModalFocus,ModalFooter}/*.d.cts`
-- **Popover**: `/node_modules/@metamask/design-system-react/dist/components/{Popover,PopoverHeader}/*.d.cts`
-- **TextField**: `/node_modules/@metamask/design-system-react/dist/components/TextField/*.d.cts`
-- **Tag**: `/node_modules/@metamask/design-system-react/dist/components/Tag/*.d.cts`
-- **Label**: `/node_modules/@metamask/design-system-react/dist/components/Label/*.d.cts`
-- **Skeleton**: `/node_modules/@metamask/design-system-react/dist/components/Skeleton/*.d.cts`
+### Fallbacks When Storybook MCP Is Unavailable
 
-When unsure about component APIs:
+Use these sources in order:
 
-1. Read the `.d.cts` files for complete prop documentation
-2. Reference `ui/pages/design-system/design-system.stories.tsx` for usage examples
-3. Check GitHub source: https://github.com/MetaMask/metamask-design-system/tree/main/packages/design-system-react/src/components
+1. The installed `@metamask/design-system-react` package export index and matching type files.
+2. Extension stories, especially `ui/pages/design-system/design-system.stories.tsx`.
+3. A generated MMDS release manifest or skill supplied by the repository tooling.
+4. The design system source repository as a last resort.
+
+The installed package version is the source of truth for the code being changed. Do not
+copy a static component list into this skill to compensate for missing MCP access.
+
+When MCP is unavailable, inspect:
+
+1. `node_modules/@metamask/design-system-react/dist/components/index.d.cts` for exports.
+2. `dist/components/index.d.ts` or `src/components/index.ts` if the package uses another layout.
+3. The matching component type file before writing usage.
+4. `package.json` or the lockfile if `node_modules` is unavailable.
+
+The Storybook MCP gateway is the preferred delivery method, not the design-system strategy
+itself. If the gateway cannot serve the current knowledge, use the generated release
+fallback. Treat a separately hosted MMDS MCP server as a later option, not a reason to
+invent undocumented APIs.
 
 ### Box Component Quick Reference
 
@@ -642,6 +587,9 @@ import {
 
 ### Before Committing Code, Verify:
 
+- [ ] Storybook MCP documentation was queried for the relevant components and patterns
+- [ ] Only documented props, variants, tokens, and patterns are used
+- [ ] Relevant stories were tested with `run-story-tests`
 - [ ] No SASS files (`.scss`) created or modified
 - [ ] Design system components used when appropriate (prefer over raw elements)
 - [ ] The whole Modal family (Modal, ModalContent, ModalHeader, ModalOverlay, ModalBody, ModalFocus, ModalFooter) imported from `@metamask/design-system-react`
@@ -681,17 +629,23 @@ import {
 
 When suggesting code changes:
 
-1. ALWAYS read component type definitions first for accurate API usage
-2. ALWAYS check `ui/pages/design-system/design-system.stories.tsx` for real-world patterns
-3. ALWAYS prefer variant components over base components (Button > ButtonBase, BannerAlert > BannerBase)
-4. ALWAYS use component-specific props FIRST (variant, size, color, etc.)
-5. ALWAYS use Box utility props for layout before className
-6. ALWAYS search for existing feature-specific components before building new ones
-7. FLAG potential design inconsistencies when base components are needed
-8. REJECT any suggestions that violate the hierarchy
-9. REJECT any SASS file creation or modification
-10. SUGGEST migrations when encountering legacy patterns
-11. EXPLAIN why design system approach is preferred
+1. ALWAYS query `storybook-broker-mcp` before answering or taking UI action
+2. NEVER hallucinate component properties; use only documented or story-proven APIs
+3. ALWAYS use `get-storybook-story-instructions` before creating or changing stories
+4. ALWAYS run `run-story-tests` for relevant stories after UI changes
+5. ALWAYS use `preview-stories` to inspect renderable changes when available
+6. USE the fallback order above when MCP is unavailable
+7. ALWAYS read local component type definitions when using the fallback sources
+8. ALWAYS check `ui/pages/design-system/design-system.stories.tsx` for real-world patterns when using fallbacks
+9. ALWAYS prefer variant components over base components (Button > ButtonBase, BannerAlert > BannerBase)
+10. ALWAYS use component-specific props FIRST (variant, size, color, etc.)
+11. ALWAYS use Box utility props for layout before className
+12. ALWAYS search for existing feature-specific components before building new ones
+13. FLAG potential design inconsistencies when base components are needed
+14. REJECT any suggestions that violate the hierarchy
+15. REJECT any SASS file creation or modification
+16. SUGGEST migrations when encountering legacy patterns
+17. EXPLAIN why design system approach is preferred
 
 **Remember**: Variant Components > Base Components > Component props > Box utility props > className for extras
 
@@ -699,15 +653,16 @@ When suggesting code changes:
 
 Before suggesting any UI solution:
 
-1. Check if `@metamask/design-system-react` has the component
-2. Check if a variant component exists (Button, BannerAlert, ModalHeader)
-3. Use component's built-in props (variant, color, size)
-4. Add layout/spacing with Box props or `className`
-5. Add colors with semantic Tailwind tokens
-6. Only suggest base components (ButtonBase, BannerBase) if no variant fits
-7. FLAG if base component usage suggests design inconsistency
-8. Only suggest custom components if no design system option exists
-9. **NEVER** suggest SASS files
+1. Query Storybook MCP for the relevant components, variants, props, tokens, and patterns
+2. If MCP is unavailable, inspect the installed package exports and type definitions
+3. Check if a variant component exists (Button, BannerAlert, ModalHeader)
+4. Use component's built-in props (variant, color, size)
+5. Add layout/spacing with Box props or `className`
+6. Add colors with semantic Tailwind tokens
+7. Only suggest base components (ButtonBase, BannerBase) if no variant fits
+8. FLAG if base component usage suggests design inconsistency
+9. Only suggest custom components if no design system option exists
+10. **NEVER** suggest SASS files
 
 ## Tailwind Configuration
 
