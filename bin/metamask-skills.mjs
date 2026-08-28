@@ -263,6 +263,13 @@ function isGitDir(dir) {
 // Override per call with an explicit `timeout`.
 const SPAWN_TIMEOUT_MS = 300_000;
 
+// `delegate()` wraps a Bash script that itself makes several capped calls, so its
+// budget has to exceed a single spawn's. If both used SPAWN_TIMEOUT_MS the outer
+// timer would fire first — after the wrapper's own startup cost — and kill a
+// legitimately slow clone from the outside, dropping the engineer to the stale
+// bundled snapshot. That is the exact outcome the cap above is written to avoid.
+const DELEGATE_TIMEOUT_MS = SPAWN_TIMEOUT_MS * 2;
+
 function run(cmd, args, options = {}) {
   return spawnSync(cmd, args, {
     stdio: options.stdio ?? 'pipe',
@@ -446,10 +453,33 @@ function delegate(script, target, repo, args, options = {}) {
   }
   delegatedArgs.push(...args);
 
+  // Capped for the same reason as run(): this runs from postinstall, so a stalled
+  // child would hang `yarn install` indefinitely. SIGKILL rather than the default
+  // SIGTERM because the child is Bash — it does not reliably forward a term signal
+  // to an in-flight `git`, which would leave an orphan holding the index lock.
   const result = spawnSync(bash, delegatedArgs, {
     stdio: options.stdio ?? 'inherit',
+    timeout: DELEGATE_TIMEOUT_MS,
+    killSignal: 'SIGKILL',
+    ...options,
     env: { ...env, ...options.env },
   });
+
+  // On timeout spawnSync reports status === null, which would otherwise be
+  // indistinguishable from an ordinary failure. Say so explicitly: the whole point
+  // of the cap is a reportable failure rather than a silent hang.
+  if (result.error?.code === 'ETIMEDOUT') {
+    const seconds = Math.round((options.timeout ?? DELEGATE_TIMEOUT_MS) / 1000);
+    process.stderr.write(
+      `metamask-skills: ${script} exceeded ${seconds}s and was terminated. ` +
+        'Skills were not updated; the bundled snapshot is still in place.\n',
+    );
+    return 1;
+  }
+  if (result.error) {
+    process.stderr.write(`metamask-skills: failed to run ${script}: ${result.error.message}\n`);
+    return 1;
+  }
   return result.status ?? 1;
 }
 
