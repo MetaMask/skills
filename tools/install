@@ -34,7 +34,11 @@ EXCLUDE_FILTER=""
 DRY_RUN=false
 INCLUDE_USER=false
 PRUNE_STALE=false
+FORCE_OVERWRITE=false
 SOURCES=()
+# Paths whose installed copy is ahead of source. Populated by refuse_if_drifted;
+# reported at exit. An install that would destroy local edits fails instead.
+DRIFTED=()
 
 usage() {
   cat <<EOF
@@ -62,6 +66,9 @@ Optional:
   --include-user      Also install skills with \`scope: user\` (writes to
                       \$HOME/.claude/skills and \$HOME/.codex/skills, outside
                       the target repo). Off by default — warns + lists them.
+  --force             Overwrite installed files that differ from source.
+                      Without it, an install that would destroy local edits
+                      refuses those paths and exits non-zero.
   --prune-stale       Remove installed project-scope mms-* skills that are not
                       expected from this source/filter selection.
   --dry-run           Preview without writing files
@@ -88,6 +95,7 @@ while [[ $# -gt 0 ]]; do
     --exclude)       EXCLUDE_FILTER="${EXCLUDE_FILTER:+$EXCLUDE_FILTER,}$2"; shift 2 ;;
     --include-user)  INCLUDE_USER=true; shift ;;
     --prune-stale)   PRUNE_STALE=true; shift ;;
+    --force)         FORCE_OVERWRITE=true; shift ;;
     --dry-run)       DRY_RUN=true; shift ;;
     -h|--help)       usage 0 ;;
     *)               echo "Unknown arg: $1"; usage ;;
@@ -343,6 +351,65 @@ write_user_codex() {
   } > "$file"
 }
 
+# An install is a one-way copy over a tree the user can edit, so the copy is
+# capable of destroying work that exists nowhere else. Refuse rather than
+# overwrite: skipping leaves the installed copy ahead, which loses nothing,
+# while clobbering is unrecoverable. --force restores the old behaviour.
+#
+# Comparing source against the install cannot on its own tell the two cases
+# apart, because both make them differ:
+#
+#   the install was edited locally   -> overwriting destroys the only copy
+#   the SOURCE moved ahead           -> overwriting is the whole point
+#
+# A guard that refuses on any difference therefore breaks every routine update,
+# which is a good way to get itself disabled. So each install records what it
+# wrote; a later run compares the install against THAT. Matching means nothing
+# local happened and the copy is safe no matter how far source has moved.
+MANIFEST_NAME=".mms-install-manifest"
+
+dir_hash() {
+  # Content hash of a directory: every file's path and bytes, order-stable.
+  # Excludes the manifest itself, which is written after the hash is taken.
+  [[ -d "$1" ]] || { echo "-"; return 0; }
+  (cd "$1" && find . -type f ! -name "$MANIFEST_NAME" -print0 \
+    | LC_ALL=C sort -z \
+    | xargs -0 -r sha256sum 2>/dev/null \
+    | sha256sum | cut -d' ' -f1)
+}
+
+record_install() {
+  local dest_dir="$1" bundle="$2"
+  local manifest="$dest_dir/$MANIFEST_NAME"
+  local h; h="$(dir_hash "$dest_dir/$bundle")"
+  [[ -f "$manifest" ]] && grep -v "^$bundle " "$manifest" > "$manifest.tmp" 2>/dev/null || : > "$manifest.tmp"
+  printf '%s %s\n' "$bundle" "$h" >> "$manifest.tmp"
+  mv "$manifest.tmp" "$manifest"
+}
+
+refuse_if_drifted() {
+  local src="$1" dest="$2" label="$3" dest_dir="$4" bundle="$5"
+  $FORCE_OVERWRITE && return 0
+  [[ -e "$dest" ]] || return 0
+
+  local manifest="$dest_dir/$MANIFEST_NAME" recorded=""
+  [[ -f "$manifest" ]] && recorded="$(awk -v b="$bundle" '$1==b {print $2}' "$manifest")"
+
+  if [[ -n "$recorded" ]]; then
+    # Unchanged since this installer wrote it — safe to replace.
+    [[ "$(dir_hash "$dest")" == "$recorded" ]] && return 0
+  else
+    # No record: predates the manifest. Fall back to comparing against source,
+    # which is conservative — it refuses a legitimate update too, once, until a
+    # manifest exists. Better a one-time prompt to re-run than a silent delete.
+    diff -r -q "$src" "$dest" >/dev/null 2>&1 && return 0
+  fi
+
+  DRIFTED+=("$label")
+  echo "  REFUSED $label — installed copy has local changes" >&2
+  return 1
+}
+
 copy_bundle_dirs() {
   local skill_dir="$1" dest_dir="$2" label="$3"
   local bundle
@@ -350,15 +417,27 @@ copy_bundle_dirs() {
     if [[ -d "$skill_dir/$bundle" ]]; then
       action "$label/$bundle/"
       $DRY_RUN && continue
+      refuse_if_drifted "$skill_dir/$bundle" "$dest_dir/$bundle" "$label/$bundle/" \
+        "$dest_dir" "$bundle" || continue
       mkdir -p "$dest_dir"
       rm -rf "$dest_dir/$bundle"
       cp -R "$skill_dir/$bundle" "$dest_dir/$bundle"
+      record_install "$dest_dir" "$bundle"
     else
       if $DRY_RUN; then
         [[ -e "$dest_dir/$bundle" ]] && action "$label/$bundle/ (remove stale)"
         continue
       fi
-      # Remove stale bundles left by older versions of this skill.
+      # Remove stale bundles left by older versions of this skill. A bundle
+      # present here and absent from source is not necessarily stale — it may
+      # be unmanaged content that lives only here, which is how the evidence
+      # skill's hooks/ survived having no source of record. Deleting it is the
+      # same unrecoverable move as overwriting, so it needs the same consent.
+      if [[ -e "$dest_dir/$bundle" ]] && ! $FORCE_OVERWRITE && ! $PRUNE_STALE; then
+        DRIFTED+=("$label/$bundle/ (installed-only)")
+        echo "  REFUSED $label/$bundle/ — exists here, absent from source" >&2
+        continue
+      fi
       rm -rf "$dest_dir/$bundle"
     fi
   done
@@ -659,6 +738,19 @@ $PRUNE_STALE && remove_stale_project_skills
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."
+
+set +u
+DRIFTED_COUNT=${#DRIFTED[@]}
+set -u
+if (( DRIFTED_COUNT > 0 )); then
+  echo >&2
+  echo "Refused to overwrite $DRIFTED_COUNT path(s) whose installed copy is ahead of source:" >&2
+  for d in "${DRIFTED[@]}"; do echo "  - $d" >&2; done
+  echo >&2
+  echo "These were left untouched. Copy the changes back into the source skill and" >&2
+  echo "commit them, or re-run with --force to discard them." >&2
+  exit 1
+fi
 
 set +u
 SKIPPED_USER_COUNT=${#SKIPPED_USER_SKILLS[@]}
