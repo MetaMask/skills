@@ -368,7 +368,7 @@ describe('corpus: knowledge citations resolve within their own domain', () => {
   // This asserts a SOURCE-TREE convention: a skill cites knowledge from its own domain,
   // so the citation is readable in this repo without knowing the installer. It is not the
   // same property as "does the operator receive the file" — the installer now delivers
-  // cross-domain knowledge (`copy_cited_knowledge`, below), so every entry in the list
+  // cross-domain knowledge (`resolve_foreign_knowledge`, below), so every entry in the list
   // resolves for an operator while still breaking the convention here.
   //
   // Saying that precisely matters, because the earlier version of this comment claimed the
@@ -582,7 +582,7 @@ describe('cross-domain knowledge references', () => {
 
   test('a skill receives knowledge it cites from another domain', () => {
     const result = spawnSync(
-      'bash',
+      '/bin/bash',
       [INSTALL, '--target', target, '--repo', 'core', '--source', source],
       { encoding: 'utf8' },
     );
@@ -618,7 +618,7 @@ describe('cross-domain knowledge references', () => {
     source = saved;
 
     const result = spawnSync(
-      'bash',
+      '/bin/bash',
       [INSTALL, '--target', clashTarget, '--repo', 'core', '--source', clashSource],
       { encoding: 'utf8' },
     );
