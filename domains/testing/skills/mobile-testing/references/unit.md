@@ -2,7 +2,7 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 
 # Unit Testing Guidelines
 
-Part of **mobile-testing**. Choose the layer first via [`layers.md`](layers.md); unit tests are not the default for screen/view UI behavior or app-to-controller flows.
+Part of **mobile-testing**. Choose the layer first via installed `knowledge/testing-layers.md`; unit tests are not the default for screen/view UI behavior or app-to-controller flows.
 
 ## When to use
 

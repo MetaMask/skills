@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -221,6 +221,28 @@ describe('managed skill pruning', () => {
 
     assert.equal(disabledEnvResult.status, 0, `${disabledEnvResult.stdout}\n${disabledEnvResult.stderr}`);
     assert.equal(existsSync(fromDisabledEnv), true);
+  });
+
+  test('--save preserves configured public and private source paths', () => {
+    const privateSource = path.join(root, 'private-source');
+    mkdirSync(path.join(privateSource, 'domains'), { recursive: true });
+    mkdirSync(path.join(privateSource, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(privateSource, 'tools', 'install'));
+    writeFileSync(
+      path.join(target, '.skills.local'),
+      `export METAMASK_SKILLS_DIR=${source}\nCONSENSYS_SKILLS_DIR='${privateSource}'\nSKILLS_DOMAINS=testing\n`,
+    );
+
+    const result = runCli(
+      ['sync', '--target', target, '--repo', 'core', '--include', 'testing/current', '--save', '--dry-run'],
+      { METAMASK_SKILLS_DIR: source, CONSENSYS_SKILLS_DIR: privateSource },
+    );
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    const saved = readFileSync(path.join(target, '.skills.local'), 'utf8');
+    assert.match(saved, new RegExp(`^export METAMASK_SKILLS_DIR=${source}$`, 'mu'));
+    assert.match(saved, new RegExp(`^CONSENSYS_SKILLS_DIR='${privateSource}'$`, 'mu'));
+    assert.match(saved, /^SKILLS_INCLUDE=testing\/current$/mu);
   });
 
   test('does not prune stale skills when installation fails', () => {

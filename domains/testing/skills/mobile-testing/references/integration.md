@@ -13,7 +13,7 @@ Your job is to figure out whether the user needs to **write a new test**, **fix 
 
 ## Testing layers (read first)
 
-Follow [`layers.md`](layers.md) or installed `knowledge/testing-layers.md` before choosing integration vs component-view vs unit vs E2E. Use integration tests when the behavior crosses the app-to-controller seam and must exercise real controller, provider, or service code. Pure UI variants belong in component-view tests; pure logic belongs in unit tests; full native-device journeys belong in E2E.
+Follow installed `knowledge/testing-layers.md` before choosing integration vs component-view vs unit vs E2E. Prefer **CV → integration → unit fallback → E2E**. Use integration tests when the behavior crosses the app-to-controller seam and must exercise real controller, provider, or service code. Pure UI variants belong in component-view tests; pure logic belongs in unit tests; device/native journeys belong in E2E only after CV and integration are ruled out.
 
 **Decision tree — which reference to use:**
 

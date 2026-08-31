@@ -226,6 +226,45 @@ describe('changed-files mode', () => {
     assert.match(output, /is not under domains\/<domain>\/skills\/<name>\//u);
   });
 
+  test('a domain knowledge file is accepted and linted', () => {
+    const root = makeRoot();
+    const dir = path.join(root, 'domains', 'testing', 'knowledge');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'testing-layers.md'),
+      '---\nname: testing-layers\ndomain: testing\ndescription: Layer policy\n---\n\n# Layers\n',
+    );
+    const { code, output } = lint(root, 'domains/testing/knowledge/testing-layers.md');
+    assert.equal(code, 0, output);
+    assert.match(output, /1 knowledge file\(s\) checked/u);
+  });
+
+  test('a knowledge file with mismatched domain fails', () => {
+    const root = makeRoot();
+    const dir = path.join(root, 'domains', 'testing', 'knowledge');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'testing-layers.md'),
+      '---\nname: testing-layers\ndomain: perps\ndescription: Layer policy\n---\n\n# Layers\n',
+    );
+    const { code, output } = lint(root, 'domains/testing/knowledge/testing-layers.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /must match the parent domain/u);
+  });
+
+  test('a knowledge file with mismatched name fails', () => {
+    const root = makeRoot();
+    const dir = path.join(root, 'domains', 'testing', 'knowledge');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'testing-layers.md'),
+      '---\nname: wrong-name\ndomain: testing\ndescription: Layer policy\n---\n\n# Layers\n',
+    );
+    const { code, output } = lint(root, 'domains/testing/knowledge/testing-layers.md');
+    assert.equal(code, 1, output);
+    assert.match(output, /must match the filename stem/u);
+  });
+
   test('a changed path whose skill.md is missing is reported, not skipped', () => {
     const root = makeRoot();
     // Skill-shaped directory, no skill.md — the case that previously printed

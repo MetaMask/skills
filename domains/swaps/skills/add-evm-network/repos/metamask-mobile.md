@@ -1,6 +1,6 @@
 ---
 repo: metamask-mobile
-parent: add-evm-network-mobile
+parent: add-evm-network
 ---
 
 # Add an EVM Network to Mobile Swaps and Bridge
