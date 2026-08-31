@@ -34,7 +34,7 @@ ls tests/integration 2>/dev/null | head
 
 ## E2E
 
-Search Detox/Appium specs and page objects that mention the feature screen names / testIDs:
+Search Appium (default) and remaining Detox specs/page objects that mention the feature screen names / testIDs:
 
 ```bash
 rg -l "FeatureName|ScreenName" e2e/ appium/ 2>/dev/null | head -50

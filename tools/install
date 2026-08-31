@@ -346,7 +346,7 @@ write_user_codex() {
 copy_bundle_dirs() {
   local skill_dir="$1" dest_dir="$2" label="$3"
   local bundle
-  for bundle in references scripts assets adapters; do
+  for bundle in references scripts assets adapters workflows; do
     if [[ -d "$skill_dir/$bundle" ]]; then
       action "$label/$bundle/"
       $DRY_RUN && continue

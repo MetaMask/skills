@@ -208,4 +208,4 @@ yarn eslint <path/to/test.tsx>
 | Feature presets (per view)     | `tests/component-view/presets/` (e.g. bridge, wallet)          |
 | DeepPartial type               | `app/util/test/renderWithProvider`                             |
 | Routes                         | `app/constants/navigation/Routes.ts`                           |
-| Skill + rules                  | `.agents/skills/component-view-test/` (SKILL.md + references/) |
+| Skill + rules                  | `.agents/skills/mms-mobile-testing/` (SKILL.md + references/component-view/) |

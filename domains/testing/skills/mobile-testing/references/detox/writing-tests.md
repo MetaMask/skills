@@ -1,5 +1,8 @@
 # Writing E2E Tests — Reference
 
+> **Nearly deprecated.** Prefer Appium for new E2E ([`../appium-e2e.md`](../appium-e2e.md)). Use these Detox docs only for migration or remaining unmigrated suites ([`../detox-to-appium.md`](../detox-to-appium.md)).
+
+
 ## Spec File Location
 
 | Test Type  | Directory                                   | Tag                                                                                                               |

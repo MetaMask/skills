@@ -20,13 +20,13 @@ parent: coding-guidelines
 - TypeScript guidelines from contributor docs • Functional components + hooks • PascalCase (components) / camelCase (functions)
 - Reusable components/utilities • TSDoc format • Comprehensive tests following testing layers (below)
 
-**Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside testing skills):
-1. **Component-view** (`*.view.test.tsx`) — **default** for screen/view UI behavior via real app state (`component-view-test` skill)
-2. **Integration** (`*.integration.test.ts`) — app-to-controller flows with real controllers/providers/services and only the I/O boundary mocked (`integration-test` skill)
-3. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet (`unit-testing` skill)
-4. **E2E** — full device / multi-screen Appium flows (`e2e-test` skill)
+**Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside `mobile-testing`):
+1. **Component-view** (`*.view.test.tsx`) — **default** for screen/view UI behavior via real app state
+2. **Integration** (`*.integration.test.ts`) — app-to-controller flows with real controllers/providers/services and only the I/O boundary mocked
+3. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet
+4. **E2E** — full device / multi-screen **Appium** flows (Detox is nearly deprecated; migrate rather than extend)
 
-Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Load **component-view-test**, **integration-test**, and **unit-testing** as peer skills (same documentation level); choose by layer, not by which skill is more familiar.
+Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Install **`mobile-testing`** and let it route to the matching reference by layer.
 
 **File Organization**:
 ```
@@ -48,12 +48,11 @@ ComponentName/
 
 **External**: [MetaMask Contributor Docs](https://github.com/MetaMask/contributor-docs) • [TypeScript Guidelines](https://github.com/MetaMask/contributor-docs/blob/main/docs/typescript.md)
 
-**Testing (Mobile, peer layers)**:
-- Layers policy: testing domain `knowledge/testing-layers.md` (beside `component-view-test` / `integration-test` / `unit-testing` when installed)
-- Component-view (default for views): `component-view-test` skill
-- Integration (app-to-controller flows): `integration-test` skill
-- Unit (helpers / CV fallback): `unit-testing` skill • [Contributor unit testing docs](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md)
-- E2E (device journeys): `e2e-test` skill
+**Testing (Mobile)**:
+- Entrypoint: `mobile-testing` skill
+- Layers policy: testing domain `knowledge/testing-layers.md` (beside `mobile-testing` when installed)
+- Component-view / integration / unit / Appium E2E / Detox migration / placement: references inside `mobile-testing`
+- Contributor unit docs: [Unit testing](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md)
 
 ## Enforcement (MANDATORY)
 
@@ -61,6 +60,6 @@ ComponentName/
 
 **Commands**: ONLY use `.claude/commands/` + yarn command
 
-**Testing**: CV default for views → integration for app-to-controller flows → unit for allowed fallback → e2e for Appium. Load `component-view-test`, `integration-test`, and `unit-testing` as peers (plus `e2e-test` when needed); follow testing domain `knowledge/testing-layers.md` when those skills are installed.
+**Testing**: CV default for views → integration for app-to-controller flows → unit for allowed fallback → Appium for device journeys (Detox nearly deprecated). Install `mobile-testing` and follow testing domain `knowledge/testing-layers.md`.
 
 **Forbidden**: ❌ npm/npx commands

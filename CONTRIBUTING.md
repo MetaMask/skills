@@ -18,6 +18,47 @@ A well-crafted skill should:
 - **Declare maturity** — Use `experimental`, `stable`, or `deprecated` in frontmatter
 - **Be well-documented** — Clear instructions, examples, and expected outcomes
 
+### Is it a skill, or does it belong in an enforcement layer?
+
+Skills shape generation. Linters, fitness functions, and hooks enforce. The two do
+different work, and any pattern load-bearing enough to encode probably wants both.
+
+| Layer | Mechanism | Can an agent bypass it? | Timing |
+|-------|-----------|-------------------------|--------|
+| Skills (`domains/<area>/skills/<name>/skill.md`) | Generation-time guidance | Yes — suggestive only | Before output |
+| AI rules (`AGENTS.md`, `.cursor/rules/*.mdc`, `CLAUDE.md`) | Context injection | Yes — suggestive only | Before output |
+| Hooks (Claude Code `PreToolUse`, Cursor hooks) | Runtime interception | No | At tool call |
+| Linters, fitness functions, CI | Validation | No | After output |
+
+Three ways a proposed skill fails this test:
+
+- **A skill that substitutes for enforcement is unsafe.** An agent can ignore any context
+  it is given, so anything that must not be bypassed belongs in a hook or a lint rule.
+- **A skill that restates what a deterministic check already verifies is wasteful.** It
+  spends context on every invocation to duplicate ground truth that CI produces for free.
+- **A skill that teaches the upstream pattern, so the enforcement layer rarely has to fire,
+  is the right shape.** An existing lint rule is evidence the pattern matters enough to
+  encode at both layers — name the layer the skill pairs with.
+
+The question to answer in review is not *"is this redundant with the linter?"* but *"is this
+doing generation-time work the linter cannot?"*
+
+### Does it earn its context budget?
+
+Frontmatter for every installed skill is loaded at agent startup, as fixed overhead that
+grows linearly with the catalogue. A skill that is never selected still costs its
+`description` on every run.
+
+- Not a duplicate of a skill that already exists — check `metamask-skills list` first.
+- Actionable rather than aspirational: steps an agent can follow, not principles to admire.
+- Scoped so a reader can tell when it applies — neither one repo's quirk nor "good code".
+- `description` within the ceiling in [`tools/skill-schema.mjs`](tools/skill-schema.mjs). It is
+  the lowest limit across operators, so a description that passes is accepted by all of them.
+
+`yarn audit:skills` checks the deterministic properties — directory layout, name pattern,
+frontmatter keys, maturity values, description length — so review time goes to the two
+questions above, which no check can answer.
+
 ## How to Contribute
 
 ### Adding a New Skill

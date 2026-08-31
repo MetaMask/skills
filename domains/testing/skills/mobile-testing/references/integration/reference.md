@@ -284,4 +284,4 @@ yarn eslint <path/to/test.ts>
 | Per-domain use case → layer matrix             | `tests/integration/perps-use-cases.md` (others as added)    |
 | Per-domain harnesses                           | `tests/integration/harnesses/<domain>.ts`                   |
 | Jest config                                    | `jest.config.integration.js`                                |
-| Skill source                                   | `MetaMask/skills/domains/testing/skills/integration-test/`  |
+| Skill source                                   | `MetaMask/skills/domains/testing/skills/mobile-testing/references/integration/`  |
