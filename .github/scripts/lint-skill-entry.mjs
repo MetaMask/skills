@@ -106,6 +106,30 @@ export function lintSkill(skill) {
     }
   }
 
+  // Repo targeting is declared by the SHAPE of repos/, not by its contents, and the two
+  // shapes mean opposite things to the installer. `tools/install` skips a skill whose
+  // repos/ exists but holds no file for the target repo, while a skill with no repos/ at
+  // all installs into every repo. So adding one overlay to a skill that had none does not
+  // widen it — it narrows it from "everywhere" to "that repo alone", silently, and the
+  // skill keeps installing fine in the repo you were looking at.
+  if (skill.repos.length > 0) {
+    const missing = KNOWN_REPOS.filter((r) => !skill.repos.includes(r));
+    if (missing.length > 0) {
+      warnings.push(
+        `repos/ covers ${skill.repos.join(', ')} but not ${missing.join(', ')}; ` +
+          `the installer SKIPS this skill entirely for ${missing.length === 1 ? 'that repo' : 'those repos'}. ` +
+          `Add repos/<repo>.md for each (a stub naming the repo is enough), or delete repos/ ` +
+          `to install everywhere with no repo-specific guidance.`,
+      );
+    }
+  } else {
+    warnings.push(
+      `no repos/ overlay; installs into every repo (${KNOWN_REPOS.join(', ')}) with no ` +
+        `repo-specific guidance. Add a repos/<repo>.md per consumer, or leave as-is if the ` +
+        `skill is genuinely repo-agnostic.`,
+    );
+  }
+
   for (const key of Object.keys(raw)) {
     if (!KNOWN_FRONTMATTER.includes(key) && key !== 'alwaysApply') {
       warnings.push(`unknown frontmatter key "${key}"; operators silently ignore unrecognised keys (typo?)`);
