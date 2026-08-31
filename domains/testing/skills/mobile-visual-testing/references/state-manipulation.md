@@ -1,262 +1,133 @@
-# Runtime State Manipulation (Mobile)
+# Runtime State Manipulation (Mobile Development Build)
 
-Use `mm cdp` only for advanced runtime inspection or manipulation of the current installed app during a Metro-attached session. On mobile, `mm cdp` connects to the Hermes JavaScript runtime through Metro's inspector proxy. These operations use `Runtime.evaluate` and require Metro to be running (`MM_METRO_PORT`).
+Use `mm cdp` only for advanced runtime inspection or state manipulation of the installed app during a Metro-attached session. This capability is restricted to **development builds** on either iOS or Android. The system connects directly to the Hermes JavaScript runtime through Metro's inspector proxy using `Runtime.evaluate`. Running these commands requires the Metro bundler to be active on `MM_METRO_PORT`.
 
 ## Contents
 
 - [CDP Basics (Mobile)](#cdp-basics-mobile)
-- [Fiber Entry Point (React Native)](#fiber-entry-point-react-native)
-- [Operations](#operations)
-- [Finding the Engine Singleton](#finding-the-engine-singleton)
-- [Verify State After Mutation](#verify-state-after-mutation)
-- [When to Use CDP](#when-to-use-cdp)
+- [Critical Rules for State Mutation](#critical-rules-for-state-mutation)
+- [React Native Fiber Entry Point](#react-native-fiber-entry-point)
+- [Read-Only Redux Store Evaluation](#read-only-redux-store-evaluation)
+- [Safe Mutation Checklist and Templates](#safe-mutation-checklist-and-templates)
+- [Last-Resort Module Discovery](#last-resort-module-discovery)
+- [When to Use and Troubleshooting](#when-to-use-and-troubleshooting)
 
 ## CDP Basics (Mobile)
 
-`mm cdp` sends a Chrome DevTools Protocol command. On mobile, it connects to the Hermes runtime via Metro's inspector proxy, targeting the **React Native JS thread** (on the extension it targets the browser page instead).
+The `mm cdp` command sends Chrome DevTools Protocol payloads to the React Native JS thread on the running mobile device.
 
 ```bash
-yarn mm cdp Runtime.evaluate '{"expression":"JSON.stringify(1+1)"}'
 yarn mm cdp Runtime.evaluate '{"expression":"JSON.stringify(globalThis.__DEV__)"}'
 ```
 
 **Requirements:**
-- Metro must be running (`MM_METRO_PORT` set at launch time)
-- Node 20 requires `--experimental-websocket` flag at daemon launch
-- Node 22+ works natively
+- Metro must be active with `MM_METRO_PORT` configured at launch.
+- Node 20 requires the `--experimental-websocket` flag passed to the daemon. Node 22 and later support WebSockets natively.
 
-CDP calls are **mutating**, so run `mm describe-screen` afterward to re-sync the a11y ref map.
+Runtime, controller, or Redux mutations may be in-memory or persisted depending on controller or storage behavior. You must assume persistence until verified and always restore the original state. Run `yarn mm describe-screen` after any mutation to re-sync the accessibility reference map.
 
-## Fiber Entry Point (React Native)
+## Critical Rules for State Mutation
 
-The extension walks fibers from a DOM node (`document.getElementById("app-content").__reactFiber$...`). React Native has no DOM. Instead, use `__REACT_DEVTOOLS_GLOBAL_HOOK__`:
+Before modifying any runtime state, you must adhere to these absolute rules:
+
+1. **Inspect before mutating**: Check current values to confirm the app is in the expected state.
+2. **Capture the exact original state**: Always read and back up the original values before applying modifications.
+3. **Prefer real controller methods**: Use exposed controller interfaces over direct Redux dispatches whenever possible. Real controller methods handle validation and state propagation safely.
+4. **Verify after mutation**: Confirm the modification succeeded with a fresh read and run `yarn mm describe-screen`.
+5. **Restore before cleanup**: Revert all changes to their original backed-up values before ending the session.
+6. **Never mutate unknown wallet state**: Avoid touching keyring or account states unless your task explicitly commands it.
+
+## React Native Fiber Entry Point
+
+React Native lacks a DOM interface. To access the internal React component tree, query the DevTools global hook directly:
 
 ```javascript
 var hook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 var rid = hook.renderers.keys().next().value;
 var root = hook.getFiberRoots(rid).values().next().value;
-var fiber = root.current; // root fiber, start walking from here
+var fiber = root.current; // Start walking the fiber tree from here
 ```
 
-From `fiber`, traverse the tree with `.child`, `.sibling`, and `.return` exactly like the extension pattern. The fiber shape (`memoizedState`, `memoizedProps`, `stateNode`) is identical.
+Every React fiber node exposes `child`, `sibling`, and `return` properties for tree traversal. The properties `memoizedState` and `memoizedProps` hold the actual values and context bindings.
 
-## Operations
+## Read-Only Redux Store Evaluation
 
-| Operation | Method | Scope |
-|---|---|---|
-| Read Redux state | Fiber walk, store, `getState()` | In-memory UI state |
-| Write Redux state | Fiber walk, store, `dispatch()` | Instant UI update, lost on restart |
-| Call controller methods | Fiber walk, Engine singleton, `context.SomeController.method()` | Triggers real controller logic and state propagation |
-
-**Preferred order:** Call controller methods (operation 3) first. This is the most correct approach because the controller manages its own state and propagates to Redux. Fall back to Redux dispatch (operation 2) only when you need to fake state that no controller API provides.
-
-### 1. Read Redux State
-
-Find the Redux store on the `<Provider>` component's fiber props:
+This concise script walks the fiber tree to find the Redux provider and safely reads user configuration. It bypasses missing or protected properties without crashing.
 
 ```bash
-yarn mm cdp Runtime.evaluate '{"expression":"(function(){var hook=globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;var rid=hook.renderers.keys().next().value;var root=hook.getFiberRoots(rid).values().next().value;function find(f){if(!f)return null;if(f.memoizedProps&&f.memoizedProps.store&&typeof f.memoizedProps.store.getState===\"function\")return f.memoizedProps.store;return find(f.child)||find(f.sibling)}var store=find(root.current);if(!store)return JSON.stringify(\"store not found\");var s=store.getState();return JSON.stringify({userRegion:s.engine.backgroundState.RampsController.userRegion,moneyEnabled:!!s.engine.backgroundState.RemoteFeatureFlagController})})()","returnByValue":true}'
+yarn mm cdp Runtime.evaluate '{"expression":"(function(){var hook=globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;if(!hook)return JSON.stringify(\"hook missing\");var rid=hook.renderers.keys().next().value;var root=hook.getFiberRoots(rid).values().next().value;function find(f){if(!f)return null;if(f.memoizedProps&&f.memoizedProps.store&&typeof f.memoizedProps.store.getState===\"function\")return f.memoizedProps.store;return find(f.child)||find(f.sibling)}var store=find(root.current);if(!store)return JSON.stringify(\"store not found\");var s=store.getState();return JSON.stringify({locale:s.settings&&s.settings.locale,currency:s.settings&&s.settings.currentCurrency})})()","returnByValue":true}'
 ```
 
-**Readable version** of the expression:
+## Safe Mutation Checklist and Templates
 
+When modifying runtime components, you must capture, modify, and restore the state systematically.
+
+### Mutation Checklist
+1. Query and store the original state in a temporary task-specific backup key.
+2. Call the required controller method or dispatch a scoped action.
+3. Query the state again to confirm the new value is active.
+4. Call `yarn mm describe-screen` to refresh visual references.
+5. Restore the original state using the task-specific backup key before cleanup.
+
+### State Backup and Mutation Template (Pseudocode)
 ```javascript
+// Pseudocode: Identify context, back up original state under a task-specific key, and mutate
 (function() {
-  var hook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  var rid = hook.renderers.keys().next().value;
-  var root = hook.getFiberRoots(rid).values().next().value;
+  var engine = findEngineContext(); // Custom tree search
+  if (!engine) return "Engine context not found";
 
-  function find(f) {
-    if (!f) return null;
-    if (f.memoizedProps && f.memoizedProps.store
-        && typeof f.memoizedProps.store.getState === "function")
-      return f.memoizedProps.store;
-    return find(f.child) || find(f.sibling);
-  }
+  // 1. Capture and back up the original value under a task-specific key
+  var original = engine.<CONTROLLER_NAME>.state.<PROPERTY_NAME>;
+  globalThis.__mmStateBackup = globalThis.__mmStateBackup || {};
+  globalThis.__mmStateBackup["<TASK_KEY>"] = original;
 
-  var store = find(root.current);
-  if (!store) return JSON.stringify("store not found");
-  var s = store.getState();
-  return JSON.stringify({
-    userRegion: s.engine.backgroundState.RampsController.userRegion,
-  });
+  // 2. Perform the mutation via controller API
+  engine.<CONTROLLER_NAME>.<METHOD_NAME>(<NEW_VALUE>);
+  return "Backup created and mutation applied";
 })()
 ```
 
-### 2. Write Redux State
-
-Dispatch an action to update the backgroundState slice. The UI re-renders immediately.
-
+### State Restoration Template (Pseudocode)
 ```javascript
+// Pseudocode: Restore the original value using the task-specific backup key
 (function() {
-  // ... same fiber walk to find store ...
-  var s = store.getState();
-  var bg = s.engine.backgroundState;
-
-  // Patch the target controller state
-  var ramps = Object.assign({}, bg.RampsController, {
-    userRegion: {
-      regionCode: "BR",
-      country: { isoCode: "BR", name: "Brazil", supported: { buy: false } },
-      state: null
-    }
-  });
-
-  // Dispatch backgroundState update
-  store.dispatch({
-    type: "UPDATE_BG_STATE",
-    key: "RampsController",
-    payload: ramps
-  });
-  return "ok";
+  if (!globalThis.__mmStateBackup || typeof globalThis.__mmStateBackup["<TASK_KEY>"] === "undefined") {
+    return "Restore skipped: no backup found";
+  }
+  
+  var engine = findEngineContext();
+  engine.<CONTROLLER_NAME>.<METHOD_NAME>(globalThis.__mmStateBackup["<TASK_KEY>"]);
+  
+  // Clean up global references: delete the task key first, then delete the namespace if empty
+  delete globalThis.__mmStateBackup["<TASK_KEY>"];
+  if (Object.keys(globalThis.__mmStateBackup).length === 0) {
+    delete globalThis.__mmStateBackup;
+  }
+  return "State restored successfully";
 })()
 ```
 
-> **Note:** The exact action type for backgroundState updates may differ. If `UPDATE_BG_STATE` doesn't work, inspect the Redux reducer to find the correct action type. Redux dispatch only updates what the UI reads via selectors, but it does NOT modify the live controller instance.
+## Last-Resort Module Discovery
 
-### 3. Find Engine Singleton and Call Controller Methods (Preferred)
+Searching the internal module registry is an expensive fallback option. Do not use this as a primary approach.
 
-The Engine singleton holds every controller at `Engine.context`. Components that use controllers (e.g., `useRampsProviders`, `useMoneyAccountDeposit`) import Engine as a module dependency. Walk the fiber tree looking for an object with the controller context shape: an object that has `RampsController`, `TransactionController`, and `NetworkController` as properties.
+- **Brute-Force modules**: Scanning `globalThis.__r` is slow and can trigger unexpected module evaluation side effects.
+- **Side effects**: Importing arbitrary modules in an active session can initialize services or create conflicting listeners.
+- **Guideline**: Only use module scanning if fiber tree traversal fails completely to locate the desired controller context.
 
-**Strategy A: Shape-match Engine.context on fiber props/state:**
+## When to Use and Troubleshooting
 
-```javascript
-(function() {
-  var hook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  var rid = hook.renderers.keys().next().value;
-  var root = hook.getFiberRoots(rid).values().next().value;
-  var visited = 0;
+Use these techniques only when standard UI automation cannot reach the desired test scenario.
 
-  function isEngineContext(obj) {
-    return obj
-      && typeof obj.RampsController !== "undefined"
-      && typeof obj.TransactionController !== "undefined"
-      && typeof obj.NetworkController !== "undefined";
-  }
+### Recommended Operations
+- Reading complex UI configuration flags.
+- Simulating system settings that lack physical device controls.
+- Triggering background updates during visual validation.
 
-  function searchObj(obj, depth) {
-    if (!obj || depth > 3 || typeof obj !== "object") return null;
-    if (isEngineContext(obj)) return obj;
-    for (var k in obj) {
-      try {
-        var v = obj[k];
-        if (v && typeof v === "object") {
-          var found = searchObj(v, depth + 1);
-          if (found) return found;
-        }
-      } catch(e) {}
-    }
-    return null;
-  }
-
-  function walk(f) {
-    if (!f || visited > 2000) return null;
-    visited++;
-
-    // Check memoizedProps
-    var ctx = searchObj(f.memoizedProps, 0);
-    if (ctx) return ctx;
-
-    // Check stateNode
-    if (f.stateNode && typeof f.stateNode === "object") {
-      ctx = searchObj(f.stateNode, 0);
-      if (ctx) return ctx;
-    }
-
-    // Check hook state chain (memoizedState linked list)
-    var hookState = f.memoizedState;
-    while (hookState) {
-      if (hookState.memoizedState && typeof hookState.memoizedState === "object") {
-        ctx = searchObj(hookState.memoizedState, 0);
-        if (ctx) return ctx;
-      }
-      // useRef stores value in .current
-      if (hookState.memoizedState && hookState.memoizedState.current) {
-        ctx = searchObj(hookState.memoizedState.current, 0);
-        if (ctx) return ctx;
-      }
-      hookState = hookState.next;
-    }
-
-    return walk(f.child) || walk(f.sibling);
-  }
-
-  var ctx = walk(root.current);
-  if (!ctx) return JSON.stringify("Engine.context not found after " + visited + " fibers");
-
-  // Now call the controller method
-  ctx.RampsController.setUserRegion("BR");
-  return JSON.stringify("setUserRegion called, visited " + visited + " fibers");
-})()
-```
-
-**Strategy B: Metro module registry (fallback):**
-
-In dev builds with Metro, `globalThis.__r` is Metro's module require function. Scan for the Engine module by checking exports:
-
-```javascript
-(function() {
-  if (typeof globalThis.__r !== "function") return JSON.stringify("__r not available");
-
-  for (var id = 0; id < 80000; id++) {
-    try {
-      var m = globalThis.__r(id);
-      if (m && m.default && m.default.context
-          && m.default.context.RampsController
-          && m.default.context.NetworkController) {
-        // Found Engine default export
-        m.default.context.RampsController.setUserRegion("BR");
-        return JSON.stringify("Engine found at module " + id);
-      }
-    } catch(e) {}
-  }
-  return JSON.stringify("Engine module not found");
-})()
-```
-
-> **Note:** Strategy B brute-forces module IDs. It works but is slow (~5-15s). Cache the module ID within a session once found. Strategy A (fiber walk) is faster and preferred.
-
-### Example: Simulate Unsupported Region for Fiat Deposits
-
-```bash
-# 1. Set region to Brazil (unsupported for buy)
-yarn mm cdp Runtime.evaluate '{"expression":"(function(){var hook=globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;var rid=hook.renderers.keys().next().value;var root=hook.getFiberRoots(rid).values().next().value;var visited=0;function isCtx(o){return o&&typeof o.RampsController!==\"undefined\"&&typeof o.NetworkController!==\"undefined\"}function search(o,d){if(!o||d>3||typeof o!==\"object\")return null;if(isCtx(o))return o;for(var k in o){try{var v=o[k];if(v&&typeof v===\"object\"){var f=search(v,d+1);if(f)return f}}catch(e){}}return null}function walk(f){if(!f||visited>2000)return null;visited++;var c=search(f.memoizedProps,0)||search(f.stateNode,0);if(c)return c;var h=f.memoizedState;while(h){if(h.memoizedState&&typeof h.memoizedState===\"object\"){c=search(h.memoizedState,0);if(c)return c}h=h.next}return walk(f.child)||walk(f.sibling)}var ctx=walk(root.current);if(!ctx)return JSON.stringify(\"not found\");ctx.RampsController.setUserRegion(\"BR\");return JSON.stringify(\"region set to BR\")})()","returnByValue":true}'
-
-# 2. Wait for provider re-resolution
-sleep 3
-
-# 3. Navigate to Money, then Add Money sheet
-yarn mm describe-screen
-yarn mm click --testid money-action-button-row-add
-yarn mm wait-for --testid money-add-money-sheet --timeout 10000
-yarn mm describe-screen
-yarn mm screenshot --name "unsupported-region-no-deposit-funds"
-
-# 4. Verify: "Deposit Funds" option should be missing or disabled
-
-# 5. Restore to US
-yarn mm cdp Runtime.evaluate '{"expression":"(function(){/* same walk */ctx.RampsController.setUserRegion(\"US\");return JSON.stringify(\"region restored\")})()","returnByValue":true}'
-```
-
-## Verify State After Mutation
-
-```bash
-# Read current region from Redux
-yarn mm cdp Runtime.evaluate '{"expression":"(function(){var hook=globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;var rid=hook.renderers.keys().next().value;var root=hook.getFiberRoots(rid).values().next().value;function find(f){if(!f)return null;if(f.memoizedProps&&f.memoizedProps.store&&typeof f.memoizedProps.store.getState===\"function\")return f.memoizedProps.store;return find(f.child)||find(f.sibling)}var store=find(root.current);if(!store)return JSON.stringify(\"no store\");var r=store.getState().engine.backgroundState.RampsController;return JSON.stringify({regionCode:r.userRegion&&r.userRegion.regionCode,country:r.userRegion&&r.userRegion.country})})()","returnByValue":true}'
-```
-
-## When to Use CDP
-
-| Need | Approach |
-|---|---|
-| Read any Redux state value | Fiber walk, store, `getState()` |
-| Change what the UI displays (fast, non-persistent) | Fiber walk, store, `dispatch()` |
-| Trigger real controller logic (region change, provider refresh) | Fiber walk, Engine.context, controller method |
-| Verify a JS global or Hermes flag | `Runtime.evaluate` with simple expression |
-| Execute JS against the React Native runtime | `Runtime.evaluate` |
+### Troubleshooting
 
 | Symptom | Cause | Solution |
 |---|---|---|
-| Redux dispatch updated state but UI didn't change | Component reads from controller state, not Redux selector | Use Engine.context controller method instead |
-| Fiber walk returns "not found" | DevTools hook not available (release build) or tree too deep | Try Metro `__r` fallback (Strategy B) |
-| `setUserRegion` called but UI unchanged | Provider re-fetch is async; UI hasn't re-rendered yet | Wait 3-5 seconds, then `describe-screen` |
+| UI is unresponsive after dispatching a Redux action | Direct Redux dispatches do not update the underlying controller state | Use the controller methods directly instead of direct Redux dispatch |
+| The state walk fails with "hook missing" | The app is running in a production configuration where DevTools hooks are omitted | Use standard UI flows or check the development build configuration |
+| The modified value reverted on its own | A background controller updated the state and overwrote your manual change | Check for ongoing sync events or pause the background controller first |
