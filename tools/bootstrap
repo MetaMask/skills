@@ -18,7 +18,8 @@
 #
 # Env:
 #   SKILLS_CACHE_DIR  Where to clone (default: $HOME/.cache/metamask-skills).
-#   SKILLS_REF        Git ref to checkout (default: main).
+#   SKILLS_REF        Git ref to install content from (default: newest release tag).
+#                     Set to `main` to track the branch deliberately.
 #
 # Extra args after --repo are forwarded to tools/install.
 
@@ -44,8 +45,36 @@ if [[ -z "$REPO" ]]; then
 fi
 
 CACHE="${SKILLS_CACHE_DIR:-$HOME/.cache/metamask-skills}"
-REF="${SKILLS_REF:-main}"
 TARGET="$(pwd)"
+
+# Resolve the ref to install content from.
+#
+# This previously defaulted to `main`, so a cloud agent running the documented
+# `curl … | bash` one-liner installed whatever had merged since — an unreviewed
+# revision by default. It now defaults to the newest release tag, and refuses to
+# proceed if none can be resolved rather than falling back to a branch.
+#
+# Pass SKILLS_REF explicitly for a reproducible install: SKILLS_REF=v0.2.0.
+latest_release_tag() {
+  git ls-remote --tags --refs https://github.com/MetaMask/skills.git 'v*' 2>/dev/null \
+    | awk -F/ '{print $NF}' \
+    | sort -V \
+    | tail -1
+}
+
+if [[ -n "${SKILLS_REF:-}" ]]; then
+  REF="$SKILLS_REF"
+  echo "Using SKILLS_REF=$REF"
+else
+  REF="$(latest_release_tag)"
+  if [[ -z "$REF" ]]; then
+    echo "Error: could not resolve a release tag from MetaMask/skills." >&2
+    echo "Refusing to install from an unpinned branch. Set SKILLS_REF explicitly" >&2
+    echo "(e.g. SKILLS_REF=v0.2.0), or SKILLS_REF=main to track the branch deliberately." >&2
+    exit 1
+  fi
+  echo "Using latest release $REF"
+fi
 
 if [[ ! -d "$CACHE/.git" ]]; then
   echo "Cloning MetaMask/skills into $CACHE"
@@ -54,8 +83,7 @@ if [[ ! -d "$CACHE/.git" ]]; then
 else
   echo "Updating $CACHE"
   git -C "$CACHE" fetch --depth 1 origin "$REF" 2>&1 | sed 's/^/  /'
-  git -C "$CACHE" checkout "$REF" 2>&1 | sed 's/^/  /'
-  git -C "$CACHE" reset --hard "origin/$REF" 2>&1 | sed 's/^/  /'
+  git -C "$CACHE" reset --hard FETCH_HEAD 2>&1 | sed 's/^/  /'
 fi
 
 exec "$CACHE/tools/install" --repo "$REPO" --target "$TARGET" --source "$CACHE" "${EXTRA[@]}"

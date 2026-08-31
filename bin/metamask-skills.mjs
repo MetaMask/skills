@@ -11,6 +11,7 @@ const PUBLIC_REPO = 'https://github.com/MetaMask/skills.git';
 const CACHE_RELATIVE_DIR = path.join('.skills-cache', 'metamask-skills');
 const SOURCE_ENV_KEYS = ['METAMASK_SKILLS_DIR', 'CONSENSYS_SKILLS_DIR'];
 const TARGET_REPO_ENV_KEY = 'METAMASK_SKILLS_TARGET_REPO';
+const CONTENT_REF_ENV_KEY = 'SKILLS_REF';
 
 function usage(exitCode = 0) {
   const out = exitCode === 0 ? process.stdout : process.stderr;
@@ -304,16 +305,52 @@ function warn(message) {
   process.stderr.write(`metamask-skills: ${message}\n`);
 }
 
+/**
+ * The git ref skill CONTENT is installed from.
+ *
+ * A lockfile pins the CLI; on its own it says nothing about which skill revision reaches
+ * disk. While the cache tracked `main`, a pinned install could still pick up anything
+ * merged since. Content now follows the release tag matching this package's own version,
+ * so one lockfile entry pins both halves.
+ *
+ * `SKILLS_REF` overrides — for development against `main`, and for holding a consumer on
+ * a specific release. There is deliberately no automatic widening to `main` when the tag
+ * is missing: silently falling back to a mutable branch is the behaviour this replaces.
+ */
+function contentRef(env = process.env) {
+  const override = env[CONTENT_REF_ENV_KEY];
+  if (override) {
+    return { ref: override, pinned: false, why: `${CONTENT_REF_ENV_KEY}=${override}` };
+  }
+  try {
+    const { version } = JSON.parse(readFileSync(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'));
+    if (version) {
+      return { ref: `v${version}`, pinned: true, why: `package version ${version}` };
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
 function ensurePublicSkillsCache(target) {
   const cache = cacheDir(target);
+  const selected = contentRef();
+  if (!selected) {
+    warn('could not determine the pinned content ref; set SKILLS_REF to install skills');
+    return false;
+  }
+  const { ref, pinned, why } = selected;
   try {
     if (isGitDir(cache)) {
-      const fetchResult = run('git', ['-C', cache, 'fetch', '--depth', '1', 'origin', 'main']);
+      const fetchResult = run('git', ['-C', cache, 'fetch', '--depth', '1', 'origin', ref]);
       if (fetchResult.status !== 0) {
-        warn('cache fetch failed (offline?)');
+        // Fail closed. A missing tag means this package version has no published content;
+        // widening to a branch here would reintroduce the unpinned channel.
+        warn(`cache fetch failed for ${ref} (${why}) — offline, or the ref does not exist`);
         return false;
       }
-      const resetResult = run('git', ['-C', cache, 'reset', '--hard', 'origin/main']);
+      const resetResult = run('git', ['-C', cache, 'reset', '--hard', 'FETCH_HEAD']);
       if (resetResult.status !== 0) {
         warn('cache reset failed');
         return false;
@@ -322,10 +359,21 @@ function ensurePublicSkillsCache(target) {
     }
 
     mkdirSync(path.dirname(cache), { recursive: true });
-    const cloneResult = run('git', ['clone', '--depth', '1', '--branch', 'main', PUBLIC_REPO, cache]);
+    const cloneResult = run('git', [
+      'clone',
+      '--depth',
+      '1',
+      '--branch',
+      ref,
+      PUBLIC_REPO,
+      cache,
+    ]);
     if (cloneResult.status !== 0) {
-      warn('cache clone failed (offline?)');
+      warn(`cache clone failed for ${ref} (${why}) — offline, or the ref does not exist`);
       return false;
+    }
+    if (!pinned) {
+      warn(`installing skills from ${why}, which is not a pinned release`);
     }
     return true;
   } catch (error) {
