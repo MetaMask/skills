@@ -5,12 +5,9 @@ parent: ui-development
 
 # MetaMask Extension UI Development Guidelines
 
-Extension is the web consumer and platform; it is not synonymous with
-`@metamask/design-system-react`. Use `@metamask/design-system-react` as much as
-possible for Extension UI. Mobile uses the separate
-`@metamask/design-system-react-native` package. Use Tailwind class names instead of
-SCSS. Use the current MMDS Storybook documentation as the source of truth for the
-API and approved patterns.
+Use `@metamask/design-system-react` as much as possible for Extension UI. Use
+Tailwind class names instead of SCSS. Use the current MMDS Storybook documentation
+as the source of truth for the API and approved patterns.
 
 The working order is:
 
@@ -24,10 +21,9 @@ The working order is:
 6. Build new feature UI only when no suitable MMDS or existing Extension UI can be
    reused.
 
-For this Extension skill, use the React/web Storybook documentation and Extension
-patterns. Do not substitute React Native APIs or Mobile patterns. The corresponding
-Mobile skill uses `@metamask/design-system-react-native` and the React Native
-Storybook documentation.
+Use the Storybook documentation and patterns appropriate to the current repository
+and platform. Do not apply guidance from another platform without verifying that it
+is supported here.
 
 ## Required Storybook MCP Workflow
 
@@ -44,8 +40,8 @@ Never infer an API from a name, a previous implementation, another platform, or
 another UI library. If the required guidance is absent, record the documentation gap
 and use the fallback process below rather than guessing.
 
-When Mobile-only guidance is encountered, do not apply it to Extension. Use the
-Extension mapping documented in Storybook; if no mapping exists, treat that as a
+When guidance from another platform is encountered, do not apply it without an
+Extension mapping documented in Storybook. If no mapping exists, treat that as a
 documentation gap.
 
 When creating or updating stories, use the UI scaffolding skill for Storybook story
@@ -83,7 +79,7 @@ inventory or copy undocumented APIs into this skill to compensate for missing MC
 
 - [ ] Relevant Storybook pattern and UI documentation was queried.
 - [ ] Only documented or story-proven APIs are used.
-- [ ] No undocumented cross-platform substitutions were made.
+- [ ] No undocumented platform substitutions were made.
 - [ ] No SASS files were created or modified.
 - [ ] Accessibility and localization behavior was preserved.
 
@@ -92,7 +88,7 @@ inventory or copy undocumented APIs into this skill to compensate for missing MC
 Flag or reject changes that:
 
 - introduce undocumented props, variants, tokens, or composition;
-- use Mobile-only guidance without an Extension mapping;
+- use guidance from another platform without an Extension mapping;
 - bypass an approved Storybook pattern;
 - create a second local source of truth for MMDS behavior;
 - add SASS or custom styling where the documented guidance provides a supported
