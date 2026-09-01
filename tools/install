@@ -461,6 +461,13 @@ process_skill() {
 
   local maturity;  maturity=$(frontmatter_value "$base" "maturity")
   local is_base;   is_base=$(frontmatter_value "$base" "base")
+  # Transition window for the `mandatory` -> `base` rename. Executable code ships in
+  # the pinned npm package while domains/ content can come from a different source
+  # (the origin/main cache, or a private overlay on its own cadence), so the two can
+  # legitimately be out of step. Accepting the old key keeps un-renamed content
+  # working instead of silently installing zero base skills. Remove once every
+  # source has migrated.
+  [[ -z "$is_base" ]] && is_base=$(frontmatter_value "$base" "mandatory")
   local scope;     scope=$(frontmatter_value "$base" "scope")
 
   if skill_excluded "$domain_name" "$skill_name"; then
@@ -552,6 +559,13 @@ preflight_skill() {
 
   local maturity;  maturity=$(frontmatter_value "$base" "maturity")
   local is_base;   is_base=$(frontmatter_value "$base" "base")
+  # Transition window for the `mandatory` -> `base` rename. Executable code ships in
+  # the pinned npm package while domains/ content can come from a different source
+  # (the origin/main cache, or a private overlay on its own cadence), so the two can
+  # legitimately be out of step. Accepting the old key keeps un-renamed content
+  # working instead of silently installing zero base skills. Remove once every
+  # source has migrated.
+  [[ -z "$is_base" ]] && is_base=$(frontmatter_value "$base" "mandatory")
 
   local skill_name; skill_name=$(basename "$skill_dir")
   skill_excluded "$domain_name" "$skill_name" && return 0

@@ -33,8 +33,13 @@ const ROOT = process.env.SKILLS_LINT_ROOT
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const allowedSiblings = new Set(ALLOWED_SIBLING_DIRS);
-const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
-const FALSY = new Set(['0', 'false', 'no', 'off']);
+// Must match the other three implementations exactly: tools/install `is_truthy`,
+// tools/sync `domain_has_base`, and bin/metamask-skills.mjs `isTruthy` all accept
+// only 1/true/yes. `on`/`off` were accepted here alone, so `base: on` linted clean
+// as a base skill while the installer silently skipped it — the precise failure
+// these rules exist to prevent.
+const TRUTHY = new Set(['1', 'true', 'yes']);
+const FALSY = new Set(['0', 'false', 'no']);
 
 export function lintSkill(skill) {
   const errors = [];
@@ -83,7 +88,18 @@ export function lintSkill(skill) {
     warnings.push(`\`base\` "${raw.base}" is neither truthy nor falsy (treated as false)`);
   }
 
-  const isBase = raw.base !== undefined && TRUTHY.has(String(raw.base).toLowerCase());
+  // Accepted for the transition, but flag it: content still on `mandatory` installs
+  // correctly today and would silently stop being a base skill the moment the alias
+  // is removed from tools/install.
+  if (raw.mandatory !== undefined) {
+    warnings.push('`mandatory` is the pre-rename key for `base`; rename it to `base`');
+  }
+
+  const isBase =
+    (raw.base !== undefined && TRUTHY.has(String(raw.base).toLowerCase())) ||
+    (raw.base === undefined &&
+      raw.mandatory !== undefined &&
+      TRUTHY.has(String(raw.mandatory).toLowerCase()));
 
   // `base: true` installs for every engineer in every applicable repo, so it
   // cannot also be experimental — that would push unfinished guidance to
@@ -92,8 +108,13 @@ export function lintSkill(skill) {
     errors.push('`base: true` conflicts with `maturity: experimental` — a base skill installs for everyone, so promote it to stable or remove `base`');
   }
 
+  // An error, not a warning. Only errors set a non-zero exit code, so as a warning
+  // this never failed a job — a thin base description would sit invisibly inside a
+  // green check, and "CI warns until it is rewritten" would not actually hold. A
+  // base skill permanently occupies listing context for every engineer, so one that
+  // cannot self-trigger is pure cost.
   if (isBase && raw.description && raw.description.length < BASE_DESCRIPTION_MIN) {
-    warnings.push(
+    errors.push(
       `\`description\` is only ${raw.description.length} chars; a base skill needs enough trigger cues to be selected (aim for ${BASE_DESCRIPTION_MIN}+, saying what it does and when to use it)`,
     );
   }

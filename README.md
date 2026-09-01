@@ -54,7 +54,7 @@ metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/mobile-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
-metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
+metamask-skills postinstall   # refresh cache; sync by default (SKILLS_AUTO_UPDATE=0 opts out)
 metamask-skills install       # lower-level installer wrapper
 ```
 

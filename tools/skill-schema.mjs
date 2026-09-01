@@ -6,7 +6,18 @@
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
 export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata'];
-export const KNOWN_FRONTMATTER = [...REQUIRED_FRONTMATTER, ...OPTIONAL_FRONTMATTER];
+
+// Pre-rename spelling of `base`, still READ by tools/install so that content from a
+// source on a different release cadence (the origin/main cache, a private overlay)
+// keeps working while it migrates. Recognised, but the linter warns — it should not
+// be used in new skills, and this list goes away once every source has renamed.
+export const DEPRECATED_FRONTMATTER = ['mandatory'];
+
+export const KNOWN_FRONTMATTER = [
+  ...REQUIRED_FRONTMATTER,
+  ...OPTIONAL_FRONTMATTER,
+  ...DEPRECATED_FRONTMATTER,
+];
 
 export const MATURITY_VALUES = ['experimental', 'stable', 'deprecated'];
 

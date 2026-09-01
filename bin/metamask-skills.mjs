@@ -143,6 +143,19 @@ function hasArg(args, flag) {
   return args.includes(flag);
 }
 
+// Append BatchMode to whatever ssh configuration the engineer already has, rather
+// than replacing it. Overwriting would break a custom key, a 1Password/Secretive
+// agent or a ProxyCommand — on the `git@github.com:Consensys/skills.git` clone that
+// these guards exist to protect, and on the explicit `yarn skills` path too, since
+// buildDelegatedEnv() is shared.
+function sshCommandWithBatchMode(env = process.env) {
+  const base = env.GIT_SSH_COMMAND?.trim();
+  if (!base) {
+    return 'ssh -oBatchMode=yes';
+  }
+  return /(^|\s)-o\s*BatchMode=/u.test(base) ? base : `${base} -oBatchMode=yes`;
+}
+
 function isTruthy(value) {
   return /^(1|true|yes)$/iu.test(value ?? '');
 }
@@ -247,7 +260,12 @@ function isGitDir(dir) {
 //   - A credential prompt. A fetch against a private source (the Consensys
 //     overlay) can block on stdin forever, hanging the install with no output.
 //     GIT_TERMINAL_PROMPT=0 and an empty GIT_ASKPASS turn that into an
-//     immediate, reportable failure.
+//     immediate, reportable failure. Those two cover HTTPS only — ssh reads
+//     /dev/tty directly for passphrase and host-key prompts and ignores both, so
+//     GIT_SSH_COMMAND adds BatchMode. The private Consensys overlay is documented
+//     as an ssh clone and gets `git pull --ff-only` on every automatic sync, so
+//     this is the path most likely to block. (The delegate() timeout bounds such a
+//     hang; BatchMode prevents it.)
 //   - An unbounded wait. A stalled connection would hang just as long, so every
 //     spawn is capped. Callers can override with an explicit `timeout`.
 //
@@ -276,7 +294,13 @@ function run(cmd, args, options = {}) {
     encoding: 'utf8',
     timeout: SPAWN_TIMEOUT_MS,
     ...options,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', ...options.env },
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: '0',
+      GIT_ASKPASS: '',
+      GIT_SSH_COMMAND: sshCommandWithBatchMode(),
+      ...options.env,
+    },
   });
 }
 
@@ -415,7 +439,12 @@ function buildDelegatedEnv(target) {
   // a private repo. Without this, an engineer whose credentials aren't cached gets
   // a git prompt blocking on stdin during `yarn install`, with no indication why.
   // Fail fast instead; the caller reports it and continues.
-  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '' };
+  const env = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: '',
+    GIT_SSH_COMMAND: sshCommandWithBatchMode(),
+  };
   const localConfig = readSkillsLocal(target);
 
   for (const key of SOURCE_ENV_KEYS) {
@@ -454,13 +483,18 @@ function delegate(script, target, repo, args, options = {}) {
   delegatedArgs.push(...args);
 
   // Capped for the same reason as run(): this runs from postinstall, so a stalled
-  // child would hang `yarn install` indefinitely. SIGKILL rather than the default
-  // SIGTERM because the child is Bash — it does not reliably forward a term signal
-  // to an in-flight `git`, which would leave an orphan holding the index lock.
+  // child would hang `yarn install` indefinitely.
+  //
+  // Deliberately SIGTERM (the default), not SIGKILL. spawnSync's timeout signals
+  // only the direct child, so neither signal reaches an in-flight `git` grandchild
+  // — killing the whole tree would need `spawn` with `detached: true` and
+  // `process.kill(-pid)`. Given that, SIGTERM is strictly better: it at least lets
+  // Bash run a trap and clean up, where SIGKILL guarantees it cannot. A `git` child
+  // can still outlive the timeout and hold .git/index.lock; that is a known gap,
+  // not something the signal choice fixes.
   const result = spawnSync(bash, delegatedArgs, {
     stdio: options.stdio ?? 'inherit',
     timeout: DELEGATE_TIMEOUT_MS,
-    killSignal: 'SIGKILL',
     ...options,
     env: { ...env, ...options.env },
   });
@@ -806,9 +840,15 @@ function postinstall(args) {
   // plain `yarn install`, with no flags and nothing to read first. Engineers who
   // want to manage skills by hand set SKILLS_AUTO_UPDATE=0 (or
   // SKILLS_SKIP_POSTINSTALL=1 to skip this entirely).
+  //
+  // Only a genuinely absent key defaults to on. An explicitly empty
+  // `SKILLS_AUTO_UPDATE=` is a choice, not an absence: under 0.2.0 `isTruthy('')`
+  // was false, so engineers wrote exactly that to turn syncing off. Treating it as
+  // unset would silently re-enable it for them — and it would contradict the rule
+  // load_saved() applies to an empty SKILLS_DOMAINS, where presence of the key
+  // preserves its previous meaning.
   const configured = getConfigValue(process.env, localConfig, 'SKILLS_AUTO_UPDATE');
-  const unset = configured === undefined || configured === '';
-  const autoUpdate = unset ? true : isTruthy(configured);
+  const autoUpdate = configured === undefined ? true : isTruthy(configured);
   if (!autoUpdate) {
     return 0;
   }
