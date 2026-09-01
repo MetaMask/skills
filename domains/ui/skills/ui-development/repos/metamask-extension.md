@@ -3,694 +3,103 @@ repo: metamask-extension
 parent: ui-development
 ---
 
+# MetaMask Extension UI Development Guidelines
 
-# MetaMask Extension React UI Development Guidelines
+## Purpose
 
-## Core Principle
+Use the current MMDS Storybook documentation and approved patterns as the source of
+truth for Extension UI work. This skill defines the workflow and a small set of
+consumer-repository constraints; it does not duplicate MMDS APIs, examples, or
+pattern rules.
 
-Always prioritize `@metamask/design-system-react` components and Tailwind CSS patterns over custom implementations. **Never write SASS** - we are actively reducing CSS file size by eliminating SASS usage.
+## Required Storybook MCP Workflow
 
-## Component Hierarchy (STRICT ORDER)
+Before answering a UI question or changing UI code:
 
-### The Rule: Check Design System First
+1. Query `storybook-broker-mcp` with `list-all-documentation`.
+2. Find the relevant Extension pattern documentation first.
+3. Query `get-documentation` for the selected pattern and each UI building block.
+4. Query `get-documentation-for-story` when documentation does not answer the question.
+5. Query `get-storybook-story-instructions` before creating or changing a story.
+6. Use only props, variants, tokens, composition, and behavior explicitly documented
+   or demonstrated by a story.
+7. Use `preview-stories` to inspect renderable changes when available.
+8. Run `run-story-tests` for relevant stories after UI changes, including accessibility
+   checks when configured.
 
-**Before writing any new component or choosing what to use, ask: "Does `@metamask/design-system-react` have this?"**
+Never infer an API from a name, a previous implementation, another platform, or
+another UI library. If the required guidance is absent, record the documentation gap
+and use the fallback process below rather than guessing.
 
-1. **FIRST**: Use `@metamask/design-system-react` components
-   - **Availability is dynamic**: read the installed package export index before deciding a component is unavailable.
-   - **Rule**: If the installed package exports the component, you MUST use it.
-   - **Common examples**: Box, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Input, Avatar variants, Badge variants, BannerAlert/BannerBase, ButtonFilter, ButtonHero.
-   - **The full Modal family**: Modal, ModalContent, ModalHeader, ModalOverlay, ModalBody, ModalFocus, ModalFooter.
-   - **Popover**: Popover, PopoverHeader, plus the PopoverPosition and PopoverRole enums.
-   - **Form components**: TextField, FormTextField, TextFieldSearch, TextArea, Label, HelpText.
-   - **Utility components**: Skeleton, SensitiveText, Tag, HeaderBase.
-   - **ButtonBase**: Only for highly custom button patterns (prefer Button component)
+When Mobile-only guidance is encountered, do not apply it to Extension. Use the
+Extension mapping documented in Storybook; if no mapping exists, treat that as a
+documentation gap.
 
-2. **SECOND**: Use `ui/components/component-library` ONLY if design system lacks it
-   - **Layout/polymorphic helpers**: Container, PolymorphicRef, PolymorphicComponentPropWithRef, BoxComponent, StyleUtilityProps
-   - **Button variants not yet ported**: ButtonLink, ButtonPrimary, ButtonSecondary (and their size enums)
-   - **Select components**: SelectButton, SelectWrapper, SelectOption, SelectContext, useSelectContext
-   - **Other MetaMask-specific components**: BannerTip, PickerNetwork, SuccessPill, TagUrl, HeaderSearch, InvisibleCharacter
-   - **Rule**: These are MetaMask-specific implementations not (yet) in the design system
-   - **Do NOT reach here for Modal, Popover, TextField, Tag, Label, or Skeleton.** The design system exports all of them and the `component-library` versions are marked `@deprecated`.
-   - **Avoid "Base" components**: Components with "Base" in the name generally should not be used unless for custom implementations. We use the base/variant pattern for component development.
-
-3. **THIRD**: Feature-specific components
-   - **Use for**: Complex, domain-specific UI that combines multiple design system/component-library components
-   - **Examples**: `ConnectAccountsModal`, `AssetPickerModal`, `NotificationDetailAsset`
-   - **Rule**: Must be built using Box, Text, and other design system primitives - NO SASS, minimal CSS
-   - **Reuse**: Search for existing feature components before building new ones to avoid duplication
-
-4. **LAST RESORT**: Custom components with minimal CSS
-   - **Only when**: Highly specialized one-off needs with no design system equivalent AND no component-library equivalent
-   - **Requires**: Strong justification why design system primitives can't be composed
-   - **NEVER**: Write SASS files - use Tailwind classes only
-
-### Decision Tree
-
-```
-Need a component?
-  ├─ Does the installed @metamask/design-system-react package export it?
-  │  └─ YES → Use @metamask/design-system-react [STOP]
-  │
-  ├─ Is it Container, a polymorphic helper, ButtonLink/ButtonPrimary/ButtonSecondary,
-  │  Select*, BannerTip, PickerNetwork, SuccessPill, TagUrl, HeaderSearch, or another
-  │  component genuinely not exported by @metamask/design-system-react?
-  │  └─ YES → Use ui/components/component-library [STOP]
-  │     (NOT Modal, Popover, TextField, Tag, Label, or Skeleton — those are in the design system)
-  │
-  ├─ Is it feature-specific UI (e.g., ConnectAccountsModal, AssetPicker)?
-  │  ├─ Does it already exist? (search codebase for similar components)
-  │  │  ├─ YES → Reuse existing component [STOP]
-  │  │  └─ NO → Build new component using design system primitives [STOP]
-  │  └─
-  │
-  └─ Can I compose it from Box + Text + other primitives?
-     ├─ YES → Compose from design system [STOP]
-     └─ NO → Consider if custom implementation is truly necessary
-```
-
-### Why This Hierarchy Matters
-
-- **Consistency**: Design system ensures consistent look, feel, and behavior
-- **Maintenance**: Centralized updates benefit all consumers
-- **Accessibility**: Design system components built with accessibility in mind
-- **Type Safety**: Full TypeScript support with comprehensive type definitions
-- **Performance**: Optimized components reduce bundle size
-- **No SASS**: Reduces CSS file size and build complexity
-
-## Fallback Availability Check
-
-When Storybook MCP is unavailable, inspect the consumer repo's installed package before
-choosing `ui/components/component-library` or building custom UI. Do not rely on this
-skill's examples as a complete component list.
-
-1. Check `node_modules/@metamask/design-system-react/dist/components/index.d.cts` for exported components and enums.
-2. If the package uses a different build layout, inspect `node_modules/@metamask/design-system-react/dist/components/index.d.ts` or `node_modules/@metamask/design-system-react/src/components/index.ts`.
-3. Read the matching component type file before writing usage, for example `dist/components/<Component>/<Component>.types.d.cts`.
-4. If `node_modules` is unavailable, check `package.json`/lockfile for the installed package version and inspect the package source only as a fallback.
-
-This lookup costs a few file reads, but it prevents stale skill guidance from overriding the version actually installed in Extension. The package version is the source of truth.
-
-## Current MMDS Knowledge Through Storybook MCP
-
-Do not maintain or rely on a hand-written component inventory in this skill. Component
-exports, props, variants, tokens, and examples change with MMDS releases. Extension's
-preferred source is the `storybook-broker-mcp` MCP toolset, which provides the current
-Storybook documentation and manifest.
-
-Before answering a UI question or taking UI action:
-
-1. Query `storybook-broker-mcp` `list-all-documentation` to find relevant components and docs.
-2. Query `get-documentation` for each candidate component before choosing it.
-3. Query `get-documentation-for-story` when the component docs do not answer the question.
-4. Query `get-storybook-story-instructions` before creating or changing a story.
-5. Use only props, variants, tokens, and patterns explicitly documented or shown in stories.
-6. Query `run-story-tests` for relevant stories after making a UI change, including accessibility checks when configured.
-7. Use `preview-stories` to inspect the result when the tool is available.
-
-Never infer a prop from its name or from another component library. If MCP documentation
-does not cover a needed API, stop and verify it through the fallback sources below. If the
-API remains unclear, call out the gap instead of guessing.
-
-### Fallbacks When Storybook MCP Is Unavailable
+## Fallback When Storybook MCP Is Unavailable
 
 Use these sources in order:
 
-1. The installed `@metamask/design-system-react` package export index and matching type files.
-2. Extension stories, especially `ui/pages/design-system/design-system.stories.tsx`.
-3. A generated MMDS release manifest or skill supplied by the repository tooling.
-4. The design system source repository as a last resort.
-
-The installed package version is the source of truth for the code being changed. Do not
-copy a static component list into this skill to compensate for missing MCP access.
-
-When MCP is unavailable, inspect:
-
-1. `node_modules/@metamask/design-system-react/dist/components/index.d.cts` for exports.
-2. `dist/components/index.d.ts` or `src/components/index.ts` if the package uses another layout.
-3. The matching component type file before writing usage.
-4. `package.json` or the lockfile if `node_modules` is unavailable.
-
-The Storybook MCP gateway is the preferred delivery method, not the design-system strategy
-itself. If the gateway cannot serve the current knowledge, use the generated release
-fallback. Treat a separately hosted MMDS MCP server as a later option, not a reason to
-invent undocumented APIs.
-
-### Box Component Quick Reference
-
-**Box is a special cross-platform primitive component.** It's designed to share UI code between web (renders `div`) and React Native (renders `View`) with the same component API. This is why Box has utility props while other components use `className`.
-
-**Box is the ONLY component with layout and color props:**
-
-- **Spacing**: Use `gap`, `padding`, `margin` props (0-12 for 0px-48px)
-- **Flexbox**: Use `flexDirection`, `alignItems`, `justifyContent` enum props
-- **Colors (Box ONLY)**: Use `backgroundColor` and `borderColor` props with enums
-- **Borders (Box ONLY)**: Use `borderWidth` prop (0, 1, 2, 4, or 8) and `borderColor` enum
-- **Tailwind**: Use `className` prop for utilities not covered by props
-
-All other components (Button, Text, Icon, Checkbox, etc.) have their own component-specific props:
-
-- **Use component props FIRST**: `variant`, `size`, `color`, etc.
-- **Use `className` for additional utilities**: layout, spacing, positioning, etc.
-
-**Note on Base Components**: MetaMask uses a Base/Variant pattern for component development:
-
-- **Variant components** (e.g., Button, BannerAlert, ModalHeader) - Use these FIRST
-- **Base components** (e.g., ButtonBase, BannerBase, HeaderBase) - Only for custom patterns outside existing variants
-
-**When to use Base components**:
-
-- Existing variant components don't fit your design needs
-- Building a new feature-specific variant pattern
-- ⚠️ **Warning**: If you need a Base component, it may indicate a design inconsistency. Consider:
-  1. Can an existing variant component work with minor adjustments?
-  2. Should this pattern become a new variant in the design system?
-  3. Is this a one-off pattern that suggests design debt?
-
-## Styling Rules (ENFORCE STRICTLY)
-
-### ✅ ALWAYS DO:
-
-- Use `Box` component instead of `div` for layout and utility props
-- Use `Text` component with `variant` prop instead of raw text elements
-- Use component-specific props FIRST: `variant`, `size`, `color`, etc.
-- Use `Box` color props (`backgroundColor`, `borderColor`) for Box component
-- Use `className` for additional utilities: layout, spacing, positioning only when not provided by a prop
-- Use design system color tokens: `bg-default`, `text-default`, `border-default` or provided color props
-- Use Tailwind classes in tailwind.config.js from `@metamask/design-system-tailwind-preset`
-
-**Priority Order**: Component Props → Box Utility Props → className for extras
-
-### ❌ NEVER SUGGEST:
-
-- SASS files (`.scss`) - we are eliminating SASS
-- `StyleSheet.create()` or CSS-in-JS
-- Arbitrary color values like `bg-[#3B82F6]` or `text-[#000000]`
-- Inline style objects unless for truly dynamic values
-- Custom CSS files for new components
-- `backgroundColor` prop on components other than Box (use `className` instead) check component API
-- `borderColor` prop on components other than Box (use `className` instead) check component API
-
-**Note**: Using `div` with Tailwind `className` is acceptable when no design system component fits the use case.
-
-## Code Pattern Templates
-
-### Basic Container:
-
-```tsx
-const MyComponent = () => {
-  return (
-    <Box
-      backgroundColor={BoxBackgroundColor.BackgroundDefault}
-      padding={4}
-      className="w-full"
-    >
-      <Text variant={TextVariant.HeadingMd} color={TextColor.TextAlternative}>
-        Title
-      </Text>
-    </Box>
-  );
-};
-```
-
-### Flex Layout:
-
-```tsx
-<Box
-  flexDirection={BoxFlexDirection.Row}
-  alignItems={BoxAlignItems.Center}
-  justifyContent={BoxJustifyContent.Between}
-  gap={3}
-  padding={4}
->
-  <Text variant={TextVariant.BodyMd}>Content</Text>
-</Box>
-```
-
-### Button Element:
-
-```tsx
-// ✅ PREFER: Use Button component with variants
-<Button // Primary variant by default
-  size={ButtonSize.Lg}
-  onClick={handleClick}
->
-  Button Text
-</Button>
-
-<Button
-  variant={ButtonVariant.Secondary}
-  startIconName={IconName.Bank}
-  onClick={handleClick}
->
-  With Icon
-</Button>
-
-// ✅ For highly custom buttons: Use ButtonBase
-<ButtonBase
-  size={ButtonBaseSize.Md}
-  className="h-auto rounded-lg bg-muted py-4 px-4 hover:bg-muted-hover active:bg-muted-pressed"
-  onClick={handleClick}
->
-  <Icon name={IconName.Bank} />
-  <Text fontWeight={FontWeight.Medium}>Custom Button</Text>
-</ButtonBase>
-```
-
-### Modal Sections:
-
-The **entire** Modal family comes from `@metamask/design-system-react`. Do not import
-the shell (`Modal`, `ModalContent`, `ModalHeader`) from `component-library`.
-
-```tsx
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  ModalBody,
-  ModalFooter,
-  ButtonsAlignment,
-} from '@metamask/design-system-react';
-
-<Modal isOpen onClose={handleClose}>
-  <ModalOverlay />
-  <ModalContent>
-    {/* `onClose` and `closeButtonProps` are co-required, and `ariaLabel` is
-        mandatory — the component has no i18n fallback. */}
-    <ModalHeader
-      onClose={handleClose}
-      closeButtonProps={{ ariaLabel: t('close') }}
-    >
-      Title
-    </ModalHeader>
-    <ModalBody>
-      <Text variant={TextVariant.BodyMd}>Content</Text>
-    </ModalBody>
-    <ModalFooter
-      buttonsAlignment={ButtonsAlignment.Horizontal}
-      primaryButtonProps={{ children: 'Confirm', onClick: handleConfirm }}
-      secondaryButtonProps={{ children: 'Cancel', onClick: handleClose }}
-    />
-  </ModalContent>
-</Modal>
-```
-
-### Using Avatars and Badges:
-
-```tsx
-<BadgeWrapper
-  badge={
-    <BadgeNetwork name="Ethereum" src="https://example.com/ethereum-logo.png" />
-  }
->
-  <AvatarToken
-    name="ETH"
-    src="https://example.com/eth-logo.png"
-    size={AvatarTokenSize.Md}
-  />
-</BadgeWrapper>
-```
-
-## Box Component Best Practices
-
-### Prefer Props Over className for Box Layout and Colors
-
-✅ **DO** - Use typed props for Box component:
-
-```tsx
-<Box
-  flexDirection={BoxFlexDirection.Row}
-  alignItems={BoxAlignItems.Center}
-  justifyContent={BoxJustifyContent.Between}
-  gap={3}
-  padding={4}
-  margin={2}
-  backgroundColor={BoxBackgroundColor.BackgroundDefault}
-  borderColor={BoxBorderColor.BorderMuted}
-  borderWidth={1}
->
-```
-
-❌ **DON'T** - Use className for Box properties that have dedicated props:
-
-```tsx
-<Box className="flex flex-row items-center justify-between gap-3 p-4 m-2 bg-default border border-muted">
-```
-
-**IMPORTANT**: Only Box has utility props like `backgroundColor`, `borderColor`, and layout props. This is because Box is a special cross-platform primitive (web `div` / React Native `View`).
-
-For other components (Button, Text, Icon, Checkbox, etc.):
-
-1. **Use component props FIRST**: `variant`, `size`, `color`, `startIconName`, etc.
-2. **Use `className` for additional utilities**: layout spacing (`mb-2`), width (`w-full`), positioning, etc.
-
-**Component Base/Variant Pattern**:
-
-MetaMask follows a Base/Variant pattern across many component families:
-
-| Component Family | Variant Components (Use First)                  | Base Component (Use Sparingly) |
-| ---------------- | ----------------------------------------------- | ------------------------------ |
-| **Button**       | Button (Primary/Secondary/Tertiary), ButtonIcon | ButtonBase                     |
-| **Banner**       | BannerAlert, BannerTip                          | BannerBase                     |
-| **Header**       | (feature-specific headers)                      | HeaderBase                     |
-
-**Always prefer variant components.** Only use base components when:
-
-1. No existing variant fits your use case
-2. You're building a new reusable pattern
-3. ⚠️ You've confirmed this isn't a design inconsistency
-
-### When to Use className on Box
-
-Box doesn't have props for everything - use `className` for:
-
-- Width and height: `w-full`, `h-20`, `w-96`
-- Complex positioning: `absolute`, `relative`, `top-0`, `left-0`
-- Border radius: `rounded-lg`, `rounded-full`
-- Shadows and opacity: `shadow-lg`, `opacity-50`
-- **Interactive states**: `hover:bg-hover`, `active:bg-pressed`, `focus:ring`
-- Utilities not covered by props: `overflow-hidden`, `z-10`, `truncate`
-
-**DO NOT** use className on Box for properties that have dedicated props:
-
-- Static background colors (use `backgroundColor` prop with `BoxBackgroundColor` enum)
-- Static border colors (use `borderColor` prop with `BoxBorderColor` enum)
-- Border width (use `borderWidth` prop: 0, 1, 2, 4, or 8)
-- Padding/margin for standard spacing (use `padding`/`margin` props with 0-12)
-- Flexbox layout (use `flexDirection`, `alignItems`, `justifyContent` props)
-
-### When to Use Plain div
-
-Use `div` with `className` when:
-
-- No design system component fits the use case
-- The element is highly specific to a feature
-- You need DOM-specific props that Box doesn't support
-- It's a temporary/experimental pattern not yet in the design system
-
-**Always prefer design system components first**, but don't force Box where it doesn't make sense.
-
-### Color Tokens - Component-Specific Rules
-
-**For Box component only:**
-
-```tsx
-// ✅ Use backgroundColor and borderColor props with enums
-<Box backgroundColor={BoxBackgroundColor.BackgroundDefault}>
-<Box backgroundColor={BoxBackgroundColor.BackgroundAlternative}>
-<Box
-  backgroundColor={BoxBackgroundColor.BackgroundMuted}
-  borderColor={BoxBorderColor.BorderMuted}
-  borderWidth={1}
->
-
-// ✅ Interactive states use className (hover/active/focus states)
-<Box
-  backgroundColor={BoxBackgroundColor.BackgroundMuted}
-  className="hover:bg-muted-hover active:bg-muted-pressed"
->
-
-// ❌ DON'T use className for static Box background colors
-<Box className="bg-default">  {/* Use backgroundColor prop instead */}
-```
-
-**For Button, Text, Icon, and other components:**
-
-```tsx
-// ✅ Use Button with variant prop (preferred over ButtonBase)
-<Button
-  variant={ButtonVariant.Primary}
-  size={ButtonSize.Lg}
-  startIconName={IconName.Bank}
->
-  Button Text
-</Button>
-
-// ✅ Use ButtonBase only for highly custom buttons
-<ButtonBase
-  size={ButtonBaseSize.Md}
-  className="bg-muted hover:bg-muted-hover active:bg-muted-pressed"
->
-  <Icon name={IconName.Custom} />
-  <Text>Custom Button</Text>
-</ButtonBase>
-
-// ✅ Text uses variant and color props, className for layout
-<Text
-  variant={TextVariant.BodyMd}
-  color={TextColor.TextDefault}
-  className="mb-2"
->
-
-// ✅ Icon uses name, size, and color props, className for positioning
-<Icon
-  name={IconName.Bank}
-  size={IconSize.Md}
-  color={IconColor.IconDefault}
-  className="mr-2"
->
-
-// ❌ NEVER use arbitrary colors on any component
-<Box className="bg-[#3B82F6]">
-<Button className="bg-[#FF0000]">
-<Box style={{ backgroundColor: '#FF0000' }}>
-```
-
-## Component Conversion Guide
-
-| DON'T Use                            | USE Instead                                              |
-| ------------------------------------ | -------------------------------------------------------- |
-| `<div>` (for layout)                 | `<Box>`                                                  |
-| `<span>`, `<p>`, `<h1>`, etc.        | `<Text variant={TextVariant.BodyMd}>`                    |
-| `<button>` (styled)                  | `<Button variant={ButtonVariant.Primary}>`               |
-| component-library Modal/ModalContent/ModalHeader/ModalOverlay/ModalBody/ModalFocus/ModalFooter | `@metamask/design-system-react` equivalents |
-| component-library Popover/PopoverHeader | `@metamask/design-system-react` Popover/PopoverHeader |
-| component-library TextField/FormTextField/TextFieldSearch/TextArea | `@metamask/design-system-react` equivalents |
-| component-library Tag                | `@metamask/design-system-react` Tag                      |
-| component-library Label / HelpText   | `@metamask/design-system-react` Label / HelpText         |
-| component-library Skeleton           | `@metamask/design-system-react` Skeleton                 |
-| SASS files (`.scss`)                 | Design system props + Tailwind `className`               |
-| `style={{ backgroundColor: 'red' }}` | Box: `backgroundColor={BoxBackgroundColor.ErrorDefault}` |
-| `style={{ display: 'flex' }}`        | Box: `flexDirection={BoxFlexDirection.Row}`              |
-| Manual padding/margin in CSS         | Box: `padding={4}` or `className="p-4"`                  |
-| Custom CSS classes in `.scss`        | Component props + Tailwind utility classes               |
-| `className="text-lg font-bold"`      | `<Text variant={TextVariant.HeadingMd}>`                 |
-
-## Legacy Code Migration Guidelines
-
-### Identifying Legacy Patterns
-
-🚫 **Anti-patterns to refactor when encountered:**
-
-- SASS files (`.scss`) - highest priority to eliminate
-- Separate `.styles.ts` or style objects
-- Raw `div` components instead of `Box`
-- Raw text elements with custom styles instead of design system `Text` with variants
-- Inline style objects for static styles
-- Custom CSS classes that could be Tailwind utilities
-
-### Migration Priority
-
-1. **High Priority**: Active components using SASS - convert to Tailwind
-2. **Medium Priority**: Frequently used shared components with style objects
-3. **Low Priority**: Stable legacy components with no active development
-
-### Migration Steps
-
-1. Replace `div` → `Box` from design system
-2. Replace text elements → `Text` with appropriate `TextVariant`
-3. Replace migrated component-library imports with design system exports when available
-4. Convert SASS styles → Tailwind `className` props
-5. Convert arbitrary colors → design system color tokens
-6. Delete `.scss` files after migration
-7. Test thoroughly - layout can shift during migration
-
-### A Matching Name Is Not a Drop-In Swap
-
-The same identifier exported from both places usually has a different API. Read the
-design system's `.d.cts` types before rewriting call sites, and expect snapshot churn.
-Known differences:
-
-- **Enum casing differs.** The design system uses PascalCase members (`TextVariant.BodyMd`,
-  `IconColor.ErrorDefault`); the legacy equivalents are camelCase (`TextVariant.bodyMd`,
-  `IconColor.errorDefault`).
-- **Enum import source differs.** Legacy `Text` takes its variants from
-  `ui/helpers/constants/design-system`, while the design system exports `TextVariant` and
-  `TextColor` from the component package itself. Migrating `Text` means changing two import
-  sources, not one.
-- **`ModalHeader` co-requires `closeButtonProps`.** If you pass `onClose` you must also pass
-  `closeButtonProps={{ ariaLabel: t('close') }}`. There is no built-in i18n fallback, and the
-  same rule applies to `onBack`/`backButtonProps`.
-- **`BannerAlert` prefers `description` over children.** `BannerBase` exposes `title`,
-  `description`, `actionButtonLabel`/`actionButtonOnClick`, and `onClose`; reach for those
-  props before nesting a `Text` child.
-- **Severity values happen to match.** `BannerAlertSeverity` is a const object in the design
-  system and a string enum in `component-library`, but both resolve to `'danger'`, `'warning'`,
-  `'info'`, and `'success'` — so that particular swap is behavior-preserving.
-
-### Example Migration
-
-**Before (SASS):**
-
-```tsx
-// component.tsx
-import './component.scss';
-
-<div className="my-container">
-  <h2 className="my-title">Title</h2>
-</div>
-
-// component.scss
-.my-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 16px;
-  background-color: #ffffff;
-}
-
-.my-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #000000;
-}
-```
-
-**After (Design System):**
-
-```tsx
-import {
-  Box,
-  Text,
-  TextVariant,
-  FontWeight,
-  BoxFlexDirection,
-  BoxAlignItems,
-  BoxBackgroundColor,
-} from '@metamask/design-system-react';
-
-<Box
-  flexDirection={BoxFlexDirection.Row}
-  alignItems={BoxAlignItems.Center}
-  padding={4}
-  backgroundColor={BoxBackgroundColor.BackgroundDefault}
->
-  <Text variant={TextVariant.HeadingMd} fontWeight={FontWeight.Medium}>
-    Title
-  </Text>
-</Box>;
-```
-
-## Error Prevention & Code Review Checklist
-
-### Before Committing Code, Verify:
-
-- [ ] Storybook MCP documentation was queried for the relevant components and patterns
-- [ ] Only documented props, variants, tokens, and patterns are used
-- [ ] Relevant stories were tested with `run-story-tests`
-- [ ] No SASS files (`.scss`) created or modified
-- [ ] Design system components used when appropriate (prefer over raw elements)
-- [ ] The whole Modal family (Modal, ModalContent, ModalHeader, ModalOverlay, ModalBody, ModalFocus, ModalFooter) imported from `@metamask/design-system-react`
-- [ ] Popover, TextField, Tag, Label, and Skeleton imported from `@metamask/design-system-react`, not `component-library`
-- [ ] Variant components used before base components (Button > ButtonBase, BannerAlert > BannerBase)
-- [ ] If using base component: confirmed no variant component works
-- [ ] If using base component: considered if this indicates design inconsistency
-- [ ] No raw text elements without variants (use `Text` with `TextVariant`)
-- [ ] No custom CSS files (use design system + Tailwind)
-- [ ] No arbitrary color values (use design system tokens)
-- [ ] No separate `.styles.ts` files for new components
-- [ ] Box props used for static layout and colors (not className)
-- [ ] Box static colors use `backgroundColor`/`borderColor` props with enums
-- [ ] Box interactive states (hover/active/focus) use className
-- [ ] Component-specific props used before className (variant, size, color)
-- [ ] All Box spacing uses numeric props when possible (0-12)
-
-### When You See These Patterns, IMMEDIATELY Suggest Alternatives:
-
-- Any `.scss` file → Design system components + Tailwind utilities
-- Any custom CSS → Design system props + Tailwind utilities
-- Any `ui/components/component-library` import of a Modal-family component (`modal`, `modal-content`, `modal-header`, `modal-overlay`, `modal-body`, `modal-focus`, `modal-footer`) → equivalent `@metamask/design-system-react` export
-- Any `ui/components/component-library` import of `popover`, `popover-header`, `text-field`, `form-text-field`, `text-field-search`, `textarea`, `tag`, `label`, `help-text`, or `skeleton` → equivalent `@metamask/design-system-react` export
-- Any arbitrary color values → Design system semantic tokens
-- Static `className="bg-*"` on **Box** → `backgroundColor` prop with `BoxBackgroundColor` enum
-- Static `className="border-*"` color on **Box** → `borderColor` prop with `BoxBorderColor` enum
-- Manual flex properties in className on Box → Box component props
-- `backgroundColor` prop on ButtonBase/Text/etc → `className` (only Box has this prop)
-
-**However, these are OK:**
-
-- `div` with `className` when no design system component fits
-- `className` on Box for interactive states (`hover:`, `active:`, `focus:`)
-- `className` on Box for utilities without props (width, height, position, etc.)
-
-### AI Agent Guidelines
-
-When suggesting code changes:
-
-1. ALWAYS query `storybook-broker-mcp` before answering or taking UI action
-2. NEVER hallucinate component properties; use only documented or story-proven APIs
-3. ALWAYS use `get-storybook-story-instructions` before creating or changing stories
-4. ALWAYS run `run-story-tests` for relevant stories after UI changes
-5. ALWAYS use `preview-stories` to inspect renderable changes when available
-6. USE the fallback order above when MCP is unavailable
-7. ALWAYS read local component type definitions when using the fallback sources
-8. ALWAYS check `ui/pages/design-system/design-system.stories.tsx` for real-world patterns when using fallbacks
-9. ALWAYS prefer variant components over base components (Button > ButtonBase, BannerAlert > BannerBase)
-10. ALWAYS use component-specific props FIRST (variant, size, color, etc.)
-11. ALWAYS use Box utility props for layout before className
-12. ALWAYS search for existing feature-specific components before building new ones
-13. FLAG potential design inconsistencies when base components are needed
-14. REJECT any suggestions that violate the hierarchy
-15. REJECT any SASS file creation or modification
-16. SUGGEST migrations when encountering legacy patterns
-17. EXPLAIN why design system approach is preferred
-
-**Remember**: Variant Components > Base Components > Component props > Box utility props > className for extras
-
-## Design System Priority
-
-Before suggesting any UI solution:
-
-1. Query Storybook MCP for the relevant components, variants, props, tokens, and patterns
-2. If MCP is unavailable, inspect the installed package exports and type definitions
-3. Check if a variant component exists (Button, BannerAlert, ModalHeader)
-4. Use component's built-in props (variant, color, size)
-5. Add layout/spacing with Box props or `className`
-6. Add colors with semantic Tailwind tokens
-7. Only suggest base components (ButtonBase, BannerBase) if no variant fits
-8. FLAG if base component usage suggests design inconsistency
-9. Only suggest custom components if no design system option exists
-10. **NEVER** suggest SASS files
-
-## Tailwind Configuration
-
-The extension uses:
-
-- `@metamask/design-system-tailwind-preset` for design token aligned tailwind classnames
-- Custom `tailwind.config.js` that extends the preset
-
-All Tailwind colors are mapped to design tokens. Use semantic class names:
-
-- `bg-default`, `bg-alternative`, `bg-muted`
-- `text-default`, `text-alternative`, `text-muted`
-- `border-default`, `border-muted`
-- Interactive states: `hover:bg-hover`, `active:bg-pressed`
-
-## Reference Examples
-
-Always reference the patterns from:
-
-- `ui/pages/design-system/design-system.stories.tsx` for design system usage
-- `ui/components/component-library/` for component-library patterns
-- `ui/components/multichain/` for feature component examples
-
-## Enforcement
-
-- REJECT any code suggestions that create SASS files
-- REJECT raw div/span/p usage when Box/Text components exist
-- REJECT arbitrary color values not from design tokens
-- REQUIRE design system components as first choice
-- ENFORCE Tailwind-only styling approach
-- PROHIBIT new CSS/SCSS file creation
+1. The installed `@metamask/design-system-react` package and its type definitions.
+2. Existing Extension usage in `ui/pages/design-system/design-system.stories.tsx`.
+3. A generated MMDS release manifest or repository-provided release guidance.
+4. The MMDS source repository as a last resort.
+
+The installed package version is the source of truth for the code being changed.
+Read the matching type definitions before writing usage. Do not restore a static
+inventory or copy undocumented APIs into this skill to compensate for missing MCP.
+
+## Durable Extension Constraints
+
+- Do not create or modify SASS files.
+- Prefer MMDS guidance and primitives for new UI.
+- Reuse an existing feature-level solution when the documented pattern calls for one;
+  otherwise compose the smallest solution supported by current Storybook guidance.
+- Keep styling aligned with the repository's design-token Tailwind configuration.
+- Preserve accessibility, localization, and keyboard interaction requirements shown
+  in the relevant Storybook documentation and stories.
+
+## Before Committing
+
+- [ ] Relevant Storybook pattern and UI documentation was queried.
+- [ ] Only documented or story-proven APIs are used.
+- [ ] No undocumented cross-platform substitutions were made.
+- [ ] Relevant stories were previewed when available.
+- [ ] Relevant stories passed `run-story-tests`.
+- [ ] No SASS files were created or modified.
+- [ ] Accessibility and localization behavior was preserved.
+
+## Review Signals
+
+Flag or reject changes that:
+
+- introduce undocumented props, variants, tokens, or composition;
+- use Mobile-only guidance without an Extension mapping;
+- bypass an approved Storybook pattern;
+- create a second local source of truth for MMDS behavior;
+- add SASS or custom styling where the documented guidance provides a supported
+  alternative.
+
+## Benchmarking the Skill
+
+Track these measures against a baseline before and after this rewrite:
+
+1. **Staleness:** count API names, prop names, enum names, import paths, and code
+   snippets embedded in the skill. The target is zero except for package paths and
+   MCP tool names required by the workflow.
+2. **MCP compliance:** sample UI tasks and measure whether the agent queried
+   documentation before proposing an API, queried story instructions before editing
+   a story, and ran story tests after a UI change.
+3. **Groundedness:** have reviewers label each proposed API as documented, supported
+   by a story, or invented. Track the invented rate and target zero.
+4. **Pattern alignment:** use fixed Extension tasks and score whether the agent chose
+   the approved Storybook pattern and followed its documented composition.
+5. **Fallback safety:** disable MCP in a test run and verify that the agent checks
+   the installed package and type definitions rather than guessing.
+6. **Drift detection:** in CI, compare the skill against the Storybook manifest and
+   fail when new API inventories or undocumented examples are added.
+7. **Efficiency:** measure time-to-first-correct implementation and unnecessary
+   clarification or rework caused by missing documentation.
+
+Keep a small, versioned benchmark set of representative tasks covering page chrome,
+forms, overlays, lists, empty states, and an intentionally unsupported request.
+Evaluate the same prompts at each MMDS release so improvements are comparable.
