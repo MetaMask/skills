@@ -1,3 +1,9 @@
+---
+name: extension-messaging-and-isolation
+domain: security
+description: "Who can reach the extension messaging surfaces in MV3, and which trust boundaries actually hold — the facts a reviewer needs before judging a message handler, a content script, or a deeplink route"
+---
+
 # Extension Messaging and Isolation
 
 **Scope: MetaMask Extension (MV3).** Facts about who can send what to whom, and which boundaries
