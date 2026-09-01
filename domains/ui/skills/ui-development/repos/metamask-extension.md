@@ -92,4 +92,3 @@ Flag or reject changes that:
 - create a second local source of truth for MMDS behavior;
 - add SASS or custom styling where the documented guidance provides a supported
   alternative.
-
