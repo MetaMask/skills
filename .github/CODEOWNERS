@@ -19,6 +19,7 @@
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/perps/          @MetaMask/perps
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/security/       @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/swaps/          @MetaMask/swaps-engineers
 /domains/testing/        @MetaMask/qa
 /domains/ui/             @MetaMask/design-system-engineers
