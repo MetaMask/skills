@@ -6,8 +6,8 @@ parent: ui-development
 # MetaMask Extension UI Development Guidelines
 
 Use `@metamask/design-system-react` as much as possible for Extension UI. Use
-Tailwind class names instead of SCSS. Use the current MMDS Storybook documentation
-as the source of truth for the API and approved patterns.
+Tailwind class names instead of SCSS. Use the current MetaMask Design System (MMDS) Storybook documentation
+as the source of truth for tokens: color, space, typography, component API and approved patterns.
 
 The working order is:
 
