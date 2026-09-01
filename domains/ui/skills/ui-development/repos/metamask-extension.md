@@ -30,12 +30,8 @@ Before answering a UI question or changing UI code:
 2. Find the relevant Extension pattern documentation first.
 3. Query `get-documentation` for the selected pattern and each UI building block.
 4. Query `get-documentation-for-story` when documentation does not answer the question.
-5. Query `get-storybook-story-instructions` before creating or changing a story.
-6. Use only props, variants, tokens, composition, and behavior explicitly documented
+5. Use only props, variants, tokens, composition, and behavior explicitly documented
    or demonstrated by a story.
-7. Use `preview-stories` to inspect renderable changes when available.
-8. Run `run-story-tests` for relevant stories after UI changes, including accessibility
-   checks when configured.
 
 Never infer an API from a name, a previous implementation, another platform, or
 another UI library. If the required guidance is absent, record the documentation gap
@@ -44,6 +40,10 @@ and use the fallback process below rather than guessing.
 When Mobile-only guidance is encountered, do not apply it to Extension. Use the
 Extension mapping documented in Storybook; if no mapping exists, treat that as a
 documentation gap.
+
+When creating or updating stories, use the UI scaffolding skill for Storybook story
+instructions, previews, and story tests. This skill supplies the design-system API
+and pattern knowledge that the scaffolding workflow consumes.
 
 ## Fallback When Storybook MCP Is Unavailable
 
@@ -75,8 +75,6 @@ inventory or copy undocumented APIs into this skill to compensate for missing MC
 - [ ] Relevant Storybook pattern and UI documentation was queried.
 - [ ] Only documented or story-proven APIs are used.
 - [ ] No undocumented cross-platform substitutions were made.
-- [ ] Relevant stories were previewed when available.
-- [ ] Relevant stories passed `run-story-tests`.
 - [ ] No SASS files were created or modified.
 - [ ] Accessibility and localization behavior was preserved.
 
@@ -99,8 +97,8 @@ Track these measures against a baseline before and after this rewrite:
    snippets embedded in the skill. The target is zero except for package paths and
    MCP tool names required by the workflow.
 2. **MCP compliance:** sample UI tasks and measure whether the agent queried
-   documentation before proposing an API, queried story instructions before editing
-   a story, and ran story tests after a UI change.
+   documentation before proposing an API. Measure Storybook story-authoring behavior
+   separately in the UI scaffolding benchmark.
 3. **Groundedness:** have reviewers label each proposed API as documented, supported
    by a story, or invented. Track the invented rate and target zero.
 4. **Pattern alignment:** use fixed Extension tasks and score whether the agent chose
