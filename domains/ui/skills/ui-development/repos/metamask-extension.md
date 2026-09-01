@@ -7,10 +7,20 @@ parent: ui-development
 
 ## Purpose
 
-Use the current MMDS Storybook documentation and approved patterns as the source of
-truth for Extension UI work. This skill defines the workflow and a small set of
-consumer-repository constraints; it does not duplicate MMDS APIs, examples, or
-pattern rules.
+Use `@metamask/design-system-react` as much as possible for Extension UI, use
+Tailwind class names instead of SCSS, and use current MMDS Storybook documentation
+as the source of truth for the API and approved patterns. This skill defines the
+workflow and a small set of consumer-repository constraints; it does not duplicate
+MMDS APIs, examples, or pattern rules.
+
+The working order is:
+
+1. Use `@metamask/design-system-react` when the design system supports the need.
+2. Use Tailwind class names for styling and layout that are not provided by the
+   design system.
+3. Use Storybook MCP to verify the current design-system documentation and API.
+4. If Storybook MCP is unavailable, use the installed package and its local types.
+5. Build custom UI only when the preceding sources do not provide a suitable option.
 
 ## Required Storybook MCP Workflow
 
@@ -39,7 +49,8 @@ documentation gap.
 
 Use these sources in order:
 
-1. The installed `@metamask/design-system-react` package and its type definitions.
+1. The installed `@metamask/design-system-react` package and its type definitions
+   under `node_modules`.
 2. Existing Extension usage in `ui/pages/design-system/design-system.stories.tsx`.
 3. A generated MMDS release manifest or repository-provided release guidance.
 4. The MMDS source repository as a last resort.
@@ -50,8 +61,9 @@ inventory or copy undocumented APIs into this skill to compensate for missing MC
 
 ## Durable Extension Constraints
 
-- Do not create or modify SASS files.
-- Prefer MMDS guidance and primitives for new UI.
+- Use `@metamask/design-system-react` components as much as possible.
+- Use Tailwind class names instead of SCSS for styling and layout.
+- Do not create or modify SASS or SCSS files.
 - Reuse an existing feature-level solution when the documented pattern calls for one;
   otherwise compose the smallest solution supported by current Storybook guidance.
 - Keep styling aligned with the repository's design-token Tailwind configuration.
