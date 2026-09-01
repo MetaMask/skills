@@ -5,6 +5,9 @@ parent: ui-development
 
 # MetaMask Extension Product UI — MMDS Guidance
 
+Strategy: [Agentic Design System Strategy](../../../knowledge/agentic-design-system-strategy.md)
+([Google Doc](https://docs.google.com/document/d/1wwvEJxom097q-ehSJAfqKvWb01ZW-kmlpy7BQW5In40/edit))
+
 For Extension UI, the MetaMask Design System (MMDS) is the default source for
 components, tokens, and documented patterns. Align new and changed UI with MMDS
 wherever it supports the need, using current Storybook documentation as the
