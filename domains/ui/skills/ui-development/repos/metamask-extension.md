@@ -7,11 +7,14 @@ parent: ui-development
 
 ## Purpose
 
-Use `@metamask/design-system-react` as much as possible for Extension UI, use
-Tailwind class names instead of SCSS, and use current MMDS Storybook documentation
-as the source of truth for the API and approved patterns. This skill defines the
-workflow and a small set of consumer-repository constraints; it does not duplicate
-MMDS APIs, examples, or pattern rules.
+Extension is the web consumer and platform; it is not synonymous with
+`@metamask/design-system-react`. Use `@metamask/design-system-react` as much as
+possible for Extension UI. Mobile uses the separate
+`@metamask/design-system-react-native` package. Use Tailwind class names instead of
+SCSS, and use current MMDS Storybook documentation as the source of truth for the
+API and approved patterns. This skill defines the workflow and a small set of
+consumer-repository constraints; it does not duplicate MMDS APIs, examples, or
+pattern rules.
 
 The working order is:
 
@@ -22,12 +25,17 @@ The working order is:
 4. If Storybook MCP is unavailable, use the installed package and its local types.
 5. Build custom UI only when the preceding sources do not provide a suitable option.
 
+For this Extension skill, use the React/web Storybook documentation and Extension
+patterns. Do not substitute React Native APIs or Mobile patterns. The corresponding
+Mobile skill uses `@metamask/design-system-react-native` and the React Native
+Storybook documentation.
+
 ## Required Storybook MCP Workflow
 
 Before answering a UI question or changing UI code:
 
 1. Query `storybook-broker-mcp` with `list-all-documentation`.
-2. Find the relevant Extension pattern documentation first.
+2. Find the relevant Extension pattern documentation in the React/web Storybook first.
 3. Query `get-documentation` for the selected pattern and each UI building block.
 4. Query `get-documentation-for-story` when documentation does not answer the question.
 5. Use only props, variants, tokens, composition, and behavior explicitly documented
