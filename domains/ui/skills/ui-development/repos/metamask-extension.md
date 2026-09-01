@@ -15,11 +15,14 @@ API and approved patterns.
 The working order is:
 
 1. Use `@metamask/design-system-react` when the design system supports the need.
-2. Use Tailwind class names for styling and layout that are not provided by the
+2. Search the Extension codebase for existing UI and reuse it when appropriate,
+   including UI that has not moved to MMDS or is intentionally feature-specific.
+3. Use Tailwind class names for styling and layout that are not provided by the
    design system.
-3. Use Storybook MCP to verify the current design-system documentation and API.
-4. If Storybook MCP is unavailable, use the installed package and its local types.
-5. Build custom UI only when the preceding sources do not provide a suitable option.
+4. Use Storybook MCP to verify the current design-system documentation and API.
+5. If Storybook MCP is unavailable, use the installed package and its local types.
+6. Build new feature UI only when no suitable MMDS or existing Extension UI can be
+   reused.
 
 For this Extension skill, use the React/web Storybook documentation and Extension
 patterns. Do not substitute React Native APIs or Mobile patterns. The corresponding
@@ -66,6 +69,8 @@ inventory or copy undocumented APIs into this skill to compensate for missing MC
 ## Durable Extension Constraints
 
 - Use `@metamask/design-system-react` components as much as possible.
+- Search the Extension codebase and reuse suitable existing UI before creating new
+  feature UI. Existing UI does not need to be in MMDS to be reusable.
 - Use Tailwind class names instead of SCSS for styling and layout.
 - Do not create or modify SASS or SCSS files.
 - Reuse an existing feature-level solution when the documented pattern calls for one;
