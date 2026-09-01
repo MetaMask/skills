@@ -1,5 +1,5 @@
 ---
-name: privacy-egress-diligence
+name: data-egress-diligence
 maturity: experimental
 description: >-
   Triage a change to what user data leaves the device — the Sentry state masks in
