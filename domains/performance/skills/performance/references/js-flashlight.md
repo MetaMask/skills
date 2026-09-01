@@ -48,24 +48,24 @@ softwareupdate --install-rosetta --agree-to-license
 4. **Auto Detect** the running app — Flashlight finds the foreground app's package ID for you (no per-app setup).
 5. **Start Measuring.** Click it, then **drive the exact slow flow by hand** on the device (the audited interaction, not idle/startup).
 6. **Read the live vitals** as you interact:
-   - **FPS** — JS thread and UI (main) thread, graphed over time. <55 = dropping frames.
-   - **CPU** — total and **per-thread** (e.g. `mqt_js`, `RenderThread`), so you can see which thread is hot.
+   - **FPS** — a single frame-rate stream, graphed over time. <55 = dropping frames. (Flashlight does **not** split JS-thread vs UI-thread FPS — that's the in-app Perf Monitor; use the per-thread CPU below to attribute a drop.)
+   - **CPU** — total and **per-thread** (e.g. `mqt_js` = JS thread, `RenderThread` = native UI), so you can see which thread is hot. This is Flashlight's real thread-level signal.
    - **RAM** — resident memory over the session.
    - **Score** — an aggregate 0–100 performance rating (higher is better).
 7. **Stop** when done. `measure` is live/interactive, so treat the reading as directional, not a signed-off number.
 
 ## Interpreting Results
 
-Same JS-vs-UI-thread split as the [Perf Monitor / DevTools triage](mm-tools.md):
+When FPS drops, attribute it with the **per-thread CPU** breakdown (Flashlight's real thread signal) — the same JS-vs-UI logic as the [Perf Monitor / DevTools triage](mm-tools.md):
 
 | Live signal | Likely cause | Where to go next |
 |---|---|---|
-| **JS FPS drops**, `mqt_js` CPU high | Expensive renders / selectors / computation on the JS thread | RN DevTools Profiler → [mm-selector-memoization.md](mm-selector-memoization.md) / [mm-redux-antipatterns.md](mm-redux-antipatterns.md) / [mm-hook-dependency-arrays.md](mm-hook-dependency-arrays.md) |
-| **UI FPS drops**, `RenderThread` CPU high (JS fine) | Native rendering / animation / too many views | [mm-layout-animations.md](mm-layout-animations.md) / [native-view-flattening.md](native-view-flattening.md) |
-| **Both drop** | Mixed — start on the JS side | [js-profile-react.md](js-profile-react.md) |
+| FPS drops + **`mqt_js` (JS thread) CPU high** | Expensive renders / selectors / computation on the JS thread | RN DevTools Profiler → [mm-selector-memoization.md](mm-selector-memoization.md) / [mm-redux-antipatterns.md](mm-redux-antipatterns.md) / [mm-hook-dependency-arrays.md](mm-hook-dependency-arrays.md) |
+| FPS drops + **`RenderThread` (native UI) CPU high** (`mqt_js` fine) | Native rendering / animation / too many views | [mm-layout-animations.md](mm-layout-animations.md) / [native-view-flattening.md](native-view-flattening.md) |
+| FPS drops + **both threads hot** | Mixed — start on the JS side | [js-profile-react.md](js-profile-react.md) |
 | **RAM climbs** across a session | Leak | [js-memory-leaks.md](js-memory-leaks.md) / [native-memory-leaks.md](native-memory-leaks.md) |
 
-Flashlight tells you **which thread and roughly how bad**; use RN DevTools Profiler to find the exact component/function to fix.
+Flashlight tells you **which thread and roughly how bad** (via per-thread CPU); use RN DevTools Profiler to find the exact component/function to fix.
 
 ## Scope: live triage only
 
