@@ -80,7 +80,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
       Both dropping → start with JS profiling
 
 "FPS drops while scrolling a list"
-  → Perf Monitor to confirm → RN DevTools Profiler (or Flashlight, if installed) → js-lists-flatlist-flashlist.md
+  → Perf Monitor to confirm → RN DevTools Profiler (or Flashlight live vitals, if installed — js-flashlight.md) → js-lists-flatlist-flashlist.md
 
 "Components re-render too much"
   → React Native DevTools → "why did this render?" → mm-selector-memoization.md / mm-redux-antipatterns.md
@@ -107,7 +107,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
   → instrument with trace() (below) → native-measure-tti.md → bundle-analyze-js.md
 
 "How do I prove my fix is faster?"
-  → Reassure (render count) + trace() (duration) [+ Flashlight FPS, if installed]. Baseline → fix → re-measure.
+  → Reassure (render count) + trace() (duration) [+ Flashlight live FPS for a quick check, if installed — js-flashlight.md]. Baseline → fix → re-measure.
 
 "Prevent regressions going forward"
   → Reassure perf-test in CI  +  E2E performance gates (mms-performance-testing skill)
@@ -144,8 +144,8 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
 - Network inspection for **pre-0.83** setups where the DevTools Network tab is unavailable on Android. On RN 0.83+ prefer the DevTools [Network panel](js-network-panel.md) (works on Android). WebSocket events still aren't captured by the Network panel — Reactotron remains useful there.
 
 ### Flashlight (optional, external — NOT installed in this repo)
-- **Not in `package.json`** — it's an external Callstack tool. Don't assume it's available; for day-to-day FPS use Perf Monitor + RN DevTools.
-- **If you install it** (separately, from a verified release — don't pipe a remote script to a shell): `flashlight measure --output results.json` → `flashlight compare baseline.json current.json` for an automatable Android score (before/after, CI).
+- **Not in `package.json`** — it's an external, Lighthouse-type tool for mobile apps. Don't assume it's available; for day-to-day FPS use Perf Monitor + RN DevTools.
+- **If you install it** (separately, from a verified release — don't pipe a remote script to a shell): **`flashlight measure`** starts a live, interactive web UI for watching Android vitals (FPS/CPU-per-thread/RAM/score) while you drive the flow by hand. Non-deterministic; good for triage. See [js-flashlight.md](js-flashlight.md). For reproducible before/after or CI numbers, use the in-repo Reassure + `trace()` path instead.
 
 ### Reassure (render-time regression gate) — INSTALLED
 - **Use:** guard a component/hook against render-time regressions before merge.
@@ -221,4 +221,4 @@ A code session often has no running device, so "Measure first" isn't literally p
 
 ## Related
 
-- [mm-power-user-scenario.md](mm-power-user-scenario.md) · [js-measure-fps.md](js-measure-fps.md) · [js-profile-react.md](js-profile-react.md) · [js-performance-panel.md](js-performance-panel.md) · [js-network-panel.md](js-network-panel.md) · [native-measure-tti.md](native-measure-tti.md)
+- [mm-power-user-scenario.md](mm-power-user-scenario.md) · [js-measure-fps.md](js-measure-fps.md) · [js-flashlight.md](js-flashlight.md) · [js-profile-react.md](js-profile-react.md) · [js-performance-panel.md](js-performance-panel.md) · [js-network-panel.md](js-network-panel.md) · [native-measure-tti.md](native-measure-tti.md)
