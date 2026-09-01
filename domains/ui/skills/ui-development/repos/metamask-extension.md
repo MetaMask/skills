@@ -5,16 +5,12 @@ parent: ui-development
 
 # MetaMask Extension UI Development Guidelines
 
-## Purpose
-
 Extension is the web consumer and platform; it is not synonymous with
 `@metamask/design-system-react`. Use `@metamask/design-system-react` as much as
 possible for Extension UI. Mobile uses the separate
 `@metamask/design-system-react-native` package. Use Tailwind class names instead of
-SCSS, and use current MMDS Storybook documentation as the source of truth for the
-API and approved patterns. This skill defines the workflow and a small set of
-consumer-repository constraints; it does not duplicate MMDS APIs, examples, or
-pattern rules.
+SCSS. Use the current MMDS Storybook documentation as the source of truth for the
+API and approved patterns.
 
 The working order is:
 
@@ -97,27 +93,3 @@ Flag or reject changes that:
 - add SASS or custom styling where the documented guidance provides a supported
   alternative.
 
-## Benchmarking the Skill
-
-Track these measures against a baseline before and after this rewrite:
-
-1. **Staleness:** count API names, prop names, enum names, import paths, and code
-   snippets embedded in the skill. The target is zero except for package paths and
-   MCP tool names required by the workflow.
-2. **MCP compliance:** sample UI tasks and measure whether the agent queried
-   documentation before proposing an API. Measure Storybook story-authoring behavior
-   separately in the UI scaffolding benchmark.
-3. **Groundedness:** have reviewers label each proposed API as documented, supported
-   by a story, or invented. Track the invented rate and target zero.
-4. **Pattern alignment:** use fixed Extension tasks and score whether the agent chose
-   the approved Storybook pattern and followed its documented composition.
-5. **Fallback safety:** disable MCP in a test run and verify that the agent checks
-   the installed package and type definitions rather than guessing.
-6. **Drift detection:** in CI, compare the skill against the Storybook manifest and
-   fail when new API inventories or undocumented examples are added.
-7. **Efficiency:** measure time-to-first-correct implementation and unnecessary
-   clarification or rework caused by missing documentation.
-
-Keep a small, versioned benchmark set of representative tasks covering page chrome,
-forms, overlays, lists, empty states, and an intentionally unsupported request.
-Evaluate the same prompts at each MMDS release so improvements are comparable.
