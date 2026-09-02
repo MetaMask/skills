@@ -144,6 +144,7 @@ tools/
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
+| `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |

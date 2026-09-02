@@ -125,6 +125,8 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 13. **Await the content, not just its container** — a container arriving on screen says nothing about values inside it that have their own async source (a child query, a debounce, a skeleton). Await the gated value with `findBy*`, then re-query the container and scope the remaining synchronous assertions with `within()`.
 
+14. **Do not nest `find*` inside `waitFor`** — `findBy*` already *is* `waitFor` + `getBy` (default timeout 1000 ms). Nesting them shares that budget, so CI can fail with a bare `Timed out in waitFor.` and no assertion detail. Use `await findBy*` **or** `waitFor(() => { getBy*; expect(...) })` with an explicit `{ timeout }` when you need extra time. Never `waitFor(async () => { await findBy*(...) })`.
+
 
 ## Reference files (when to use)
 

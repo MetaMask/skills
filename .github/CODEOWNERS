@@ -13,6 +13,7 @@
 /README.md               @MetaMask/extension-platform @MetaMask/mobile-platform
 /CONTRIBUTING.md         @MetaMask/extension-platform @MetaMask/mobile-platform
 
+/domains/assets/         @MetaMask/metamask-assets
 /domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform

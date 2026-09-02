@@ -179,9 +179,7 @@ afterEach(() => {
 
 it('user sees trending tokens section with mocked data', async () => {
   const { findByText, queryByTestId } = renderTrendingViewWithRoutes();
-  await waitFor(async () => {
-    expect(await findByText('Ethereum')).toBeOnTheScreen();
-  });
+  expect(await findByText('Ethereum')).toBeOnTheScreen();
   // assert rows with assertTrendingTokenRowsVisibility(...)
 });
 
