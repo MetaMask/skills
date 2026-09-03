@@ -143,6 +143,19 @@ function hasArg(args, flag) {
   return args.includes(flag);
 }
 
+// Append BatchMode to whatever ssh configuration the engineer already has, rather
+// than replacing it. Overwriting would break a custom key, a 1Password/Secretive
+// agent or a ProxyCommand — on the `git@github.com:Consensys/skills.git` clone that
+// these guards exist to protect, and on the explicit `yarn skills` path too, since
+// buildDelegatedEnv() is shared.
+function sshCommandWithBatchMode(env = process.env) {
+  const base = env.GIT_SSH_COMMAND?.trim();
+  if (!base) {
+    return 'ssh -oBatchMode=yes';
+  }
+  return /(^|\s)-o\s*BatchMode=/u.test(base) ? base : `${base} -oBatchMode=yes`;
+}
+
 function isTruthy(value) {
   return /^(1|true|yes)$/iu.test(value ?? '');
 }
@@ -241,8 +254,54 @@ function isGitDir(dir) {
   return dirExists(path.join(dir, '.git'));
 }
 
+// Git operations here run during `postinstall`, on the critical path of
+// `yarn install`. Two things must not happen there:
+//
+//   - A credential prompt. A fetch against a private source (the Consensys
+//     overlay) can block on stdin forever, hanging the install with no output.
+//     GIT_TERMINAL_PROMPT=0 and an empty GIT_ASKPASS turn that into an
+//     immediate, reportable failure. Those two cover HTTPS only — ssh reads
+//     /dev/tty directly for passphrase and host-key prompts and ignores both, so
+//     GIT_SSH_COMMAND adds BatchMode. The private Consensys overlay is documented
+//     as an ssh clone and gets `git pull --ff-only` on every automatic sync, so
+//     this is the path most likely to block. (The delegate() timeout bounds such a
+//     hang; BatchMode prevents it.)
+//   - An unbounded wait. A stalled connection would hang just as long, so every
+//     spawn is capped. Callers can override with an explicit `timeout`.
+//
+// Both belong here rather than in a consumer's package.json: this is where the
+// risky call is made, and an env prefix on the npm script would leak the setting
+// to the whole process tree.
+//
+// The cap is generous on purpose. It exists to stop an indefinite hang, not to
+// enforce a performance budget — the slowest call is a shallow clone of the
+// skills repo, which is quick on a good connection but can take minutes on a
+// poor one or through a VPN. Cutting a legitimately slow clone short would drop
+// the engineer to the stale bundled snapshot, which is worse than waiting.
+// Override per call with an explicit `timeout`.
+const SPAWN_TIMEOUT_MS = 300_000;
+
+// `delegate()` wraps a Bash script that itself makes several capped calls, so its
+// budget has to exceed a single spawn's. If both used SPAWN_TIMEOUT_MS the outer
+// timer would fire first — after the wrapper's own startup cost — and kill a
+// legitimately slow clone from the outside, dropping the engineer to the stale
+// bundled snapshot. That is the exact outcome the cap above is written to avoid.
+const DELEGATE_TIMEOUT_MS = SPAWN_TIMEOUT_MS * 2;
+
 function run(cmd, args, options = {}) {
-  return spawnSync(cmd, args, { stdio: options.stdio ?? 'pipe', encoding: 'utf8', ...options });
+  return spawnSync(cmd, args, {
+    stdio: options.stdio ?? 'pipe',
+    encoding: 'utf8',
+    timeout: SPAWN_TIMEOUT_MS,
+    ...options,
+    env: {
+      ...process.env,
+      GIT_TERMINAL_PROMPT: '0',
+      GIT_ASKPASS: '',
+      GIT_SSH_COMMAND: sshCommandWithBatchMode(),
+      ...options.env,
+    },
+  });
 }
 
 function repoNameFromGitHubUrl(url) {
@@ -343,7 +402,10 @@ function pickBash() {
   ].filter(Boolean);
 
   for (const candidate of new Set(candidates)) {
-    const result = run(candidate, ['--version']);
+    // Local, and probed up to four times per delegate call — the network cap
+    // would be absurd here. An interpreter that can't print its version in
+    // seconds is not one to hand a script to.
+    const result = run(candidate, ['--version'], { timeout: 10_000 });
     if (result.status !== 0) {
       continue;
     }
@@ -373,7 +435,16 @@ function validateConfiguredSource(name, dir) {
 }
 
 function buildDelegatedEnv(target) {
-  const env = { ...process.env };
+  // tools/sync runs `git pull` against each configured source, and one of them is
+  // a private repo. Without this, an engineer whose credentials aren't cached gets
+  // a git prompt blocking on stdin during `yarn install`, with no indication why.
+  // Fail fast instead; the caller reports it and continues.
+  const env = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: '',
+    GIT_SSH_COMMAND: sshCommandWithBatchMode(),
+  };
   const localConfig = readSkillsLocal(target);
 
   for (const key of SOURCE_ENV_KEYS) {
@@ -411,10 +482,38 @@ function delegate(script, target, repo, args, options = {}) {
   }
   delegatedArgs.push(...args);
 
+  // Capped for the same reason as run(): this runs from postinstall, so a stalled
+  // child would hang `yarn install` indefinitely.
+  //
+  // Deliberately SIGTERM (the default), not SIGKILL. spawnSync's timeout signals
+  // only the direct child, so neither signal reaches an in-flight `git` grandchild
+  // — killing the whole tree would need `spawn` with `detached: true` and
+  // `process.kill(-pid)`. Given that, SIGTERM is strictly better: it at least lets
+  // Bash run a trap and clean up, where SIGKILL guarantees it cannot. A `git` child
+  // can still outlive the timeout and hold .git/index.lock; that is a known gap,
+  // not something the signal choice fixes.
   const result = spawnSync(bash, delegatedArgs, {
     stdio: options.stdio ?? 'inherit',
-    env,
+    timeout: DELEGATE_TIMEOUT_MS,
+    ...options,
+    env: { ...env, ...options.env },
   });
+
+  // On timeout spawnSync reports status === null, which would otherwise be
+  // indistinguishable from an ordinary failure. Say so explicitly: the whole point
+  // of the cap is a reportable failure rather than a silent hang.
+  if (result.error?.code === 'ETIMEDOUT') {
+    const seconds = Math.round((options.timeout ?? DELEGATE_TIMEOUT_MS) / 1000);
+    process.stderr.write(
+      `metamask-skills: ${script} exceeded ${seconds}s and was terminated. ` +
+        'Skills were not updated; the bundled snapshot is still in place.\n',
+    );
+    return 1;
+  }
+  if (result.error) {
+    process.stderr.write(`metamask-skills: failed to run ${script}: ${result.error.message}\n`);
+    return 1;
+  }
   return result.status ?? 1;
 }
 
@@ -560,7 +659,7 @@ function collectSkills(sources, repo) {
           installedName: `mms-${name}`,
           description: metadata.description || '',
           maturity: metadata.maturity || 'stable',
-          mandatory: isTruthy(metadata.mandatory),
+          base: isTruthy(metadata.base),
           scope: metadata.scope || 'project',
           source,
           path: skillDir,
@@ -737,11 +836,24 @@ function postinstall(args) {
     return 0;
   }
 
-  const cacheReady = ensurePublicSkillsCache(target);
-  const autoUpdate = isTruthy(getConfigValue(process.env, localConfig, 'SKILLS_AUTO_UPDATE'));
+  // Auto-update is on by default so a fresh clone lands the base set from a
+  // plain `yarn install`, with no flags and nothing to read first. Engineers who
+  // want to manage skills by hand set SKILLS_AUTO_UPDATE=0 (or
+  // SKILLS_SKIP_POSTINSTALL=1 to skip this entirely).
+  //
+  // Only a genuinely absent key defaults to on. An explicitly empty
+  // `SKILLS_AUTO_UPDATE=` is a choice, not an absence: under 0.2.0 `isTruthy('')`
+  // was false, so engineers wrote exactly that to turn syncing off. Treating it as
+  // unset would silently re-enable it for them — and it would contradict the rule
+  // load_saved() applies to an empty SKILLS_DOMAINS, where presence of the key
+  // preserves its previous meaning.
+  const configured = getConfigValue(process.env, localConfig, 'SKILLS_AUTO_UPDATE');
+  const autoUpdate = configured === undefined ? true : isTruthy(configured);
   if (!autoUpdate) {
     return 0;
   }
+
+  const cacheReady = ensurePublicSkillsCache(target);
 
   try {
     const { env } = buildDelegatedEnv(target);
@@ -750,7 +862,16 @@ function postinstall(args) {
       return 0;
     }
     const repo = resolveRepo(target, repoOverride);
-    const result = delegate('sync', target, repo, passthrough);
+    // An automatic install nobody asked for should be the minimum that works:
+    // the base set. An explicit `yarn skills` still defaults to every domain,
+    // because the engineer asked for skills and expects to get them.
+    //
+    // This only changes sync's *fallback*. A saved SKILLS_DOMAINS, an env var,
+    // or a --domain flag all still win, so an engineer who opted into a domain
+    // does not silently lose it on their next install.
+    const result = delegate('sync', target, repo, passthrough, {
+      env: { SKILLS_DEFAULT_SCOPE: 'base' },
+    });
     return result === 0 ? 0 : 0;
   } catch (error) {
     warn(`auto-update failed: ${error instanceof Error ? error.message : String(error)}`);

@@ -11,9 +11,12 @@
 #   2. SKILLS_DOMAINS env var      (CI-friendly)
 #   3. saved selection in <target>/.skills.local
 #   4. interactive prompt (TTY)
-#   5. all domains (fallback)
+#   5. fallback: base skills only for an automatic install (postinstall sets
+#      SKILLS_DEFAULT_SCOPE=base); every domain for an explicit `yarn skills`
 #
-# Skills with `mandatory: true` install regardless of selection.
+# Skills with `base: true` install regardless of selection, so a fresh clone with
+# no configuration lands exactly the base set. Use `all` to select every domain,
+# `none` for base only.
 # Skills with `scope: user` install at user-level (~/.claude, ~/.codex).
 #
 # Env (at least one required):
@@ -21,6 +24,9 @@
 #   CONSENSYS_SKILLS_DIR  Path to local Consensys/skills source (private overlay).
 #                         When both set, private overrides public on name conflict.
 #   SKILLS_DOMAINS        Comma-separated domain filter (overrides saved + prompt).
+#                         'none' = base skills only, 'all' = every domain.
+#   SKILLS_DEFAULT_SCOPE  Set to 'base' to make the fallback base-only. Exported by
+#                         `metamask-skills postinstall`; not intended to be set by hand.
 #   SKILLS_MATURITY       Minimum maturity: experimental, stable, deprecated.
 #   SKILLS_INCLUDE        Comma-separated skill opt-ins (domain/skill or skill).
 #   SKILLS_EXCLUDE        Comma-separated skill opt-outs (domain/skill or skill).
@@ -61,7 +67,8 @@ Required:
 
 Options:
   --repo <name>        Consumer repo (auto-detected from <target>/package.json)
-  --domain <list>      Comma-separated domain opt-in filter (overrides default-all)
+  --domain <list>      Comma-separated domain opt-in filter ('none' = base only,
+                       'all' = every domain; default: all for an explicit run)
   --maturity <level>    Minimum maturity: experimental, stable, deprecated
   --include <list>      Comma-separated skill opt-ins (domain/skill or skill).
                        Repeatable. Alias: --skill.
@@ -69,8 +76,8 @@ Options:
                        Repeatable.
   --save               Persist CLI domain/maturity/include/exclude to .skills.local
   --select             Interactively pick which domains to install (requires
-                       a TTY). Default behavior is install all — use this to
-                       opt out of some.
+                       a TTY). Base skills install either way — use this to
+                       opt into more.
   --include-user       Also install skills with \`scope: user\` (writes to
                        \$HOME — outside this repo). Off by default.
   --prune-stale        Remove installed project-scope mms-* skills that are not
@@ -83,7 +90,7 @@ Options:
 Env:
   METAMASK_SKILLS_DIR  Path to local MetaMask/skills checkout (public, no auth)
   CONSENSYS_SKILLS_DIR Path to local Consensys/skills checkout (private overlay)
-  SKILLS_DOMAINS       Domain filter (overrides saved selection; blank = all)
+  SKILLS_DOMAINS       Domain filter; 'none' = base only, 'all' = every domain
   SKILLS_MATURITY      Minimum maturity filter (default: stable)
   SKILLS_INCLUDE       Skill opt-ins; explicit includes bypass domain/maturity
   SKILLS_EXCLUDE       Skill opt-outs; explicit excludes win
@@ -204,24 +211,51 @@ done
 
 # ---- domain resolution ----
 
+# Mirrors stripInlineComment() in bin/metamask-skills.mjs. The two config readers
+# must agree: the JS side already strips ` # comment` tails, so without this a
+# saved `SKILLS_DOMAINS=perps # my choice` reaches the domain validation as
+# "perps#mychoice" and fails the run. `.skills.local.example` documents values with
+# trailing comments, so this is the shape engineers are taught to write.
+strip_inline_comment() {
+  local value="$1"
+  value="${value%%[[:space:]]#*}"
+  # Trim surrounding whitespace.
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+
+read_config_value() {
+  local key="$1"
+  [[ -f "$CONFIG_FILE" ]] || return 1
+  grep -q "^${key}=" "$CONFIG_FILE" || return 1
+  local raw
+  raw=$(awk -F= -v k="^${key}=" '$0 ~ k {sub(k,""); print; exit}' "$CONFIG_FILE")
+  strip_inline_comment "$raw"
+}
+
 load_saved() {
-  [[ -f "$CONFIG_FILE" ]] || return 0
-  awk -F= '/^SKILLS_DOMAINS=/{sub(/^SKILLS_DOMAINS=/,""); print; exit}' "$CONFIG_FILE"
+  local value
+  value=$(read_config_value SKILLS_DOMAINS) || return 0
+  # Presence of the key means "this engineer made a choice", even when the value is
+  # empty. The old picker wrote a bare `SKILLS_DOMAINS=` for the "all [recommended]"
+  # option, so treating empty as "nothing saved" would drop every one of those
+  # engineers into the new base-only default — silently, because pruning is off by
+  # default, so the skills they lose stay on disk and go stale instead of
+  # disappearing. Empty therefore maps back to `all`, which is what it meant.
+  echo "${value:-all}"
 }
 
 load_saved_maturity() {
-  [[ -f "$CONFIG_FILE" ]] || return 0
-  awk -F= '/^SKILLS_MATURITY=/{sub(/^SKILLS_MATURITY=/,""); print; exit}' "$CONFIG_FILE"
+  read_config_value SKILLS_MATURITY || return 0
 }
 
 load_saved_include() {
-  [[ -f "$CONFIG_FILE" ]] || return 0
-  awk -F= '/^SKILLS_INCLUDE=/{sub(/^SKILLS_INCLUDE=/,""); print; exit}' "$CONFIG_FILE"
+  read_config_value SKILLS_INCLUDE || return 0
 }
 
 load_saved_exclude() {
-  [[ -f "$CONFIG_FILE" ]] || return 0
-  awk -F= '/^SKILLS_EXCLUDE=/{sub(/^SKILLS_EXCLUDE=/,""); print; exit}' "$CONFIG_FILE"
+  read_config_value SKILLS_EXCLUDE || return 0
 }
 
 if [[ -n "$MATURITY_FILTER" ]]; then
@@ -275,9 +309,10 @@ if [[ "${SKILLS_PRUNE_STALE:-}" =~ ^(1|true|TRUE|yes|YES)$ ]]; then
 fi
 
 
-domain_has_mandatory() {
+domain_has_base() {
   local domain_dir="$1"
-  grep -lE '^mandatory:[[:space:]]*(true|yes|1)' "$domain_dir"/skills/*/skill.md >/dev/null 2>&1
+  # `mandatory` is the pre-rename key; see the transition note in tools/install.
+  grep -lE '^(base|mandatory):[[:space:]]*(true|yes|1)' "$domain_dir"/skills/*/skill.md >/dev/null 2>&1
 }
 
 list_domains() {
@@ -308,18 +343,23 @@ interactive_select() {
     i=$((i+1))
     local marker=""
     while IFS= read -r dd; do
-      domain_has_mandatory "$dd" && { marker=" ★"; break; }
+      domain_has_base "$dd" && { marker=" ★"; break; }
     done < <(domain_dirs_for "$d")
     printf "  %2d) %s%s\n" "$i" "$d" "$marker" >&2
   done
   echo >&2
-  echo "  ★ = contains mandatory skills (always installed regardless)" >&2
+  echo "  ★ = contains base skills (always installed regardless)" >&2
   echo >&2
 
   local choice
-  echo "Default is install ALL domains. Pick a subset to opt out of the rest." >&2
-  read -rp "Pick (numbers comma-separated, blank/'a' = all [recommended]): " choice
-  if [[ -z "$choice" || "$choice" == "a" || "$choice" == "all" ]]; then
+  echo "Base skills (★) install either way. Pick the extra domains you want." >&2
+  read -rp "Pick (numbers comma-separated, blank = base only, 'a' = all): " choice
+  if [[ "$choice" == "a" || "$choice" == "all" ]]; then
+    echo "all"
+    return 0
+  fi
+  if [[ -z "$choice" ]]; then
+    echo "none"
     return 0
   fi
 
@@ -333,10 +373,30 @@ interactive_select() {
       echo "  (skipping invalid: $n)" >&2
     fi
   done
+
+  # Every entry was invalid. Returning "" would resolve to `all` downstream — an
+  # engineer who ran --select specifically to NARROW their set, then fat-fingered
+  # the numbers, would silently install every domain. Blank input already means
+  # `none`, so an all-invalid selection means the same thing.
+  if [[ -z "$out" ]]; then
+    echo "  (no valid selections — installing base skills only)" >&2
+    echo "none"
+    return 0
+  fi
   echo "$out"
 }
 
-# Resolution order: --domain > env > saved > --select prompt > all (default)
+# Resolution order: --domain > env > --select prompt > saved > fallback.
+#
+# The fallback differs by how sync was reached. An automatic install nobody
+# asked for should be the minimum that works — the base set. An explicit
+# `yarn skills` defaults to every domain, because the engineer asked for skills
+# and expects to get them. `postinstall` signals the former by exporting
+# SKILLS_DEFAULT_SCOPE=base.
+#
+# Only the fallback changes: a --domain flag, SKILLS_DOMAINS, the picker, and a
+# saved selection all still win, so an engineer who opted into a domain does not
+# silently lose it on their next install.
 DOMAINS=""
 SOURCE=""
 if [[ -n "$DOMAIN_OVERRIDE" ]]; then
@@ -349,17 +409,41 @@ else
   saved=$(load_saved || true)
   if [[ -n "$saved" ]]; then
     DOMAINS="$saved"; SOURCE="saved (.skills.local)"
+  elif [[ "${SKILLS_DEFAULT_SCOPE:-}" == "base" ]]; then
+    DOMAINS="none"; SOURCE="base only (automatic install — run \`yarn skills\` for the rest)"
   else
-    SOURCE="all (default — pass --select to choose)"
+    DOMAINS="all"; SOURCE="all domains (default — pass --select or --domain to narrow)"
+  fi
+fi
+
+# Validate the resolved selection against the domains that actually exist. A typo
+# used to install the base set and exit 0, which reads as success — now that
+# SKILLS_DOMAINS is the documented opt-in on a default-on path, a silent no-op is
+# the wrong failure mode. `all`/`none` are sentinels, not directories.
+if [[ -n "$DOMAINS" && "$DOMAINS" != "all" && "$DOMAINS" != "none" ]]; then
+  known_domains=$(list_domains)
+  unknown=""
+  IFS=',' read -ra _requested <<< "$DOMAINS"
+  for _d in "${_requested[@]}"; do
+    _d="${_d// /}"
+    [[ -z "$_d" ]] && continue
+    grep -qxF "$_d" <<< "$known_domains" || unknown+="${unknown:+, }$_d"
+  done
+  if [[ -n "$unknown" ]]; then
+    echo "Error: unknown domain(s): $unknown  (source: $SOURCE)" >&2
+    echo "  Available: $(echo "$known_domains" | tr '\n' ' ')" >&2
+    exit 1
   fi
 fi
 
 echo
 echo "Maturity: $MATURITY_FILTER  (source: $MATURITY_SOURCE)"
-if [[ -n "$DOMAINS" ]]; then
-  echo "Domains: $DOMAINS  (source: $SOURCE)"
-else
+if [[ "$DOMAINS" == "none" ]]; then
+  echo "Domains: <base skills only>  (source: $SOURCE)"
+elif [[ -z "$DOMAINS" || "$DOMAINS" == "all" ]]; then
   echo "Domains: <all>  (source: $SOURCE)"
+else
+  echo "Domains: $DOMAINS  (source: $SOURCE)"
 fi
 if [[ -n "$INCLUDE_FILTER" ]]; then
   echo "Include skills: $INCLUDE_FILTER  (source: $INCLUDE_SOURCE)"
@@ -410,10 +494,25 @@ $PRUNE_STALE && INSTALL_ARGS+=(--prune-stale)
 $DRY_RUN && INSTALL_ARGS+=(--dry-run)
 
 INSTALL_BIN=""
-# Prefer METAMASK_SKILLS_DIR's tools/install (canonical, kept in sync with latest CLI).
-if [[ -n "${METAMASK_SKILLS_DIR:-}" && -x "$METAMASK_SKILLS_DIR/tools/install" ]]; then
-  INSTALL_BIN="$METAMASK_SKILLS_DIR/tools/install"
+# Run the tools/install that shipped alongside THIS script.
+#
+# This previously preferred "$METAMASK_SKILLS_DIR/tools/install", which defaults to
+# the .skills-cache clone the CLI keeps at `origin/main` — no tag, no commit pin. On
+# the automatic postinstall path that meant `yarn install` exec'ing whatever shell
+# happened to be on main at that instant, bypassing the lockfile pinning, release
+# gating and Socket/CodeQL review that the npm package itself goes through. Once base
+# skills install by default that reaches every engineer and every drive-by
+# contributor of a public repo, on every install.
+#
+# tools/sync is itself invoked from the pinned package, so its own directory is the
+# trustworthy one. The cache still supplies domains/ CONTENT via SOURCES — it just no
+# longer supplies executable CODE.
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [[ -x "$SCRIPT_DIR/install" ]]; then
+  INSTALL_BIN="$SCRIPT_DIR/install"
 else
+  # Fallback for a source checkout that has no sibling install: keep the old search
+  # so a git clone of this repo still works standalone.
   for src in "${SOURCES[@]}"; do
     if [[ -x "$src/tools/install" ]]; then
       INSTALL_BIN="$src/tools/install"

@@ -54,7 +54,7 @@ metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/mobile-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
-metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
+metamask-skills postinstall   # refresh cache; sync by default (SKILLS_AUTO_UPDATE=0 opts out)
 metamask-skills install       # lower-level installer wrapper
 ```
 
@@ -384,7 +384,7 @@ maturity: stable          # experimental | stable | deprecated (default stable)
 
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
-`maturity`, `mandatory`, and `scope` are read by the CLI.
+`maturity`, `base`, and `scope` are read by the CLI.
 
 The 1,536-character ceiling is a repo budget rather than an operator limit — the
 description is always-on context for every installed skill, so it is capped

@@ -7,6 +7,7 @@ description: >
   when the user mentions Jest layers, *.view.test.tsx, *.integration.test.ts,
   Appium smoke, MMQA test-layer tickets, or asks which testing skill to install.
 maturity: stable
+base: true
 ---
 
 # Mobile testing
