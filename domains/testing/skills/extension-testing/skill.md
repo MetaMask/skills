@@ -1,11 +1,12 @@
 ---
 name: extension-testing
 description: >
-  Single MetaMask Extension testing entrypoint. Routes unit, integration (stub),
-  and Selenium E2E create/maintain work (flakiness, POM anti-patterns) to the
-  right references. Use when writing, fixing, reviewing Extension tests; when
-  the user mentions FixtureBuilderV2, page objects, E2E flake, POM anti-patterns,
-  MMQA testing-skills tickets, or asks which Extension testing skill to install.
+  Single MetaMask Extension testing entrypoint. Routes unit, UI and
+  composed-background integration, and Selenium E2E create/maintain work
+  (flakiness, POM anti-patterns) to the right references. Use when writing,
+  fixing, reviewing, or placing Extension tests; when the user mentions
+  MetaMaskController, FixtureBuilderV2, page objects, E2E flake, POM
+  anti-patterns, or asks which Extension testing skill to install.
 maturity: stable
 ---
 
@@ -36,7 +37,7 @@ Mobile layers, and cross-layer placement audits (phase 2). Keep those separate.
 - Skill installed via `yarn skills` / `@metamask/skills` for
   `testing/extension-testing`
 - Familiarity with Extension test layout: colocated `*.test.ts(x)`,
-  `test/integration/`, `test/e2e/`
+  `test/integration/`, `app/scripts/metamask-controller*.test.js`, `test/e2e/`
 - For E2E: a test build (`yarn build:test` or `yarn start:test`) and Chrome (or
   Firefox MV2) available
 
@@ -52,8 +53,8 @@ before writing any test. `references/layers.md` is only a redirect stub.
 
 | If the work is… | Open |
 | --- | --- |
-| Pure logic / helpers / selectors / controllers / RTL unit | [`references/unit.md`](references/unit.md) |
-| jsdom app↔controller under `test/integration/` (underused) | [`references/integration.md`](references/integration.md) |
+| Pure logic / helpers / selectors / isolated controller / narrow RTL unit | [`references/unit.md`](references/unit.md) |
+| Full UI + real Redux under `test/integration/`, or real `MetaMaskController` composition under `app/scripts/` | [`references/integration.md`](references/integration.md) |
 | Create or update Selenium E2E / POM / fixtures | [`references/e2e.md`](references/e2e.md) → writing-tests |
 | Fix flaky E2E or POM bad practices / audit anti-patterns | [`references/e2e.md`](references/e2e.md) → maintain / flakiness / pom-antipatterns |
 
@@ -65,16 +66,20 @@ doc sends you there.
 
 1. **Layer gate first.** Prefer **unit → integration (only when justified) →
    E2E**. Document why unit is insufficient before proposing new E2E.
-2. E2E is legitimate for real browser/extension/dapp/window boundaries — do not
+2. Integration has two existing homes. Use `test/integration/` for real UI +
+   Redux with mocked background RPC; use `app/scripts/metamask-controller*.test.js`
+   for real composed-background wiring with external I/O mocked. Do not
+   duplicate every scenario across both homes or invent a new integration tree.
+3. E2E is legitimate for real browser/extension/dapp/window boundaries — do not
    copy Mobile’s “almost never E2E” gate.
-3. For E2E, inspect existing specs, page objects, flows, and fixtures in the
+4. For E2E, inspect existing specs, page objects, flows, and fixtures in the
    feature folder before proposing code.
-4. E2E POM methods must not use `try/catch`. Locators belong in page objects,
+5. E2E POM methods must not use `try/catch`. Locators belong in page objects,
    not flows or specs. Specs must not call the driver for UI actions. Avoid
    hardcoded delays without a justifying comment.
-5. Maintain mode: diagnose with `references/e2e/flakiness.md`, enforce structure
+6. Maintain mode: diagnose with `references/e2e/flakiness.md`, enforce structure
    with `references/e2e/pom-antipatterns.md`. Prefer waits and mocks over retries.
-6. Bugbot is a **local** safety net only (`.cursor/BUGBOT.md`), never a PR merge
+7. Bugbot is a **local** safety net only (`.cursor/BUGBOT.md`), never a PR merge
    gate — see `pom-antipatterns.md`. Get the code right in this skill first.
 
 ## Examples
@@ -82,6 +87,16 @@ doc sends you there.
 ```
 User: Add a unit test for the deep-link parser helper
 Agent: layers → unit → references/unit.md
+```
+
+```
+User: Verify MetaMaskController routes watchAsset through the composed controllers
+Agent: layers → integration (composed background) → references/integration.md
+```
+
+```
+User: Verify a Redux-driven confirmation alert without a browser
+Agent: layers → integration (UI + state) → references/integration.md
 ```
 
 ```

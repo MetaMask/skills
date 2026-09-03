@@ -434,6 +434,12 @@ it('has initial balance', () => {
 
 Reference: [MetaMask Controller Guidelines](https://github.com/MetaMask/core/blob/main/docs/controller-guidelines.md)
 
+Use this unit reference when one controller can be exercised in isolation. If
+the behavior depends on real `MetaMaskController` initialization, messenger
+wiring, or delegation across child controllers, use the composed-background
+home in [`integration.md`](integration.md), even though those existing files
+currently run through the unit Jest command.
+
 #### Controller Lifecycle Testing
 
 - **ALWAYS test controller initialization with default state**

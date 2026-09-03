@@ -9,3 +9,5 @@ description: >-
   component.
 base: true
 ---
+
+Strategy context: [Agentic Design System Strategy](../../knowledge/agentic-design-system-strategy.md)

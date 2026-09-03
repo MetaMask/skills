@@ -6,7 +6,7 @@ tags: fps, performance, monitoring, flashlight
 
 # Skill: Measure JS FPS
 
-> **MetaMask note:** Always measure on **Android with the power-user scenario** (~30 accounts, ~90 assets — see [mm-power-user-scenario.md](mm-power-user-scenario.md)). The in-app **Perf Monitor** (shake → Dev Menu) is the quick check and the **RN DevTools Profiler** is the primary tool. **Flashlight is NOT installed in this repo** — it's an optional external tool; install it separately only if you want an automatable Android score for before/after or CI. The JS-vs-UI-thread split below is the first triage step in [mm-tools.md](mm-tools.md).
+> **MetaMask note:** Always measure on **Android with the power-user scenario** (~30 accounts, ~90 assets — see [mm-power-user-scenario.md](mm-power-user-scenario.md)). The in-app **Perf Monitor** (shake → Dev Menu) is the quick check and the **RN DevTools Profiler** is the primary tool. **Flashlight is NOT installed in this repo** — it's an optional external tool; install it separately only if you want a device-level live Android vitals view (`flashlight measure`, see [js-flashlight.md](js-flashlight.md)). The JS-vs-UI-thread split below is the first triage step in [mm-tools.md](mm-tools.md).
 
 Monitor and measure JavaScript frame rate to quantify app smoothness and identify performance regressions.
 
@@ -16,9 +16,9 @@ Monitor and measure JavaScript frame rate to quantify app smoothness and identif
 # Method 1: Built-in Perf Monitor
 # Shake device → Dev Menu → "Perf Monitor"
 
-# Method 2: Flashlight (Android, detailed reports)
+# Method 2: Flashlight (Android — live vitals) — see js-flashlight.md
 # Install Flashlight from an official, verified release channel first.
-flashlight measure
+flashlight measure   # live web UI: Auto Detect → Start Measuring
 ```
 
 ## When to Use
@@ -57,37 +57,23 @@ flashlight measure
 - **< 60 FPS** = Dropping frames
 - **120 FPS** target for high refresh rate devices (8.3ms per frame)
 
-### Method 2: Flashlight (Automated Benchmarking)
+### Method 2: Flashlight (Android)
 
-> Android only. Provides detailed reports and JSON export.
+> Android only. External tool, **not installed here**. Full workflow in [js-flashlight.md](js-flashlight.md).
 
 ![Flashlight FlatList vs FlashList Comparison](images/flashlight-flatlist-vs-flashlist.png)
 
-Flashlight shows comparative performance data:
+Flashlight surfaces the same vitals without wiring anything into the app:
 - **Score** (0-100): Overall performance rating (higher is better)
 - **Average FPS**: Target 60 FPS for smooth scrolling
-- **FPS Graph**: Real-time frame rate over test duration
-- **CPU/RAM metrics**: Resource consumption
+- **FPS Graph**: Frame rate over the session
+- **CPU/RAM metrics**: Resource consumption (CPU broken out per-thread)
 
 The image shows FlatList (score: 3) vs FlashList (score: 67) - a dramatic difference visible in both the score and FPS graph.
 
-**Installation:**
+Use **`flashlight measure`** for a **live, interactive** web UI to watch vitals while you drive the flow by hand (non-deterministic; great for triage). See [js-flashlight.md](js-flashlight.md).
 
-Install Flashlight from the vendor's official release channel before using it. Prefer a package manager or a version-pinned binary with checksum/signature verification. Do not pipe a remote install script directly into a shell.
-
-**Usage:**
-
-```bash
-# Start measuring (app must be running on Android)
-flashlight measure
-```
-
-**Features:**
-- Real-time FPS graph
-- Average FPS calculation
-- CPU and RAM metrics
-- Overall performance score
-- JSON export for CI comparison
+Install from the vendor's official release channel before using it — prefer a package manager or a version-pinned binary with checksum/signature verification; do not pipe a remote install script directly into a shell.
 
 ### Important: Disable Dev Mode
 
@@ -155,16 +141,6 @@ const longRunningFunction = () => {
 | 30-45 | Noticeable jank | Optimize required |
 | < 30 | Very choppy | Critical fix needed |
 
-## Flashlight CI Integration
-
-```bash
-# Export measurements to JSON
-flashlight measure --output results.json
-
-# Compare builds
-flashlight compare baseline.json current.json
-```
-
 ## Common Pitfalls
 
 - **Measuring in dev mode**: Results will be artificially slow
@@ -174,6 +150,7 @@ flashlight compare baseline.json current.json
 
 ## Related Skills
 
+- [js-flashlight.md](./js-flashlight.md) - Live Android vitals with `flashlight measure`
 - [js-profile-react.md](./js-profile-react.md) - Find what's causing FPS drops
 - [js-animations-reanimated.md](./js-animations-reanimated.md) - Fix animation-related drops
 - [js-lists-flatlist-flashlist.md](./js-lists-flatlist-flashlist.md) - Fix scroll-related drops

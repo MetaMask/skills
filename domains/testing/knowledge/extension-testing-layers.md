@@ -2,9 +2,10 @@
 name: extension-testing-layers
 domain: testing
 description: >
-  MetaMask Extension test-layer policy. Prefer unit for pure logic, E2E for
-  real browser/extension/dapp boundaries. Integration is underused (stub in
-  v1). Canonical source for extension-testing and cross-domain citations.
+  MetaMask Extension test-layer policy. Prefer unit for isolated logic,
+  integration for UI/state or composed-background seams, and E2E for real
+  browser/extension/dapp boundaries. Canonical source for extension-testing
+  and cross-domain citations.
 ---
 
 # Extension Testing Layers
@@ -17,8 +18,8 @@ Do not duplicate this policy in skill `references/` — open this file (installe
 as `knowledge/extension-testing-layers.md` beside testing skills).
 
 **Entrypoint:** Install **`extension-testing`**. That skill routes to unit,
-integration (stub), and E2E create/maintain references. Do not treat the
-deprecated standalone `unit-testing` / `e2e-testing` skills as the primary guide.
+integration, and E2E create/maintain references. Do not treat the deprecated
+standalone `unit-testing` / `e2e-testing` skills as the primary guide.
 
 **Placement audits:** Cross-layer inventory (unit ↔ integration ↔ e2e) is
 **phase 2** — not part of v1. Until then, use this decision tree when choosing
@@ -41,44 +42,61 @@ Is this scenario worth covering? (distinct realistic regression)
 ├─ No → GAP / ACCEPT (document why)
 └─ Yes → Already covered at any correct layer?
    ├─ Yes → KEEP
-   └─ No → Pure logic / helpers / selectors / controllers / RTL unit UI?
+   └─ No → Pure logic / helpers / selectors / isolated controller / narrow RTL UI?
       ├─ Yes → Write or update colocated *.test.ts(x) (extension-testing → unit)
-      └─ No → Needs jsdom app↔controller harness under test/integration/?
-         ├─ Yes (v1 stub) → Prefer unit or E2E unless an existing integration
-         │        suite already covers the seam; expand integration guidance later
-         └─ No → Needs a real browser / extension / dapp / multi-window boundary?
-            ├─ Yes → E2E (extension-testing → e2e)
-            │        Justify briefly: what browser/extension boundary is required.
-            └─ No → GAP / ACCEPT (do not invent E2E)
+      └─ No → Needs full UI + real Redux without a browser?
+         ├─ Yes → UI integration under test/integration/
+         │        (extension-testing → integration)
+         └─ No → Needs real MetaMaskController + child-controller composition?
+            ├─ Yes → Composed-background integration in
+            │        app/scripts/metamask-controller*.test.js
+            │        (extension-testing → integration)
+            └─ No → Needs a real browser / extension / dapp / multi-window boundary?
+               ├─ Yes → E2E (extension-testing → e2e)
+               │        Justify briefly: what browser/extension boundary is required.
+               └─ No → GAP / ACCEPT (do not invent E2E)
 ```
 
 ## Defaults
 
-| Layer           | Owns                                                                                         | File pattern                          |
-| --------------- | -------------------------------------------------------------------------------------------- | ------------------------------------- |
-| **Unit**        | Pure helpers, controllers, selectors, Redux/RTL component contracts                          | colocated `*.test.ts(x)`              |
-| **Integration** | jsdom harness crossing app↔controller (underused; stub in v1)                                | `test/integration/**/*.test.tsx`      |
-| **E2E**         | Real browser/extension/dapp/window journeys after unit (and integration) are insufficient    | `test/e2e/tests/**/*.spec.ts`         |
+| Layer           | Owns                                                                                                  | Existing homes                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Unit**        | Pure helpers, isolated controllers, selectors, narrow Redux/RTL component contracts                   | colocated `*.test.ts(x)`                                                                            |
+| **Integration** | Full UI + real Redux with mocked background RPC; or real composed background with mocked external I/O | `test/integration/**/*.test.tsx`; `app/scripts/metamask-controller*.test.js`                         |
+| **E2E**         | Real browser/extension/dapp/window journeys after unit and integration are insufficient               | `test/e2e/tests/**/*.spec.ts`                                                                       |
 
 ## Unit tests
 
 Keep unit tests for:
 
 - Pure helpers and local utilities
-- Controllers, messengers, selectors
+- Isolated controllers, messengers, selectors
 - Component contracts exercised with Jest + RTL (not full browser)
 
 How to write/run: `extension-testing` → `references/unit.md`.
 
-## Integration tests (v1 stub)
+## Integration tests
 
-`test/integration/` exists but is sparsely used. In v1:
+Extension has two existing integration homes for different seams:
 
-- Prefer **unit** or **E2E** unless you are extending an existing integration suite
-- Do not invent a new integration harness without team agreement
-- Full integration writing guidance is deferred (phase 2 expansion)
+- **UI integration:** `test/integration/**/*.test.tsx` renders the real UI root
+  with a real Redux store. Mock the background RPC and external HTTP boundaries.
+- **Composed-background integration:**
+  `app/scripts/metamask-controller.test.js` and
+  `app/scripts/metamask-controller.actions.test.js` construct the real
+  `MetaMaskController` and child-controller graph. Mock external I/O such as
+  network requests, browser APIs, providers, and encryption.
 
-How to open the stub: `extension-testing` → `references/integration.md`.
+These are two homes in the same layer, not two new layers. Pick the home that
+owns the failing boundary. Do not require UI integration coverage to be
+duplicated in `MetaMaskController` tests, and do not invent a new integration
+folder or file suffix without team agreement.
+
+The composed-background files run through the unit Jest command because of the
+repository's existing Jest configuration; their layer is defined by the
+boundary they exercise, not by the command name.
+
+How to write/run: `extension-testing` → `references/integration.md`.
 
 ## When E2E is justified
 
@@ -98,6 +116,7 @@ Invalid reasons alone:
 
 - “It is a user journey” when unit/RTL can cover the behavior
 - Pure controller/helper logic
+- Composed `MetaMaskController` wiring that can run in the existing Node tests
 - Preferring E2E because fixtures already exist nearby without a boundary need
 
 How to write/maintain: `extension-testing` → `references/e2e.md`.
