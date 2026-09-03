@@ -31,9 +31,10 @@ Controllers that already talk to Engine should call
 
 - UI: platform `useAnalytics` from `app/components/hooks/useAnalytics/useAnalytics.ts`
 - Non-React: `analytics.trackEvent`, or `AnalyticsController:trackEvent` on a messenger
-- Event names from `EVENT_NAME` / `MetaMetricsEvents`
+- Event names from `EVENT_NAME` / `MetaMetricsEvents`. New tracking: add the name in catalog modules, then import it. Reuse a catalog name only when this control is the same interaction as existing call sites (same event, same product meaning).
 - Properties via `.addProperties(...).build()`
-- Tests: `createMockUseAnalyticsHook`
+- UI tests: `createMockUseAnalyticsHook` wrapping `useAnalytics`, including when the file already mocks the hook
+- Non-React tests: assert `AnalyticsEventBuilder.createEventBuilder` and `analytics.trackEvent` or `AnalyticsController:trackEvent`
 
 ```ts
 import { useAnalytics } from '../../hooks/useAnalytics/useAnalytics';
@@ -85,7 +86,14 @@ wrapper that used `generateOpt(name, action, description)`, re-apply
 (see SampleFeature). Component files import catalog entries; they do not call
 `generateOpt` themselves.
 
-Tests mock the hook with the factory, not a hand-built object:
+Tests mock the hook with the factory, not a hand-built object.
+Call `createMockUseAnalyticsHook` again in `beforeEach` after
+`jest.clearAllMocks()` / `jest.resetAllMocks()` — those wipe mock
+implementations. Prefer `AnalyticsEventBuilder.createEventBuilder`.
+When existing assertions inspect a simplified `{ event, properties }`
+payload, pass a stub builder into the factory (`createMockEventBuilder`
+in `analyticsMock.ts`, or a local stub); still wrap the hook with the
+factory.
 
 ```ts
 import { useAnalytics } from '../../hooks/useAnalytics/useAnalytics';
@@ -94,12 +102,15 @@ import { AnalyticsEventBuilder } from '../../../util/analytics/AnalyticsEventBui
 
 jest.mock('../../hooks/useAnalytics/useAnalytics');
 
-jest.mocked(useAnalytics).mockReturnValue(
-  createMockUseAnalyticsHook({
-    trackEvent: mockTrackEvent,
-    createEventBuilder: AnalyticsEventBuilder.createEventBuilder,
-  }),
-);
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.mocked(useAnalytics).mockReturnValue(
+    createMockUseAnalyticsHook({
+      trackEvent: mockTrackEvent,
+      createEventBuilder: AnalyticsEventBuilder.createEventBuilder,
+    }),
+  );
+});
 ```
 
 ## Reject
@@ -115,3 +126,5 @@ jest.mocked(useAnalytics).mockReturnValue(
 - Reintroducing `useMetrics` (removed) or MetaMetrics internals at call sites
 - Dropping `generateOpt` `action` / `name` when migrating `IMetaMetricsEvent` call sites (until the catalog migration lands)
 - Hand-built `useAnalytics` mock objects — use `createMockUseAnalyticsHook`
+- Attaching a new control to a catalog event whose live call sites are a different product (example: `VIEW_ALL_ASSETS_CLICKED` is wallet tokens/NFTs `asset_type`, not a homepage section)
+- Firing an existing catalog event at a new lifecycle (example: `TOKEN_DETECTED` on controller init). Add a catalog name for that lifecycle.
