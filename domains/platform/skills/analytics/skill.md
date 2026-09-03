@@ -4,7 +4,7 @@ description: >-
   Product analytics and event tracking. Use when adding, migrating, or
   reviewing tracked events, or when writing tests for analytics call sites.
 maturity: stable
-mandatory: true
+base: true
 ---
 
 # Analytics
