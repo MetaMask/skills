@@ -17,6 +17,7 @@
 /domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/platform/       @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/perps/          @MetaMask/perps
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/swaps/          @MetaMask/swaps-engineers
