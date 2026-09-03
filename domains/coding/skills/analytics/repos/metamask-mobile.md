@@ -9,28 +9,27 @@ Human-facing file map: `app/core/Analytics/README.md`.
 
 ## Canonical API
 
-Two emission paths. Use one of them; do not add a third.
+Two emission paths: the `analytics` helper, and `AnalyticsController:trackEvent` on the Engine / init messenger. `useAnalytics()` is the UI wrapper around the helper (`analytics.trackEvent`).
 
 | Role | Path |
 |------|------|
-| Imperative helper | `app/util/analytics/analytics.ts` → `analytics.trackEvent` |
-| Controller messenger | `AnalyticsController:trackEvent` via the Engine / init messenger |
-| React hook (same helper) | `app/components/hooks/useAnalytics/useAnalytics.ts` → `useAnalytics` |
+| Helper (non-React) | `app/util/analytics/analytics.ts` → `analytics.trackEvent` |
+| Helper (UI) | `app/components/hooks/useAnalytics/useAnalytics.ts` → `useAnalytics` |
+| Messenger | `AnalyticsController:trackEvent` via `initMessenger.call` |
 | Event builder | `app/util/analytics/AnalyticsEventBuilder.ts` → `AnalyticsEventBuilder.createEventBuilder` |
 | Catalog | `app/core/Analytics/` → `EVENT_NAME`, `MetaMetricsEvents` |
 | Test factory | `app/util/test/analyticsMock.ts` → `createMockUseAnalyticsHook` |
 
-`useAnalytics()` is the React face of `analytics`. It returns `trackEvent`,
-`createEventBuilder`, `identify`, `enable`, `isEnabled`, `getAnalyticsId`,
-and data-deletion helpers.
+`useAnalytics()` returns `trackEvent`, `createEventBuilder`, `identify`, `enable`,
+`isEnabled`, `getAnalyticsId`, and data-deletion helpers.
 
 Controllers that already talk to Engine should call
-`messenger.call('AnalyticsController:trackEvent', event)` with a built event.
+`initMessenger.call('AnalyticsController:trackEvent', event)` with a built event.
 
-## Require
+## Requirements
 
 - UI: platform `useAnalytics` from `app/components/hooks/useAnalytics/useAnalytics.ts`
-- Non-React: `analytics.trackEvent`, or `AnalyticsController:trackEvent` on a messenger
+- Non-React: `analytics.trackEvent`, or `AnalyticsController:trackEvent` on `initMessenger`
 - Event names from `EVENT_NAME` / `MetaMetricsEvents`. New tracking: add the name in catalog modules, then import it. Reuse a catalog name only when this control is the same interaction as existing call sites (same event, same product meaning).
 - Properties via `.addProperties(...).build()`
 - UI tests: `createMockUseAnalyticsHook` wrapping `useAnalytics`, including when the file already mocks the hook
