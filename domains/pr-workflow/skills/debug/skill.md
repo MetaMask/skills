@@ -55,6 +55,43 @@ first theory that fit the first observation.
 | Started after a dependency change; new capability or transitive edge | supply chain | `supply-chain-audit` |
 | None of the above, or several | — | bisect to a change first, then re-classify |
 
+## The loop, as a diagram
+
+The workflow above is five numbered steps and the bar below is six rules. Under a live incident
+neither gets read. This is the same content in the form that survives being pasted into a
+scratch buffer at hour three.
+
+```mermaid
+flowchart TD
+    SYM["symptom, stated as an observation<br/>never as a theory"]
+    SYM --> CLS{"which defect class?"}
+    CLS -->|"two fit"| BOTH["run both<br/>not the one you find more interesting"]
+    CLS -->|"none fit"| BIS["bisect to a change first,<br/>then re-classify"]
+    CLS -->|"one fits"| ENG["route to the engine that owns it"]
+    BOTH --> ENG
+    BIS --> CLS
+    ENG --> IC{"can the instrument report the negative?"}
+    IC -->|"no"| CTRL["get a positive control that must move<br/>an instrument that cannot fail is not evidence"]
+    CTRL --> ENG
+    IC -->|"yes"| H["name the observation that would KILL the hypothesis"]
+    H --> LOOK["go looking for that observation specifically"]
+    LOOK --> OUT{"what came back?"}
+    OUT -->|"the killer"| DEAD["hypothesis dead — record it under NOT CAUSE,<br/>then re-classify"]
+    OUT -->|"nothing"| NULL["state the sensitivity<br/>no-difference and could-not-detect print identically"]
+    OUT -->|"the mechanism"| SC["scope it: introduced here, or pre-existing?"]
+    DEAD --> CLS
+    NULL --> STOP
+    SC --> STOP["STOP: located cause, or class excluded"]
+    classDef hot stroke:#d94,stroke-width:3px
+    class H,STOP hot
+```
+
+**A plausible story is not a stop condition, and it is the only node with no arrow out of it.**
+The loop terminates on a located mechanism or an excluded class — both are results. It does not
+terminate on a theory that fits, which is what the KILL node exists to prevent: a hypothesis that
+has only ever been confirmed has not been tested.
+
+
 ## The evidence bar carries over
 
 The engines are shared with `evidence`, and so are its trust gates. They matter more here,
