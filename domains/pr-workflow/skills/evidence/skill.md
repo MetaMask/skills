@@ -179,6 +179,41 @@ Match the bar to the claim; stop when the claim's falsifier is closed. Don't ove
 
 Stop when each claim has one trustworthy artifact that would have shown its falsifier. More evidence past that is noise.
 
+## The post-result gate
+
+The twenty principles above are prose, and prose is what stops firing when a run comes back
+under a clock. A diagram pasted into the working notes does not. Read this one after every
+capture, before anything reaches a body or a comment.
+
+```mermaid
+flowchart TD
+    R{"what came back?"}
+    R -->|"a null"| P["state its power<br/>report not-resolvable-at-this-n<br/>and the smallest detectable effect"]
+    R -->|"green"| V["could the assertion have failed?<br/>does the test exercise the changed code?"]
+    R -->|"a number"| I["check the instrument<br/>was the treatment delivered in each arm?"]
+    R -->|"nothing found"| S["name the stores searched<br/>a negative is a fact about the search"]
+    P --> C
+    V --> C
+    I --> C
+    S --> C
+    C{"does it close the claim's falsifier?"}
+    C -->|"no"| INC["inconclusive — name what is missing<br/>never upgrade prose to proven"]
+    C -->|"yes"| SITU["present it in situ<br/>the tool's own surface, never retyped"]
+    SITU --> NOT["state what was NOT covered, and why"]
+    NOT --> W{"whose PR?"}
+    W -->|"mine"| BODY["the body"]
+    W -->|"someone else's"| COM["a comment"]
+    BODY --> CONF["scrub, then confirm the rendered section"]
+    COM --> CONF
+    classDef hot stroke:#d94,stroke-width:3px
+    class C,CONF hot
+```
+
+**Report which nodes fired and which did not.** A standing check that nothing audits fails
+silently, and a gate that never ran prints identically to one that passed. Close the run with a
+line naming the nodes reached and the nodes skipped with their reason — `instrument: skipped, no
+comparison arm` is a finding; an absent mention is not.
+
 ## Publishing the evidence bundle
 
 **Public, outward-facing — always confirm the rendered section with the user before writing
