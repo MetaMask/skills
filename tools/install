@@ -351,7 +351,7 @@ write_user_codex() {
 copy_bundle_dirs() {
   local skill_dir="$1" dest_dir="$2" label="$3"
   local bundle
-  for bundle in references scripts assets adapters workflows; do
+  for bundle in references scripts assets adapters workflows hooks; do
     if [[ -d "$skill_dir/$bundle" ]]; then
       action "$label/$bundle/"
       $DRY_RUN && continue
@@ -391,6 +391,9 @@ copy_domain_knowledge() {
 
 copy_project_bundles() {
   local skill_dir="$1" out_name="$2"
+  # A hook is inert until an operator registers it, so remember which skills shipped one
+  # and print the registration at the end rather than leaving the file to be discovered.
+  [[ -d "$skill_dir/hooks" ]] && HOOK_SKILLS+=("$out_name")
   copy_bundle_dirs "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
   copy_domain_knowledge "$skill_dir" "$CLAUDE_DIR/$out_name" ".claude/skills/$out_name"
   copy_bundle_dirs "$skill_dir" "$CURSOR_DIR/$out_name" ".cursor/rules/$out_name"
@@ -611,6 +614,7 @@ RESOLVED_KEYS=()
 RESOLVED_DIRS=()
 RESOLVED_DOMAINS=()
 SKIPPED_USER_SKILLS=()
+HOOK_SKILLS=()
 FAILED_SKILLS=()
 EXPECTED_PROJECT_SKILLS=()
 
@@ -678,6 +682,47 @@ $PRUNE_STALE && remove_stale_project_skills
 
 echo
 $DRY_RUN && echo "Dry run complete. No files written." || echo "Install complete."
+
+set +u
+HOOK_COUNT=${#HOOK_SKILLS[@]}
+set -u
+if (( HOOK_COUNT > 0 )) && ! $DRY_RUN; then
+  echo
+  echo "Note: $HOOK_COUNT skill(s) ship a hook. Copying the file does not activate it —"
+  echo "Claude Code runs a hook only once it is registered in settings.json."
+  echo
+  echo "Add this to ~/.claude/settings.json (or $TARGET/.claude/settings.json):"
+  echo
+
+  hook_entries=()
+  for out_name in "${HOOK_SKILLS[@]}"; do
+    for hook_file in "$CLAUDE_DIR/$out_name/hooks"/*.py; do
+      [[ -f "$hook_file" ]] || continue
+      hook_entries+=("            { \"type\": \"command\", \"command\": \"python3 $hook_file\" }")
+    done
+  done
+
+  echo '  {'
+  echo '    "hooks": {'
+  echo '      "PreToolUse": ['
+  echo '        {'
+  echo '          "matcher": "Bash",'
+  echo '          "hooks": ['
+  for i in "${!hook_entries[@]}"; do
+    if (( i < ${#hook_entries[@]} - 1 )); then
+      echo "${hook_entries[$i]},"
+    else
+      echo "${hook_entries[$i]}"
+    fi
+  done
+  echo '          ]'
+  echo '        }'
+  echo '      ]'
+  echo '    }'
+  echo '  }'
+  echo
+  echo "Re-run \`metamask-skills hooks\` to print this again."
+fi
 
 set +u
 SKIPPED_USER_COUNT=${#SKIPPED_USER_SKILLS[@]}
