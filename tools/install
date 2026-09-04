@@ -269,10 +269,16 @@ write_claude() {
 write_cursor() {
   local out_name="$1" description="$2" content="$3"
   local dir="$CURSOR_DIR/$out_name"
-  local file="$dir/RULE.md"
-  action "cursor: .cursor/rules/$out_name/RULE.md"
+  local file="$dir/RULE.mdc"
+  action "cursor: .cursor/rules/$out_name/RULE.mdc"
   $DRY_RUN && return
   mkdir -p "$dir"
+  # An older installer wrote RULE.md here. Cursor ignores that extension, and leaving
+  # the file behind means the tree carries two copies of the same rule.
+  local legacy="$dir/RULE.md"
+  if [[ -f "$legacy" ]] && grep -Fqx -- "$MANAGED_BANNER" "$legacy"; then
+    rm -f "$legacy"
+  fi
   {
     echo '---'
     yaml_field description "$description"
@@ -414,7 +420,14 @@ expected_project_skill_contains() {
 is_managed_project_skill() {
   local dir="$1" label="$2" marker
   case "$label" in
-    .cursor/rules) marker="$dir/RULE.md" ;;
+    .cursor/rules)
+      # RULE.md is the pre-.mdc layout, still recognised so --prune-stale can clean
+      # up trees an older installer wrote.
+      for marker in "$dir/RULE.mdc" "$dir/RULE.md"; do
+        [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker" && return 0
+      done
+      return 1
+      ;;
     *) marker="$dir/SKILL.md" ;;
   esac
   [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"
