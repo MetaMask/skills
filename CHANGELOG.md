@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
 ## [0.3.1]
