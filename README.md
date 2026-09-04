@@ -143,6 +143,7 @@ tools/
 | -------------- | ----------------- | ------------------------------------------- |
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
+| `platform`     | MM product eng    | Product analytics and other platform skills  |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
@@ -385,6 +386,9 @@ maturity: stable          # experimental | stable | deprecated (default stable)
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `base`, and `scope` are read by the CLI.
+
+`base: true` installs the skill even when its domain is filtered out
+(`--exclude` / `SKILLS_EXCLUDE` still wins).
 
 The 1,536-character ceiling is a repo budget rather than an operator limit — the
 description is always-on context for every installed skill, so it is capped
