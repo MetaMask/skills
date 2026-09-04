@@ -369,10 +369,41 @@ copy_bundle_dirs() {
   done
 }
 
+# Resolve a knowledge filename that the skill's own domain does not provide.
+#
+# Knowledge is delivered per domain, so a skill could only ever cite its own domain's
+# files. Several legitimately cite another domain's — four skills across `coding`,
+# `perps`, and `pr-workflow` reference `testing-layers.md`, which lives in `testing` —
+# and those references could not resolve for any consumer on any operator.
+#
+# Filenames are unique across domains today. If that stops being true the reference is
+# genuinely ambiguous, so this fails loudly rather than picking one.
+resolve_foreign_knowledge() {
+  local domains_root="$1" want="$2" self_domain="$3"
+  local found=() candidate
+
+  while IFS= read -r candidate; do
+    [[ "$candidate" == "$domains_root/$self_domain/knowledge/$want" ]] && continue
+    found+=("$candidate")
+  done < <(find "$domains_root" -path "*/knowledge/$want" -type f 2>/dev/null | sort)
+
+  if (( ${#found[@]} > 1 )); then
+    echo "Error: knowledge file '$want' exists in more than one domain:" >&2
+    printf '  %s\n' "${found[@]}" >&2
+    echo "Cross-domain references resolve by filename, so this is ambiguous. Rename one." >&2
+    return 1
+  fi
+
+  (( ${#found[@]} == 1 )) && printf '%s' "${found[0]}"
+  return 0
+}
+
 copy_domain_knowledge() {
   local skill_dir="$1" dest_dir="$2" label="$3"
   local domain_dir; domain_dir=$(cd "$skill_dir/../.." && pwd)
   local knowledge_dir="$domain_dir/knowledge"
+  local domains_root; domains_root=$(cd "$domain_dir/.." && pwd)
+  local self_domain; self_domain=$(basename "$domain_dir")
 
   if [[ -d "$knowledge_dir" ]]; then
     action "$label/knowledge/"
@@ -387,6 +418,32 @@ copy_domain_knowledge() {
     fi
     rm -rf "$dest_dir/knowledge"
   fi
+
+  # Deliver knowledge cited from another domain, so the reference resolves where it is read.
+  # Scan the base skill AND the applicable repo overlay: the overlay is merged into the
+  # emitted body, so a citation there is just as load-bearing, and three of the four
+  # real cases live in an overlay rather than in skill.md.
+  local sources=("$skill_dir/skill.md")
+  [[ -f "$skill_dir/repos/${REPO}.md" ]] && sources+=("$skill_dir/repos/${REPO}.md")
+  local existing=()
+  local candidate_src
+  for candidate_src in "${sources[@]}"; do
+    [[ -f "$candidate_src" ]] && existing+=("$candidate_src")
+  done
+  (( ${#existing[@]} > 0 )) || return 0
+  local cited source_path
+  while IFS= read -r cited; do
+    [[ -n "$cited" ]] || continue
+    [[ -f "$dest_dir/knowledge/$cited" ]] && continue
+    source_path=$(resolve_foreign_knowledge "$domains_root" "$cited" "$self_domain") || return 1
+    [[ -n "$source_path" ]] || continue
+    if $DRY_RUN; then
+      action "$label/knowledge/$cited (cross-domain)"
+      continue
+    fi
+    mkdir -p "$dest_dir/knowledge"
+    cp "$source_path" "$dest_dir/knowledge/$cited"
+  done < <(grep -ohE 'knowledge/[A-Za-z0-9._-]+\.md' "${existing[@]}" 2>/dev/null | sed 's|^knowledge/||' | sort -u)
 }
 
 copy_project_bundles() {
