@@ -262,3 +262,73 @@ describe('managed skill pruning', () => {
     assert.equal(existsSync(stale), true);
   });
 });
+
+describe('hook registration', () => {
+  // Copying a hook does not activate it: Claude Code runs one only once it is registered
+  // in settings.json, and the path to register is absolute — different per machine and per
+  // consumer repo, so it cannot be documented as a constant. Both surfaces resolve it.
+  let root;
+  let source;
+  let target;
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-hooks-'));
+    source = path.join(root, 'source');
+    target = path.join(root, 'target');
+    const dir = path.join(source, 'domains', 'testing', 'skills', 'gatekeeper');
+    mkdirSync(path.join(dir, 'hooks'), { recursive: true });
+    mkdirSync(path.join(source, 'tools'), { recursive: true });
+    symlinkSync(INSTALL, path.join(source, 'tools', 'install'));
+    mkdirSync(target, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      ['---', 'name: gatekeeper', 'description: Gate writes', 'maturity: stable', '---', 'Body.'].join('\n'),
+    );
+    writeFileSync(path.join(dir, 'hooks', 'evidence-gate.py'), 'print("gate")\n');
+    const r = spawnSync('bash', [INSTALL, '--target', target, '--repo', 'core', '--source', source], {
+      encoding: 'utf8',
+    });
+    assert.equal(r.status, 0, r.stderr);
+    installOutput = r.stdout;
+  });
+
+  let installOutput = '';
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('the hook file is delivered', () => {
+    assert.ok(
+      existsSync(path.join(target, '.claude/skills', 'mms-gatekeeper', 'hooks', 'evidence-gate.py')),
+    );
+  });
+
+  test('install prints a registration with the path resolved', () => {
+    assert.match(installOutput, /Copying the file does not activate it/u);
+    assert.match(installOutput, /mms-gatekeeper\/hooks\/evidence-gate\.py/u);
+  });
+
+  test('the printed registration is valid JSON', () => {
+    const body = installOutput.slice(installOutput.indexOf('{'), installOutput.lastIndexOf('}') + 1);
+    const parsed = JSON.parse(body);
+    assert.equal(parsed.hooks.PreToolUse[0].matcher, 'Bash');
+    assert.match(parsed.hooks.PreToolUse[0].hooks[0].command, /^python3 \//u);
+  });
+
+  test('the hooks subcommand prints the same registration on demand', () => {
+    const r = spawnSync(process.execPath, [BIN, 'hooks', '--target', target], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const body = r.stdout.slice(r.stdout.indexOf('{'), r.stdout.lastIndexOf('}') + 1);
+    assert.equal(JSON.parse(body).hooks.PreToolUse[0].hooks.length, 1);
+  });
+
+  test('a target with no hooks says so rather than printing empty JSON', () => {
+    const bare = mkdtempSync(path.join(os.tmpdir(), 'mms-nohooks-'));
+    mkdirSync(path.join(bare, '.claude', 'skills', 'mms-x'), { recursive: true });
+    const r = spawnSync(process.execPath, [BIN, 'hooks', '--target', bare], { encoding: 'utf8' });
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /No installed skill ships a hook/u);
+    rmSync(bare, { recursive: true, force: true });
+  });
+});
