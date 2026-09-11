@@ -377,7 +377,7 @@ domains/<area>/
 ```yaml
 ---
 name: <slash-command-name>
-description: <≤1,536 chars including when_to_use cues>
+description: <≤1,024 chars including when_to_use cues>
 maturity: stable          # experimental | stable | deprecated (default stable)
 ---
 ```
@@ -386,7 +386,9 @@ Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `base`, and `scope` are read by the CLI.
 
-The 1,536-character ceiling is a repo budget rather than an operator limit — the
+The 1,024-character ceiling tracks the strictest operator rather than an opinion
+about ideal length — descriptions well over 1,024 install and load in Claude Code,
+but the pi coding agent warns about any description over 1,024 characters at startup. The
 description is always-on context for every installed skill, so it is capped
 deliberately. It is enforced by `yarn audit:skills` from
 [`tools/skill-schema.mjs`](tools/skill-schema.mjs), which is the source of truth.
