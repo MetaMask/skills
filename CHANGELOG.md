@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Move `analytics` from `coding` to a new `platform` domain (`platform/analytics`).
+- Align the Mobile analytics overlay with Engine `trackEvent` / `buildAndTrackEvent`, App Opened `type`/`source`, `MetaMetricsEvents` at existing sites, typed `*Tracking.ts` helpers, and the test factory default `build()`.
 
 ## [0.3.1]
 
