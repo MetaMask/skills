@@ -57,7 +57,8 @@ Collection → Filtering → Curation → Questioning → Synthesis
 
 ```markdown
 **Metrics:** [What are you measuring?]
-**Population:** [Who? All users, p75, specific cohort?]
+**Population:** [Who? All users, p75, specific cohort? A percentile is not a cohort: "p75 = power users" is an assumption until verified against one]
+**Exposure:** [Fraction of the population running a build that contains the change, over the same window, as a number. If it is unknown, no outcome reading is valid]
 **Period:** [Measurement window - release tags or dates]
 **Source:** [APM, logs, synthetic benchmarks?]
 **Baseline:** [Starting values with methodology]
@@ -82,7 +83,7 @@ Categorize each change:
 
 Build attribution table:
 
-1. Map changes to metric movements by release
+1. Map changes to metric movements by release. Confirm each change's merge commit is contained in the release whose traffic you read, and segment by release so pre- and post-change clients are never pooled
 2. Note co-landed changes (shared attribution)
 3. Flag anomalies (improvement without cause, unexplained regression)
 4. Separate measured vs. post-cutoff work
@@ -94,6 +95,7 @@ Challenge every attribution:
 - [ ] "Do we KNOW this, or do we BELIEVE this?"
 - [ ] "What would need to be true for this to be wrong?"
 - [ ] "Are there alternative explanations?"
+- [ ] "Could a change in the population's composition explain it?" Decompose within-unit change from composition before reporting an aggregate
 
 Document what's missing:
 
