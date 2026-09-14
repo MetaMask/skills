@@ -3,7 +3,6 @@ repo: metamask-mobile
 parent: pr-guidelines
 ---
 
-
 # MetaMask Mobile Pull Request Guidelines
 
 Follow these rules when creating PRs to ensure consistent quality and smooth reviews.
@@ -20,14 +19,14 @@ Small focused PRs • Clear titles/descriptions • Complete template • Correc
 
 **Examples**:
 
-| ✅ Good | ❌ Bad |
-|---------|--------|
-| `feat: add NFT gallery to collectibles tab` | `Add some stuff` |
-| `fix: resolve wallet connection timeout on cold start` | `fixing bug` |
-| `refactor: extract transaction formatter into utility` | `refactor code` |
-| `test: add e2e spec for onboarding SRP import flow` | `tests` |
-| `docs: update contributing guide with design-system usage` | `update docs` |
-| `chore: bump react-native to 0.74.5` | `upgrade rn` |
+| ✅ Good                                                    | ❌ Bad           |
+| ---------------------------------------------------------- | ---------------- |
+| `feat: add NFT gallery to collectibles tab`                | `Add some stuff` |
+| `fix: resolve wallet connection timeout on cold start`     | `fixing bug`     |
+| `refactor: extract transaction formatter into utility`     | `refactor code`  |
+| `test: add e2e spec for onboarding SRP import flow`        | `tests`          |
+| `docs: update contributing guide with design-system usage` | `update docs`    |
+| `chore: bump react-native to 0.74.5`                       | `upgrade rn`     |
 
 **Rules**: Use imperative mode • Keep concise (<72 chars) • Be specific
 
@@ -47,21 +46,25 @@ Use `.github/pull-request-template.md` - fill ALL sections:
 **PR Assignment**: Assignee is the one who is in charge of making the PR move forward to merge. It's usually the author, but can be delegated.
 
 **Team Label** (REQUIRED - merge will be blocked if missing):
+
 - Must have one: `team-*` label OR `external-contributor`
 
 **Blocking Labels** (these WILL prevent merge):
+
 - `needs-qa` - QA validation required
-- `need-ux-ds-review` - UX/Design System review needed  
+- `need-ux-ds-review` - UX/Design System review needed
 - `blocked` - Blocked by external dependency
 - `stale` - PR is stale and needs attention
 - `DO-NOT-MERGE` - Explicit block
 
 **DO**:
+
 - ✅ Assign to person responsible for moving PR forward (usually author)
 - ✅ Add team label (required for merge)
 - ✅ Remove blocking labels when resolved
 
 **DON'T**:
+
 - ❌ Leave unassigned
 - ❌ Use deprecated labels
 
@@ -69,7 +72,8 @@ Use `.github/pull-request-template.md` - fill ALL sections:
 
 **Format**: `<type>/<issue-number>_<short-kebab-description>` (include issue number when applicable)
 
-**Examples**: 
+**Examples**:
+
 - `fix/1234_wallet-connection-issue` - with issue number
 - `feat/5678_add-nft-gallery` - with issue number
 - `chore/update-linting-config` - no issue (maintenance work)
@@ -89,10 +93,11 @@ Use `.github/pull-request-template.md` - fill ALL sections:
   - Labels applied
 - Target `main` branch
 - Keep focused (single feature/fix)
-- Include tests in the best-fit layer: **Component-view** (default for views) → **integration** (app-to-controller flows) → **unit** (pure logic / CV fallback) → **Appium e2e** (device journeys; Detox nearly deprecated). Canonical policy: testing domain `knowledge/testing-layers.md` (beside `mobile-testing` when installed).
+- Include tests in the best-fit layer: **Component-view** (default for views) → **integration** (app-to-controller flows) → **unit** (pure logic / CV fallback) → **Appium e2e** (justified device journeys only). Canonical policy: testing domain `knowledge/testing-layers.md` (beside `mobile-testing` when installed).
 - Update TSDoc when relevant
 
 **⚠️ Force Push Policy**:
+
 - **DO NOT use force push** (`git push --force`) once first review is done
 - Force push breaks GitHub's "changes since last review" feature
 - Reviewers must re-review entire PR instead of just new changes

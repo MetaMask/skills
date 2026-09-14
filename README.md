@@ -54,14 +54,14 @@ metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/mobile-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
-metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
+metamask-skills postinstall   # refresh cache; sync by default (SKILLS_AUTO_UPDATE=0 opts out)
 metamask-skills install       # lower-level installer wrapper
 ```
 
 The discovery commands make opt-in selection self-serve. Developers can find a
 skill, inspect it, then save their selection. On Mobile, install **one** skill —
 **mobile-testing** — for unit, component-view, integration, Appium E2E,
-Detox→Appium migration, and test-layer placement (see
+and test-layer placement (see
 `domains/testing/knowledge/testing-layers.md`):
 
 ```bash
@@ -144,6 +144,7 @@ tools/
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
+| `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
@@ -383,7 +384,7 @@ maturity: stable          # experimental | stable | deprecated (default stable)
 
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
-`maturity`, `mandatory`, and `scope` are read by the CLI.
+`maturity`, `base`, and `scope` are read by the CLI.
 
 The 1,536-character ceiling is a repo budget rather than an operator limit — the
 description is always-on context for every installed skill, so it is capped

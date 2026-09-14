@@ -7,12 +7,10 @@ parent: mobile-testing
 
 This skill installs only for **metamask-mobile**.
 
-Follow the router in the skill body. Layer policy:
-[`references/layers.md`](../references/layers.md) and installed
-`knowledge/testing-layers.md`.
+Follow the router in the skill body. Layer policy: installed
+`knowledge/testing-layers.md` (canonical; `references/layers.md` is a stub).
 
-When writing Appium or Detox-migration code, treat the live repo as source of
-truth:
+When writing Appium E2E, treat the live repo as source of truth:
 
 - Appium smoke (write + run): `tests/smoke-appium/`,
   `docs/testing/appium-smoke-testing.md`, skill
