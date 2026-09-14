@@ -91,7 +91,7 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 | High | lodash main-package imports (98 files, no tree-shaking) | 98 files | [bundle-library-size.md](references/bundle-library-size.md) |
 | High | FlatList missing perf props on growing lists | 65 FlatList JSX | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | High | AppState listener without cleanup | `app/core/SDKConnectV2/services/connection-registry.ts:487` | [js-memory-leaks.md](references/js-memory-leaks.md) |
-| High | Parameterized selector (single-entry cache, busted per arg) doing an O(n) `Object.values().flat().find()` scan per call | `selectSingleTokenByAddressAndChainId` `app/selectors/tokensController.ts:174`; also `app/selectors/assets/assets-list.ts`, `app/selectors/moneyAccountController/index.ts` | [mm-state-normalization.md](references/mm-state-normalization.md) |
+| High | Parameterized selector doing an O(n) `Object.values().flat().find()` scan per call | `selectSingleTokenByAddressAndChainId` `app/selectors/tokensController.ts:183`; also `app/selectors/assets/assets-list.ts`, `app/selectors/moneyAccountController/index.ts` | [mm-state-normalization.md](references/mm-state-normalization.md) |
 | Medium | Async effect without cancellation; setState-chain effects; derived state via useEffect+setState | feature-specific — run the guide's greps | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
 | Medium | Inline `useSelector(state => state.x)` bypassing named selectors | 3 files | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Medium | Lottie where Rive fits (Rive already installed) | 5 files | [js-animations-reanimated.md](references/js-animations-reanimated.md) |

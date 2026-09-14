@@ -40,19 +40,19 @@ Normalized shape (`byId` / `byAddress` maps + an `ids` array for order) is the s
 
 ## Pattern — parameterized selector cache thrashing
 
-`createSelector` has a **single-entry cache**. A parameterized selector called with different arguments from different components busts that one cache slot on every call:
+`createSelector`'s default memoizer, `weakMapMemoize`, caches per argument identity instead of in one slot, but only for *stable* arguments. A fresh **object literal** argument per call busts it every time:
 
 ```ts
-// ❌ each component's call evicts the previous component's result
-const a1 = useSelector((s) => getAccountByAddress(s, addr1)); // miss
-const a2 = useSelector((s) => getAccountByAddress(s, addr2)); // miss, evicts addr1
-const a3 = useSelector((s) => getAccountByAddress(s, addr3)); // miss, evicts addr2 — and so on every render cycle
+// ❌ a new object literal every call, no cache hit ever
+const a1 = useSelector((s) => selectAsset(s, { address: addr1 })); // miss
+const a2 = useSelector((s) => selectAsset(s, { address: addr2 })); // miss, unrelated to addr1's entry
+const a3 = useSelector((s) => selectAsset(s, { address: addr3 })); // miss, and so on every render cycle
 ```
 
-In a list rendering N rows, the "memoized" selector recomputes N times per render, forever. **Check the memoizer before flagging:** this codebase already uses `weakMapMemoize` for some parameterized selectors (e.g. `selectNetworkConfigurationByChainId`), which caches per-argument and doesn't thrash — but only for *stable* arguments. A fresh **object literal** argument per call (`selectAsset(state, { address, chainId, isStaked })`) defeats `weakMapMemoize` too: every call is a new WeakMap key. Fixes, in order of preference:
+In a list rendering N rows, the "memoized" selector recomputes N times per render, forever. **Check the memoizer before flagging:** this codebase's parameterized selectors use `weakMapMemoize` by default (e.g. `selectNetworkConfigurationByChainId`), which caches per-argument and doesn't thrash for *stable* arguments. The object-literal case above is the exception. Fixes, in order of preference:
 
 1. **Lookup-map selector** (above): select the whole memoized index once; key into it. Sidesteps per-arg caching entirely.
-2. **Per-instance selector**: a factory (`makeSelectAccountByAddress()`) instantiated in the component with `useMemo`, so each call site owns its own cache slot.
+2. **Per-instance selector**: a factory (`makeSelectAsset()`) instantiated in the component with `useMemo`, so each call site owns its own cache slot.
 3. **Bigger cache**: reselect's `lruMemoize` with `maxSize: N` — last resort; sizing is a guess that goes stale.
 
 ```bash

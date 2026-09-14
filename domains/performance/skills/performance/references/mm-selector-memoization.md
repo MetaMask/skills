@@ -22,7 +22,7 @@ This section maps each pattern onto *this* codebase.
 
 | Pattern | How it shows up in Mobile | Fix here |
 |---|---|---|
-| **Identity / passthrough result** | `createSelector(selectControllerState, (s) => s.things)` — controller-state slices are not reference-stable, so it recomputes and returns a new ref every dispatch | `createDeepEqualSelector`, or narrow the input to the smallest stable slice |
+| **Identity / passthrough result** | `createSelector(selectControllerState, (s) => s.things)`, where `selectControllerState` returns the whole controller: that reference changes whenever any field in the controller updates, even when `.things` did not, so the selector recomputes and returns a new ref on every update to that controller | `createDeepEqualSelector`, or narrow the input to the smallest stable slice |
 | **New collection in the result function** | `Object.values(...).sort(...)`, `new Set(...flatMap(...))`, `items.filter(...)`, `state.swapsTransactions ?? {}` | `createDeepEqualSelector`, a stable module-level constant for the empty case, or a `resultEqualityCheck` |
 | **Mutation in the result function** | `createSelector([getItems], (items) => { items.sort(cmp); return items; })` | copy first — `[...items].sort(cmp)` |
 | **Over-broad input** | `state => state`, or a whole controller slice, as an input selector | narrow the input |

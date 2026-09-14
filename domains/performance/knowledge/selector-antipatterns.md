@@ -40,7 +40,7 @@ Detection: grep exported `function get…` in the selectors directory.
 
 The transform happens in the **input** and the result function returns its input unchanged,
 so the cache can never hit. A plain `createSelector` only helps when its *inputs* are
-reference-stable; controller-state slices usually are not.
+reference-stable, and an input selector that allocates on every call never is.
 
 ```typescript
 // ❌ BROKEN: Object.values() in the INPUT creates a new array each call

@@ -27,9 +27,9 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 1. **List changed files with `useEffect`.** `git diff --name-only origin/main...HEAD | xargs grep -l 'useEffect'`
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
 3. **For each hit, map to a pattern** in `effect-antipatterns` and apply the fix from the knowledge file.
-4. **Block on unstable dependency identity.** `JSON.stringify` in a dependency array is always broken. Do not merge.
+4. **Block on unstable dependency identity**, unless it is a `JSON.stringify` on a cold path with a small object. Do not merge otherwise.
 5. **Block on a timer without cleanup.** Any `setInterval` / `setTimeout` without a matching `clearInterval` / `clearTimeout` in the cleanup function is blocking.
-6. **Require cancellation for async effects.** Any `fetch` / network call inside `useEffect` must use `AbortController`.
+6. **Require cancellation for async effects.** Any `fetch` / network call inside `useEffect` must guard against a stale response, with a cancelled flag or `AbortController`.
 
 ## Grep Checklist
 
@@ -47,7 +47,7 @@ See the repo overlay for the concrete `<source-dir>` path.
 
 | Mistake | Correct approach |
 |---|---|
-| Accept `JSON.stringify` in deps because "the effect needs to rerun when X changes" | Destructure to primitives or `useMemo` the object — never stringify |
+| Accept `JSON.stringify` in deps because "the effect needs to rerun when X changes" | Destructure to primitives or `useMemo` the object on a hot path. A cold path with a small object can stringify |
 | Accept a state-mirror effect because "the computation is expensive" | Use `useMemo` for expensive derivations. Effects are for side effects, not state derivation |
 | Let `setInterval` ship without cleanup because "the component rarely unmounts" | Cleanup is non-negotiable — unmount frequency doesn't matter, correctness does |
 | Treat "can't perform state update on unmounted component" as a cosmetic warning | It is a data race. An old response can overwrite a new one |

@@ -43,7 +43,7 @@ Read the call sites: is a data hook running for tabs/pages/items that aren't vis
 grep -rn "createSelector(" app/selectors --include="*.ts" | grep -v createDeepEqualSelector
 grep -rn "=> .*\.\(map\|filter\|sort\|reverse\)\|new Set\|new Map\|Object\.\(values\|keys\|entries\)\|?? {}\|?? \[\]" app/selectors --include="*.ts"
 grep -rn "\.sort(\|\.reverse(\|\.push(\|\.splice(" app/selectors --include="*.ts"   # mutation
-grep -rn "(_state\|(_," app/selectors --include="*.ts"   # parameterized selectors — single-entry cache → mm-state-normalization.md
+grep -rn "(_state\|(_," app/selectors --include="*.ts"   # parameterized selectors, cache thrashing on unstable args → mm-state-normalization.md
 grep -rnE "export (function|const) (get|select)[A-Z][A-Za-z]* = \(state|export function (get|select)" app/selectors --include="*.ts"   # plain unmemoized function selectors (no createSelector at all)
 ```
 Check each result function for: identity/passthrough, new collection without deep-equal, mutation, `state=>state` input. If one broken selector has **many consumers**, switch to the cascade playbook — map the dependency tree to closure and plan the fix order *before* fixing anything: [mm-selector-cascade.md](mm-selector-cascade.md).
@@ -113,7 +113,7 @@ Confirm any hit with the Profiler ("why did this render?") before asserting — 
 - [ ] `Context.Provider value` is memoized (not an inline object)
 - [ ] No `JSON.stringify` in a hot dependency array
 - [ ] Async effects guard against post-unmount / stale setState (cancelled flag or `AbortController`)
-- [ ] No new parameterized selector (single-entry cache) on a list/hot path — use a lookup-map selector instead
+- [ ] No new parameterized selector (cache thrashing on unstable args) on a list/hot path — use a lookup-map selector instead
 - [ ] Layout animations use Reanimated v3, not `Animated` + `useNativeDriver:false`
 - [ ] Growable lists use FlashList with stable keys (+ `getItemType` if mixed)
 - [ ] New event listeners / timers / subscriptions have cleanup

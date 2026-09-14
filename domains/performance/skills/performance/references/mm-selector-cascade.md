@@ -66,7 +66,7 @@ Memoizing consumers one by one is whack-a-mole: each fix adds comparison cost an
 **Know your reference-stability contract first.** What the correct fix looks like depends on whether your store gives you stable references for unchanged data:
 
 - With **Immer-based reducers** (Redux Toolkit), structural sharing guarantees `state.a.b` keeps its reference **iff** nothing under that path changed. Under that contract, a plain `createSelector` over a *narrow* input is already correct, and deep-equal selectors are pure overhead.
-- Where state is replaced wholesale on sync (documented for this repo's controller-state slices in [mm-selector-memoization.md](mm-selector-memoization.md)), input references break even when data didn't change, and `createDeepEqualSelector` at the *root* is the pragmatic tool.
+- Where state is replaced wholesale on sync, input references break even when data didn't change, and `createDeepEqualSelector` at the *root* is the pragmatic tool.
 
 Establish which contract a slice actually follows (log `prev === next` for the input across two unrelated dispatches) before choosing — the answer differs per slice, and assuming the wrong contract either reintroduces the cascade or buys deep-compares you don't need.
 

@@ -32,4 +32,4 @@ Current configuration (at time of authoring): `trackAllPureComponents: true`, `o
 
 ## Differences from Extension
 
-- React Compiler adoption and `"use no memo"` opt-outs are extension-only at this time.
+- React Compiler adoption and `"use no memo"` opt-outs are not extension-only: mobile has the compiler wired in `babel.config.js` too, via `scripts/react-compiler.js`.

@@ -29,7 +29,7 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 2. **Run the [grep checklist](#grep-checklist)** against the changed files.
 3. **Match each hit to a pattern** in `selector-antipatterns` or to one of the [team-specific workarounds](#team-specific-workarounds) below.
 4. **Block on Jest warning.** If the PR's test run surfaces `"result function returned its own inputs"`, the PR introduces an identity/passthrough result (`selector-antipatterns` §2). Do not merge.
-5. **Require a fix, not a justification.** None of the five patterns have a valid use case. See [Pitfalls](#common-pitfalls) for the narrow `createDeepEqualSelector` exception.
+5. **Require a fix, not a justification.** None of the eight patterns have a valid use case. See [Pitfalls](#common-pitfalls) for the narrow `createDeepEqualSelector` exception.
 
 ## Mode B: Post-Merge Diagnosis (WDYR-driven)
 
@@ -42,7 +42,7 @@ Both `metamask-extension` and `metamask-mobile` share the same React + Redux arc
 2. **Enable WDYR.** `ENABLE_WHY_DID_YOU_RENDER=true yarn start` (same env var on extension and mobile).
 3. **Identify root component.** The first WDYR log is the cascade origin. Do not fix downstream symptoms first.
 4. **Classify via the [WDYR message table](#wdyr-message-interpretation).** If the root cause is a selector, return to [Mode A](#mode-a-pre-merge-review-grep-driven) and apply the fix set. If it is a context value or prop identity issue, see the `render-cascade` knowledge file.
-5. **Verify.** Repeat the action. Confirm the counter stabilizes (e.g. 0→2, not 0→25). Divide raw counts by 2 under React Strict Mode.
+5. **Verify.** Repeat the action. Confirm the counter stabilizes (e.g. 0→2, not 0→25). React Strict Mode's amplification compounds non-linearly through a cascade, so compare before/after under the same Strict Mode setting rather than dividing by a fixed factor.
 
 ## Grep Checklist
 
@@ -117,9 +117,9 @@ For post-merge diagnosis, map the WDYR log message to the root cause:
 |---|---|
 | Accept `useSelector(sel, isEqual)` because "it works" | The underlying selector is broken; fix it and remove the workaround |
 | Approve `createDeepEqualSelector` without checking input source | Trace every input to verify it's not already Immer-stable |
-| Treat the five patterns as preferences | They are measurably broken — each generates CI warnings |
+| Treat the eight patterns as preferences | They are measurably broken — each generates CI warnings |
 | Ask the author to justify rather than fix | None of the patterns have a valid use case except the narrow exception above |
 | Review only the selector definition, not consumption sites | Pattern 1 (plain function) hides at the call site |
 | Fix downstream components first during post-merge diagnosis | Fix the root-cause selector; downstream fixes become wasted work |
 | Add `React.memo` to symptom component | Requires stable parent. Fix the parent (usually a selector) first |
-| Divide WDYR counts by 1 | React Strict Mode double-renders. Divide raw counts by 2 |
+| Divide WDYR counts by 1 | React Strict Mode double-renders, but not by a clean factor through a cascade. Compare before/after under the same setting |
