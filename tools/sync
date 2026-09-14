@@ -507,14 +507,26 @@ INSTALL_BIN=""
 # tools/sync is itself invoked from the pinned package, so its own directory is the
 # trustworthy one. The cache still supplies domains/ CONTENT via SOURCES — it just no
 # longer supplies executable CODE.
+#
+# Tested with -f, not -x. npm and Yarn do not preserve the executable bit when they
+# unpack a tarball, so in a consumer install every tools/* file arrives 0644 and an
+# -x test is false no matter how the repo has it staged. In a git checkout it is
+# true, which is why this reads as working everywhere it gets exercised by hand and
+# in CI, and fails only from the published package.
+#
+# That mattered because the fallback below takes the LAST matching source, and
+# SOURCES appends CONSENSYS_SKILLS_DIR after METAMASK_SKILLS_DIR. So a stripped bit
+# handed every install to the private overlay's copy of tools/install, which may be
+# any age. When that copy predates `base:` it silently installs zero base skills and
+# still exits 0. Running via `bash "$INSTALL_BIN"` keeps the bit irrelevant.
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-if [[ -x "$SCRIPT_DIR/install" ]]; then
+if [[ -f "$SCRIPT_DIR/install" ]]; then
   INSTALL_BIN="$SCRIPT_DIR/install"
 else
   # Fallback for a source checkout that has no sibling install: keep the old search
   # so a git clone of this repo still works standalone.
   for src in "${SOURCES[@]}"; do
-    if [[ -x "$src/tools/install" ]]; then
+    if [[ -f "$src/tools/install" ]]; then
       INSTALL_BIN="$src/tools/install"
     fi
   done
@@ -524,4 +536,4 @@ if [[ -z "$INSTALL_BIN" ]]; then
   echo "  Sources: ${SOURCES[*]}" >&2
   exit 1
 fi
-exec "$INSTALL_BIN" "${INSTALL_ARGS[@]}"
+exec bash "$INSTALL_BIN" "${INSTALL_ARGS[@]}"

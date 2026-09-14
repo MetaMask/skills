@@ -872,7 +872,16 @@ function postinstall(args) {
     const result = delegate('sync', target, repo, passthrough, {
       env: { SKILLS_DEFAULT_SCOPE: 'base' },
     });
-    return result === 0 ? 0 : 0;
+    // Still 0 — a skills failure must not fail `yarn install`, which is the whole
+    // point of this being postinstall. But say so. Without the warning a sync that
+    // exited non-zero (unknown domain in a saved .skills.local, unreachable source,
+    // no Bash) was indistinguishable from a clean run: the caller's `|| echo` guard
+    // cannot fire on a 0, and anything downstream counting directories on disk sees
+    // the previous install and reports it as current.
+    if (result !== 0) {
+      warn(`auto-update failed (exit ${result}); skills were not updated. Run \`yarn skills\` to see why.`);
+    }
+    return 0;
   } catch (error) {
     warn(`auto-update failed: ${error instanceof Error ? error.message : String(error)}`);
     return 0;

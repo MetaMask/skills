@@ -387,8 +387,11 @@ Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
 `maturity`, `base`, and `scope` are read by the CLI.
 
-`base: true` installs the skill even when its domain is filtered out
-(`--exclude` / `SKILLS_EXCLUDE` still wins).
+`base: true` installs the skill even when its domain is filtered out.
+`--exclude` / `SKILLS_EXCLUDE` still wins. The maturity filter runs before the
+base bypass, so `--maturity stable` drops a `base: true` experimental skill.
+A skill with a `repos/` directory and no overlay for `--repo` is skipped
+(this `analytics` skill installs for Mobile and is skipped for Extension).
 
 The 1,536-character ceiling is a repo budget rather than an operator limit — the
 description is always-on context for every installed skill, so it is capped

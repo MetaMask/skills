@@ -22,4 +22,4 @@ Use this skill for product event tracking.
 1. Register this interaction in the catalog (`EVENT_NAME` + `generateOpt` in catalog modules). Reuse an existing catalog name only when this control is another instance of that same interaction (same dashboard event, same owners).
 2. Attach properties on the event builder.
 3. Send the built event through the tracking entry point.
-4. In UI tests, wrap `useAnalytics` with the test factory (including files that already mock the hook). In non-React tests, assert the builder and the helper or messenger call.
+4. In UI tests, wrap `useAnalytics` with the test factory (including files that already mock the hook). In non-React tests, assert the builder and the helper or Engine tracking util.
