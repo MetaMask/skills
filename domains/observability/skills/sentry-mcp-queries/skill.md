@@ -46,9 +46,9 @@ Segment event volume is invisible from Sentry, but a correlated `http.client` sp
 
 1. Identify the correlated endpoint — the one that fires **once per event**, not per sub-call (e.g. a per-init call, not a per-account call). Picking a per-sub-call endpoint over-counts.
 2. `mcp__sentry__search_events` aggregate mode, filter `span.op:http.client` + endpoint
-3. Read sampled span count
-4. Extrapolate: `estimated = sampled × (1 / tracesSampleRate)`
-5. Treat as an **upper bound** — the endpoint may have callers beyond the event path. Sample population = MetaMetrics-opted-in users only (Sentry opt-in is tied to MetaMetrics). Sample rate changes — verify the current value.
+3. Read the `count()` aggregate. Span datasets already extrapolate it by each span's sample weight (see *Longer-Range (30D+) Queries and Percentile Fidelity*), so it is the volume estimate.
+4. Do not multiply it by `1 / tracesSampleRate`. That extrapolates twice, and the weight Sentry applies can differ from the configured rate (a per-name sampler rate, a remote override, a trace continued as sampled).
+5. Treat as an **upper bound** — the endpoint may have callers beyond the event path. Sample population = MetaMetrics-opted-in users only (Sentry opt-in is tied to MetaMetrics).
 
 ## Workflow: Release Comparison
 
@@ -117,7 +117,7 @@ For attributing a confirmed p75/p95 movement to specific code changes, see the `
 | Mistake | Correct Approach |
 |---------|-----------------|
 | Attribute root cause before checking `dist` distribution | Check tag values first — 99%+ MV3 → lifecycle, not app logic |
-| Use raw sampled count as event volume | Multiply by `1 / tracesSampleRate` |
+| Multiply a span `count()` by `1 / tracesSampleRate` | `count()` is already extrapolated, so read it as the estimate |
 | Filter `environment:development` for dev builds | Filter `installType:normal` — environment ≠ install method |
 | Skip `whoami` and guess org slug | Slug mismatch causes silent empty results |
 | Treat Seer analysis as ground truth | Use as hypothesis to validate against code/traces |

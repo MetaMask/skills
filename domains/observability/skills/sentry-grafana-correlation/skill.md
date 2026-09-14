@@ -14,15 +14,15 @@ Prerequisite: `grafana-tempo-queries` for the Tempo side, `sentry-mcp-queries` f
 
 | Span | Reaches | Gated by |
 | --- | --- | --- |
-| Client (`pageload`, `navigation`, `http.client`, custom) | Sentry, via the SDK transport | the client's `tracesSampleRate` head decision |
+| Client (`pageload`, `navigation`, `http.client`, custom) | Sentry, via the SDK transport | the head decision of the context the span joins: the client's `tracesSampleRate`, or a sampled flag propagated from another client realm |
 | Backend (`http.server`, internal, db, messaging) | Tempo, via the collector | collector tail-sampling policy |
-| Backend, additionally | Sentry, if the collector forwards it | an environment attribute on the span matching a routing policy |
+| Backend, additionally | Sentry, if the collector forwards it | an environment attribute on any span in the trace matching a routing policy |
 
 Three consequences drive every diagnosis below:
 
-- **The client's sampled flag and the client's own retention are separate decisions.** The propagated `traceparent` flag tells the backend whether to record; the client's head sampling decides whether the client span is kept. When the flag says record and head sampling drops the client span, the backend records a span whose parent was never stored anywhere — an orphan. This is the normal case at low client sample rates, not an anomaly.
+- **The client's sampled flag and the client's own retention are separate decisions.** The propagated `traceparent` flag tells the backend whether to record; the client's head sampling decides whether the client span is kept. When the flag says record and head sampling drops the client span, the backend records a span whose parent was never stored anywhere — an orphan. This is the normal case at low client sample rates, not an anomaly. The same split happens inside one client with two realms, such as an extension's UI and background: a realm that continues a propagated context as sampled keeps its spans while the originating realm's head sampling drops their parent, so client-side orphans appear in Sentry too.
 - **A `-00` (not-sampled) flag can suppress the backend span entirely**, because a parent-respecting sampler delegates to "never record" for an unsampled remote parent. No backend span is created at all — different from one being dropped later.
-- **Backend spans only reach Sentry if their environment attribute matches a routing policy.** A service that expresses environment under a different attribute name matches nothing and is silently absent from Sentry while still present in Tempo.
+- **Backend spans reach Sentry only if some span in their trace carries an environment attribute that matches a routing policy.** Tail sampling routes whole traces: one matching span forwards the trace with every service in it. A service that expresses environment under a different attribute name is absent from Sentry only in traces where no other span matches, and is still present in Tempo.
 
 ## Setup
 
@@ -48,10 +48,11 @@ curl -fsS -G "https://sentry.io/api/0/organizations/$SENTRY_ORG/events/" \
   --data-urlencode "sort=-timestamp"
 ```
 
-Two syntax traps that produce misleading emptiness:
+A syntax trap that produces misleading emptiness:
 
 - **Any field you sort on must also be selected.** Sorting by `-timestamp` without requesting `timestamp` returns `400 orderby must also be in the selected columns or groupby` — and a script that swallows errors reports it as no results.
-- **`has:parent_span` is not valid**; request `parent_span` as a field and filter client-side.
+
+`!has:parent_span` selects root spans in a spans query run through Sentry MCP `search_events`. If a raw `/events/` call rejects the filter, request `parent_span` as a field and filter client-side.
 
 Use `project=-1` to search every project at once when you do not yet know which one should hold the span — that is how you tell "in the wrong project" apart from "absent".
 
@@ -69,7 +70,7 @@ Use when you have a backend trace and want its client context.
 Use when a Sentry trace looks truncated at the network boundary.
 
 1. Take the trace id from the Sentry trace view.
-2. Look for a matching `http.server` span in Sentry itself first — if the collector forwards backend spans for that environment, both halves may already be in one place and no cross-store hop is needed.
+2. Look for backend spans of that trace in Sentry itself first. If the collector forwards backend spans for that environment, both halves may already be in one place and no cross-store hop is needed. Check presence with an attribute that marks backend spans (a tenant id, for example), not `span.op:http.server`: server spans were 2.9% of backend spans in one measurement, so keying on them can read as none present. Keep `http.server` for the nesting check below.
 3. Otherwise fetch the trace from Tempo by id, with a time window that brackets the client span's timestamp.
 4. If Tempo has nothing, the backend either never recorded it (a `-00` flag), or its trace fell outside the tail-sampling policy.
 
@@ -86,9 +87,9 @@ Use when a Sentry trace looks truncated at the network boundary.
 
 ## Checking whether a backend span nests correctly
 
-The parent identity, not the picture, is what determines nesting. Take the backend `http.server` span's `parentSpanId` (hex-decode it from Tempo's base64), then look that id up among the client's spans in Sentry:
+Nesting takes the parent identity and the times, not the picture. Take the backend `http.server` span's `parentSpanId` (hex-decode it from Tempo's base64), then look that id up among the client's spans in Sentry:
 
-- Resolves to an `http.client` span whose description matches the same URL → correctly nested beneath the request that caused it.
+- Resolves to an `http.client` span whose description matches the same URL, and the backend span starts before that span ended → correctly nested beneath the request that caused it. A backend span that starts after the `http.client` span ended cannot be its child, whatever the id says (one recorded case started 318 seconds after).
 - Resolves to a transaction root or custom operation span → the backend span is a sibling of its caller; hop latency cannot be read off the waterfall.
 - Resolves to nothing in either store → orphan.
 

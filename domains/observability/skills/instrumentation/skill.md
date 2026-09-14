@@ -46,8 +46,8 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 1. **Check the event name enum** — event may already exist under a different phrasing.
 2. **Check the segment tracking plan** — event may be registered under a different name than the enum key.
 3. **Add to the enum**, then implement the `trackEvent` call.
-4. **Do NOT use `isOptIn: true` outside the onboarding opt-in flow.** It strips user identity unconditionally for all users, not just non-opted-in ones (see Reference Knowledge: metrametrics-identity).
-5. **Open a data governance review** before merging. There is usually no CI enforcement on schema registration — this step is easy to skip (see Reference Knowledge: segment-governance).
+4. **Pass `excludeMetaMetricsId: true` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous id and drops the profile ids, for every user, not only those who have not opted in. Event names matching `/^send|^confirm/iu` get it by default unless the caller passes `excludeMetaMetricsId: false` (see data domain `knowledge/metrametrics-identity.md`).
+5. **Open a data governance review** before merging. There is usually no CI enforcement on schema registration — this step is easy to skip (see data domain `knowledge/segment-governance.md`).
 6. **Register in the team's segment tracking plan** before shipping.
 
 ### Updating an Event
@@ -67,13 +67,10 @@ When direct Segment access is unavailable, estimate from Sentry production span 
    ```
    span.op:http.client span.description:*{endpoint}*
    ```
-3. **Extrapolate:**
-   ```
-   estimated_actual = sampled_count × (1 / tracesSampleRate)
-   ```
+3. **Read the `count()` aggregate.** Span datasets already extrapolate it by each span's sample weight, so it is the estimate. Do not multiply it by `1 / tracesSampleRate`, which extrapolates twice.
 4. **Interpret as upper bound** — endpoint may have callers outside the event path.
 
-Caveats: sample population is MetaMetrics opted-in users only; verify the current `tracesSampleRate` before calculating (it changes between releases). For longer-range (30D+) or release-over-release queries, the sampled count is **not** comparable at face value — older releases are downsampled / retention-truncated and `.0` releases are sample-thin; see `sentry-mcp-queries` (Longer-Range Queries and Percentile Fidelity) and the `performance-attribution` skill.
+Caveats: sample population is MetaMetrics opted-in users only. For longer-range (30D+) or release-over-release queries, the sampled count is **not** comparable at face value — older releases are downsampled / retention-truncated and `.0` releases are sample-thin; see `sentry-mcp-queries` (Longer-Range Queries and Percentile Fidelity) and the `performance-attribution` skill.
 
 ---
 
@@ -81,9 +78,9 @@ Caveats: sample population is MetaMetrics opted-in users only; verify the curren
 
 | Mistake | Correct Approach |
 |---------|-----------------|
-| `isOptIn: true` on post-onboarding events | Strips user identity for all users; only valid in onboarding flow |
+| `excludeMetaMetricsId: true` on an event that needs user identity | It sends the event under the shared anonymous id for every user. Reserve it for events that must be anonymous |
 | Ship event without tracking-plan registration | No CI gate — add governance review explicitly to PR checklist |
 | Raw `Sentry.startSpan()` instead of the repo's `trace()` wrapper | Use the wrapper — handles cross-process context and active-span inheritance |
 | New span with no trace name enum entry | Register enum entry first; unnamed spans are invisible in Sentry filters |
-| Multiply sampled count by `tracesSampleRate` | Multiply by inverse: `sampled × (1 / rate)` |
+| Multiply a span `count()` by `1 / tracesSampleRate` | `count()` is already extrapolated, so read it as the estimate |
 | Treat Sentry estimates as exact counts | Probabilistic sample — state sample size and confidence |

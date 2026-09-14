@@ -93,4 +93,4 @@ Example findings:
 | Asset Details | 100ms → 47ms (**-53%**) | 287ms → 94ms (**-67%**) |
 | /notification.html | 1.36s → 1.05s (-23%) | 4.30s → 4.71s (+9%, **high variance — inconclusive**) |
 
-Most UI Startup and /home.html gains landed in 13.12 (p95 UI Startup -40% in one release); Asset Details improved across 13.14 → 13.15. Treat the per-release header deltas as measured totals and attribute individual code changes as likely contributors only.
+Most UI Startup gains and the /home.html p95 gain landed in 13.12 (p95 UI Startup -40% in one release). /home.html p75 moved 1.69s → 1.56s in 13.12, 0.13s of its 0.50s drop, and its larger drops came in 13.14–13.15. Asset Details improved across 13.14 → 13.15. Treat the per-release header deltas as measured totals and attribute individual code changes as likely contributors only.

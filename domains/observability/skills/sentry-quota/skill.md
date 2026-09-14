@@ -18,7 +18,7 @@ Find and fix custom Sentry span instrumentation that blows the project span budg
 ## Do Not Use When
 
 - Reading the live span counts themselves — that's `sentry-mcp-queries` (Volume Estimation).
-- Product-analytics events (Segment / `trackEvent`) — that's `instrumentation` + `segment-governance`.
+- Product-analytics events (Segment / `trackEvent`) — that's `instrumentation`, with data domain `knowledge/segment-governance.md` for Segment governance.
 - The span is already behind a per-trace sample gate **and** a kill-switch — already mitigated.
 
 ## Breach Triad
@@ -42,9 +42,9 @@ Low fan-out + discrete user action + already gated = fine. Don't flag healthy sp
 1. `gh pr diff <n>` — scan **added** lines for three things, not two: new `TraceName` entries, new `trace(` call sites, **and a `trace`/trace-callback passed as an *argument*** into a call (`fn(…, trace)`). The third is the one reviews miss — a caller wiring up a function's optional `trace?` param adds instrumentation with no `trace(` site and no `TraceName` entry.
 2. Score each against the breach triad: is the enclosing scope a loop, poller, **or selector**? is there a gate? a kill-switch?
 3. Block if a new always-on span has no gate — require a sub-sample gate (`span-sub-sampling`) before merge. Cheaper than a post-ship cherry-pick.
-4. If the diff adds no `trace(` sites, no `TraceName` entries, **and no `trace` argument passed into a call** → "no new instrumentation", stop.
+4. If the diff adds no `trace(` sites, no `TraceName` entries, **no `trace` argument passed into a call, and bumps no dependency** → "no new instrumentation", stop. A dependency bump brings whatever instrumentation the package carries at the adopted version, which no grep of this diff can see, and that volume can be `http.client` traffic the tracing context surfaces rather than wrapper spans.
 
-> **Instrumentation is not always added by an instrumentation PR.** The costliest spans arrive incidentally — a caller passes a `trace` argument into an existing function during an unrelated change (a bug fix, a refactor), so the PR's stated purpose gives no signal to review it for quota. Do not gate this scan on the PR *looking* like instrumentation. And accept the limit: a `trace` argument buried in a bug-fix diff will slip a human reviewer, which is why the runtime backstops (per-name volume alerting, the per-name sampler budget below) exist. This skill lowers the rate; it does not eliminate the class.
+> **Instrumentation is not always added by an instrumentation PR.** The costliest spans arrive incidentally — a caller passes a `trace` argument into an existing function during an unrelated change (a bug fix, a refactor), so the PR's stated purpose gives no signal to review it for quota. Do not gate this scan on the PR *looking* like instrumentation. And accept the limit: a `trace` argument buried in a bug-fix diff will slip a human reviewer, which is why a runtime backstop is needed. Sentry metric alerts cannot target one transaction name's billed volume, only project and category totals, so the backstop belongs in the sampler (the per-name budget below). This skill lowers the rate; it does not eliminate the class.
 
 ### Locate (incident)
 1. Grep the span name / `TraceName.X` across the consuming repo **and** the controller package source.
@@ -65,7 +65,7 @@ Pick the lowest tier that stops the bleed.
 | **0 — Immediate** | a span fans out and is actively breaching on the live release | disable the `trace()` call at source (or env-guard it) + **cherry-pick to the release branch** + file a sev-1 release blocker on the in-flight release milestone |
 | **1 — Release containment** | spike concentrated in an old, already-patched release with lingering users | Sentry **inbound filter** dropping `release:<bad>` spans + force-update. The only dashboard action. Filters target a whole release, not one span — don't filter a release you still want data from |
 | **2 — Durable** | the span is justified long-term but ungated | deterministic `traceId`-hash sub-sample gate before the span (`span-sub-sampling`) |
-| **3 — Wrong tool** | the metric needs full fidelity; sampling loses the signal | move the metric off trace spans — they are the wrong substrate for always-on high-cardinality metrics. Segment is the usual target, but it has its own ungoverned billing gap (`segment-governance`), so it is not a free lunch |
+| **3 — Wrong tool** | the metric needs full fidelity; sampling loses the signal | move the metric off trace spans — they are the wrong substrate for always-on high-cardinality metrics. Segment is the usual target, but its events can ship unregistered, with no CI check and no billing review (data domain `knowledge/segment-governance.md`), so it is not a free lunch |
 
 Tier 0 + 1 stop the bleed now; Tier 2 is the follow-up so the metric returns.
 
@@ -75,12 +75,12 @@ Tier 0 + 1 stop the bleed now; Tier 2 is the follow-up so the metric returns.
 
 | Mistake | Correct approach |
 |---|---|
-| Per-call random sampling (`Math.random()` per span) | Deterministic `traceId`-hash bucket — all spans in a trace kept-or-dropped together, clean waterfalls |
+| Per-call random sampling (`Math.random()` per span) | Deterministic `traceId`-hash bucket — all gated spans in a trace kept-or-dropped together |
 | Gate the span in Sentry config | Gate at the call site; for an injected-callback controller span, gate in the callback so every consumer inherits the cap |
 | Inbound-filter a release you still need data from | Filters drop the whole release — fix in code (Tier 0/2) instead |
 | "No grep hits, so it's safe" | The culprit may be on a release ref not checked out — verify the version/ref |
 | Disable the span on `main` only | Cherry-pick to the active release branch — `main` alone leaves the live release breaching |
-| Treat "move to Segment" as free | Segment events ship without CI governance or billing review (`segment-governance`) |
+| Treat "move to Segment" as free | Segment events ship without CI governance or billing review (data domain `knowledge/segment-governance.md`) |
 | Ship new always-on instrumentation with no kill-switch | Add an env disable flag on day one — turns a future cut into a config flip, not a cherry-pick |
 | An optional `trace?` param passes review because it emits nothing | It is a dormant fan-out — it detonates when any caller supplies the argument. Remove the *param*, not just the argument, so one line can't re-arm it. |
 | Disable one entry point of a multi-path change | One change can reach the backend by more than one path (a controller callback *and* a selector param). Audit every entry point it added, not just the one that fired. |

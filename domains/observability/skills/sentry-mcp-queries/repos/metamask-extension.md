@@ -7,7 +7,7 @@ parent: sentry-mcp-queries
 
 ```
 mcp__sentry__find_organizations  → confirm org slug
-mcp__sentry__find_projects       → metamask-extension (Chrome/MV3 + Firefox/MV2)
+mcp__sentry__find_projects       → metamask (the extension: Chrome/MV3 + Firefox/MV2)
 ```
 
 ## Standard Filter Set for Extension Errors
@@ -21,7 +21,7 @@ Then add `dist:mv3` or `dist:mv2` to isolate by manifest.
 
 ## Sample Rate
 
-Production `tracesSampleRate` = `0.0075` (0.75%) → multiplier ≈ 133×
+Production `tracesSampleRate` = `0.005` (0.5%), the fallback in `getTracesSampleRate()`. `tracesSampler` (`app/scripts/lib/sentry-traces-sampler.ts`) takes precedence over it: a per-name override, the remote `sentry.tracesSampleRate` flag and a sampled parent each set a span's effective rate, so no single multiplier converts stored spans to volume.
 
 ```bash
 # Verify current value before using
@@ -33,8 +33,8 @@ grep "tracesSampleRate" app/scripts/lib/setupSentry.js
 `AssetsFirstInitFetchCompleted` correlates 1:1 with `accounts.api.cx.metamask.io/v1/supportedNetworks` (fires once per init) — **not** `/v4/multiaccount/balances` (fires per account):
 
 ```
-/v1/supportedNetworks:    2.6M sampled (30d) × 133 ≈ 346M event fires / month
-/v4/multiaccount/balances: ~26M sampled × 133 ≈ 3.5B balance API calls / month  (per-account — NOT the event rate)
+/v1/supportedNetworks:     2.6M sampled (30d)   once per init: tracks the event rate
+/v4/multiaccount/balances: ~26M sampled         per account: 10× the init count, NOT the event rate
 ```
 
 Lesson: pick the once-per-event endpoint or you over-count by the fan-out factor.
