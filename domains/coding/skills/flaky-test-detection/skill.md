@@ -19,7 +19,7 @@ Task → Which mode?
 
 ## Constraints
 
-All proposed fixes must comply with `mms-unit-testing` and `mms-coding-guidelines`. Key rules:
+All proposed fixes must comply with `mms-mobile-testing` (unit path) and `mms-coding-guidelines`. Key rules:
 - Use `jest.mocked(fn)` — never `fn as jest.Mock`
 - Use `toBeOnTheScreen()` — never `toBeTruthy()` / `toBeDefined()` for element presence
 - Use `yarn` commands — never npm or npx

@@ -3,7 +3,6 @@ repo: metamask-mobile
 parent: coding-guidelines
 ---
 
-
 # General Coding Guidelines
 
 ## Required Reading Before Development
@@ -17,22 +16,28 @@ parent: coding-guidelines
 **Before Starting**: Read README.md → Check coding guidelines → Review relevant docs → Understand architecture
 
 **Code Quality**:
+
 - TypeScript guidelines from contributor docs • Functional components + hooks • PascalCase (components) / camelCase (functions)
 - Reusable components/utilities • TSDoc format • Comprehensive tests following testing layers (below)
+- Redux selectors: install **selector-patterns** (`yarn skills --include coding/selector-patterns --save`) when writing or updating them.
 
-**Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside testing skills):
-1. **Component-view** (`*.view.test.tsx`) — **default** for screen/view UI behavior via real app state (`component-view-test` skill)
-2. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet (`unit-testing` skill)
-3. **E2E** — full device / multi-screen Appium flows (`e2e-test` skill)
+**Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside `mobile-testing`):
 
-Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Load **component-view-test** and **unit-testing** as peer skills (same documentation level); choose by layer, not by which skill is more familiar.
+1. **Component-view** (`*.view.test.tsx`) — **default** for screen/view UI behavior via real app state
+2. **Integration** (`*.integration.test.ts`) — app-to-controller flows with real controllers/providers/services and only the I/O boundary mocked
+3. **Unit** (`*.test.ts(x)`) — pure helpers, narrow contracts, or cases CV cannot cover yet
+4. **E2E** — justified device/native **Appium** journeys only (after CV + integration)
+
+Do **not** default to broad RTL unit tests that render a whole screen and mock hooks/selectors. Install **`mobile-testing`** and let it route to the matching reference by layer.
 
 **File Organization**:
+
 ```
 ComponentName/
 ├── ComponentName.{constants,stories,styles,types}.ts(x)
 ├── ComponentName.tsx
 ├── ComponentName.view.test.tsx   # preferred for screen/view behavior
+├── ComponentName.integration.test.ts # app-to-controller flow (see testing-layers)
 ├── ComponentName.test.ts(x)      # focused unit only (see testing-layers)
 ├── README.md
 └── index.ts
@@ -46,11 +51,12 @@ ComponentName/
 
 **External**: [MetaMask Contributor Docs](https://github.com/MetaMask/contributor-docs) • [TypeScript Guidelines](https://github.com/MetaMask/contributor-docs/blob/main/docs/typescript.md)
 
-**Testing (Mobile, peer layers)**:
-- Layers policy: testing domain `knowledge/testing-layers.md` (beside `component-view-test` / `unit-testing` when installed)
-- Component-view (default for views): `component-view-test` skill
-- Unit (helpers / CV fallback): `unit-testing` skill • [Contributor unit testing docs](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md)
-- E2E (device journeys): `e2e-test` skill
+**Testing (Mobile)**:
+
+- Entrypoint: `mobile-testing` skill
+- Layers policy: testing domain `knowledge/testing-layers.md` (beside `mobile-testing` when installed)
+- Component-view / integration / unit / Appium E2E / placement: references inside `mobile-testing`
+- Contributor unit docs: [Unit testing](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md)
 
 ## Enforcement (MANDATORY)
 
@@ -58,6 +64,6 @@ ComponentName/
 
 **Commands**: ONLY use `.claude/commands/` + yarn command
 
-**Testing**: CV default for views → unit for allowed fallback → e2e for Appium. Load `component-view-test` and `unit-testing` as peers (plus `e2e-test` when needed); follow testing domain `knowledge/testing-layers.md` when those skills are installed.
+**Testing**: CV default for views → integration for app-to-controller flows → unit for allowed fallback → Appium for justified device journeys. Install `mobile-testing` and follow testing domain `knowledge/testing-layers.md`.
 
 **Forbidden**: ❌ npm/npx commands
