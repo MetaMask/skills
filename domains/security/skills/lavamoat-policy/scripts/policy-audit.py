@@ -2,8 +2,8 @@
 """Turn a LavaMoat policy base/head pair into a per-grant justification worklist,
 and audit hand-written overrides for scope.
 
-Detection is LavaMoat's job: `@metamaskbot update-policies` regenerates the policy from a
-real run of the code and CI fails on drift. This script does NOT re-derive or classify that
+Detection is LavaMoat's job: `@metamaskbot update-policies` regenerates the policy by
+static analysis of the source and CI fails on drift. This script does NOT re-derive or classify that
 diff — it enumerates every capability newly granted so each can be JUSTIFIED with a permalink
 to the dependency's own source, or reported where no call site uses it.
 
