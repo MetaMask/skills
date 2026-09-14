@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- perps: `perps-review-pr` is a thin wrapper over `mm-harness review checklist --domain perps`; the perps review knowledge (anti-patterns, mobile/extension map, shared-package analysis) and the other perps knowledge files now live only in `MetaMask/experimental-metamask-recipe-perps` (`review/`, `docs/knowledge/`), so `domains/perps/knowledge/` and the skill's `repos/` overlay are removed and the sibling perps skills reference the library.
 - Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
 
 ## [0.2.0]
