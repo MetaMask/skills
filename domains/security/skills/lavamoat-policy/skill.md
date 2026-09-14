@@ -279,10 +279,11 @@ Dotted paths already work in these files — `copy-webpack-plugin>serialize-java
 **Runtime claims need a runtime artifact.** A permalink witnesses what a line says; it does not
 witness what *you ran*. "The tarball's complete specifier set is X", "byte-identical across all 8
 policy files", any grep or `npm pack` result — those are claims about a local run, and the reader
-cannot check them. Publish the output and link it, or state the claim as the search it was
-("searched N files, found no match") rather than as a property of the package. Bare integers in
-prose need the same treatment: a reader who cannot trace "14 call sites" to something shown is
-being asked to take it on trust.
+cannot check them. Publish the output next to the exact command or script that produced it and
+link both, since a prose description of the method is not provenance. Otherwise state the claim
+as the search it was ("searched N files, found no match") rather than as a property of the
+package. Bare integers in prose need the same treatment: a reader who cannot trace "14 call
+sites" to something shown is being asked to take it on trust.
 
 ## Worked example — extension#42867 (@sentry/browser 8.33.1 → 10.38.0)
 
