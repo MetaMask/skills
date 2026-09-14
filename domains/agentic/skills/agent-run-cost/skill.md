@@ -27,7 +27,7 @@ posture: operate on **code and PRs**, before the spend exists, and produce figur
 - A workflow gains fan-out — an agent per file, per finding, per test, per PR.
 - Something agentic moves from opt-in to automatic (a CI trigger, a cron, a git hook).
 - An ADR or design proposes agents for work a script already does — the estimate is the
-  argument, and its absence is usually the tell.
+  argument, and its absence can be the tell.
 
 ## Do not use when
 
@@ -41,11 +41,11 @@ the whole problem:
 
 | Amplifier | What it looks like | Effect |
 |---|---|---|
-| **Fan-out** | an agent per item — per file, per finding, per dimension, per round; nested `parallel` inside `pipeline`; a loop-until-dry with no ceiling | N× per run, and N is often data-dependent rather than fixed |
+| **Fan-out** | an agent per item — per file, per finding, per dimension, per round; nested `parallel` inside `pipeline`; a loop-until-dry with no ceiling | N× per run, and N can be data-dependent rather than fixed |
 | **Trigger frequency** | runs on every push rather than on demand; a cron; a label that re-fires on each commit; a retry that respawns the fleet | turns a one-off into a rate |
 | **No kill-switch** | no env var, feature flag, or budget cap; nothing to stop it mid-run; no way to disable without a revert | a runaway costs whatever it costs until someone merges a fix |
 
-One alone is usually fine. **Fan-out × frequency with no kill-switch is the shape that
+One alone can be fine. **Fan-out × frequency with no kill-switch is the shape that
 produces a surprise**, and it is worth naming explicitly in review when all three are present.
 
 ## Producing the estimate
@@ -80,8 +80,8 @@ Cheapest first; stop at the rung that fits.
    silent truncation reads as full coverage and is worse than the cost.
 2. **Narrow the trigger.** On-demand or label-gated instead of every push; on the changed
    subset instead of the tree.
-3. **Right-size the model per stage.** Mechanical stages rarely need the top tier; reserve it
-   for the judgement stages.
+3. **Right-size the model per stage.** Mechanical stages can run on a lower tier. Reserve the
+   top tier for the judgement stages.
 4. **Add a budget guard.** A token ceiling the workflow checks between stages, so it degrades
    instead of running to completion at any price.
 5. **Add a kill-switch.** An env var or flag that disables it without a revert. Cheap to add
@@ -102,7 +102,6 @@ Cheapest first; stop at the rung that fits.
 ## Related
 
 - `sentry-quota` — the same guard for span volume; `fan-out × ungated × no-kill-switch`.
-- `evidence` — weighs AEP run cost when choosing an evidence lane, and tears the stack
-  down after; this skill is the review-side version for workflows others will run.
-- [`MetaMask/decisions#173`](https://github.com/MetaMask/decisions/pull/173) — ADR-0058
-  review, where the missing token-cost estimate was raised as an open question.
+- [`MetaMask/decisions#173`](https://github.com/MetaMask/decisions/pull/173) (Add ADR 0058:
+  Recipe-Based Verification System) — review comments raised the missing token-cost
+  estimate as an open question.
