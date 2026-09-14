@@ -16,6 +16,9 @@
 /domains/assets/         @MetaMask/metamask-assets
 /domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/observability/  @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/observability/skills/*/repos/metamask-extension.md @MetaMask/extension-platform
+/domains/observability/skills/*/repos/metamask-mobile.md    @MetaMask/mobile-platform
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/perps/          @MetaMask/perps
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
