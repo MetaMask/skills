@@ -9,12 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `analytics` skill with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out.
-
-### Changed
-
-- Move `analytics` from `coding` to a new `platform` domain (`platform/analytics`).
-- Align the Mobile analytics overlay with Engine `trackEvent` / `buildAndTrackEvent`, App Opened `type`/`source`, `MetaMetricsEvents` at existing sites, typed `*Tracking.ts` helpers, and the test factory default `build()`.
+- Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
 ## [0.3.1]
 
