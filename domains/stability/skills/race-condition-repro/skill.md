@@ -26,7 +26,9 @@ tested.
 
 1. **State each guarantee separately, in interleaving terms.** Not "retries work" but "when B
    arrives during A's pending window, A's recovery event does not fire." One sentence per
-   guarantee, each naming the arriving operation, the window, and the expected outcome.
+   guarantee, each naming the arriving operation, the window, and the expected outcome. Take
+   the operations from the bug's actual trigger, as its report and investigation comments
+   record it, rather than assuming a race is two user actions.
 
    **An asymmetric guarantee can be the crux.** Two paths that deliberately behave differently
    — a primary retry that *is* cancelable by a newer write, a backup retry that is *not* because a
@@ -51,7 +53,10 @@ tested.
 
    The cheap check: **break the implementation and confirm the test fails.** Revert the ordering
    logic, keep the test file byte-identical, re-run. A test that still passes never exercised the
-   race. Show both runs — that mutation pair is the evidence, not the green run alone.
+   race. Show both runs — that mutation pair is the evidence, not the green run alone. Where the
+   implementation has more than one ordering mechanism, as an asymmetric guarantee does, revert
+   each one separately: a single revert turns the suite red if any one test catches it, which
+   hides a test that never exercised its own mechanism.
 
 4. **Assert the negative side explicitly.** Cancellation guarantees are proven by absence:
    `expect(recoveryEvent).not.toHaveBeenCalled()`. A suite that only asserts things happened

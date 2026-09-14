@@ -28,7 +28,10 @@ point. A test that passes on both proves nothing.
 
 One snapshot shows occupancy, not a leak. You need the **delta across repetition**:
 
-1. Drive the flow once to warm caches; take a baseline snapshot.
+1. Drive the flow once to warm caches; take a baseline snapshot. Load a wallet with state
+   first, such as the power-user state metamask-extension's benchmarks use
+   (`WITH_STATE_POWER_USER` in `test/e2e/benchmarks/utils/constants.ts`), and name the fixture
+   beside every reported slope: an empty wallet cannot show retention that grows with state.
 2. Run N cycles of the suspected flow (open/close, mount/unmount, connect/disconnect).
 3. Force GC, take a second snapshot.
 4. Compare **retained size**, **detached DOM nodes**, and **listener count** — a leak grows

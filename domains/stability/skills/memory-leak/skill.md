@@ -44,7 +44,9 @@ Enumerate the **retention primitives** the change introduces, and for each, name
 2. **Held set** — the *specific* objects pinned. For a listener, list the closure's
    captures (`outStream`, `api`, `messengerSubscription`…). Note when a closure links two
    otherwise-independent objects' GC.
-3. **Outlived boundary** — the moment release *should* happen but doesn't.
+3. **Outlived boundary** — the moment release *should* happen but doesn't. Confirm which event
+   marks it in the dependency's installed source under `node_modules`, not from the event's
+   name: one Node stream emits `end`, `finish` and `close` as three separate events.
 
 **The pairing check is the finding.** The absence of the release, cited at the acquire
 site, *is* the evidence. Cite it as `acquire L<n>` with `no release in scope`, or as
@@ -57,6 +59,9 @@ site, *is* the evidence. Cite it as `acquire L<n>` with `no release in scope`, o
 - **Unremoved listener + capture set** — a listener whose handler closure pins a large set,
   never removed, retained for the emitter's life.
 - **Retention past `destroy()`** — teardown runs but misses one primitive.
+
+State whether each finding is **bounded** (retained until the next replacement) or
+**unbounded** (growing per request with no drain): the severity differs.
 
 ### Scope to the diff, or you invent findings
 
