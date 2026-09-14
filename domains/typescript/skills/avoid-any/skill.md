@@ -39,8 +39,15 @@ Identify which side of an assignment the `any` sits on:
 
 ```typescript
 class BaseController<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Messenger extends RestrictedMessenger<N, any, any, string, string>,
+  ControllerName extends string,
+  ControllerState extends StateConstraint,
+  ControllerMessenger extends Messenger<
+    ControllerName,
+    ActionConstraint,
+    EventConstraint,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any
+  >,
 > // ...
 ```
 

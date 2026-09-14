@@ -21,6 +21,6 @@ Single-pass conversion of a high-fan-in/fan-out file is impractical even for a c
 
 ## How to use it
 
-- **Scope tickets by context cost, not LOC.** Before sizing a migration ticket, estimate fan-in (how many upstream types it must derive from) and fan-out (`grep -rl` importer count). Size by the read-context plus the change surface, not the line count.
+- **Scope tickets by context cost more than LOC.** Before sizing a migration ticket, estimate fan-in (how many upstream types it must derive from) and fan-out (`grep -rl` importer count). Size by the read-context plus the change surface, and treat line count as a minor factor.
 - **Sequence low-fan-out first.** Convert leaf / low-fan-out files early — few downstream edits per PR. Files whose upstream types are already TypeScript are cheaper on the fan-in side and give later conversions more typed ground to derive from.
 - **When the change surface won't fit one PR, reduce it first.** A hub with high fan-out is the case to decompose: split it into coherent units so each unit's fan-out — and thus each PR — is bounded (see `decompose-large-files`). Decomposition is one response to high context cost, not the only place the cost applies.

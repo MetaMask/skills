@@ -11,10 +11,12 @@ blind spots bite this repo, and where they live, go in the overlay; run mechanic
 NODE_OPTIONS='--max-old-space-size=9216' npx tsc -p tsconfig.json --noEmit
 ```
 
-`package.json`'s `lint:tsc` uses `--max-old-space-size=6144`, which **OOMs** on a
-full run on a 16 GB machine — and the OOM exits non-zero with no type diagnostics,
-so a naive exit-code check reads it as "errors found." Raise the heap and read the
-output. A full run takes roughly 3–5 minutes.
+`package.json`'s `lint:tsc` uses `--max-old-space-size=6144`, and CI's `Test lint`
+job ran it over the full project at that heap and exited 0 (`main` at
+`0269fae48a`, 2026-09-14). A local full run can still **OOM**, and the OOM exits
+non-zero with no type diagnostics, so a naive exit-code check reads it as "errors
+found." If it does, raise the heap and read the output. A full run takes roughly
+3–5 minutes.
 
 ## Where to put probes
 

@@ -1,6 +1,6 @@
 ---
 name: derive-types
-description: Derive types from authoritative sources (indexed access, `typeof`, `ReturnType`/`Parameters`, `Pick`/`Omit`, `Infer<typeof struct>`) instead of hand-writing ad-hoc types that duplicate, run too wide, and drift.
+description: Derive types from authoritative sources (indexed access, `typeof`, `ReturnType`/`Parameters`, `Pick`/`Omit`, `Infer<typeof struct>`) instead of hand-writing ad-hoc types that duplicate, run too wide or too narrow, and drift.
 maturity: experimental
 ---
 
@@ -15,7 +15,7 @@ When a type already exists at an authoritative source — a controller's state t
 An ad-hoc type — one hand-defined to describe a value an authoritative type already describes — carries three dangers:
 
 - **Duplication.** The same shape is stated twice; every reader reconciles them and every change touches both.
-- **Incorrect, usually too wide.** A hand-written type is a _guess_ at the source's shape, and the guess is almost always looser than the real type — it admits values the authoritative type would reject, so invalid data still type-checks.
+- **Incorrect in either direction.** A hand-written type is a _guess_ at the source's shape, and the guess can miss either way. Too wide, it admits values the authoritative type would reject, so invalid data still type-checks. Too narrow, it drops a case the source allows, such as a `| undefined`, and erases the compiler's record of why a runtime guard exists (see the five divergence shapes in `tsc-blindspots`).
 - **Drift.** The source evolves; the copy does not. Because it is hand-written rather than derived, the compiler cannot flag the divergence — the bug surfaces at runtime, not at build.
 
 ## A grounded example (`metamask-extension` #42583)
@@ -55,7 +55,7 @@ type TokenDetails = ReturnType<
 >;
 ```
 
-The messenger itself should extend the controller's `RestrictedMessenger` parameterized with those exported action types, so every `call` signature comes from the controller rather than a hand-rolled overload. The hand-rolled version is worse than a plain duplicate: one return is hand-copied (already looser than the controller's real type), the other (`Promise<unknown>`) discards the type entirely.
+The messenger itself should be a `Messenger` from `@metamask/messenger` parameterized with those exported action types, so every `call` signature comes from the controller rather than a hand-rolled overload. The hand-rolled version is worse than a plain duplicate: one return is hand-copied (already looser than the controller's real type), the other (`Promise<unknown>`) discards the type entirely.
 
 The same PR also typed a dependency `getMetaMaskState: () => Record<string, unknown>`, which forced every consumer to re-cast the shape by hand — including a `{ metamask: getMetaMaskState() } as never` double-cast. That downstream cast tax is what a too-wide type always imposes; deriving the dependency from the authoritative state type deletes it. Notably the same file _did_ derive one type correctly (`type Action = (typeof ACTIONS)[number]`), so the pattern was already in hand — the discipline is extending it to every referenced type.
 

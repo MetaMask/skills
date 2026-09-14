@@ -14,7 +14,7 @@ Reference application: `metamask-extension` #41735 (`MetamaskController` decompo
 
 Documenting a large file's modularizable boundaries — one coherent unit per ticket — is worth doing **even if the file could somehow be converted and reviewed in a single PR**, because identifying those boundaries is the first logical step of _any_ migration process, human or AI. The boundary map is not throwaway scaffolding; it is the migration's own plan.
 
-And a single-pass conversion is impractical even for a capable AI — the binding constraint is the file's **context fan-in and fan-out** (upstream source types + downstream consumers), not its line count (see `migration-context-cost`). Decomposing shrinks each unit's context to one subject plus its seam, which is what makes the conversion tractable and reviewable at all.
+And a single-pass conversion is impractical even for a capable AI — the binding constraint is the file's **context fan-in and fan-out** (upstream source types + downstream consumers), with its line count a minor factor (see `migration-context-cost`). Decomposing shrinks each unit's context to one subject plus its seam, which is what makes the conversion tractable and reviewable at all.
 
 ## The decision that matters: what is a coherent unit?
 
