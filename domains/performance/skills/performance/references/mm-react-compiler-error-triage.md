@@ -56,10 +56,10 @@ Track four buckets — **compiled / skipped / errors / unsupported** — at file
 
 What the buckets tell you:
 
-- **compiled** — your real optimization coverage. "The compiler is enabled" claims nothing; this number does.
+- **compiled** — your real optimization coverage, minus one gap: a module-scope `'use no memo'` directive still logs `CompileSuccess` for every function in the file before the directive discards the transform, so those files land here too, not in `skipped`. "The compiler is enabled" claims nothing; this number does.
 - **errors** — the actionable backlog. Each is a Rules-of-React fix.
 - **unsupported** — the compiler's backlog, not yours. Trend it across compiler upgrades.
-- **skipped** — intentional exclusions: test/story files, `'use no memo'` directives, and **class components** (never compiled — metamask-mobile#30919 counted 53 at full enablement; migration to function components is the only way to move them into the compiled bucket).
+- **skipped** — intentional exclusions: test/story files and **class components** (never compiled — metamask-mobile#30919 counted 53 at full enablement; migration to function components is the only way to move them into the compiled bucket). A `'use no memo'` directive lands here only when it sits inside one function's body, logging `CompileSkip`. A module-scope one, at the top of the file, logs as `compiled` instead.
 
 ## Staged adoption roadmap
 
@@ -73,14 +73,14 @@ The extension's sequence (epic MetaMask-planning#6549) generalizes to any repo:
 ## Verify
 
 - Per component: `Memo ✨` badge in React DevTools (see [js-profile-react.md](js-profile-react.md)).
-- Per repo: the compiled-files count from the logger stats rises (or at least doesn't silently fall) release over release — silent coverage regressions are the failure mode this file exists to catch.
+- Per repo: the compiled-files count from the logger stats rises (or at least doesn't silently fall) release over release, read against the `'use no memo'` opt-out count from the roadmap's audit step. A module-scope directive still logs as `compiled`, so the raw count alone can rise while real coverage doesn't. Silent coverage regressions are the failure mode this file exists to catch.
 - After a compiler version bump: re-run the verbose build and diff the `unsupported` list — `Todo`s that became `compiled` are free wins; new `error`s are regressions to triage.
 
 ## Don't over-correct
 
 - **Never "fix" a `Todo`.** Rewriting working code around an unimplemented compiler feature is churn with no perf evidence; the next compiler release may compile it as-is.
 - Don't gate releases on compiler errors (`panicThreshold` stays `'none'` in production builds).
-- Don't treat `skipped` as a problem — tests, stories, and deliberate opt-outs belong there. The smell is *unexplained* `'use no memo'` directives, not the bucket itself.
+- Don't treat `skipped` as a problem — tests, stories, and function-body opt-outs belong there (a module-scope `'use no memo'` counts as `compiled`, not `skipped`). The smell is *unexplained* `'use no memo'` directives, not the bucket itself.
 - A component without `Memo ✨` is not automatically a bug to chase — check the buckets first; it may be `unsupported`.
 
 ## Related
