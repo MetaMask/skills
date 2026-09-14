@@ -59,7 +59,7 @@ const secondsOfDay = +match[1] * 3600 + +match[2] * 60 + +match[3];
 Extend `collectMetrics()` in `test/e2e/webdriver/driver.js` and register the metric key in `test/e2e/benchmarks/utils/constants.ts` → `ALL_METRICS`.
 
 - **Performance API metrics** (paint, navigation timing): collect directly inside `collectMetrics()` via `window.performance.getEntriesByType(...)`.
-- **Long Task / TBT metrics**: already wired — `collectMetrics()` reads `window.stateHooks.getLongTaskMetricsWithTBT()`. Adding new long-task-derived metrics requires extending the `stateHooks` observer, not the driver.
+- **Long Task / TBT metrics**: already wired — `collectMetrics()` reads `window.stateHooks.getLongTaskMetricsWithTBT()`. Adding new long-task-derived metrics requires extending the `stateHooks` observer, not the driver. Where the browser delivers no `longtask` entries, the observer in `ui/helpers/utils/performance-observers.ts` leaves every count and duration at its initial 0, so a 0 reads the same whether no task ran long or no entry was observed. TBT and every long-task metric read exactly 0 in 60 of 60 recorded Firefox runs.
 
 ## Common Pitfalls
 
