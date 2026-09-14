@@ -22,7 +22,7 @@ Methodology for profiling and comparing extension performance across branches or
 
 ## Workflow
 
-1. **Build both branches** with `yarn build:test` on the same machine and Chrome version
+1. **Build both branches** on the same machine and Chrome version: `yarn build:test` for the E2E benchmarks, and a development build (`yarn start` or `yarn build:test:dev`) for the React DevTools Profiler
 
 2. **WDYR profiling** (unnecessary re-render counts)
    ```bash
@@ -33,7 +33,7 @@ Methodology for profiling and comparing extension performance across branches or
    - `different functions with the same name` → callback recreation
    - `props object itself changed but values equal` → parent cascade
 
-3. **React DevTools Profiler** for flame graphs and commit timings
+3. **React DevTools Profiler** for flame graphs and commit timings, on a development build. `yarn build:test` passes `--mode production`, which sets `NODE_ENV=production`, and React's production build records no profiling data.
    ```bash
    yarn devtools:react
    ```
@@ -58,7 +58,7 @@ Methodology for profiling and comparing extension performance across branches or
 
 ## Pre-Profiling Checklist
 
-- [ ] Both branches built with `yarn build:test`
+- [ ] Both branches built with `yarn build:test` (benchmarks) and a development build (React DevTools Profiler)
 - [ ] Same machine, same Chrome version
 - [ ] No other tabs or applications running
 - [ ] WDYR enabled: `ENABLE_WHY_DID_YOU_RENDER=true`

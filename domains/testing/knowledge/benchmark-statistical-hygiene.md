@@ -15,11 +15,11 @@ Later benchmark rounds accumulate system noise (background load, memory pressure
 **Instead:** Compute per-round statistics first, then report the cleanest signal per metric with explicit round attribution.
 
 ```
-Round 1 (clean):    metric X → treatment wins, p=0.04, d=-1.7
-Round 2 (moderate): metric X → treatment wins, p=0.08, d=-0.9
-Round 3 (noisy):    metric X → no effect,       p=0.90, d=+0.04
+Round 1 (clean):    metric X → treatment wins,           p=0.04, d=-1.7
+Round 2 (moderate): metric X → treatment wins,           p=0.08, d=-0.9
+Round 3 (noisy):    metric X → not resolvable at this n, p=0.90, d=+0.04
 
-Pooled (all):       metric X → no effect,       p=0.50, d=-0.2   ← signal destroyed
+Pooled (all):       metric X → not resolvable at this n, p=0.50, d=-0.2   ← signal destroyed
 
 Correct report: "X improved 49% (Round 1, n=5, p=0.04, d=-1.7).
                  Pooled n=20 loses significance due to Round 3 outliers."
