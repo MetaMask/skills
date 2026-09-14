@@ -80,8 +80,8 @@ Use when a Sentry trace looks truncated at the network boundary.
 | --- | --- | --- |
 | Client and backend spans, backend parented on the client's request span | Healthy join; per-hop latency is attributable | — |
 | Client and backend spans, backend parented on an enclosing operation root | Propagation is attaching the wrong parent, so the backend span sits beside its caller instead of beneath it | The client's header-injection path |
-| Backend spans only, client parent referenced but nowhere | Orphan: the flag instructed recording, head sampling discarded the client span | Client sample rate, or decoupling the flag from head sampling |
-| Client spans only, no backend span anywhere | Either no header was propagated to that host, or the flag was `-00` so the backend never created a span | Propagation targets, then the flag |
+| Backend spans only, client parent referenced but nowhere | Orphan: the flag instructed recording, head sampling discarded the client span. Or no client span was active when the request went out, so the SDK sent a parent id from its scope's propagation context that no span carries | Client sample rate, or decoupling the flag from head sampling, or whether a span is active at the call site |
+| Client spans only, no backend span anywhere | Either no header was propagated to that host, or the flag was `-00` so the backend never created a span | Propagation targets (`tracePropagationTargets`), then whether `traceparent` is sent at all (`propagateTraceparent`, off by default in the Sentry SDK, since an OpenTelemetry backend does not read Sentry's own `sentry-trace` header), then the flag |
 | Backend in Tempo but not in Sentry when it should be | Environment attribute does not match a forwarding policy | The service's environment tagging |
 | Nothing in either store | Head-sampled out end to end | Expected at low sample rates |
 
@@ -93,9 +93,13 @@ Nesting takes the parent identity and the times, not the picture. Take the backe
 - Resolves to a transaction root or custom operation span → the backend span is a sibling of its caller; hop latency cannot be read off the waterfall.
 - Resolves to nothing in either store → orphan.
 
+Node services truncate span starts to whole milliseconds, because the OpenTelemetry JS SDK stamps a start from `Date.now()`. A start and an end within the same millisecond do not establish which came first.
+
 ## Traps
 
 - **Time windows differ per store.** Tempo retention is typically much shorter than Sentry's, so an older trace legitimately exists in one and not the other. Confirm the window before concluding a half is missing.
+- **Window a parent lookup on the parent, not the child.** A parent starts before its child, so a window that opens at the child's start excludes the parent by construction and manufactures a false orphan.
+- **Client-observed duration includes time no span records.** An `http.client` span also holds time in any tier that emits no spans, such as a CDN in front of the backend, and time queued for a connection once Chrome's six-connections-per-origin limit is full.
 - **Verify credentials on both sides first.** A Grafana token without datasource scope and an out-of-scope Sentry token both present as empty results, which read as "no data" rather than as "not allowed". Confirm each side returns something before concluding a half is missing.
 - **A relative time window on a shared link expires.** Pin absolute ranges when the link needs to outlive the incident.
 - **One sampling decision can be shared across a long-lived trace id.** If a client reuses a trace id across many operations, the proportion of spans marked sampled will not match the nominal client rate; do not read that ratio as an effective sample rate.

@@ -30,12 +30,12 @@ mcp__sentry__find_organizations → org slug
 mcp__sentry__find_projects     → project slug(s)
 ```
 
-All subsequent tools require `organization_slug` and usually `project_slug`. Slug mismatch causes silent empty results.
+All subsequent tools require `organization_slug` and usually `project_slug`. Slug mismatch causes silent empty results. A filter on an attribute the dataset does not carry also returns an empty result with no error, so run the query without that filter as a control before reading a zero. `mcp__sentry__search_events` returns at most 100 rows per call, has no cursor, and accepts only a relative `period` such as `90d`.
 
 ## Workflow: Error Triage
 
-1. `mcp__sentry__search_issues` — find by title, fingerprint, or keyword
-2. `mcp__sentry__get_issue_tag_values` — check `dist` distribution **before** attributing root cause
+1. `mcp__sentry__search_issues` — find by title, fingerprint, or keyword. An issue is a grouping bucket, not a fault: Sentry groups by stack trace, which the issue list does not return, so two issues with matching titles are not shown to be one fault.
+2. `mcp__sentry__get_issue_tag_values` — check `dist` distribution **before** attributing root cause. An error's tag distribution does not reflect the user population's, so also compare `count_unique(user.id)` by that tag.
 3. If 99%+ one dist → platform lifecycle root cause (see `extension-errors-debugging`)
 4. `mcp__sentry__search_issue_events` — individual events for stack trace detail
 5. `mcp__sentry__analyze_issue_with_seer` — AI-assisted hypothesis (validate against code)
@@ -64,6 +64,8 @@ Compare error rates or metrics across releases for regression detection:
    ```
 6. Report delta against baseline with sample-size caveat
 
+Sentry's Endpoint Regression detector checks p95 transaction duration only for server operations (`http.server`, `serverless.function`, `asgi.server`, `rails.request`, `function.aws`, `function.aws.lambda`), so a browser transaction such as `pageload` gets no automatic regression issue and needs this comparison.
+
 ## Filtering Unreliable Releases
 
 Patch releases have uneven adoption — comparing raw counts against them produces false signal. Skip a release before comparing if:
@@ -85,15 +87,15 @@ Patch releases have uneven adoption — comparing raw counts against them produc
 Widening the window past ~30 days to gain sample size trades it back for **fidelity loss on older releases**. Three effects compound:
 
 - **Sample-rate drift** — `tracesSampleRate` changes between releases, so absolute span counts across a 30D+ window mix different capture rates. Normalize each release by *its own* sample rate (or by sessions/users), never a single global rate.
-- **Extrapolation hides thin samples** — span datasets report sample-rate-weighted (extrapolated) counts. A release with 40 stored spans at 0.75% extrapolates to ~5,300 — a real-looking number backed by 40 events. Always check the **stored** sample count, not the extrapolated total, before trusting a release.
-- **Retention downsampling** — spans near the retention boundary are partially evicted, so an old release's count is truncated, not representative. Treat the oldest releases in a 30D+ window as lower bounds only.
+- **Extrapolation hides thin samples** — span datasets report sample-rate-weighted (extrapolated) counts. A release with 40 stored spans at 0.75% extrapolates to ~5,300 — a real-looking number backed by 40 events. Always check the **stored** sample count (`count_sample()`), not the extrapolated total, before trusting a release. A group backed by a single stored span reports that span's extrapolation weight, not 1, so a per-entity ranking at high cardinality (`groupBy` trace, user or session) or a ratio such as `count()` / `count_unique(trace)` measures sample weight rather than volume. For one trace's stored span count, read `GET /api/0/organizations/{org}/trace-meta/{trace_id}/?project=-1&statsPeriod=<window>`, which does not extrapolate.
+- **Retention downsampling** — spans near the retention boundary are partially evicted, so an old release's count is truncated, not representative. Treat the oldest releases in a 30D+ window as lower bounds only. Span listings over a long window undercount as well, not only aggregate counts.
 
 **For p75+ analysis** (any tail percentile — p75/p90/p95/p99), sample size *and* quality both matter:
 
 - **Size** — percentiles are computed over stored events. p50 stabilizes in the low hundreds; p75 needs more; p95/p99 need thousands of stored spans. Below that, a handful of outliers move the number — don't report a tail percentile you can't back with stored count.
-- **Quality** — rollout-window spans (first-launch, cold cache, state migration) skew the tail high. A superseded patch release's spans are disproportionately these, so its p75+ reads worse than its steady state would.
+- **Quality** — rollout-window spans (first-launch, cold cache, state migration) skew the tail high. A superseded patch release's spans are disproportionately these, so its p75+ reads worse than its steady state would. In the extension project, 84.8% of `span.op:pageload` transactions were measured as not user-visible page loads, and the service worker's `pageload` adopts every request made before `finalTimeout` as a child. Scope a pageload percentile by transaction name.
 
-**Resolving the size-vs-fidelity tension:** when a single release lacks the sample to support p75+, **collapse the patch chain** — aggregate `release:X.Y.*` across the minor line, or compare against the last *widely-adopted* patch — rather than extending the window into aged, downsampled, sample-rate-drifted territory. Reach for sample size *across adjacent stable patches inside the retention-safe window*, not by going further back in time. Use a longer (90d) window as the **primary, comparable-across-releases** source for p75/p95 and a 30d window only as **secondary context** — 30d over-weights the users still lingering on old versions and inflates baselines.
+**Resolving the size-vs-fidelity tension:** when a single release lacks the sample to support p75+, **collapse the patch chain** — aggregate `release:X.Y.*` across the minor line, or compare against the last *widely-adopted* patch — rather than extending the window into aged, downsampled, sample-rate-drifted territory. Reach for sample size *across adjacent stable patches inside the retention-safe window*, not by going further back in time. Use a longer (90d) window as the **primary, comparable-across-releases** source for p75/p95 and a 30d window only as **secondary context** — 30d over-weights the users still lingering on old versions and inflates baselines. A 90d query has returned `meta.dataScanned: partial` from the events API, meaning Sentry scanned only part of the window, and the `mcp__sentry__search_events` output does not show that field.
 
 For attributing a confirmed p75/p95 movement to specific code changes, see the `performance-attribution` skill.
 
@@ -101,6 +103,8 @@ For attributing a confirmed p75/p95 movement to specific code changes, see the `
 
 1. `mcp__sentry__search_issue_events` — find an event ID with replay/profile
 2. `mcp__sentry__get_replay_details` / `mcp__sentry__get_profile_details` for that event ID
+
+The extension's `setupSentry.js` configures no profiling integration or `profilesSampleRate`, and browser profiling needs a `Document-Policy` response header that an MV3 extension cannot set, so the extension has no profiles to retrieve.
 
 ## Tag Filters
 
@@ -124,6 +128,8 @@ For attributing a confirmed p75/p95 movement to specific code changes, see the `
 | Compare raw event counts across releases | Normalize by sessions — traffic changes masquerade as regressions |
 | Include a <48h-old release in a regression comparison | Wait for rollout; auto-update adoption takes 2–7 days |
 | Treat every patch release as a comparison point | Most patches have low adoption — compare to the last *widely-adopted* release |
+| Treat a release absent from a `sort:-count()` top-N result as filtered out | It fell below the volume cut, which is not an exclusion. Query it by name |
 | Trust a release's p95 because its (extrapolated) span count looks large | Check the *stored* sample — p75+ needs hundreds-to-thousands of stored events to be stable |
 | Compare span counts across a 30D+ window at face value | Normalize per-release sample rate; older releases are downsampled / retention-truncated |
+| Read the newest minutes of a window that ends now as complete | Ingestion lag was measured at ~14 min, so those minutes read low |
 | Anchor a percentile on a `.0` release | `.0` releases have 10–100× fewer samples — use the highest-sample patch in the minor line |

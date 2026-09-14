@@ -29,13 +29,14 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 
 1. **Register a named trace entry** in the repo's trace name enum before writing any span code. Unnamed spans are invisible in Sentry filters.
 2. **Use the repo's `trace()` wrapper**, not raw `Sentry.startSpan()`. Wrappers handle cross-process context propagation, active-span inheritance, and consistent tag injection.
-3. **Inherit parent automatically** — when no `parentContext` is provided, the wrapper inherits from `Sentry.getActiveSpan()`, making the new span a child of the active parent (e.g., a `pageload` span).
+3. **Inherit parent automatically** — when no `parentContext` is provided, the wrapper inherits from `Sentry.getActiveSpan()`, making the new span a child of the active parent (e.g., a `pageload` span). That parent is whichever span is active at the call, not necessarily the one that caused the work, which metamask-extension#45527 (stop spans silently attaching to whatever trace happens to be active) proposes to fix. A span started by `trace()` without a callback is active only inside that call, so spans created before its `endTrace()` do not nest under it.
 
 ### Updating a Span
 
 - Adding a tag: no governance required
 - Renaming a trace name enum entry: grep all callsites; update enum and references atomically
 - Changing an `op` value: breaks saved queries and dashboards — coordinate with whoever owns them
+- Moving a span's start (`trace()`) or end (`endTrace()`): changes what its duration measures, so a release-over-release delta mixes a performance change with a definition change
 
 ---
 
@@ -70,7 +71,7 @@ When direct Segment access is unavailable, estimate from Sentry production span 
 3. **Read the `count()` aggregate.** Span datasets already extrapolate it by each span's sample weight, so it is the estimate. Do not multiply it by `1 / tracesSampleRate`, which extrapolates twice.
 4. **Interpret as upper bound** — endpoint may have callers outside the event path.
 
-Caveats: sample population is MetaMetrics opted-in users only. For longer-range (30D+) or release-over-release queries, the sampled count is **not** comparable at face value — older releases are downsampled / retention-truncated and `.0` releases are sample-thin; see `sentry-mcp-queries` (Longer-Range Queries and Percentile Fidelity) and the `performance-attribution` skill.
+Caveats: sample population is MetaMetrics opted-in users only. The extension's Sentry integration drops every event unless `consentDecisionMade && optedIn`, and Segment gates differently, so attribution across the two pipelines holds at install granularity, not per session. For longer-range (30D+) or release-over-release queries, the sampled count is **not** comparable at face value — older releases are downsampled / retention-truncated and `.0` releases are sample-thin; see `sentry-mcp-queries` (Longer-Range Queries and Percentile Fidelity) and the `performance-attribution` skill.
 
 ---
 

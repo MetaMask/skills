@@ -41,7 +41,13 @@ export function shouldSampleWrappers(traceId: string | undefined): boolean {
 ## Gate Order (cheapest check first)
 
 ```ts
-const traceId = sentryGetActiveSpan()?.spanContext().traceId;
+let traceId: string | undefined;
+try {
+  traceId = sentryGetActiveSpan()?.spanContext().traceId;
+} catch {
+  // The span may have ended or be invalid. A tracing failure must not escape
+  // into the work itself, so fall through with no trace id.
+}
 if (!traceId || isReadOnlyAction(action) || !shouldSampleWrappers(traceId)) {
   return doWorkWithoutSpan();
 }
@@ -59,6 +65,8 @@ Drop spans with no timing/attribution signal before sub-sampling. In PR #39891, 
 ```ts
 const READ_ONLY_VERB = /^(?:get|has|find|is|peek)(?:[A-Z]|$)/u;
 ```
+
+The denylist covers `messenger.call` only. `rpc.handler` spans reach the sub-sample gate with no denylist, and 34.9% of them were read-only in one recorded measurement.
 
 Removing ~90% of volume before the sample multiplies headroom — a higher sub-rate then yields the same span budget, so kept traces are denser and more useful.
 

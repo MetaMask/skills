@@ -17,7 +17,7 @@ environment:production
 installType:normal
 ```
 
-Then add `dist:mv3` or `dist:mv2` to isolate by manifest.
+Then add `dist:mv3` or `dist:mv2` to isolate by manifest. Production releases are named `metamask-extension@<version>`, so filter `release:metamask-extension@13.47.0`, not `release:13.47.0`.
 
 ## Sample Rate
 

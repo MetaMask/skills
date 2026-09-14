@@ -82,9 +82,9 @@ App-repo diffs miss work shipped as `@metamask/*` version bumps — it surfaces 
 
 - **Correlation, not causation** — change + improvement in the same release does not prove the change caused it
 - **Release totals, not isolated impact** — a "-44%" reflects the entire release, not one change
-- **Production variance** — user hardware and network are uncontrolled
+- **Production variance** — user hardware and network are uncontrolled, and each release's user mix differs (early updaters on a new release, lingering users on an old one)
 - **Code analysis, not runtime profiling** — based on structure, not measured execution paths
 - **p95 cohort is assumed, not verified** — no power-user segmentation
 - **Window choice changes the baseline** — always state which window a number came from
 
-For more precise attribution: per-optimization feature flags / A-B tests, CI synthetic benchmarks, and verified user-cohort segmentation.
+For more precise attribution: per-optimization feature flags / A-B tests, CI synthetic benchmarks, and verified user-cohort segmentation. Threshold remote feature flags assign each user to a fixed group by hashing a per-user id (the canonical profile ID, or the MetaMetrics ID before a profile exists), so a threshold flag gives a stable A/B split.

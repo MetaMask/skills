@@ -15,7 +15,7 @@ Primary source is Sentry **Trace Explorer** (not Dashboard 219877): <https://met
 
 | Transaction | What it measures |
 |---|---|
-| `UI Startup` | Extension click → interactive UI |
+| `UI Startup` | Extension click → interactive UI. Service-worker boot is a separate trace, rooted under `/service-worker.js`, so background startup work is not in it |
 | `/home.html` | Home page render |
 | `Asset Details` | Token/NFT detail view render |
 | `/notification.html` | dApp confirmation popup (approvals/signatures) — high-frequency for power users, compounds with usage |
@@ -76,13 +76,14 @@ App-repo diffs miss work shipped as version bumps. Diff `package.json`, then rea
 | `@metamask/network-controller` | RPC call handling, retry logic |
 
 ```bash
-git diff v13.X.X..v13.Y.Y -- package.json | grep -E "@metamask/(assets-controllers|transaction-controller|network-controller)"
+git diff v13.X.X..v13.Y.Y -- package.json | grep -E '^[-+] +"'   # every changed dependency, @metamask/* and others
 ```
 
 Example findings:
 
 - `@metamask/transaction-controller` v62.8.0 — deprecated `history` / `sendFlowHistory` from `TransactionMeta` → significant state-size reduction for power users (consumed in extension [#38665](https://github.com/MetaMask/metamask-extension/pull/38665)).
 - `@metamask/assets-controllers` v94.0.0 ([core #7408](https://github.com/MetaMask/core/pull/7408)) — Account API v2 → v4 for token detection → fewer RPC calls, delegated detection.
+- `@sentry/browser` 10.x: a CI benchmark ceiling breach was traced to this bump (benchmark harness, not production), so read bumps outside `@metamask/*` too.
 
 ## Worked Example: v13.11 → v13.15 (90d)
 

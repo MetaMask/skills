@@ -6,7 +6,7 @@ maturity: experimental
 
 # grafana-tempo-queries
 
-Tempo holds **backend** spans. Client spans from the extension and mobile go to Sentry via the SDK's own transport and never appear here — so a Tempo trace normally starts at an inbound server span, and a missing root is expected rather than broken. To join the two halves, see `sentry-grafana-correlation`.
+Tempo holds **backend** spans. Client spans from the extension and mobile go to Sentry via the SDK's own transport and never appear here — so a Tempo trace normally starts at an inbound server span, and a missing root is expected rather than broken. Mobile sends no trace context to the backend: its `tracePropagationTargets` name no backend host and it does not set `propagateTraceparent`, so a backend trace for a mobile request shares no trace id with the mobile client's spans. To join the two halves, see `sentry-grafana-correlation`.
 
 ## Setup
 
@@ -64,7 +64,7 @@ If several different filters all return exactly your `limit`, the filter is not 
 
 ## Core queries
 
-Every endpoint wants an explicit epoch-seconds window. Omitting it on a by-id lookup makes the request hunt across all blocks and hit a context deadline.
+Every endpoint wants an explicit epoch-seconds window. Omitting it on a by-id lookup makes the request hunt across all blocks and hit a context deadline. A window is not always enough: a by-id lookup of a session-length trace has returned 500 with one.
 
 ```bash
 NOW=$(date +%s); START=$((NOW-3600))
@@ -99,6 +99,7 @@ curl -s -G "$BASE/api/v2/search/tag/span.db.system/values" "${AUTH[@]}" \
 | One service | `{resource.service.name="svc-name"}` |
 | Several services | `{resource.service.name=~"(svc-a|svc-b)-prd"}` |
 | Attribute present at all | `{span.db.system != nil}` |
+| Attribute absent, which a `!=` comparison skips | `{span.db.system = nil}` |
 | Span kind | `{kind=server}`, `{kind=client}` |
 | Slow spans | `{duration > 1s}` |
 | **Two conditions anywhere in the same trace** | `{resource.service.name="svc-a"} && {span.db.system != nil}` |
@@ -126,7 +127,7 @@ console.log(`${process.env.GRAFANA_HOST}/explore?orgId=${process.env.GRAFANA_ORG
 ' '<trace-id-or-traceql>'
 ```
 
-Prefer an absolute `from`/`to` when the link needs to outlive the event; a relative window slides off it and the reader opens an empty result.
+Prefer an absolute `from`/`to` when the link needs to outlive the event; a relative window slides off it and the reader opens an empty result. The Explore state in a link can be dropped across an SSO redirect, so a reader who is not yet signed in can land on an empty Explore.
 
 ## Failure modes
 
@@ -136,6 +137,7 @@ Prefer an absolute `from`/`to` when the link needs to outlive the event; a relat
 | Every filter returns exactly `limit` | Filter not applied | Run the negative control |
 | By-id lookup times out | No time window | Pass `start`/`end` |
 | Tag-values returns 502 | High cardinality | Inspect traces directly |
+| Cloudflare error 1015 instead of JSON | Parallel requests tripped the rate limit in front of Grafana | Send requests one at a time |
 | Id from search not found elsewhere | Leading zeros stripped | Zero-pad to 32 chars |
 | Kind filter matches nothing | Comparing to a number | Compare to `SPAN_KIND_*` |
 | Trace has no root | Root is a client span | Expected; see `sentry-grafana-correlation` |

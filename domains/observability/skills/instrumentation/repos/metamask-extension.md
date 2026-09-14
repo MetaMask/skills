@@ -13,7 +13,8 @@ parent: instrumentation
 | Anonymous-event marking (`excludeMetaMetricsId`) | `app/scripts/controllers/analytics/analytics.ts` → `applyAnonymousEventOptions()` |
 | Event enum | `shared/constants/metametrics.ts` → `MetaMetricsEventName` |
 | Sentry setup + sample rate | `app/scripts/lib/setupSentry.js` → `getTracesSampleRate()` |
-| Segment tracking plan | `Consensys/segment-schema` → `tracking-plans/metamask-extension.yaml` |
+| Sentry `user.id` (set to the MetaMetrics `analyticsId`) | `app/scripts/lib/sentry-metametrics.ts` → `metaMetricsIntegration()` |
+| Segment tracking plan | `Consensys/segment-schema` → `tracking-plans/metamask-extension.yaml`, which lists event libraries. Event definitions live in `libraries/events/<library>/` |
 
 ## Cross-Process Context (UI → Background)
 
@@ -32,6 +33,10 @@ trace({ name: TraceName.MyOperation, parentContext: context }, async () => { ...
 ```
 
 Without propagation: Sentry shows two disconnected operations. With propagation, the background span joins the UI's trace under whichever UI span was active at the call, which is not necessarily the span that caused it. `submitRequestToBackground` attaches a context only when a UI span is active at call time. Without one, `createMetaRPCHandler` runs the handler with no `rpc.handler` span and outside the UI's trace.
+
+The serialized context carries no sampled flag, so the background continues every propagated trace as sampled. `tracesSampler` then keeps the background span at rate 1 unless a per-name override or a ceiling applies, so background spans can be stored for a trace whose UI root was sampled out.
+
+The UI and background timestamps do not share a clock. In 17 of 96 measured traces they disagreed by up to 67 minutes, so a duration computed across the boundary is not reliable.
 
 ## Sentry Sample Rate
 
