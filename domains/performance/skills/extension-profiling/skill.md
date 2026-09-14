@@ -45,14 +45,14 @@ Methodology for profiling and comparing extension performance across branches or
 
 5. **Collect ≥10 runs** per scenario. Discard top/bottom 10%. Report mean, median, stddev, p75, p95.
 
-6. **Statistical threshold:** Cohen's d > 0.5 for a meaningful difference.
+6. **Effect size:** report the difference in the metric's own units alongside Cohen's d. Cohen's d is the difference divided by the benchmark's own spread, so the difference worth acting on comes from product impact, fixed before the runs.
 
 ## Common Pitfalls
 
 | Mistake | Correct Approach |
 |---------|-----------------|
 | Running branches on different machines or Chrome versions | Same machine, same Chrome, no other apps running |
-| Pooling all runs including noisy late-session ones | Compute per-round stats first; report cleanest signal with explicit round attribution |
+| Pooling all runs including noisy late-session ones | Fix the primary analysis, and any rule for dropping a round, before the runs. Report per-round stats as sensitivity, with explicit round attribution |
 | Reporting absolute re-render counts without scenario context | Normalize per-action; cascade fixes show multiplied impact at root |
 | Skipping cache and state reset between runs | Clear browser cache, reset extension state for each run |
 
