@@ -1,8 +1,8 @@
 # Phase 2 — runtime investigation
 
-Reach for this **only** when Phase 1 (static pairing) leaves an introduced primitive it
-cannot pair, or when the claim is explicitly about magnitude ("retained heap grows across N
-cycles", "detached nodes accumulate"). A snapshot confirms a *suspected* leak and shows its size and retainer chain — but a
+Reach for this when Phase 1 (static pairing) leaves an introduced primitive it cannot pair,
+when the claim is explicitly about magnitude ("retained heap grows across N cycles",
+"detached nodes accumulate"), or when a no-leak verdict is to be demonstrated. A snapshot confirms a *suspected* leak and shows its size and retainer chain — but a
 non-leak is also worth demonstrating: a flat retained-heap curve across N cycles is positive
 evidence, valid **only beside a positive control** (a known-leaking arm that grows), because a
 measurement that cannot detect a leak cannot prove its absence. See `scripts/heap-over-cycles.example.ts`
@@ -32,7 +32,11 @@ One snapshot shows occupancy, not a leak. You need the **delta across repetition
 2. Run N cycles of the suspected flow (open/close, mount/unmount, connect/disconnect).
 3. Force GC, take a second snapshot.
 4. Compare **retained size**, **detached DOM nodes**, and **listener count** — a leak grows
-   roughly linearly in N. A flat delta refutes the leak.
+   roughly linearly in N. Report which instruments moved and which stayed flat. A flat
+   instrument beside one that moved is a joint observation that narrows *what* is retained,
+   not a refutation: a flat byte total beside a rising count of live objects says the retained
+   objects are small, not that nothing is retained. A flat delta on every instrument refutes
+   the leak only beside a positive control that grows.
 
 Capture (Chrome, extension context):
 - DevTools Memory panel → *Allocation instrumentation on timeline* or two heap snapshots
@@ -59,6 +63,12 @@ weaker.
   naming the culprit is a symptom, not a diagnosis.
 - **Warm the caches first** — the first cycle populates legitimate one-time caches that would
   otherwise read as a leak.
+- **Measure on an isolated host.** Any GC, timing or memory figure that will be published
+  runs on a machine doing nothing else, not the one the investigation runs on.
+- **Replicate across hosts** before publishing a result, the fix arm of an intervention
+  included. A fix arm that reads clean on one machine can retain on another.
+- **Labels encode the expected direction**, such as `expected: flat` or `expected: grows`,
+  printed beside the measured delta. A label never asserts the result.
 
 ## Scrub before sharing
 

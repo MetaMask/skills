@@ -1,6 +1,6 @@
 ---
 name: race-condition-repro
-description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving rather than a value. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved — operations run to completion in sequence exercise no race and produce a vacuous green indistinguishable from a real pass, so the proof obligation is to show the interleaving occurred, not that the assertion passed. Triggers on /mms-race-condition-repro, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race. Callable by `evidence` as its deterministic-interleaving engine, and named by `falsifying-test` as its sibling for ordering bugs.
+description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving rather than a value. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved — operations run to completion in sequence exercise no race and produce a vacuous green indistinguishable from a real pass, so the proof obligation is to show the interleaving occurred, not that the assertion passed. Triggers on /mms-race-condition-repro, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race.
 maturity: experimental
 ---
 
@@ -28,7 +28,7 @@ tested.
    arrives during A's pending window, A's recovery event does not fire." One sentence per
    guarantee, each naming the arriving operation, the window, and the expected outcome.
 
-   **Asymmetric guarantees are usually the crux.** Two paths that deliberately behave differently
+   **An asymmetric guarantee can be the crux.** Two paths that deliberately behave differently
    — a primary retry that *is* cancelable by a newer write, a backup retry that is *not* because a
    split write could leave backed-up keys stale — need one forced interleaving each. A harness
    that proves the symmetric half and assumes the other has proven the easy one.
@@ -59,10 +59,11 @@ tested.
    "must complete" (`.toHaveBeenCalledWith(...)`) with its "must not" counterpart.
 
 5. **Corroborate the integration path if the claim reaches beyond the unit.** The deterministic
-   harness is a *model* — exhaustive and fast, but a model. For a high-stakes claim, add one live
-   forced-race capture in the real runtime (CDP/injection, the force-the-unobservable technique)
-   to show the race exists where the model says it does. Unit harness for coverage, live capture
-   for reality; use both when the cost of being wrong is high.
+   harness is a *model* — exhaustive and fast, but a model. Search first: query existing
+   telemetry (error reports, traces, logs) for the race occurring in the real runtime before
+   building anything that produces it. A forced-race capture staged in the real runtime (CDP or
+   injection) shows the mechanism is reachable there. It does not show the race occurs in use,
+   so label it as staged and never let it stand in for incidence.
 
 6. **Report transition telemetry with enough labeling to distinguish branches.** `retry-recovered`
    is ambiguous when there are two retry paths; `set-retry-recovered` vs
@@ -81,7 +82,8 @@ Ordering guarantees — <component> <claim>
 
 Interleaving verified: <how time was advanced / where the concurrent op was injected>
 Mutation check: <impl reverted> → <N failures>, test file unchanged
-Live corroboration: <capture> | not run
+Telemetry search: <query> → <what it found> | not run
+Staged live capture (reachability, not incidence): <capture> | not run
 ```
 
 Lead with the guarantee table — one row per guarantee, each naming how the interleaving was
@@ -92,8 +94,8 @@ Report the mutation pair (head green / reverted red) as the evidence that the ha
 
 - **Not the generic falsifying test.** These *are* falsifying tests, but the category is the
   *technique* (forced deterministic interleaving) and the *claim shape* (ordering, not values).
-  `falsifying-test` names this skill as its sibling for ordering bugs; use that one when the claim
-  is a value or a behavior and the base/head arms are the whole story.
+  When the claim is a value or a behavior and the base/head arms are the whole story, a plain
+  falsifying test is enough.
 - **Not flake diagnosis.** A test that fails intermittently is a different problem from a
   guarantee that needs proving. Determinism here is the *method*, not the goal.
 - **Not performance under load.** Throughput and contention are timing questions; this is about
@@ -105,13 +107,3 @@ Correctness of the *reasoning* about a race is not something to assert from read
 guarantee depends on runtime semantics — what an `AbortController` actually cancels, whether a
 microtask runs before a timer callback — cite the behavior or demonstrate it in the harness rather
 than describing it.
-
-## Related
-
-- `evidence` — this skill is its deterministic-interleaving engine: `evidence` decides that a
-  concurrency claim needs an interleaving proof, and calls here to produce one. The category note
-  is [`deterministic interleaving` in the evidence catalog](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
-  A relative path would not survive installation — skills flatten to `mms-<name>/`, so a link
-  out of one skill into another only resolves as a URL.
-- `falsifying-test` — the sibling engine for ordering bugs that reproduce without a forced
-  interleaving.

@@ -1,6 +1,6 @@
 ---
 name: memory-leak
-description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, only for a primitive that cannot be paired statically — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs) and escalates to a heap snapshot only where the read is inconclusive. Triggers on /mms-memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot. Callable by `evidence` as its memory-leak engine.
+description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, for a primitive that cannot be paired statically or a no-leak verdict to demonstrate beside a positive control — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs), which sets the order of the work, not its extent. Triggers on /mms-memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot.
 maturity: experimental
 ---
 
@@ -14,13 +14,14 @@ everything its closure pins, survives past its lifecycle.
 
 **The core move — pair every acquire with its release.** For each retention primitive the
 code introduces, find the matching teardown in the same scope. A primitive *with* a
-teardown is safe. A primitive *without* one is the finding — and the only place a heap
-snapshot could earn its cost.
+teardown is safe. A primitive *without* one is the finding, and the first place to point a
+heap snapshot.
 
 > **Lead with the read, not the instrument.** A heap snapshot is the *last* step, not the
 > first. The decisive, cheap step is the read a reviewer already does: enumerate the
-> primitives, pair each against its release. Escalate to the profiler only for a primitive
-> the read cannot pair. Most leak claims are settled without ever taking a snapshot.
+> primitives, pair each against its release. Escalate to the profiler for a primitive the
+> read cannot pair. The read sets the *order* of the work, not its extent: a no-leak verdict
+> the read predicts can still be demonstrated at runtime, beside a positive control.
 
 ## Phase 1 — Identification (static, from the diff) — the lead
 
@@ -49,7 +50,7 @@ Enumerate the **retention primitives** the change introduces, and for each, name
 site, *is* the evidence. Cite it as `acquire L<n>` with `no release in scope`, or as
 `acquire L<n> → release L<m> (on <boundary>)` when it is paired.
 
-**Four canonical leak shapes** (what an unpaired primitive usually is):
+**Four leak shapes** (forms an unpaired primitive can take):
 - **Unbounded accumulator** — a collection with a defeated or missing eviction, no drain.
 - **Stale-instance listener** — on singleton replacement, the old instance's listeners
   are never removed; both instances now receive dispatches.
@@ -68,12 +69,13 @@ extension#40684 the two new stream listeners each had a `removeListener` on
 three pre-existing un-torn-down listeners were surfaced and left uncharged, matching how the
 reviewers treated them.)
 
-## Phase 2 — Investigation (runtime) — only for an unpaired primitive
+## Phase 2 — Investigation (runtime)
 
-A snapshot is warranted **only** when Phase 1 finds an introduced primitive it cannot pair,
-or when the claim is specifically about *magnitude* ("retained heap grows across N cycles").
-Full runtime procedure: **[references/heap-investigation.md](references/heap-investigation.md).**
-In brief:
+Run it when Phase 1 finds an introduced primitive it cannot pair, when the claim is about
+*magnitude* ("retained heap grows across N cycles"), or when a no-leak verdict is to be
+demonstrated rather than asserted. **Read [references/heap-investigation.md](references/heap-investigation.md)
+before running any of it.** It carries the escalation order, the capture steps and the trust
+gate. In brief:
 
 - **Falsifying lifecycle test first** (cheaper than a snapshot, and deterministic): force the
   boundary in a test, assert release — listener count returns to zero, singleton nulled,
@@ -81,6 +83,9 @@ In brief:
 - **Heap-over-a-flow** when a test can't reach it: DevTools/CDP heap snapshots before and
   after N cycles of the flow; compare **retained size** and **detached-node / listener
   count**, not a single snapshot (one snapshot shows occupancy, not growth).
+- **A flat result needs a positive control.** A flat retained-heap curve is evidence of no leak
+  only beside an arm known to leak that grows under the same measurement. A measurement that
+  cannot detect a leak cannot prove its absence.
 - **The retainer graph must name the same path** the static argument named. If the profiler's
   retainer chain does not match the Phase-1 holder→held→boundary, one of them is wrong —
   reconcile before concluding.
@@ -99,57 +104,75 @@ Retention review — <change>
 NEW (introduced here):
   ok   <acquire L..>  → <release L..> (on <boundary>)
   OPEN <acquire L..>  → no release in scope   ← heap-snapshot candidate
+  SKIP <acquire L..>  → no pass paired this form: not examined
 PRE-EXISTING (surfaced, not charged):
   --   <acquire L..>  → no release (pre-existing)
-Verdict: no retention path introduced   |   OPEN candidate warrants a snapshot (Phase 2)
+Examined: <N> of <M> NEW acquires
+Verdict: no retention path introduced   |   OPEN candidate warrants a snapshot (Phase 2)   |   <k> NEW acquires not examined, not clean
 ```
 
-Every figure resolves to a line number a reader can open. Present it in situ where possible
-(the scan output, the failing lifecycle test, the retainer graph) rather than as prose.
+Every site cites a permalink pinned to a commit sha, so a reader can open the line. Present
+it in situ where possible (the scan output, the failing lifecycle test, the retainer graph)
+rather than as prose.
 
 ## Worked example — extension#40684 (extract patch-store substream)
 
-Phase 1 on the diff found three introduced primitives:
-`outStream.on('data', handleIncomingMessage)` (L6881), `this.on('update', handleUpdate)`
-(L6883), and a `#pendingGetStatePatchesRequests` Map (L49). Each paired: `removeListener`
-at L6886/L6887 inside `onStreamClosed`, and `.delete` at L187 against the `.set` at L107.
-**Verdict: no leak introduced — no snapshot taken.** The teardown at L6886 was the exact fix
-a reviewer had suggested in-thread; the static read reproduced the review's conclusion. Three
-pre-existing un-paired listeners were surfaced and left uncharged.
+Phase 1 on the diff found three introduced primitives, cited at the PR's head commit `e03c9e9`:
+`outStream.on('data', handleIncomingMessage)`
+([`metamask-controller.js#L6881`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/app/scripts/metamask-controller.js#L6881)),
+`this.on('update', handleUpdate)`
+([`#L6883`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/app/scripts/metamask-controller.js#L6883)),
+and a `#pendingGetStatePatchesRequests` Map
+([`patch-store-substream-connection.ts#L49`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/ui/store/patch-store-substream-connection.ts#L49)).
+Each paired: `removeListener` at
+[`#L6886`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/app/scripts/metamask-controller.js#L6886)
+and [`#L6887`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/app/scripts/metamask-controller.js#L6887)
+inside `onStreamClosed`, and `.delete` at
+[`#L187`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/ui/store/patch-store-substream-connection.ts#L187)
+against the `.set` at
+[`#L107`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/ui/store/patch-store-substream-connection.ts#L107).
+**Verdict: no leak introduced.** The read settled it without a snapshot.
+[`scripts/heap-over-cycles.example.ts`](scripts/heap-over-cycles.example.ts) is the two-arm driver
+for demonstrating the non-leak at runtime, the head code beside a control that withholds
+responses. The teardown at
+[`#L6886`](https://github.com/MetaMask/metamask-extension/blob/e03c9e93b2bcc3b292ded81cc8953747759ce189/app/scripts/metamask-controller.js#L6886)
+was the exact fix a reviewer had suggested in-thread; the static read reproduced the review's
+conclusion. Three pre-existing un-paired listeners were surfaced and left uncharged.
 
 ## Worked example — extension#44352 (Firefox detached-window leak, a real leak)
 
 Phase 1 finds nothing to pair: the leak is not a listener, timer, or map the diff adds — it is
-a *native object's* lifecycle. Snow's (pre-existing) picture-in-picture hook reads
-`win.documentPictureInPicture.requestWindow` on every window it wraps; that property read
-lazily instantiates a per-window `DocumentPictureInPicture`, and Firefox's cycle collector
-cannot break its preserved-wrapper cycle — so every closed popup's document is retained. There
+a *native object's* lifecycle. Snow's (pre-existing) picture-in-picture hook, on every window it
+wraps, assigns its wrapper closure onto `win.documentPictureInPicture.requestWindow`, the
+per-window `DocumentPictureInPicture` instance. On Firefox 153 reading that property leaks
+nothing by itself (a read-only arm retained 0/12). The assignment is the leaking step: the
+closure, stored as an expando on the instance's preserved wrapper, forms a cycle Firefox's cycle
+collector cannot break (12/12 retained), so every closed popup's document is retained. There
 is no acquire/release in the changed lines to match, so the evidence is Phase 2 run forward:
 
-- **Magnitude, not a snapshot** — retained heap climbs ~105 MB (~70 detached windows) per popup
-  open/close, *linearly*; 30 cycles → 3.56 GB, and the detached documents survive a forced GC.
+- **Magnitude, not a snapshot** — reported by the PR, not reproduced: ~70 detached window
+  entries (~105 MB on a fresh test wallet) in `about:memory` per popup open/close, linear with
+  use. 30 cycles leave 3.56 GB on 13.37.0, and the detached documents survive a forced GC.
   One snapshot shows occupancy; the slope across cycles is the leak.
 - **Retainer graph** — names the holder (the per-window `documentPictureInPicture` instance)
   and the boundary (window close, where the collector should reclaim it but can't).
-- **Intervention test** — the fix reads the constructor prototype
-  `win.DocumentPictureInPicture.prototype.requestWindow` instead of the instance getter. No
-  per-window instance is created, the cycle never forms, the slope flattens. Changing *only*
-  the accessor the graph named — instance to prototype — and watching the growth vanish is what
-  proves the graph found the cause, not a correlate. A three-line patch to `@lavamoat/snow`;
-  linked issue #42891.
+- **Intervention test** — the fix installs the hook on the constructor prototype,
+  `win.DocumentPictureInPicture.prototype.requestWindow`, instead of assigning it onto the
+  per-window instance. Moving *only* the closure assignment, from instance to prototype, is the
+  intervention that separates cause from correlate. A three-line patch to `@lavamoat/snow`,
+  fixing extension#42891 (Memory leak in Firefox). The PR reports its intervention (only this
+  hook changed, 30 cycles) taking retained documents from +2,100 (3.35 GB) to -13 (1.6 MB),
+  reported, not reproduced. A separate two-arm reproduction's prototype arm read 0, 0 and 2
+  across three runs on the working machine, and 6/8 in each of six replicates on a fresh
+  isolated host, with valid controls in all six. The records disagree, so the causal claim
+  stays open until the fix arm replicates across hosts.
 
-**The lesson for the hunt:** a native-lifecycle leak — a property read that instantiates an
-object the engine can't collect — is invisible to Phase 1 pairing, because there is no
+**The lesson for the hunt:** a native-lifecycle leak, a closure stored on a native object in a
+cycle the engine can't collect, is invisible to Phase 1 pairing, because there is no
 acquire/release in the diff. When the claim is about *magnitude* and no diff primitive explains
-it, go straight to Phase 2, and let the intervention test carry the causal claim. #44352 is the
-Phase-2 counterpart to #40684: the same discipline that *proves the absence* of a leak
-(#40684, the read settles it) *proves the presence and cause* of one here.
-
-## Called by `evidence`
-
-`evidence` keeps [**memory leak**](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md) as an evidence category and delegates the analysis here:
-it invokes this skill on the PR's diff, takes the verdict + the paired/unpaired sites, and
-packages them as the category's evidence (an in-situ capture of the scan, plus the lifecycle
-test or retainer graph if Phase 2 ran). This skill is the engine; `evidence` is the
-orchestrator that publishes the result. Usable standalone for any leak hunt, in review or in
-an incident, PR or not.
+it, go straight to Phase 2, and let the intervention test carry the causal claim once it
+replicates. Reproduce the operation under test, the assignment, and not a proxy for it such as
+the read: an arm that only reads would have cleared the hook. extension#44352 (the Firefox
+detached-window leak) is the Phase-2 counterpart to extension#40684 (the patch-store substream
+extraction): the read settles the absence of a leak there, and runtime measurement has to carry
+the presence of one here.
