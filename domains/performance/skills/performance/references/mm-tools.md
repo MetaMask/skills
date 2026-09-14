@@ -80,7 +80,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
       Both dropping → start with JS profiling
 
 "FPS drops while scrolling a list"
-  → Perf Monitor to confirm → RN DevTools Profiler (or Flashlight, if installed) → js-lists-flatlist-flashlist.md
+  → Perf Monitor to confirm → RN DevTools Profiler (or Flashlight live vitals, if installed — js-flashlight.md) → js-lists-flatlist-flashlist.md
 
 "Components re-render too much"
   → React Native DevTools → "why did this render?" → mm-selector-memoization.md / mm-redux-antipatterns.md
@@ -95,8 +95,10 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
 "A hook/component re-renders the whole list even though children are memoized"
   → mm-unstable-hook-return.md (a hook returns a new array/object ref every render → defeats downstream memo)
 
-"I can't see network calls on Android"
-  → Reactotron (DevTools network tab doesn't work on Android)
+
+"Is this slow flow data-bound or render-bound?"
+  → Network panel for request timings → js-network-panel.md
+  → Performance panel for the full React+JS+network timeline → js-performance-panel.md
 
 "Memory grows over a session / crashes after long use"
   → js-memory-leaks.md (JS)  or  native-memory-leaks.md (native)
@@ -105,7 +107,7 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
   → instrument with trace() (below) → native-measure-tti.md → bundle-analyze-js.md
 
 "How do I prove my fix is faster?"
-  → Reassure (render count) + trace() (duration) [+ Flashlight FPS, if installed]. Baseline → fix → re-measure.
+  → Reassure (render count) + trace() (duration) [+ Flashlight live FPS for a quick check, if installed — js-flashlight.md]. Baseline → fix → re-measure.
 
 "Prevent regressions going forward"
   → Reassure perf-test in CI  +  E2E performance gates (mms-performance-testing skill)
@@ -129,19 +131,21 @@ Then read what's emitted — a load log (e.g. `source: 'cache' | 'fresh_fetch'`,
 - **Interpret:** JS drops → expensive renders/selectors/computation. UI drops → native rendering/animation. Both → start JS-side.
 - **Next:** React Native DevTools.
 
-### React Native DevTools (re-renders, timing, memory) — iOS + Android
+### React Native DevTools (re-renders, timing, memory, performance) — iOS + Android
 - **Open:** press `j` in Metro, or shake → "Open DevTools". Hermes is on for both platforms, so this works everywhere.
 - **Profiler:** ⚙️ → enable "Record why each component rendered" → Start → reproduce the **exact** interaction → Stop.
 - **Read:** flamegraph (yellow = slow), Ranked view (slowest first), right panel "why did this render?" (props/hook/parent).
 - **Next:** props churn → `useCallback`/memo; selector new-ref → [mm-selector-memoization.md](mm-selector-memoization.md); parent re-render → move state down / [mm-context-performance.md](mm-context-performance.md).
 - **JS CPU:** the JavaScript Profiler tab → Heavy (Bottom-Up) for non-React hot functions.
+- **Performance panel:** Performance tab → Record → run the flow → Stop. Shows React scheduler phases, the Components flamegraph, the JS Thread, and Network events on one timeline. Use it when the Profiler alone doesn't explain a slow flow. See [js-performance-panel.md](js-performance-panel.md).
+- **Network panel:** Network tab → records `fetch()`/`XHR`/`<Image>` automatically. Timings, headers, response previews, and an Initiator call stack. Tells you if a slow screen is data-bound vs render-bound. See [js-network-panel.md](js-network-panel.md).
 
-### Reactotron (network on Android)
-- Network inspection when the DevTools network tab is unavailable on Android.
+### Reactotron (network on Android — pre-0.83 fallback)
+- Network inspection for **pre-0.83** setups where the DevTools Network tab is unavailable on Android. On RN 0.83+ prefer the DevTools [Network panel](js-network-panel.md) (works on Android). WebSocket events still aren't captured by the Network panel — Reactotron remains useful there.
 
 ### Flashlight (optional, external — NOT installed in this repo)
-- **Not in `package.json`** — it's an external Callstack tool. Don't assume it's available; for day-to-day FPS use Perf Monitor + RN DevTools.
-- **If you install it** (separately, from a verified release — don't pipe a remote script to a shell): `flashlight measure --output results.json` → `flashlight compare baseline.json current.json` for an automatable Android score (before/after, CI).
+- **Not in `package.json`** — it's an external, Lighthouse-type tool for mobile apps. Don't assume it's available; for day-to-day FPS use Perf Monitor + RN DevTools.
+- **If you install it** (separately, from a verified release — don't pipe a remote script to a shell): **`flashlight measure`** starts a live, interactive web UI for watching Android vitals (FPS/CPU-per-thread/RAM/score) while you drive the flow by hand. Non-deterministic; good for triage. See [js-flashlight.md](js-flashlight.md). For reproducible before/after or CI numbers, use the in-repo Reassure + `trace()` path instead.
 
 ### Reassure (render-time regression gate) — INSTALLED
 - **Use:** guard a component/hook against render-time regressions before merge.
@@ -217,4 +221,4 @@ A code session often has no running device, so "Measure first" isn't literally p
 
 ## Related
 
-- [mm-power-user-scenario.md](mm-power-user-scenario.md) · [js-measure-fps.md](js-measure-fps.md) · [js-profile-react.md](js-profile-react.md) · [native-measure-tti.md](native-measure-tti.md)
+- [mm-power-user-scenario.md](mm-power-user-scenario.md) · [js-measure-fps.md](js-measure-fps.md) · [js-flashlight.md](js-flashlight.md) · [js-profile-react.md](js-profile-react.md) · [js-performance-panel.md](js-performance-panel.md) · [js-network-panel.md](js-network-panel.md) · [native-measure-tti.md](native-measure-tti.md)

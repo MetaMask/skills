@@ -5,4 +5,5 @@ description: >-
   Mobile. Use when the user asks to create, add, generate, scaffold,
   initialize, or set up a new component, UI component, or feature
   component.
+base: true
 ---
