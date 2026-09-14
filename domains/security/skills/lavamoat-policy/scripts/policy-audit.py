@@ -5,7 +5,7 @@ and audit hand-written overrides for scope.
 Detection is LavaMoat's job: `@metamaskbot update-policies` regenerates the policy from a
 real run of the code and CI fails on drift. This script does NOT re-derive or classify that
 diff — it enumerates every capability newly granted so each can be JUSTIFIED with a permalink
-to the dependency's own source (accept), or REJECTED where no call site uses it.
+to the dependency's own source, or reported where no call site uses it.
 
 With --override it also audits `policy-override.json`. Per lavamoat-core/src/mergePolicy.js the
 effective policy is `mergePolicy(generated, override)`, with priority to stricter decisions in
@@ -160,8 +160,8 @@ def main():
     print("PER-GRANT JUSTIFICATION WORKLIST")
     print("=" * 74)
     print("Detection is LavaMoat's; each row below needs a REASON, not a category.")
-    print("Justify with a permalink to the dependency's source at the installed version")
-    print("(accept), or reject where no call site uses the capability.\n")
+    print("Justify with a permalink to the dependency's source at the installed version,")
+    print("or record that no call site uses the capability.\n")
 
     if not grants:
         print("  (no new grants between base and head — nothing to justify)")
@@ -169,11 +169,11 @@ def main():
         for pkg, kind, cap in grants:
             mark = "!" if is_critical(pkg, cap) else " "
             print(f"  {mark}[ ] {pkg[:38]:40s} {kind[:3]}:{cap:22s}"
-                  "  reason: <upstream file#Ln @ tag>   verdict: accept|REJECT")
+                  "  call site: <upstream file#Ln @ tag | none found>")
         crit = [g for g in grants if is_critical(g[0], g[2])]
         print(f"\n  {len(grants)} grant(s) to justify"
               + (f"; {len(crit)} marked ! for escalation." if crit else "."))
-        print("  A grant with no locatable call site is the finding — reject it.")
+        print("  A grant with no locatable call site is the finding — report it for the reviewer.")
 
     if not over_p:
         return
