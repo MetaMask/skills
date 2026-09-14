@@ -57,6 +57,9 @@ SENSITIVE = [
 GUARDS = [
     (r"\buseExternalServices\b|\bbasicFunctionality\b", "basic-functionality gate"),
     (r"\bparticipateInMetaMetrics\b|\bcanSubmitAnalytics\b|\boptedIn\b|\boptIn\b", "consent gate"),
+    # Its own label: Sentry requires `consentDecisionMade && optedIn`, and a shared
+    # label would count the surviving `optedIn` as re-adding a dropped decision check.
+    (r"\bconsentDecisionMade\b", "consent-decision gate"),
     (r"\bisEnabled\b|\bfeatureFlag\w*\b|\bremoteFeatureFlags\b", "feature gate"),
     (r"\bsanitiz|\bredact|\bmask\b|\bscrub\b|\banonymi", "sanitiser"),
     (r"\bvalidate\w*\s*\(|\bassert\w*\s*\(|\bisValid\w*\s*\(", "validation"),
