@@ -66,7 +66,7 @@ What the buckets tell you:
 The extension's sequence generalizes to any repo:
 
 1. **Lint clean:** update `eslint-plugin-react-hooks` / `eslint-plugin-react-compiler` to latest; fix violations — these are exactly what the compiler will refuse to compile.
-2. **Audit opt-outs:** every `'use no memo'` carries a reason + TODO; the count only goes down. `grep -rn "use no memo" app --include="*.ts*"`.
+2. **Audit opt-outs:** every `'use no memo'` carries a reason + TODO; the count only goes down. `grep -rn "use no memo" app --include="*.ts*"`. A directive can be masking nothing: remove it and re-run the compiler, and zero new errors means it was not load-bearing.
 3. **Ratchet `critical_errors`:** non-prod build passes; fix what surfaces.
 4. **Ratchet `all_errors`:** remaining actionable errors fixed; what's left is the `Todo` (unsupported) set, which you wait out.
 
