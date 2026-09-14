@@ -32,7 +32,7 @@ Before claiming a platform lifecycle event causes application behavior:
 
 1. Is there an explicit handler (`onSuspend`, `beforeunload`) that triggers the claimed effect?
 2. Is there a keepalive mechanism preventing the lifecycle event?
-3. Does relevant state persist across restarts (`chrome.storage.session`, IndexedDB)?
+3. Does relevant state persist across restarts (`chrome.storage.local`, `chrome.storage.session`, IndexedDB)?
 4. Are timers alarm-based (persist across SW restart) or `setTimeout`-based (don't)?
 5. Is the guard/flag reset by the lifecycle event or by a separate application event?
 
@@ -41,8 +41,8 @@ Before claiming a platform lifecycle event causes application behavior:
 | Assumption | Reality |
 |------------|---------|
 | SW eviction triggers lock | No `onSuspend` lock handler — SW eviction does NOT trigger lock |
-| Timers lost on SW restart | Auto-lock uses Chrome Alarms API — persists across SW restarts |
-| State lost on SW restart | Wallet state persists in `chrome.storage.session` and IndexedDB |
+| Timers lost on SW restart | Auto-lock uses Chrome Alarms API — persists across SW restarts. Snap cronjobs run on in-memory timers, but `CronjobController` keeps each event's next run date in state, and `init()` reschedules from it. A recurring job that came due while the worker was down runs at once, and a one-off background event that came due is dropped |
+| State lost on SW restart | Wallet state persists in `chrome.storage.local`, with an IndexedDB backup |
 | SW evicts frequently during active use | A keepalive writes `chrome.storage.session.set` on a short interval, and each `chrome.*`/`browser.*` call resets the 30s idle timer. Cold starts are frequent: about 5.3 per Chromium UI page open in July 2026 production telemetry, from causes that include browser launch and extension reload. Whether idle termination is also among them is not established. **Re-verify before relying on it — see below.** See `mv3-service-worker` knowledge for mechanism and verification discipline |
 
 ### Re-verify the keepalive before reasoning from it

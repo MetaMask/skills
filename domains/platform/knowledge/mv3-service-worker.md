@@ -10,7 +10,7 @@ description: MV3 service worker lifecycle — Chrome background termination mode
 
 | Manifest | Background | Default Lifecycle | Mitigated in MetaMask? |
 |----------|------------|-------------------|------------------------|
-| MV3 (Chrome) | Service Worker | Idle termination after 30s, hard cap ~5 min | Yes — see Idle Termination Mitigation |
+| MV3 (Chrome) | Service Worker | Terminated after 30s idle, when one event or API call runs over 5 min, or when a `fetch()` response takes over 30s | Yes — see Idle Termination Mitigation |
 | MV2 (Firefox) | Background Page | Always running | N/A |
 
 ## Idle Termination Mitigation

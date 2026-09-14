@@ -23,7 +23,7 @@ Communication is message-based (Chrome runtime messaging). Code in `app/scripts/
 ```
 Controller state changes (app/scripts/)
     ↓
-metamask-controller.js batches via debounce (200ms)
+metamask-controller.js batches via debounce (200ms, 1s maxWait)
     ↓
 UI receives batched state via sendUpdate
     ↓
@@ -61,7 +61,7 @@ Errors concentrated in MV3 (99%+) → root cause is service worker lifecycle, no
 app/scripts/
 ├── controllers/              # Feature controllers (one per domain)
 ├── lib/                      # Background utilities
-└── metamask-controller.js    # Main aggregator; 200ms debounce
+└── metamask-controller.js    # Main aggregator; 200ms debounce, 1s maxWait
 
 ui/
 ├── components/               # Reusable React components

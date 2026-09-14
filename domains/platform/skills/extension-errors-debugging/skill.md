@@ -21,7 +21,7 @@ description: Diagnose browser extension errors — MV3 vs MV2, background/UI con
 
 ## Workflow
 
-1. **Check distribution** — Filter by `dist` tag. Is the error 99%+ MV3, MV2, or split?
+1. **Check distribution** — Filter by `dist` tag. Is the error 99%+ MV3, MV2, or split? Tag splits count errors, not users, so compare the split against how users divide across the same tag before reading a skew as a cause.
 2. **Classify root cause** — MV3-only → service worker lifecycle (specifically cold-start cascade; ongoing idle termination is mitigated — see `mv3-service-worker` knowledge). Split → application logic. MV2-only → Firefox behavior.
 3. **Identify context** — Is the error from background (`app/scripts/`) or UI (`ui/`)? Stack trace file paths reveal this.
 4. **Check error tags** — Verify `environment`, `installType`, and `dist` are what you expect (these are independent dimensions).
