@@ -33,11 +33,11 @@ yarn lavamoat:auto
 
 | Property | Value |
 |---|---|
-| Location | `app/scripts/background.js:750-758` |
-| Function | `saveTimestamp` at `background.js:651-655` calls `browser.storage.session.set({ timestamp })` |
+| Location | `app/service-worker.ts:9-20` |
+| Function | `saveTimestamp` at `service-worker.ts:11-15` calls `chrome.storage.session.set({ timestamp })` |
 | Cadence | 2000 ms via `setInterval` |
 | Effect | Each call resets Chrome's 30s SW idle timer — prevents idle eviction during active sessions |
-| Gate | `PreferencesController.enableMV3TimestampSave !== false` |
+| Gate | None in 13.41.0 and later. Earlier builds: `PreferencesController.enableMV3TimestampSave !== false` |
 
 Active-session keepalive failures are rare and should be investigated as code bugs, not platform behavior. Cold-start cascade and first-flush latency are the actual MV3-concentrated failure modes — see `mv3-service-worker` knowledge for mechanism, failure modes table, and verification discipline.
 

@@ -15,36 +15,38 @@ description: MV3 service worker lifecycle — Chrome background termination mode
 
 ## Idle Termination Mitigation
 
-`app/scripts/background.js:750-758` runs a 2s `browser.storage.session` write loop. `saveTimestamp` (defined at `background.js:651-655`) writes an ISO timestamp into session storage:
+`app/service-worker.ts:9-20` runs a 2s `chrome.storage.session` write loop. `saveTimestamp` (defined at `service-worker.ts:11-15`) writes an ISO timestamp into session storage:
+
+    const SAVE_TIMESTAMP_INTERVAL_MS = 2 * 1000;
 
     function saveTimestamp() {
       const timestamp = new Date().toISOString();
-      browser.storage.session.set({ timestamp });
+
+      chrome.storage.session.set({ timestamp });
     }
-    ...
-    const SAVE_TIMESTAMP_INTERVAL_MS = 2 * 1000;
+
     saveTimestamp();
     setInterval(saveTimestamp, SAVE_TIMESTAMP_INTERVAL_MS);
 
-Each `chrome.*` / `browser.*` API call resets the 30s idle timer. At 2s cadence the worker stays alive indefinitely while the extension is active. `storage.session` (not `storage.local`) is deliberate — it is MV3-only, in-memory, and does not accumulate disk writes from a heartbeat.
+Each `chrome.*` / `browser.*` API call resets the 30s idle timer. At 2s cadence the timer is reset well before it expires. `storage.session` (not `storage.local`) is deliberate — it is MV3-only, in-memory, and does not accumulate disk writes from a heartbeat.
 
 | Property | Value |
 |---|---|
-| API | `browser.storage.session.set` (MV3-only, in-memory) |
+| API | `chrome.storage.session.set` (MV3-only, in-memory) |
 | Interval | 2000 ms (`SAVE_TIMESTAMP_INTERVAL_MS`) |
-| Gate | `PreferencesController.enableMV3TimestampSave !== false` (default true) |
-| Inline comment | `background.js:752` — "This keeps the service worker alive" |
+| Gate | None in 13.41.0 and later. Earlier builds: `PreferencesController.enableMV3TimestampSave !== false` (default true) |
+| Inline comment | `service-worker.ts:18` — "This keeps the service worker alive" |
 | Pattern origin | De facto community consensus, not officially endorsed by Chrome DevRel |
 | Re-verify if | Chromium policy change on idle-timer API interactions |
 
-Ongoing idle termination is **not** a live failure mode while the extension is running. Cold starts (browser launch, extension enable/reload, crash recovery) are the actual source of MV3-concentrated failures.
+Cold starts are the source of MV3-concentrated failures, and they are frequent: production telemetry from July 2026 counted about 5.3 service-worker cold starts per Chromium UI page open. Their causes include browser launch, extension enable/reload and crash recovery. Whether idle termination is also among them is not established, so it is not ruled out as a live failure mode.
 
 ## Verification Discipline
 
 Before attributing an MV3-concentrated error to "idle termination pressure":
 
-1. Verify `background.js:750-758` keepalive loop still exists and `saveTimestamp` still calls a `chrome.*` / `browser.*` API
-2. Verify `enableMV3TimestampSave` is not disabled in affected Sentry events
+1. Verify the `app/service-worker.ts` keepalive loop still exists and `saveTimestamp` still calls a `chrome.*` / `browser.*` API
+2. On builds before 13.41.0, verify `enableMV3TimestampSave` is not disabled in affected Sentry events
 3. Check whether error timing correlates with cold-start events, not idle periods
 
 If any check out, the working hypothesis is cold-start cascade race, not ongoing termination.
@@ -73,7 +75,7 @@ A production build can have `installType: development` if loaded unpacked. Filte
 
 | Failure | Cause | Mitigated? |
 |---------|-------|------------|
-| Cold-start cascade race (`APP_INIT_ALIVE` sent before UI listener bound) | `app-init.js` → dynamic-import `background.js` → listener registration races against an open port | No |
+| Cold-start cascade race (`APP_INIT_ALIVE` sent before UI listener bound) | `service-worker.ts` → dynamic-import `background.js` → listener registration races against an open port | No |
 | `Background connection unresponsive` via ongoing idle termination | Worker idle-killed mid-session | Yes — 2s keepalive loop |
 | `Background connection unresponsive` via cold-start latency | Cold start on browser launch + first-flush latency before `startUiSync` | No — keepalive does not apply before worker exists |
 | Silent `postMessage` failure | Port disconnected during wake/termination, try/catch swallows error | No |

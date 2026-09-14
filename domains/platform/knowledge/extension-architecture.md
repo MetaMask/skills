@@ -41,8 +41,8 @@ Key file: `app/scripts/metamask-controller.js` — aggregates all controller sta
 | Build | Command | Background | Security Policy |
 |-------|---------|------------|-----------------|
 | Development | `yarn start` | Webpack, hot reload | No LavaMoat |
-| Production | `yarn dist` | Browserify | LavaMoat enforced |
-| Test | `yarn build:test` | Browserify | Partial LavaMoat |
+| Production | `yarn dist` | Webpack | LavaMoat enforced |
+| Test | `yarn build:test` | Webpack | Partial LavaMoat |
 
 LavaMoat restricts package capabilities at runtime. After adding/updating dependencies, run `yarn lavamoat:auto` to regenerate policies.
 

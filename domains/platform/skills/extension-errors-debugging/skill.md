@@ -40,11 +40,11 @@ description: Diagnose browser extension errors — MV3 vs MV2, background/UI con
 
 | Error | MV3 Root Cause | Mitigated? |
 |-------|---------------|------------|
-| Background connection unresponsive (cold-start cascade) | `app-init.js` → `background.js` listener race on worker cold start | No |
+| Background connection unresponsive (cold-start cascade) | `service-worker.ts` → `background.js` listener race on worker cold start | No |
 | Background connection unresponsive (first-flush latency) | Cold start + background state aggregation before `startUiSync` | No |
-| Background connection unresponsive (idle termination) | Worker idle-killed mid-session | Yes — 2s `browser.storage.session` keepalive |
+| Background connection unresponsive (idle termination) | Worker idle-killed mid-session | Yes — 2s `chrome.storage.session` keepalive |
 | Port disconnected (wake/termination race) | Port closed during worker lifecycle transition; silent via try/catch | No |
-| Keepalive timer missed (active session) | Would imply `browser.storage.session.set` interval failed — rare; investigate as application bug, not platform behavior | N/A |
+| Keepalive timer missed (active session) | Would imply `chrome.storage.session.set` interval failed — rare; investigate as application bug, not platform behavior | N/A |
 | In-memory state lost (cold start) | New worker instance re-reads persisted state | No |
 
 ## Common Pitfalls
@@ -52,7 +52,7 @@ description: Diagnose browser extension errors — MV3 vs MV2, background/UI con
 | Mistake | Correct Approach |
 |---------|-----------------|
 | Attribute 99% MV3 error to application code | Check if error requires running background; MV3 SW lifecycle is the likely root cause |
-| Default to "SW was terminated mid-session" for MV3 errors | Ongoing idle termination is mitigated by the 2s `browser.storage.session` keepalive. The likely mechanism is cold-start cascade or first-flush latency — see `mv3-service-worker` knowledge |
+| Default to "SW was terminated mid-session" for MV3 errors | Ongoing idle termination is mitigated by the 2s `chrome.storage.session` keepalive. The likely mechanism is cold-start cascade or first-flush latency — see `mv3-service-worker` knowledge |
 | "Keepalive timer missed" ⇒ SW slept | The 2s keepalive prevents idle sleep while active. A missed keepalive during active session is a code bug, not platform behavior |
 | Use `environment` to filter for dev builds | Use `installType: development` — a prod build can be sideloaded |
 | Conflate `dist` and `environment` | They are independent; filter both when needed |
