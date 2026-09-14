@@ -85,7 +85,7 @@ Like the generic-constraint case, this `any` is **not infectious** — it is sco
 
 Canonical instance: a messenger `registerActionHandler` slot typed `(...args: any[]) => any` — strongly-typed handlers flow inward at registration, strongly-typed argument tuples outward at dispatch; `unknown[]` fails registration, `never[]` fails dispatch. It encodes rank-N polymorphism (`∀α. (α) => R`) that TypeScript cannot express directly.
 
-When `any` still seems unavoidable, prefer the narrower, greppable escape hatches: `as unknown as` as a documented last resort, or `@ts-expect-error` with a TODO. Never reach for `any` to unblock feature work "to fix later."
+When `any` still seems unavoidable, prefer the narrower, greppable escape hatches: `as unknown as` as a documented last resort, or `@ts-expect-error` with a comment saying why (a TODO where a fix is planned), never `@ts-ignore`. An unneeded `@ts-expect-error` fails `tsc` with `Unused '@ts-expect-error' directive` while an unneeded `@ts-ignore` stays silent, and `@typescript-eslint/ban-ts-comment` bans `@ts-ignore` and requires a description on `@ts-expect-error`. To replace a member, assert the replacement instead of erasing the target: `target.method = stub as typeof target.method`, not `(target as any).method = stub`, so `tsc` still rejects a stub whose type does not overlap the original's. Never reach for `any` to unblock feature work "to fix later."
 
 ## Declared `any` beats absorbed `any` — and only one of them is countable
 

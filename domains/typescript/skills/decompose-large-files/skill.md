@@ -38,7 +38,7 @@ When you *do* extract a unit, it is one self-contained change — no separate "f
 2. **Port** the bodies in, unchanged in behavior.
 3. **Define the seam** — inject the dependencies the module needs (or register its public methods as messenger actions) instead of reaching back into the file's globals. This is where the human judgment is.
 4. **Rewire** the call sites to go through the seam.
-5. **Delete the original** in the same change; leave no forwarding stub.
+5. **Delete the original** in the same change; leave no forwarding stub. Then grep the whole repo, not only the file, for every consumer of what the new module replaces. An event that no longer has a listener outside the moved code is dead, and a deletion candidate.
 6. **Add a structural unit test** against a stub/mock of the seam — especially valuable when the original file had no tests.
 
 Steps 1, 2, 5, 6 are largely mechanical (codemod territory — `jscodeshift` on the source, `ts-morph` on the module). Step 3/4 is the part that needs a person.

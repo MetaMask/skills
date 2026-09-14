@@ -201,13 +201,17 @@ the fifth was found on a later pass over the same PR:
 
 1. **Widening** — `string` for a `Hex`/template-literal type, `string` for an enum,
    `number | undefined` for `number`. Admits values the real type rejects; worst
-   when a guard downstream depends on the narrower form.
+   when a guard downstream depends on the narrower form. A union ending in
+   `string & Record<never, never>` reads as a narrowing and is not one: its last
+   member accepts every string, typos included.
 2. **Dropped nullability** — the source says `| undefined`, the hand-written type
    doesn't. Erases the compiler's record of why a runtime guard exists.
 3. **Duplication** — the same shape written out in two files, unshared. Both copies
    now need every future change.
 4. **Placeholder** — `Record<string, unknown>`, `any`, or `unknown` standing in for
-   a shape that is known. Pushes a cast to every use site.
+   a shape that is known. Pushes a cast to every use site. A circular import does
+   not justify one: `import type` the real type, which is erased from the emitted
+   JavaScript and adds no runtime edge to the module graph.
 5. **False precision** — the inverse of a placeholder: the annotation is *narrower*
    than what actually arrives. `hexValueIsEmpty(value: string | null | undefined)`
    on a parameter fed `any` at every call site. `tsc` cannot report it, because
@@ -222,6 +226,10 @@ the fifth was found on a later pass over the same PR:
 When a diff adds a hand-written type *and* an `as`, a `!`, a new `?.`, or an
 `eslint-disable` in the same region, check whether the escape hatch exists to service
 the type rather than the runtime. Count them — a cluster marks where to probe first.
+Ask of each suppression what would fire on that exact line without it. `tsc` reports
+an unused `@ts-expect-error` (TS2578) but not an unused `@ts-ignore`, and whether an
+unused `eslint-disable` is reported depends on the repo's `reportUnusedDisableDirectives`
+setting (`'error'` in extension and core, unset in mobile).
 
 ## A typing change should not change runtime behavior
 

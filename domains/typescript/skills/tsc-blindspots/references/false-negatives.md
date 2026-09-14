@@ -258,7 +258,7 @@ at the time of writing.
 | `include` | Anything outside it is invisible to `tsc` | `app`, `development`, `shared`, `test`, `types`, `ui`, `*.ts` |
 | `checkJs` | Off ⇒ `.js` callers unchecked | unset |
 | `noEmit` + bundler | `tsc` never produces the shipped artifact; webpack/swc transpiles **without** typechecking, so a type error cannot break the build — only the separate `lint:tsc` job reports it | `noEmit: true` |
-| `@ts-expect-error` / `@ts-ignore` | Point suppressions | grep before trusting a clean file |
+| `@ts-expect-error` / `@ts-ignore` | Point suppressions | grep before trusting a clean file, then read each hit: which diagnostic it hides, and whether the path under review reaches that line |
 
 The last row is worth stating plainly: **type errors do not break the build.** They
 break a CI job. If that job is skipped, filtered, or its output is not read, the
