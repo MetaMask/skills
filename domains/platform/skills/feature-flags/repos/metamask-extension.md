@@ -23,7 +23,9 @@ gating.
 `app/util/remoteFeatureFlag/index.ts` and its own header says so, so the exported names match
 mobile. The evaluation differs in one respect that matters: `hasMinimumRequiredVersion`
 compares against `packageJson.version`, read from the repo's `package.json` at build time.
-There is no native binary version and no `react-native-device-info` equivalent.
+There is no native binary version and no `react-native-device-info` equivalent. A flag change
+reaches only installs running a build whose code reads the flag, so it cannot change behavior
+on an older build.
 
 `getBooleanFeatureFlag(flagValue, defaultValue)` is the usual entry point, at 34 non-test call
 sites against 11 for `validatedVersionGatedFeatureFlag`. It takes the fallback as a required
@@ -79,6 +81,10 @@ export function isMyFeatureEnabled(
 }
 ```
 
+Background code reads the bag through the `RemoteFeatureFlagController:getState` messenger
+action. Until this session's fetch completes, that state holds the flags persisted from the
+previous fetch.
+
 The selector then composes that predicate over `getRemoteFeatureFlags`, which keeps one
 version-gate interpretation shared between the UI and the background:
 
@@ -133,10 +139,18 @@ import packageJson from '../../../package.json';
 const CURRENT_VERSION = packageJson.version;
 ```
 
-Cover enabled, disabled, below-minimum, rollout-wrapped, and invalid or absent. For E2E, seed
-state with `withRemoteFeatureFlagController(...)` from
+Cover enabled, disabled, below-minimum, rollout-wrapped, and invalid or absent.
+`RemoteFeatureFlagController` is disabled until onboarding completes and while basic
+functionality (`useExternalServices`) is off, so those users never fetch and read absent or
+last-persisted flags. A failed fetch is only logged, in
+`app/scripts/lib/update-remote-feature-flags.ts`.
+
+For E2E, seed state with `withRemoteFeatureFlagController(...)` from
 `test/e2e/fixtures/fixture-builder-v2.ts`, or override at runtime with
-`manifestFlags.remoteFeatureFlags`.
+`manifestFlags.remoteFeatureFlags`. Seeded state never passes through fetching and validating
+a flag response. To test that path, serve the response from `testSpecificMock`, which
+`test/e2e/mock-e2e.js` registers ahead of its registry default for the `client-config` flags
+route.
 
 ## Not present in the extension
 
@@ -154,7 +168,9 @@ State these as gaps rather than substituting a near neighbor:
 ## Extension only
 
 - `FEATURE_FLAG_REGISTRY` is the production-default source of truth for E2E. Mobile has no
-  counterpart.
+  counterpart. `.github/workflows/check-feature-flag-registry-drift.yml` checks it against
+  production on a weekly schedule (`cron: '0 1 * * 2'`) and not on pull requests, so a new
+  flag's `productionDefault` can merge unchecked.
 - `getRemoteFeatureFlags` folds manifest overrides in at the selector, so override precedence
   is a property of the read rather than of a build switch.
 - Threshold and A/B flags carry a separate `featureFlagThresholdGroups` map, read through
