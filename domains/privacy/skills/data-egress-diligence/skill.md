@@ -7,7 +7,7 @@ description: >-
   error or breadcrumb strings that interpolate user values. Detection is mechanical (the
   mask diff), so the deliverable is not "is each field listed" but what each newly
   unmasked field actually holds at runtime: a bounded enum is not an account address, and
-  the mask cannot tell them apart. Sorts findings into safe / needs-narrowing /
+  the mask cannot tell them apart. Sorts findings into bounded / needs-narrowing /
   must-not-egress with the evidence for each, and hands the accept decision to the people
   who own it. Use when a PR touches sentry-state, adds a tracked event or property, or
   widens what an error message includes.
@@ -46,7 +46,7 @@ capability grants: the diff is mechanical, the judgement is what each grant *mea
 | nested object | recurse |
 | `[AllProperties]` | applies to dynamic keys — **the field names are not known at review time** |
 
-Unlisted is safe by default, so the risk direction is one-way: **a field promoted to
+Unlisted is masked by default, so the risk direction is one-way: **a field promoted to
 `true`.** That is the whole review surface, and `git diff` finds it exactly.
 
 **The trap:** "the field is in the mask, so someone decided it was fine." The mask *is* the
@@ -76,7 +76,7 @@ someone, usually while shipping an unrelated feature. Presence proves authorship
 
    | Bucket | What it looks like | Action |
    |---|---|---|
-   | **Safe** | bounded enum, boolean, count, duration, feature-flag name, error code | note the type that makes it safe |
+   | **Bounded** | bounded enum, boolean, count, duration, feature-flag name, error code | note the type that bounds it |
    | **Needs narrowing** | object whose *shape* is useful but whose *leaves* are not — a tx object, a quote, a network config | propose the nested mask that keeps the shape and drops the values |
    | **Must not egress** | account address, ENS name, balance, token amount, private RPC URL, free text a user typed, anything keyed by address | propose `false`, or a derived non-identifying substitute (a count, a boolean, a hash) |
 
@@ -119,6 +119,6 @@ Run both on a change that adds collection; either alone leaves half the question
 
 - `lavamoat-policy` — same shape for capability grants; read it for the
   diff-is-mechanical-judgement-is-not pattern.
-- `analytics-instrumentation` — whether an event is correctly *identified* and *gated*
-  (`isOptIn`, `metaMetricsId`). This skill is about whether its payload is *sendable*.
+- `instrumentation` — whether an event is correctly *identified* and *gated*
+  (`optedIn`, `analyticsId`). This skill is about whether its payload is *sendable*.
 - `supply-chain-audit` — the third diligence lane, for dependency capability.
