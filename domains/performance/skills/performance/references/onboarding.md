@@ -45,6 +45,18 @@ React Native DevTools → Profiler → ⚙️ → enable "Record why each compon
 → Start → reproduce the exact interaction → Stop → read "why did this render?"
 ```
 
+### Record a full performance timeline
+```
+React Native DevTools → Performance → Record → run the exact flow → Stop
+→ see js-performance-panel.md
+```
+
+### Inspect network requests
+```
+React Native DevTools → Network → run the flow (records automatically)
+→ see js-network-panel.md
+```
+
 ### Guard a component against render regressions (Reassure)
 ```bash
 # write app/.../MyComponent.perf-test.tsx (see DeepLinkModal.perf-test.tsx)
