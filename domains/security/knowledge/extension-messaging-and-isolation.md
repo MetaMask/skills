@@ -86,11 +86,8 @@ A deeplink is a message too, and its trust model has one non-obvious property.
   to the route handler. Anything else is dropped.
 - **Unsigned**: every param except `sig` is forwarded.
 
-So the signature covers exactly the enumerated set, and a route that opts into
-`handlerSearchParams: 'original'` defeats this — it receives the raw params, meaning an unsigned
-parameter rides along on a signed link and inherits the signature's trust without being covered by
-it. New routes should leave `handlerSearchParams` unset; the default is `canonical`, whose own doc
-comment describes it as removing unsigned params for signed links.
+So on a signed link the signature covers exactly the enumerated set, and no route receives a
+parameter the signature did not cover.
 
 **The interstitial is not keyed on the signature alone.** `shouldShowDeepLinkInterstitial` returns
 `false` for a request origin in `TRUSTED_WEB_ORIGINS` *before* it consults the signature status, so
@@ -109,5 +106,5 @@ consent toggles is a different proposition from a content page.
 | "It's a content script, so it's not under LavaMoat" | ISOLATED-world content scripts do carry the runtime; `"world": "MAIN"` is the distinguishing property |
 | "Scuttling is off for just this chunk" | Scuttling acts on the world's shared `globalThis` — name every chunk in that world |
 | "This resource is only loaded from our site" | Does the `web_accessible_resources` entry have `matches`? Without it, every origin can read it |
-| "The link is signed" | Is the parameter in `sig_params`? Does the route set `handlerSearchParams: 'original'`? |
+| "The link is signed" | Is the parameter in `sig_params`? Anything outside it is dropped before the handler sees it |
 | "The interstitial protects this route" | `TRUSTED_WEB_ORIGINS` short-circuits before the signature check |
