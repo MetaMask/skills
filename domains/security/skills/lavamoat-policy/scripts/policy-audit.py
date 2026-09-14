@@ -93,7 +93,7 @@ def audit_overrides(over, gen):
     """Classify each override entry against what the generated policy observed.
 
     widened   granted here, not observed by the toolchain — a human decision needing a reason
-    tightened explicit false over an observed grant — containment narrowed, no action
+    tightened explicit false over an observed grant — listed with what it turns off
     broad     whole-object grant where only specific members were observed — narrowable
     write     write access; read may suffice, and only call sites can settle it
     """
@@ -191,6 +191,15 @@ def main():
     print(f"  persisting {len(widened):3d}  in the override only — expected, but each needs a standing reason")
     print(f"  broad      {len(broad):3d}  whole-object grant where only members were observed")
     print(f"  write      {len(write):3d}  write access — read may suffice")
+
+    if tightened:
+        print("\n\nTIGHTENED — capabilities the override turns off")
+        print("-" * 74)
+        print("Each entry denies a capability the generated policy shows the package reading,")
+        print("so the package runs without it. Record what each turns off, and whether the code")
+        print("degrades or throws when it is off.\n")
+        for pkg, kind, cap in sorted(tightened):
+            print(f"  [ ] {pkg[:42]:44s} {kind[:3]}:{cap:20s}  when off: <degrades | throws>")
 
     if broad:
         print("\n\nSUGGESTED TIGHTENINGS — evidence-based, functionality-preserving")

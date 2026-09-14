@@ -30,20 +30,20 @@ it — which a runtime trace would have.
 **The job is least privilege: which of these grants can be dropped without breaking
 anything?** A grant exists because an identifier appears in bundled source. That is *not* the
 same as a reachable path needing it — a capability read behind a config flag nobody sets, or in
-a branch our usage never takes, is removable. So for each grant, ask what executes it under
-*our* usage, and sort:
+a branch our usage never takes, is a removal candidate. So for each grant, ask what executes it
+under *our* usage, and sort:
 
 | | |
 |---|---|
-| **removable** | nothing on our path executes the read → candidate; propose the test |
-| **removable at a cost** | only a convenience or error-detail path executes it → name the cost |
-| **load-bearing** | our usage genuinely needs it → say so briefly and move on |
+| `🔍 candidate` | nothing on our path executes the read → propose the test |
+| `🔍 candidate`, at a cost | only a convenience or error-detail path executes it → name the cost |
+| `➖ no gate found` | our path executes the read and the reading found no gate → say so briefly and move on |
 
 The lead is the first two rows plus anything the reading turned up that bears on security.
-Load-bearing grants still each get a row in the capability → call-site table (step 6) — they just
-don't get paragraphs.
+`➖ no gate found` grants still each get a row in the capability → call-site table (step 6) —
+they just don't get paragraphs.
 
-> **Falsifier.** A grant you called load-bearing that a build with it removed still passes.
+> **Falsifier.** A grant you marked `➖ no gate found` that a build with it removed still passes.
 > The test is cheap and it is the only thing that settles the question: drop the grant from the
 > resource, rebuild, run the relevant e2e.
 >
@@ -118,8 +118,8 @@ droppable. Those observations are worth more than the grant inventory. Lead with
 
    Check reachability from *our* side too, not just the dependency's: does our code subscribe to
    the feed, import the subpath, take that option? A capability behind a feature we don't use is
-   the cleanest removal there is — and a capability behind one we *do* use is load-bearing, which
-   is worth one line and no more.
+   the cleanest removal candidate there is — and a capability behind one we *do* use is
+   `➖ no gate found`, which is worth one line and no more.
 
 4. **Record what each grant reaches versus what it uses — breadth is the usual finding.**
    Reachability and width are independent. "Nothing calls it" finds removable grants and says
@@ -151,13 +151,14 @@ droppable. Those observations are worth more than the grant inventory. Lead with
    "It needs X" retyped into a table proves nothing about provenance.
 
 6. **Lead with removal candidates and anything security-relevant — then give the full table.**
-   Open on what can be dropped and what the reading turned up, not on an inventory. But every
-   grant still gets its own row in the capability → call-site table, load-bearing ones included:
-   that mapping is what a reviewer came for, and a load-bearing row is one short row, not a
-   reason to merge it into prose with its neighbours. **Removed grants get their names only**
-   (`WebSocket` and `CustomEvent` are removed by this bump) — no table, no justification column,
-   since a removal reduces capability and needs no defence. The exception is a removal that is
-   itself interesting: one that was load-bearing implies a behaviour change worth a sentence.
+   Open on what can be dropped and what the reading turned up, not on an inventory. Outside the
+   exceptions under Output, every grant still gets its own row in the capability → call-site
+   table, `➖ no gate found` ones included: that mapping is what a reviewer came for, and such a
+   row is one short row, not a reason to merge it into prose with its neighbours. **Removed
+   grants get their names only** (`WebSocket` and `CustomEvent` are removed by this bump) — no
+   table, no justification column, since a removal reduces capability and needs no defence. The
+   exception is a removal that is itself interesting: one that was load-bearing implies a
+   behaviour change worth a sentence.
 
    Target a few hundred words of *prose*; the table does not count against that and must not be
    compressed to hit it. (Violated on extension#45024, 2026-07-30 — a trim pass dissolved the
@@ -166,10 +167,10 @@ droppable. Those observations are worth more than the grant inventory. Lead with
    **The accept/reject call belongs to the human reviewer; never write it.** No `accept`
    column, no `REJECT`, no "Verdict: safe to take", no ✅/❌. Those words do the reviewer's
    deciding for them and anchor the judgment before they have read the evidence — and if the
-   call is wrong, it is wrong in a document that looks authoritative. Describing *risk* is in
-   scope where it is a fact about the capability ("this reads the global on every exception
-   path", "these are decode and timer primitives, no filesystem or subprocess reach"); the
-   disposition is not. State findings and open questions, and let the reviewer conclude.
+   call is wrong, it is wrong in a document that looks authoritative. State what the code does
+   with the capability as a fact about the call site ("this reads the global on every exception
+   path"). Do not characterize risk: no severity words, and no summary of what a grant cannot
+   reach. State findings and open questions, and let the reviewer conclude.
    (Violated on extension#45024, 2026-07-30 — 11 `accept` cells and a "Verdict" section.)
 
    **A grant with no locatable call site is a real finding, and rare.** On a generated policy it
@@ -206,10 +207,19 @@ droppable. Those observations are worth more than the grant inventory. Lead with
 ## Output
 
 **The capability → call-site table is the deliverable. Never dissolve it into prose.**
-One row per grant, every grant, with its permalink, its used surface and its breadth in the row.
-A reviewer scans the column, not paragraphs — 11 rows is denser and faster to read than three
-paragraphs carrying the same 11 facts, so the table *is* the trimmed form. Prose around it is
-what gets cut.
+One row per grant, every grant, except in the two cases below, with its permalink, its used
+surface and its breadth in the row. A reviewer scans the column, not paragraphs — 11 rows is
+denser and faster to read than three paragraphs carrying the same 11 facts, so the table *is*
+the trimmed form. Prose around it is what gets cut.
+
+**A grant on an `@metamask/*` package gets no finding section.** It appears in one line naming
+what changed, unless it reaches a capability that no existing entry for the same package holds.
+
+**A run with nothing to lead with is a short report.** When a run turns up no `🔍 candidate`, no
+grant wider than its use and nothing bearing on security, the output has no capability →
+call-site table. With nothing at all to report, say that in a sentence and stop. Grants that are
+standard for their package (`crypto` on `uuid`, `URL` on a parser) are not named: the package
+needs them, and naming them is inventory, not triage.
 
 **Present findings; do not explain the mechanism.** Reviewers here know what a LavaMoat policy is,
 what the bot does and what CI enforces. Restating it spends their attention on what they already
@@ -288,10 +298,11 @@ answered with the upstream line, pinned to `10.38.0`:
   (`typeof importScripts === 'undefined'`):
   `https://github.com/getsentry/sentry-javascript/blob/10.38.0/packages/browser/src/profiling/utils.ts#L33-L34`
 
-Both run unconditionally — the exception path and module scope — and under scuttling the read
-itself throws unless excepted, so both are load-bearing with no gate to close. That is the
-useful conclusion: *not* "each grant has a reason" (it always will) but "neither is removable,
-and here is the unconditional path that makes it so."
+Both run unconditionally, on the exception path and at module scope. Both reads also sit behind
+a `typeof` check, the feature-detection fallback step 3 looks for, so the reading does not settle
+whether either grant is needed, and the removal test does. That is the useful conclusion: *not*
+"each grant has a reason" (it always will) but "here is the unconditional path each one runs on,
+and here is the test that settles it."
 
 **Counter-example from extension#45024, which the first pass got wrong.** That comment reported
 "11 additions, 11 reasons, each resolving to a line" as its headline. Tautological — the policy
@@ -318,11 +329,9 @@ A clean policy diff does not mean a safe dependency, and a known CVE does not sh
 grant. Run the umbrella skill when the question is "is this bump safe"; run this one when the
 question is "why does it need that".
 
-## Called by supply-chain-audit and evidence
+## Called by supply-chain-audit
 
-`supply-chain-audit` delegates its capability-containment lane here. `evidence` keeps
-**supply-chain** as an evidence category and packages the per-grant justification (accept /
-reject, each with its permalink) posted where the policy is reviewed. Engine helper:
+`supply-chain-audit` delegates its capability-containment lane here. Engine helper:
 `scripts/policy-audit.py`. Usable standalone whenever a policy grant needs a reason.
 
 ## Background — extension messaging and isolation
@@ -333,7 +342,7 @@ whether a port-based content script is in a `runtime.onMessage` sender set, whet
 content script carries the LavaMoat runtime, and whether scuttling can be disabled for one chunk
 without affecting its neighbours.
 
-They are written down, each checked against the repo, in
-[`domains/security/knowledge/extension-messaging-and-isolation.md`](../../knowledge/extension-messaging-and-isolation.md).
+They are written down, each checked against the repo, in the installed
+`knowledge/extension-messaging-and-isolation.md`.
 Read it before concluding that a sender check, a world boundary, or a manifest key does or does
 not hold — the reviewer checklist at the end of that file is the short version.

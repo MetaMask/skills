@@ -1,6 +1,6 @@
 ---
 name: supply-chain-audit
-description: Assess whether a dependency change is safe to take, across every detector that answers a different part of that question — Socket Security (malicious/anomalous package behavior, install scripts, new maintainers), `yarn npm audit` and advisories (known vulnerabilities), lockfile and manifest diffs (what actually changed, including transitive and resolution swaps), and LavaMoat policy grants (new capabilities, delegated to `lavamoat-policy`). Also covers the fronts no upstream scanner sees because they are things your own repo does to dependencies afterwards: yarn patches that modify dependency source at install, `resolutions` that force or stub versions, `npmAuditIgnoreAdvisories` suppression lists, CI actions riding mutable tags instead of pinned SHAs, and yarn plugins that execute at install. The falsifier is a lane whose finding is unaccounted for — a flagged package, an unresolved advisory, or a grant with no call site. Detection belongs to the tools; the job is disposition, and handing it to the humans who own the dependency. Triggers on /mms-supply-chain-audit, or when asked whether a dependency bump is safe, to review a lockfile or package.json change, to triage a Socket or audit finding, or to assess supply-chain risk of a change. Callable by `evidence` as its supply-chain engine.
+description: Assess whether a dependency change is safe to take, across every detector that answers a different part of that question — Socket Security (malicious/anomalous package behavior, install scripts, new maintainers), `yarn npm audit` and advisories (known vulnerabilities), lockfile and manifest diffs (what actually changed, including transitive and resolution swaps), and LavaMoat policy grants (new capabilities, delegated to `lavamoat-policy`). Also covers the fronts no upstream scanner sees because they are things your own repo does to dependencies afterwards: yarn patches that modify dependency source at install, `resolutions` that force or stub versions, `npmAuditIgnoreAdvisories` suppression lists, CI actions riding mutable tags instead of pinned SHAs, and yarn plugins that execute at install. The falsifier is a lane whose finding is unaccounted for — a flagged package, an unresolved advisory, or a grant with no call site. Detection belongs to the tools; the job is disposition, and handing it to the humans who own the dependency. Triggers on /mms-supply-chain-audit, or when asked whether a dependency bump is safe, to review a lockfile or package.json change, to triage a Socket or audit finding, or to assess supply-chain risk of a change.
 maturity: experimental
 ---
 
@@ -37,12 +37,11 @@ above are things *your own repo, or your CI,* does around dependencies afterward
 upstream scanner sees them. Measured on `metamask-extension` today, to show these aren't hypothetical:
 
 - **Yarn patches — 53 of them.** A patch is arbitrary modification of a dependency's source,
-  applied at install, living in your repo. It is the single most direct injection point in the
-  list and the least watched: the package can be clean at every scanner and still execute your
-  patch. **Read every patch diff on change**, the same way you'd read a diff to `app/`. A patch
-  that grows beyond its stated purpose, or touches a file unrelated to the bug it works around,
-  is the finding. Record why each patch exists and what removes it (upstream fix, version bump)
-  — an unattributed patch is technical debt with a security surface.
+  applied at install, living in your repo. The package can be clean at every scanner and still
+  execute your patch. **Read every patch diff on change**, the same way you'd read a diff to
+  `app/`. A patch that grows beyond its stated purpose, or touches a file unrelated to the bug it
+  works around, is the finding. Record why each patch exists and what removes it (upstream fix,
+  version bump) — an unattributed patch is technical debt with a security surface.
 
 - **`resolutions` — 149 entries.** Forcing a version across the tree. Two failure modes: a pin
   that holds a transitive *below* the version that fixed an advisory (audit may not flag it,
@@ -57,11 +56,13 @@ upstream scanner sees them. Measured on `metamask-extension` today, to show thes
   Each entry wants a reason, an owner, and a condition that retires it. An ignore list nobody
   revisits converts a finding into silence.
 
-- **CI action pinning — 7 of 47 third-party `uses:` are SHA-pinned.** The rest ride mutable
-  tags (`actions/checkout@v6`, `actions/github-script@v9`). A tag can be repointed by its owner
-  or by anyone who compromises that account, and CI holds secrets — this is the
-  `tj-actions/changed-files` failure mode. Pin third-party actions to a full 40-char commit
-  SHA. First-party (`MetaMask/*`, 25 here) is lower risk but the same mechanism.
+- **CI action pinning — all 7 third-party actions are SHA-pinned.** The MetaMask org's Actions
+  policy blocks unpinned or non-allowlisted third-party actions at workflow dispatch. It allows
+  GitHub-owned (`actions/*`, `github/*`) and `MetaMask/*` actions by tag, and 107 of the 112
+  `actions/*` uses in `.github/workflows` ride one (`actions/checkout@v6`,
+  `actions/github-script@v8`). On a diff,
+  the lane's question is whether a `uses:` line adds a third-party action, and whether that
+  action is pinned to a full 40-char commit SHA.
 
 - **Yarn plugins execute at install with full privilege.** Three `.cjs` bundles are committed
   (good — the committed bytes are what runs), but their `spec:` URLs point at
@@ -81,10 +82,12 @@ say which lanes you ran and which you skipped, and why.
 ## Method
 
 1. **Establish what changed before assessing it.** Direct bump, transitive pull-through, or a
-   *resolution swap* (same range, different resolved package)? The last is the easiest to miss
-   and the most interesting: an identifier substitution in a policy or lockfile
-   (`pkgC>name` replacing `pkgB>pkgA>name`) can mean the dependency was replaced rather than
-   updated.
+   *resolution swap* (same range, different resolved package)? A resolution swap in the
+   lockfile can mean the dependency was replaced rather than updated. A policy path that changes
+   while the package stays the same (`a>b>pkg` becoming `pkg`, or `pkg` becoming `a>pkg`) is the
+   generator re-deriving the name, since it names a package by its shortest path. It is not a
+   change to report. Flag one where the new path runs through a package that is third-party or
+   newly introduced.
 
 2. **Take each tool's findings as the worklist; don't re-derive them.** Socket, audit, and
    LavaMoat all run in CI and are trusted machines. Re-implementing their detection by hand
@@ -121,10 +124,10 @@ LavaMoat policy grants are a specialized lane with their own method and tooling.
 
 Do not restate that lane's question as "does each new capability have a call site" — the policy
 is generated from a real run, so it always does, and that check cannot fail. The lane's actual
-output is a least-privilege triage: which grants are **removable** (their gate is never opened by
-our usage), which are removable at a stated cost, which are load-bearing, plus anything the
-reading turned up bearing on security. Carry those findings through; do not compress them to a
-pass/fail.
+output is a least-privilege triage: which grants are removal candidates (`🔍 candidate`, their
+gate is never opened by our usage), which are candidates at a stated cost, and which show no gate
+(`➖ no gate found`), plus anything the reading turned up bearing on security. Carry those
+findings through; do not compress them to a pass/fail.
 
 Keep the boundary straight in the writeup: **a clean policy diff does not mean a safe
 dependency, and a known CVE does not appear as a new grant.** They are independent.
@@ -141,12 +144,12 @@ Supply-chain assessment — <package> <old> -> <new>   (<direct|transitive|resol
   resolutions        <forced/stubbed entries touched> | unchanged
   audit ignores      <npmAuditIgnoreAdvisories added> → reason + retire-when | unchanged
   ci actions         <third-party uses: added> → SHA-pinned? | unchanged
-  capabilities       → lavamoat-policy: <removable: …; load-bearing: …>  | no policy change
+  capabilities       → lavamoat-policy: <🔍 candidate: …; ➖ no gate found: …>  | no policy change
   lanes skipped      <lane> — <why>
 Unresolved: <finding> — <what would settle it>   | none
 ```
 
-Lead with whatever is actionable — an unresolved finding, a removable capability, a patch whose
+Lead with whatever is actionable — an unresolved finding, a removal candidate, a patch whose
 scope exceeded its purpose. Lanes that came back clean are a compact line each, not sections.
 **No overall accept/reject verdict and no `@`-mentions**: the disposition belongs to the people
 who own the dependency, and tagging them is the user's call, not this skill's. Close on what is
@@ -155,5 +158,4 @@ unresolved and what would settle it.
 ## Related
 
 - `lavamoat-policy` — the capability-containment engine this skill delegates to.
-- `evidence` — packages this skill's output as its [supply-chain evidence category](https://github.com/MetaMask/skills/blob/main/domains/pr-workflow/skills/evidence/references/evidence-catalog.md).
-- [`extension-messaging-and-isolation`](../../knowledge/extension-messaging-and-isolation.md) — who can reach a background handler, which isolation boundaries actually hold, and what a deeplink signature covers.
+- `knowledge/extension-messaging-and-isolation.md` — who can reach a background handler, which isolation boundaries actually hold, and what a deeplink signature covers.
