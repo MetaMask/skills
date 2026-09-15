@@ -47,8 +47,8 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 1. **Check the event name enum** — event may already exist under a different phrasing.
 2. **Check the segment tracking plan** — event may be registered under a different name than the enum key.
 3. **Add to the enum**, then implement the `trackEvent` call.
-4. **Pass `excludeMetaMetricsId: true` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous id and drops the profile ids, for every user, not only those who have not opted in. Event names matching `/^send|^confirm/iu` get it by default unless the caller passes `excludeMetaMetricsId: false` (see data domain `knowledge/metrametrics-identity.md`).
-5. **Open a data governance review** before merging. There is usually no CI enforcement on schema registration — this step is easy to skip (see data domain `knowledge/segment-governance.md`).
+4. **Pass `excludeMetaMetricsId: true` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous id and drops the profile ids, for every user, not only those who have not opted in. Event names matching `/^send|^confirm/iu` get it by default unless the caller passes `excludeMetaMetricsId: false` (see platform domain `knowledge/metrametrics-identity.md`).
+5. **Open a data governance review** before merging. There is usually no CI enforcement on schema registration — this step is easy to skip (see platform domain `knowledge/segment-governance.md`).
 6. **Register in the team's segment tracking plan** before shipping.
 
 ### Updating an Event
