@@ -16,9 +16,28 @@
 /domains/assets/         @MetaMask/metamask-assets
 /domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/observability/  @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/performance/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/perps/          @MetaMask/perps
+/domains/platform/       @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/security/       @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/stability/      @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/swaps/          @MetaMask/swaps-engineers
 /domains/testing/        @MetaMask/qa
+/domains/typescript/     @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/ui/             @MetaMask/design-system-engineers
+
+# Repo overlays name one client, so the platform team for that client owns them.
+# Scoped to the domains above: a blanket /domains/**/repos/ rule would move 11 files
+# away from @MetaMask/qa, swaps-engineers, design-system-engineers and perps.
+/domains/observability/skills/*/repos/metamask-extension.md @MetaMask/extension-platform
+/domains/platform/skills/*/repos/metamask-extension.md      @MetaMask/extension-platform
+/domains/security/skills/*/repos/metamask-extension.md      @MetaMask/extension-platform
+/domains/stability/skills/*/repos/metamask-extension.md     @MetaMask/extension-platform
+/domains/typescript/skills/*/repos/metamask-extension.md    @MetaMask/extension-platform
+/domains/observability/skills/*/repos/metamask-mobile.md    @MetaMask/mobile-platform
+/domains/platform/skills/*/repos/metamask-mobile.md         @MetaMask/mobile-platform
+/domains/security/skills/*/repos/metamask-mobile.md         @MetaMask/mobile-platform
+/domains/stability/skills/*/repos/metamask-mobile.md        @MetaMask/mobile-platform
+/domains/typescript/skills/*/repos/metamask-mobile.md       @MetaMask/mobile-platform
