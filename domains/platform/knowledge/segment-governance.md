@@ -1,6 +1,6 @@
 ---
 name: segment-governance
-domain: data
+domain: platform
 description: Segment event governance via segment-schema is advisory — no CI enforcement prevents unregistered events from shipping
 ---
 

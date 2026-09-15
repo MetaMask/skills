@@ -1,6 +1,6 @@
 ---
 name: metrametrics-identity
-domain: data
+domain: platform
 description: Which extension MetaMetrics events are sent without the user's analytics ID, set by the excludeMetaMetricsId option or by an event name starting with Send or Confirm
 ---
 
