@@ -344,7 +344,7 @@ const useHistoricalPrices = () => {
 **DO:**
 
 - Split effects when conditional logic excludes some dependencies
-- Ensure all dependencies in array are actually used
+- Ensure every dependency is either read by the effect or is a named restart key (see Rule: Name Restart Keys)
 
 **DON'T:**
 
@@ -374,19 +374,47 @@ const useHistoricalPrices = ({ isEvm, chainId, address }: Props) => {
       fetchPrices(chainId, address);
     }
   }, [isEvm, chainId, address]); // All deps are used
-
-  // OR Option 2: Separate effects
-  useEffect(() => {
-    if (isEvm) return;
-    fetchPrices(chainId, address);
-  }, [isEvm]); // Only depends on condition
-
-  useEffect(() => {
-    if (!isEvm) {
-      fetchPrices(chainId, address);
-    }
-  }, [chainId, address]); // Only when not EVM
 };
+```
+
+### Rule: Name Restart Keys
+
+**DO:**
+
+- When an effect synchronizes with an external system (a connection, a subscription, a background registration) and a dependency's only job is to tear that down and start it again when it changes, keep it in the array and say so in a comment beside it
+- Prefer passing the value into the call the effect makes, so the effect reads it and the dependency explains itself
+
+**DON'T:**
+
+- Leave a dependency the effect body never reads without a comment. A reviewer cannot tell a restart key from a dead dependency, and the next edit deletes it
+- Delete a restart key to satisfy "include only what the effect reads". The effect then keeps a session bound to the old value
+
+**Example - WRONG:**
+
+```typescript
+useEffect(() => {
+  const session = startSession(address);
+  return () => session.stop();
+}, [address, networkId]); // networkId is never read: restart key, or leftover?
+```
+
+**Example - CORRECT:**
+
+```typescript
+useEffect(() => {
+  const session = startSession(address);
+  return () => session.stop();
+}, [
+  address,
+  // Not read above: a network change must end this session and start a new one.
+  networkId,
+]);
+
+// Or make the dependency real by passing it in:
+useEffect(() => {
+  const session = startSession({ address, networkId });
+  return () => session.stop();
+}, [address, networkId]);
 ```
 
 ### Rule: Use useRef for Persistent Values
@@ -854,6 +882,76 @@ const PriceTicker = ({ tokenAddress }: PriceTickerProps) => {
     };
   }, [tokenAddress]);
 };
+```
+
+### Rule: Keep Multi-Step Async Protocols Out of the Effect
+
+**DO:**
+
+- When an effect acquires an external resource through more than one async step, with a timeout or more than one way to end, move that protocol into a plain object owned outside React: `start()` returns a handle, and `handle.stop()` releases the resource
+- Keep the effect to acquiring and releasing: start in the body, stop in the cleanup
+- Unit-test the object's end paths directly (ready, timeout, failure, stop while a step is in flight), without rendering
+
+**DON'T:**
+
+- Grow a state machine of closure flags (`cancelled`, `ended`, `ready`) inside the effect. Every end path needs its own cleanup, every fix has to reason about every flag at once, and the only way to test it is through `renderHook`
+
+**Why:** every line of such an effect can pass the rules above (stable dependencies, timers cleared, a cancelled flag on the async chain) while the bugs sit between its end paths: a timeout that fires mid-acquire, a release sent before registration, a release that also runs on the success path. Those bugs belong to the protocol, not to any one line, so a line-level review does not catch them.
+
+**Example - WRONG:**
+
+```typescript
+useEffect(() => {
+  let cancelled = false;
+  let ended = false;
+  let ready = false;
+  const finish = (reason: string) => {
+    if (!ended) {
+      ended = true;
+      report(reason);
+    }
+  };
+  const timeout = setTimeout(() => {
+    cancelled = true;
+    finish('timeout');
+    release(id);
+  }, 30_000);
+  register(id)
+    .then(() => !cancelled && init(address))
+    .then(() => !cancelled && start(id))
+    .then(() => {
+      if (!cancelled) {
+        ready = true;
+        finish('ready');
+      }
+    })
+    .catch(() => {
+      finish('failed');
+      if (!cancelled) release(id);
+    })
+    .finally(() => clearTimeout(timeout));
+  return () => {
+    cancelled = true;
+    clearTimeout(timeout);
+    finish('released');
+    release(id, ready);
+  };
+}, [address]);
+```
+
+**Example - CORRECT:**
+
+```typescript
+// preload-session.ts: a plain object, unit-tested without React
+export function startPreloadSession(address: string): { stop: () => void } {
+  // register, init, start, the timeout, and every end path live here
+}
+
+// The hook only acquires and releases
+useEffect(() => {
+  const session = startPreloadSession(address);
+  return () => session.stop();
+}, [address]);
 ```
 
 ### Rule: Avoid Large Object Retention in Closures
