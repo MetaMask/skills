@@ -5,7 +5,7 @@ parent: analytics
 
 # Analytics — MetaMask Extension
 
-Read at `metamask-extension` [`e81ed46`](https://github.com/MetaMask/metamask-extension/commit/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f). A/B enrichment: `docs/ab-testing.md`. How an event loses the user's analytics ID: `knowledge/metrametrics-identity.md`. Tracking-plan governance and Data Council contacts: `knowledge/segment-governance.md`.
+Read at `metamask-extension` [`e81ed46`](https://github.com/MetaMask/metamask-extension/commit/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f). A/B enrichment: `docs/ab-testing.md`. How an event loses the user's analytics ID: `knowledge/metametrics-identity.md`. Tracking-plan governance and Data Council contacts: `knowledge/segment-governance.md`.
 
 ## Canonical API
 
@@ -36,7 +36,7 @@ Every path ends in the background `trackEvent` ([`analytics.ts:344-394`](https:/
 - Properties via `.addProperties(...)`, category via `.addCategory(...)`, options via `.build(options)`. `.build()` accepts `excludeMetaMetricsId`, `matomoEvent`, `environmentType`, `page` and `referrer` ([`create-event-builder.ts:15-22`](https://github.com/MetaMask/metamask-extension/blob/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f/shared/lib/analytics/create-event-builder.ts#L15-L22))
 - Page title: `useAnalytics` has no `contextPropsIntoEventProperties` option. Add `[MetaMetricsContextProp.PageTitle]: segmentContext.page?.title` to the properties, with `segmentContext` from `useSegmentContext()` ([`about-info.tsx:40-50`](https://github.com/MetaMask/metamask-extension/blob/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f/ui/pages/settings/about-tab/about-info.tsx#L40-L50))
 
-An event with `addSensitiveProperties` is sent twice, and cannot also set `excludeMetaMetricsId: true` (`knowledge/metrametrics-identity.md`, Sensitive Properties).
+An event with `addSensitiveProperties` is sent twice, and cannot also set `excludeMetaMetricsId: true` (`knowledge/metametrics-identity.md`, Sensitive Properties).
 
 UI (`ui/components/app/balance-empty-state/balance-empty-state.tsx`):
 
@@ -111,7 +111,7 @@ trackAnalyticsEvent(
 1. **Search `MetaMetricsEventName`** ([`metametrics.ts:798-1212`](https://github.com/MetaMask/metamask-extension/blob/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f/shared/constants/metametrics.ts#L798-L1212)). The event may already exist under a different phrasing.
 2. **Search the tracking plan.** It names an event by the enum's string value, not its key: `AccountAdded = 'Account Added'` is `name: Account Added` in `libraries/events/metamask-account-mgmt/account-added.yaml`.
 3. **Add the enum entry**, then the `trackEvent` call. The `Consensys/segment-schema` `CONTRIBUTING.md` asks for an object plus past-tense verb in Title Case (`Wallet Created`) and `snake_case` properties.
-4. **Pass `excludeMetaMetricsId: true` to `.build()` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous ID and drops the profile IDs, for every user, not only those who have not opted in. An event whose name matches `/^send|^confirm/iu` gets it by default unless `.build()` receives `excludeMetaMetricsId: false` (`knowledge/metrametrics-identity.md`).
+4. **Pass `excludeMetaMetricsId: true` to `.build()` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous ID and drops the profile IDs, for every user, not only those who have not opted in. An event whose name matches `/^send|^confirm/iu` gets it by default unless `.build()` receives `excludeMetaMetricsId: false` (`knowledge/metametrics-identity.md`).
 5. **Open the `Consensys/segment-schema` pull request before merging, and get it merged before the event ships.** Its `CONTRIBUTING.md` requires two approvals, one from a Data Council delegate, and its workflow attaches an Impact Report to review. At `e81ed46` no workflow in metamask-extension checks an event against the tracking plan, so skipping this step fails nothing (`knowledge/segment-governance.md`).
 6. **Register A/B enrichment** if the event belongs to an experiment: add its name to an `ABTestAnalyticsMapping` in `AB_TEST_ANALYTICS_MAPPINGS` ([`ab-test-analytics.ts:19-22`](https://github.com/MetaMask/metamask-extension/blob/e81ed463b0b0af60a1ef01f9b95b2ed5792a7c2f/shared/lib/ab-testing/ab-test-analytics.ts#L19-L22)), as `docs/ab-testing.md` describes.
 
