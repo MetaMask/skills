@@ -48,37 +48,39 @@ const TokenDisplay = ({ token }: TokenDisplayProps) => {
 
 **DO:**
 
-- Reduce dependencies by moving values to default parameters when possible
-- Only include dependencies that actually trigger the effect
+- Depend on the primitive the effect reads (an ID, an address, a number) rather than an object rebuilt on each render
+- Keep values the effect does not use out of the effect
 
 **DON'T:**
 
 - Include unnecessary dependencies that cause effects to run too often
+- Drop a value the effect reads to make it run less often. A default parameter does not stop it being a dependency (see Rule: Include All Dependencies in useEffect)
 
 **Example - WRONG:**
 
 ```typescript
-const TokenBalance = ({ address, network, refreshInterval }: Props) => {
+const TokenBalance = ({ account, network, refreshInterval }: Props) => {
   const [balance, setBalance] = useState('0');
 
   useEffect(() => {
     const fetch = async () => {
-      const result = await fetchBalance(address, network);
+      const result = await fetchBalance(account.address, network);
       setBalance(result);
     };
 
     fetch();
     const interval = setInterval(fetch, refreshInterval);
     return () => clearInterval(interval);
-  }, [address, network, refreshInterval]); // Effect runs too often
+  }, [account, network, refreshInterval]); // A parent passing account={{ address }} rebuilds it on every render, so the effect refetches and resets the interval each time
 };
 ```
 
 **Example - CORRECT:**
 
 ```typescript
-const TokenBalance = ({ address, network, refreshInterval = 10000 }: Props) => {
+const TokenBalance = ({ account, network, refreshInterval }: Props) => {
   const [balance, setBalance] = useState('0');
+  const { address } = account;
 
   useEffect(() => {
     const fetch = async () => {
@@ -89,7 +91,7 @@ const TokenBalance = ({ address, network, refreshInterval = 10000 }: Props) => {
     fetch();
     const interval = setInterval(fetch, refreshInterval);
     return () => clearInterval(interval);
-  }, [address, network]); // refreshInterval moved to default param
+  }, [address, network, refreshInterval]); // The address string is equal across renders
 };
 ```
 
