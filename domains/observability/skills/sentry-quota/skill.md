@@ -18,7 +18,7 @@ Find and fix custom Sentry span instrumentation that blows the project span budg
 ## Do Not Use When
 
 - Reading the live span counts themselves — that's `sentry-mcp-queries` (Volume Estimation).
-- Product-analytics events (Segment / `trackEvent`) — that's `instrumentation`, with platform domain `knowledge/segment-governance.md` for Segment governance.
+- Product-analytics events (Segment / `trackEvent`) — that's the `analytics` skill (`platform/analytics`), with platform domain `knowledge/segment-governance.md` for Segment governance.
 - The span is already behind a per-trace sample gate **and** a kill-switch — already mitigated.
 - Error volume. Errors are metered separately from spans and transactions, so no change here moves the error quota.
 
