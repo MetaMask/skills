@@ -49,11 +49,32 @@ const onPress = useCallback(() => doThing(count), [])
 
 // ❌ empty deps and reads nothing → this was never a hook, hoist it out
 const config = useMemo(() => ({ a: 1, b: 2 }), [])
+
+// ❌ lists a value the effect never reads → it restarts on networkId with nothing using it
+useEffect(() => {
+  const session = startSession(address)
+  return () => session.stop()
+}, [address, networkId])
+
+// ✅ the session is for one network, so the effect passes the network in
+useEffect(() => {
+  const session = startSession({ address, networkId })
+  return () => session.stop()
+}, [address, networkId])
 ```
 
-**Fix:** include what you read; or if there is genuinely nothing to read, move the constant
-outside the component. Where `react-hooks/exhaustive-deps` is not enabled, this is not
-caught automatically and must be reviewed by hand.
+**Fix:** include what you read, and read what you include. If there is genuinely nothing to
+read, move the constant outside the component. If an effect must restart when a value
+changes, the effect has to use that value: pass it into the work the effect starts, or
+render the scope that must reset as a component keyed on the value
+([Resetting all state when a prop changes](https://react.dev/learn/you-might-not-need-an-effect#resetting-all-state-when-a-prop-changes)).
+Deleting the dependency leaves the effect bound to the old value. A comment beside it, or
+`'use no memo'`, leaves it unread, and React Compiler's effect-dependency validation (off by
+default) reports it.
+
+Where `react-hooks/exhaustive-deps` is not enabled, the first two cases are not caught
+automatically. The third is never caught by it: the rule accepts an extra effect
+dependency that is a component value, so it must be reviewed by hand.
 
 ## 3. Derived state via effect + setState
 

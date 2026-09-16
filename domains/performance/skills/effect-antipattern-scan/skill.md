@@ -36,7 +36,7 @@ Applies to both `metamask-extension` and `metamask-mobile`. See overlays for rep
 | Pattern (`effect-antipatterns` §) | Detection |
 |---|---|
 | §1 Unstable dependency identity | `grep -rnE 'useEffect.*\[.*JSON\.stringify' <source-dir>`, plus inline `{`/`[` literals in the dep position |
-| §2 Wrong dependencies | Hand review — empty deps that read state (stale closure), or deps that read nothing |
+| §2 Wrong dependencies | Hand review — empty deps that read state (stale closure), deps that read nothing, or an effect dependency the effect never reads |
 | §3 Derived state via effect + setState | Hand review — `useEffect` that calls `setX` from other state/props; §3a for chains of them |
 | §4 Missing timer cleanup | `grep -rnE 'setInterval\|setTimeout' <source-dir>` then check each effect returns a cleanup |
 | §5 Uncancelled async work | `grep -rnB2 -A10 'fetch\(' <source-dir>` within `useEffect` blocks |
