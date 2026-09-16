@@ -344,7 +344,7 @@ const useHistoricalPrices = () => {
 **DO:**
 
 - Split effects when conditional logic excludes some dependencies
-- Ensure every dependency is either read by the effect or is a named restart key (see Rule: Name Restart Keys)
+- Ensure the effect reads every dependency (see Rule: Don't List Dependencies the Effect Doesn't Read)
 
 **DON'T:**
 
@@ -377,44 +377,58 @@ const useHistoricalPrices = ({ isEvm, chainId, address }: Props) => {
 };
 ```
 
-### Rule: Name Restart Keys
+### Rule: Don't List Dependencies the Effect Doesn't Read
+
+The dependency array describes the effect's code. A value that must restart the effect when it changes has to be a value the effect uses.
 
 **DO:**
 
-- When an effect synchronizes with an external system (a connection, a subscription, a background registration) and a dependency's only job is to tear that down and start it again when it changes, keep it in the array and say so in a comment beside it
-- Prefer passing the value into the call the effect makes, so the effect reads it and the dependency explains itself
+- Treat a dependency the effect never reads as a finding, even when the effect is meant to restart when it changes
+- If the effect's work depends on the value, pass the value into that work: the call that starts the connection, subscription or background registration
+- If the value marks a scope whose state must all reset when it changes, render that scope as a component and give it the value as its `key`
+- If the value changes because of a specific action, do the work where that action is handled instead of in an effect that watches for the change
 
 **DON'T:**
 
-- Leave a dependency the effect body never reads without a comment. A reviewer cannot tell a restart key from a dead dependency, and the next edit deletes it
-- Delete a restart key to satisfy "include only what the effect reads". The effect then keeps a session bound to the old value
+- Delete the dependency without one of the changes above. The effect then keeps a session bound to the old value
+- Keep the unread dependency and explain it in a comment. React Compiler's effect-dependency validation (`validateExhaustiveEffectDependencies`, lint rule `react-hooks/exhaustive-effect-dependencies`, off by default) reports it as unnecessary, and with that validation on, the compiler leaves the whole component or hook uncompiled, or fails the build under a strict `panicThreshold`
+- Add `'use no memo'` to protect the dependency array. It opts the whole function out of React Compiler, and React documents it as a temporary debugging tool
+- Add a parameter the called code ignores just so the effect reads the value. That moves the unread value into the call
+
+**Reference:** [Removing Effect Dependencies](https://react.dev/learn/removing-effect-dependencies), [Resetting all state when a prop changes](https://react.dev/learn/you-might-not-need-an-effect#resetting-all-state-when-a-prop-changes), [`"use no memo"`](https://react.dev/reference/react-compiler/directives/use-no-memo)
 
 **Example - WRONG:**
 
 ```typescript
-useEffect(() => {
-  const session = startSession(address);
-  return () => session.stop();
-}, [address, networkId]); // networkId is never read: restart key, or leftover?
+const useSession = ({ address, networkId }: Props) => {
+  useEffect(() => {
+    const session = startSession(address);
+    return () => session.stop();
+  }, [address, networkId]); // networkId is never read
+};
 ```
 
 **Example - CORRECT:**
 
 ```typescript
-useEffect(() => {
-  const session = startSession(address);
-  return () => session.stop();
-}, [
-  address,
-  // Not read above: a network change must end this session and start a new one.
-  networkId,
-]);
+// The session is for one network, so the effect passes the network in
+const useSession = ({ address, networkId }: Props) => {
+  useEffect(() => {
+    const session = startSession({ address, networkId });
+    return () => session.stop();
+  }, [address, networkId]);
+};
 
-// Or make the dependency real by passing it in:
-useEffect(() => {
-  const session = startSession({ address, networkId });
-  return () => session.stop();
-}, [address, networkId]);
+// Caches must be cleared when the account or network changes:
+// a keyed child unmounts on the change, and its cleanup clears them
+const CacheScope = () => {
+  useEffect(() => () => clearCaches(), []);
+  return null;
+};
+
+const Root = ({ address, networkId }: Props) => (
+  <CacheScope key={`${address}:${networkId}`} />
+);
 ```
 
 ### Rule: Use useRef for Persistent Values
