@@ -13,7 +13,7 @@ description: Segment event governance via segment-schema is advisory — no CI e
 | Tracking plan | `Consensys/segment-schema` → `tracking-plans/metamask-extension.yaml` |
 | Event registry | `shared/constants/metametrics.ts` → `MetaMetricsEventName` enum (300+ entries) |
 | Review process | `CONTRIBUTING.md` in segment-schema; Data Council review |
-| Governance channel | `#metamask-metametrics`, `@consensys/data-council` |
+| Governance contact | `#metamask-metametrics` in Slack, and a Data Council delegate, who is a required reviewer on each `Consensys/segment-schema` pull request |
 
 ## The Gap
 
