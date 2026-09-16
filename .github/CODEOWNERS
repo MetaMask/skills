@@ -23,6 +23,9 @@
 /domains/platform/       @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
 /domains/perps/          @MetaMask/perps
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/stability/      @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/stability/skills/*/repos/metamask-extension.md     @MetaMask/extension-platform
+/domains/stability/skills/*/repos/metamask-mobile.md        @MetaMask/mobile-platform
 /domains/swaps/          @MetaMask/swaps-engineers
 /domains/testing/        @MetaMask/qa
 /domains/ui/             @MetaMask/design-system-engineers
