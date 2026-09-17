@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support explicit-only workflow skills across runners and distribute the Perps static review as a generated, source-tracked execution checklist.
+- Support explicit-only workflow skills across runners and distribute the Perps static review as a generated, source-tracked execution checklist, split per client: a shared base skill, `metamask-mobile`/`metamask-extension`/`core` overlays, one execution template per client, and the full rule text in reference files a reviewer opens only for the families the diff touches.
 - Add `navigation` skill with a repo-agnostic base and a MetaMask Mobile overlay for `Routes` and `NavigationService`. Marked `base: true` so it installs even when its domain is filtered out.
 - Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
