@@ -432,3 +432,10 @@ MIT — see [LICENSE](LICENSE).
 
 See [SECURITY.md](SECURITY.md) for how to report issues with skills or
 the installer.
+
+
+### Explicit-only workflows
+
+Set `disable-model-invocation: true` in source skill frontmatter to require explicit invocation. The installer emits the native Claude flag, a Codex `agents/openai.yaml` policy with `allow_implicit_invocation: false`, and a manual Cursor `.mdc` rule without description or glob matching. Other skills retain their existing selection behavior. Installation does not activate a workflow.
+
+Perps review carries a generated phased checklist and a catalog at `references/templates`. Its canonical rules remain in the Perps recipe library. Regenerate from a clean library revision with `node domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs --library <library>`; add `--check` in validation. An explicitly configured analyzer can receive the same content with `--analyzer-out <consumer>/.ai-pr-analyzer/prompt-context.md`. Review that consumer change before enabling it.

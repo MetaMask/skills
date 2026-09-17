@@ -5,7 +5,7 @@
 // in tools/install (Bash) mirrors BUNDLE_DIRS; keep the two in sync.
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
-export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata'];
+export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata', 'disable-model-invocation'];
 
 // Pre-rename spelling of `base`, still READ by tools/install so that content from a
 // source on a different release cadence (the origin/main cache, a private overlay)

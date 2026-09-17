@@ -176,6 +176,18 @@ body_after_frontmatter() {
   awk 'BEGIN{n=0} /^---$/{n++; next} n>=2{print}' "$1"
 }
 
+# Body of an overlay file. Overlays normally have NO frontmatter (they start
+# straight into Markdown), so strip a leading `---` block only when present;
+# otherwise emit the whole file. Without this, a no-frontmatter overlay would be
+# dropped entirely by body_after_frontmatter (which only prints after a 2nd `---`).
+overlay_body() {
+  if [[ "$(head -1 "$1")" == "---" ]]; then
+    body_after_frontmatter "$1"
+  else
+    cat "$1"
+  fi
+}
+
 domain_allowed() {
   local domain="$1"
   # `none` selects no domains at all, leaving only `base: true` skills (which
@@ -260,6 +272,7 @@ write_claude() {
     echo '---'
     echo "name: ${name}"
     yaml_field description "$description"
+    if is_truthy "${explicit_only:-false}"; then echo 'disable-model-invocation: true'; fi
     echo '---'
     echo "${MANAGED_BANNER}"
     echo "${content}"
@@ -270,12 +283,19 @@ write_cursor() {
   local out_name="$1" description="$2" content="$3"
   local dir="$CURSOR_DIR/$out_name"
   local file="$dir/RULE.md"
-  action "cursor: .cursor/rules/$out_name/RULE.md"
+  # Explicit-only rules use Cursor's manual .mdc format, without matching metadata.
+  if is_truthy "${explicit_only:-false}"; then file="$dir/$out_name.mdc"; fi
+  action "cursor: .cursor/rules/$out_name/$(basename "$file")"
   $DRY_RUN && return
   mkdir -p "$dir"
+  if is_truthy "${explicit_only:-false}"; then
+    rm -f "$dir/RULE.md"
+  else
+    rm -f "$dir/$out_name.mdc"
+  fi
   {
     echo '---'
-    yaml_field description "$description"
+    if ! is_truthy "${explicit_only:-false}"; then yaml_field description "$description"; fi
     echo 'alwaysApply: false'
     echo '---'
     echo "${MANAGED_BANNER}"
@@ -297,6 +317,7 @@ write_agents() {
     echo '---'
     echo "name: ${name}"
     yaml_field description "$description"
+    if is_truthy "${explicit_only:-false}"; then echo 'disable-model-invocation: true'; fi
     echo '---'
     echo "${MANAGED_BANNER}"
     echo "${content}"
@@ -306,6 +327,10 @@ write_agents() {
     printf '  display_name: '; yaml_quoted "$name"; echo
     yaml_field '  short_description' "$description"
     printf '  default_prompt: '; yaml_quoted "Use \$${out_name} for this task."; echo
+    if is_truthy "${explicit_only:-false}"; then
+      echo 'policy:'
+      echo '  allow_implicit_invocation: false'
+    fi
   } > "$yaml"
 }
 
@@ -324,6 +349,7 @@ write_user_claude() {
     echo '---'
     echo "name: ${name}"
     yaml_field description "$description"
+    if is_truthy "${explicit_only:-false}"; then echo 'disable-model-invocation: true'; fi
     echo '---'
     echo "${MANAGED_BANNER}"
     echo "${content}"
@@ -342,10 +368,22 @@ write_user_codex() {
     echo '---'
     echo "name: ${name}"
     yaml_field description "$description"
+    if is_truthy "${explicit_only:-false}"; then echo 'disable-model-invocation: true'; fi
     echo '---'
     echo "${MANAGED_BANNER}"
     echo "${content}"
   } > "$file"
+  mkdir -p "$dir/agents"
+  {
+    echo 'interface:'
+    printf '  display_name: '; yaml_quoted "$name"; echo
+    yaml_field '  short_description' "$description"
+    printf '  default_prompt: '; yaml_quoted "Use \$${out_name} for this task."; echo
+    if is_truthy "${explicit_only:-false}"; then
+      echo 'policy:'
+      echo '  allow_implicit_invocation: false'
+    fi
+  } > "$dir/agents/openai.yaml"
 }
 
 copy_bundle_dirs() {
@@ -414,7 +452,10 @@ expected_project_skill_contains() {
 is_managed_project_skill() {
   local dir="$1" label="$2" marker
   case "$label" in
-    .cursor/rules) marker="$dir/RULE.md" ;;
+    .cursor/rules)
+      marker="$dir/RULE.md"
+      [[ ! -f "$dir/$(basename "$dir").mdc" ]] || marker="$dir/$(basename "$dir").mdc"
+      ;;
     *) marker="$dir/SKILL.md" ;;
   esac
   [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"
@@ -451,6 +492,23 @@ copy_user_bundles() {
   fi
 }
 
+# recipe-qa replaces the old PR-only entry point. Leave hand-authored skills alone.
+remove_replaced_pr_qa_skill() {
+  local parent dir marker managed
+  for parent in "$CLAUDE_DIR" "$CURSOR_DIR" "$AGENTS_DIR"; do
+    dir="$parent/mms-recipe-pr-qa-review"
+    [[ -d "$dir" ]] || continue
+    managed=false
+    for marker in "$dir/SKILL.md" "$dir/RULE.md" "$dir/mms-recipe-pr-qa-review.mdc"; do
+      if [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"; then managed=true; fi
+    done
+    if $managed; then
+      action "$dir (replaced by mms-recipe-qa)"
+      $DRY_RUN || rm -rf "$dir"
+    fi
+  done
+}
+
 process_skill() {
   local skill_dir="$1" domain_name="$2"
   local skill_name; skill_name=$(basename "$skill_dir")
@@ -469,6 +527,7 @@ process_skill() {
   # source has migrated.
   [[ -z "$is_base" ]] && is_base=$(frontmatter_value "$base" "mandatory")
   local scope;     scope=$(frontmatter_value "$base" "scope")
+  local explicit_only; explicit_only=$(frontmatter_value "$base" "disable-model-invocation")
 
   if skill_excluded "$domain_name" "$skill_name"; then
     log "skipped (explicitly excluded by --exclude/SKILLS_EXCLUDE)"
@@ -538,7 +597,7 @@ process_skill() {
   local base_content; base_content=$(body_after_frontmatter "$base")
   local merged="$base_content"
   if [[ -f "$overlay" ]]; then
-    local overlay_content; overlay_content=$(body_after_frontmatter "$overlay")
+    local overlay_content; overlay_content=$(overlay_body "$overlay")
     merged="${merged}
 
 ${overlay_content}"
@@ -548,6 +607,7 @@ ${overlay_content}"
   write_cursor "$out_name" "$description" "$merged"
   write_agents "$out_name" "$out_name" "$description" "$merged"
   copy_project_bundles "$skill_dir" "$out_name"
+  if [[ "$name" == "recipe-qa" ]]; then remove_replaced_pr_qa_skill; fi
   EXPECTED_PROJECT_SKILLS+=("$out_name")
 }
 

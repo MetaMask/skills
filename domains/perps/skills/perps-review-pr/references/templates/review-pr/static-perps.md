@@ -1,8 +1,8 @@
 ---
-name: perps-review-pr
-description: Execute the Perps static review checklist when explicitly invoked by name or a selected workflow.
-disable-model-invocation: true
-maturity: stable
+id: review-pr/static-perps
+flow: review-pr
+runMode: autonomous
+platforms: [mobile, ios, android, extension, chrome-extension, core, cli]
 ---
 
 # Perps static review
