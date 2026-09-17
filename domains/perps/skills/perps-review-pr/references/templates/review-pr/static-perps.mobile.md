@@ -6,7 +6,7 @@ platforms: [mobile, ios, android]
 
 # Perps static review
 
-Generated from MetaMask/experimental-metamask-recipe-perps @ c991d06e04abb856965e39bbd5b8e34e697c9697. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
+Generated from MetaMask/experimental-metamask-recipe-perps @ cac185cb8083670a06f8f213c0b71c3b34c81724. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no harness, no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
