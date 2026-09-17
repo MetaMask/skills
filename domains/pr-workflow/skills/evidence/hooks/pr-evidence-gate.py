@@ -435,8 +435,8 @@ def _scan_enrichment_via_comment(body):
     several paragraphs, at least one cited link, and no reply-template opener.
     A properly-templated reply (Addressed:/Resolved:/Reverted: <fact>.) is
     excused unconditionally — that template is itself the correct convention
-    for a comment (exogram-core: ghostwrite-review-reply-register), so
-    following it is the signal of doing this right, not a loophole.
+    for a review reply, so following it is the signal of doing this right,
+    not a loophole.
     """
     if REPLY_TEMPLATE_OPENER.search(body.strip()):
         return []
