@@ -26,6 +26,7 @@ test('review skill, execution template and analyzer preserve canonical criteria 
     const generate = spawnSync(process.execPath, args, { encoding: 'utf8' });
     assert.equal(generate.status, 0, generate.stderr);
     const body = text => text.replace(/^---\n[\s\S]*?\n---\n+/, '');
+    assert.match(readFileSync(path.join(out, 'agents/openai.yaml'), 'utf8'), /allow_implicit_invocation: false/);
     const skill = readFileSync(path.join(out, 'skill.md'), 'utf8');
     const template = readFileSync(path.join(out, 'references/templates/review-pr/static-perps.md'), 'utf8');
     assert.equal(body(skill), body(template));

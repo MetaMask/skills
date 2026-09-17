@@ -71,6 +71,7 @@ const template = `---\nid: review-pr/static-perps\nflow: review-pr\nrunMode: aut
 const skill = `---\nname: perps-review-pr\ndescription: Execute the Perps static review checklist when explicitly invoked by name or a selected workflow.\ndisable-model-invocation: true\nmaturity: stable\n---\n\n${body}`;
 const outputs = [
   [path.join(out, 'skill.md'), skill],
+  [path.join(out, 'agents/openai.yaml'), 'policy:\n  allow_implicit_invocation: false\n'],
   [path.join(out, 'references/templates/review-pr/static-perps.md'), template],
   [path.join(out, 'references/review-sources.json'), JSON.stringify({ repository: 'MetaMask/experimental-metamask-recipe-perps', revision, files: digests }, null, 2) + '\n'],
 ];
