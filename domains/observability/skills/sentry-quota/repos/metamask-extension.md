@@ -11,7 +11,7 @@ parent: sentry-quota
 | `shared/lib/wrapper-sampling.ts` | `shouldSampleWrappers(traceId)` — the Tier-2 deterministic sub-sample gate |
 | `shared/lib/messenger-tracing.ts` | `wrapMessengerWithTracing` + `isReadOnlyAction` read-only denylist (~90% volume cut before sampling) |
 | `app/scripts/lib/createMetaRPCHandler.ts` | `rpc.handler` span — gated behind `shouldSampleWrappers` |
-| `app/scripts/lib/setupSentry.js` | global `tracesSampleRate` fallback (`0.005` = 0.5%) |
+| `app/scripts/lib/setupSentry.js` | global `tracesSampleRate` fallback (`0.005` = 0.5%); `browserTracingIntegration()` options, with `enableLongAnimationFrame: true`; and `shouldCreateSpanForRequest`, which drops `http.client` spans for `sentry.io`, `segment.io`, `chainid.network`, `acl.execution.metamask.io` and extension-local snap, locale and hashed-bundle reads. Any other request under an active span is a span |
 | `app/scripts/lib/sentry-traces-sampler.ts` | `tracesSampler`: per-name rates (`DEFAULT_TRANSACTION_SAMPLE_RATES`) and the remote-rate ceiling. It takes precedence over `tracesSampleRate` |
 
 Core controller instrumentation lives in the **`MetaMask/core`** monorepo: per-package `TraceName` in `packages/<pkg>/src/**/{constants/traces,utils/trace}.ts` (e.g. `bridge-controller/src/constants/traces.ts`). Controllers don't import Sentry — they call an injected `trace` callback (`traceAsControllerCallback` in the extension).
@@ -37,6 +37,10 @@ rg -n 'shouldSample|tracesSampleRate|hashBucket|Math.random' <call-site-file>
 
 # Kill-switch present?
 rg -n 'SENTRY_[A-Z_]*DISABLED' "$EXT" "$CORE/packages/<pkg>/src"
+
+# PR review — added requests, which become automatic http.client spans under an active span
+gh pr diff <n> --repo MetaMask/metamask-extension \
+  | rg '^\+' | rg 'fetch\(|fetchWithCache|XMLHttpRequest|setInterval|startPolling|setIntervalLength'
 
 # PR review — added instrumentation lines only
 gh pr diff <n> --repo MetaMask/metamask-extension \
