@@ -75,7 +75,15 @@ test('explicit-only policy survives install, overlay and reinstall on every targ
     assert.equal(existsSync(`${cursor}/mms-workflow.mdc`), false);
     assert.ok(existsSync(`${cursor}/RULE.md`));
     assert.doesNotMatch(readFileSync(agentFile, 'utf8'), /allow_implicit_invocation: false/);
-    assert.doesNotMatch(readFileSync(`${userRoot}/.codex/skills/mms-personal/agents/openai.yaml`, 'utf8'), /allow_implicit_invocation: false/);
+    // The installer removes the policy file it wrote once the skill is no longer explicit-only.
+    const userPolicy = `${userRoot}/.codex/skills/mms-personal/agents/openai.yaml`;
+    assert.equal(existsSync(userPolicy), false);
+    // A policy the engineer wrote by hand has no installer banner and survives a reinstall.
+    const custom = 'policy:\n  allow_implicit_invocation: true\n';
+    mkdirSync(path.dirname(userPolicy), { recursive: true });
+    writeFileSync(userPolicy, custom);
+    install();
+    assert.equal(readFileSync(userPolicy, 'utf8'), custom);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

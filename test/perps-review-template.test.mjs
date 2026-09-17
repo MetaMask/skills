@@ -8,6 +8,18 @@ import { test } from 'node:test';
 
 const generator = fileURLToPath(new URL('../domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs', import.meta.url));
 
+const committed = fileURLToPath(new URL('../domains/perps/skills/perps-review-pr/', import.meta.url));
+const withoutFrontmatter = text => text.replace(/^---\n[\s\S]*?\n---\n+/, '');
+
+// The canonical library is not available to this repository's CI, so the public
+// guard is equality of the two committed copies: a hand edit to either fails here.
+test('committed review skill and execution template carry the same checklist', () => {
+  const skill = readFileSync(path.join(committed, 'skill.md'), 'utf8');
+  const template = readFileSync(path.join(committed, 'references/templates/review-pr/static-perps.md'), 'utf8');
+  assert.equal(withoutFrontmatter(skill), withoutFrontmatter(template));
+  assert.ok(withoutFrontmatter(skill).trim().length > 0);
+});
+
 test('review skill, execution template and analyzer preserve canonical criteria and detect drift', () => {
   const work = mkdtempSync(path.join(os.tmpdir(), 'perps-template-'));
   try {
