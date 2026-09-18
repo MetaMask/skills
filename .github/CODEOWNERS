@@ -28,4 +28,7 @@
 /domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/swaps/          @MetaMask/swaps-engineers
 /domains/testing/        @MetaMask/qa
+/domains/typescript/     @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/typescript/skills/*/repos/metamask-extension.md    @MetaMask/extension-platform
+/domains/typescript/skills/*/repos/metamask-mobile.md       @MetaMask/mobile-platform
 /domains/ui/             @MetaMask/design-system-engineers
