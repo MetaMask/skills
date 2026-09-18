@@ -48,12 +48,14 @@ export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 // per-skill always-on cost, and the only part of a skill that carries its own trigger
 // cues — cutting it makes the skill less likely to be selected when it is relevant.
 //
-// This is a REPO BUDGET, not an operator limit. No operator observed here rejects or
-// truncates a longer one: `tools/install` emits the value verbatim, and descriptions
-// well over 1024 characters install and load in Claude Code today. Treat a lower number
-// as a deliberate budget decision, and cite the operator and version before claiming any
-// figure is externally imposed.
-export const DESCRIPTION_MAX = 1536;
+// This number tracks the strictest operator observed so far, not a judgement about the
+// ideal length: `tools/install` emits the value verbatim, and descriptions well over
+// 1024 characters install and load in Claude Code today. The pi coding agent (v0.85.1,
+// docs/skills.md) also loads longer descriptions but flags any over 1024 characters
+// with a "[Skill conflicts]" warning at startup — so 1024 is the largest value that
+// trips no operator's validation. Raise it only with evidence that no operator warns
+// below it.
+export const DESCRIPTION_MAX = 1024;
 
 // A base skill installs for every engineer, so its description is always-on
 // context — and a description too thin to match anything is the failure mode
