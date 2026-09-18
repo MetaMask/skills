@@ -75,6 +75,27 @@ expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
 
 When a test like this fails, the render dump shows the container present with empty `pointerEvents="none"` views where the value belongs — those are the skeleton placeholders.
 
+**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`, default 1000 ms). An outer `waitFor` uses the same budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Pick one waiter:
+
+```typescript
+// ✅ findBy* already waits
+expect(await findByText('Token A')).toBeOnTheScreen();
+
+// ✅ waitFor + synchronous getBy* when you need extra time or a count
+await waitFor(
+  () => {
+    const rows = getAllByTestId(MyViewSelectorsIDs.ROW);
+    expect(rows).toHaveLength(3);
+  },
+  { timeout: 5000 },
+);
+
+// ❌ double polling — both timers are 1s; the outer one wins in CI
+await waitFor(async () => {
+  expect(await findByText('Token A')).toBeOnTheScreen();
+});
+```
+
 **RefreshControl** — Prefer calling the prop handler; `fireEvent(scrollView, 'refresh')` often never hits `onRefresh` in RNTL:
 
 ```typescript
@@ -175,10 +196,8 @@ it('calls quote API with custom slippage when user has set 5% and quote is reque
 it('user sees all items with complete data after async load', async () => {
   const { findByText, findByTestId } = renderMyFeatureWithRoutes();
 
-  // Wait for the first item to confirm data has loaded
-  await waitFor(async () => {
-    expect(await findByText('Token A')).toBeOnTheScreen();
-  });
+  // Wait for the first item to confirm data has loaded (findBy* already polls)
+  expect(await findByText('Token A')).toBeOnTheScreen();
 
   // Validate all fields of each item in the base mock dataset
   const tokenARow = await findByTestId('token-row-item-eip155:1/erc20:0xAAA');
