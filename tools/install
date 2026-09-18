@@ -502,19 +502,29 @@ copy_user_bundles() {
 }
 
 # recipe-qa replaces the old PR-only entry point. Leave hand-authored skills alone.
-remove_replaced_pr_qa_skill() {
-  local parent dir marker managed
-  for parent in "$CLAUDE_DIR" "$CURSOR_DIR" "$AGENTS_DIR"; do
-    dir="$parent/mms-recipe-pr-qa-review"
-    [[ -d "$dir" ]] || continue
-    managed=false
-    for marker in "$dir/SKILL.md" "$dir/RULE.md" "$dir/mms-recipe-pr-qa-review.mdc"; do
-      if [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"; then managed=true; fi
+RETIRED_SKILLS=(
+  "mms-recipe-pr-qa-review|replaced by mms-recipe-qa"
+  "mms-recipe-evidence|renamed mms-recipe-pretty-pr"
+  "mms-recipe-fixbug|renamed mms-recipe-fix-bug"
+  "mms-recipe-quality|folded into the harness"
+)
+
+remove_retired_skills() {
+  local entry name reason parent dir marker managed
+  for entry in "${RETIRED_SKILLS[@]}"; do
+    name="${entry%%|*}"; reason="${entry#*|}"
+    for parent in "$CLAUDE_DIR" "$CURSOR_DIR" "$AGENTS_DIR"; do
+      dir="$parent/$name"
+      [[ -d "$dir" ]] || continue
+      managed=false
+      for marker in "$dir/SKILL.md" "$dir/RULE.md" "$dir/$name.mdc"; do
+        if [[ -f "$marker" ]] && grep -Fqx -- "$MANAGED_BANNER" "$marker"; then managed=true; fi
+      done
+      if $managed; then
+        action "$dir ($reason)"
+        $DRY_RUN || rm -rf "$dir"
+      fi
     done
-    if $managed; then
-      action "$dir (replaced by mms-recipe-qa)"
-      $DRY_RUN || rm -rf "$dir"
-    fi
   done
 }
 
@@ -616,7 +626,6 @@ ${overlay_content}"
   write_cursor "$out_name" "$description" "$merged"
   write_agents "$out_name" "$out_name" "$description" "$merged"
   copy_project_bundles "$skill_dir" "$out_name"
-  if [[ "$name" == "recipe-qa" ]]; then remove_replaced_pr_qa_skill; fi
   EXPECTED_PROJECT_SKILLS+=("$out_name")
 }
 
@@ -730,6 +739,9 @@ if (( FAILED_SKILL_COUNT > 0 )); then
   echo "No target files were written." >&2
   exit 1
 fi
+
+# Prune before install so removed names never shadow a rename this run.
+remove_retired_skills
 
 current_domain=""
 for ((i = 0; i < ${#RESOLVED_KEYS[@]}; i++)); do
