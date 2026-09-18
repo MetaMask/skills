@@ -34,7 +34,8 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 
 ### Updating a Span
 
-- `trace()` takes `tags`, `endTrace()` takes `data`. Tags are applied through `scope.setTag` on the START path only; `data` becomes span attributes at the end. There is no post-start tag path, so a value that must be a tag has to be known when `trace()` is called
+- `trace()` takes `tags`, `endTrace()` takes `data`. There is no post-start tag path, so a value that must be a tag has to be known when `trace()` is called
+- A `tags` entry is routed by the type of its value. A non-numeric value becomes a tag; a numeric one is skipped and set as a Sentry measurement instead, so it never becomes filterable as a tag. Put a number in `tags` only when a measurement is what you want
 - Adding a tag: no governance required
 - Renaming a trace name enum entry: grep all callsites; update enum and references atomically
 - Changing an `op` value: breaks saved queries and dashboards — coordinate with whoever owns them
