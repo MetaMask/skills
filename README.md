@@ -432,3 +432,10 @@ MIT — see [LICENSE](LICENSE).
 
 See [SECURITY.md](SECURITY.md) for how to report issues with skills or
 the installer.
+
+
+### Explicit-only workflows
+
+Set `disable-model-invocation: true` in source skill frontmatter to require explicit invocation. The installer emits the native Claude flag, a Codex `agents/openai.yaml` policy with `allow_implicit_invocation: false`, and a manual Cursor `.mdc` rule without description or glob matching. Other skills retain their existing selection behavior. Installation does not activate a workflow.
+
+Perps review is generated per client from the Perps recipe library, which stays its canonical source: `skill.md` holds the small body every client shares, `repos/<repo>.md` adds the Extension or Core families plus the verdict rows, and each criterion's full rule text lives in `references/criteria/<family>/<slug>.md`, read only when the diff touches that family. A control plane worker follows a complete per-client template instead, `references/templates/review-pr/static-perps.<mobile|extension|core>.md`. This repository cannot reach the library in CI, so the public check is that each template equals its `skill.md` body plus its overlay body exactly as `tools/install` merges them (`test/perps-review-template.test.mjs`), which a hand edit to any of the three fails. Maintainers regenerate from a clean library revision with `node domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs --library <library>` and run it with `--check` on a machine that has the library, before opening the pull request; an explicitly configured analyzer can take one client's self-contained copy with every rule inlined via `--analyzer-out <consumer>/.ai-pr-analyzer/prompt-context.md --client <client>`, and that consumer change needs its own review before it is enabled.
