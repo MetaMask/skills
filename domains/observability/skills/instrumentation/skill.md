@@ -27,16 +27,32 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 
 ### Creating a Span
 
-1. **Register a named trace entry** in the repo's trace name enum before writing any span code. Unnamed spans are invisible in Sentry filters.
-2. **Use the repo's `trace()` wrapper**, not raw `Sentry.startSpan()`. Wrappers handle cross-process context propagation, active-span inheritance, and consistent tag injection.
-3. **Inherit parent automatically** — when no `parentContext` is provided, the wrapper inherits from `Sentry.getActiveSpan()`, making the new span a child of the active parent (e.g., a `pageload` span). That parent is whichever span is active at the call, not necessarily the one that caused the work, which metamask-extension#45527 (stop spans silently attaching to whatever trace happens to be active) proposes to fix. A span started by `trace()` without a callback is active only inside that call, so spans created before its `endTrace()` do not nest under it.
+1. **Check what already records this interval.** Most spans a browser client sends have no `trace()` site: `pageload`, `navigation`, `http.client` and the Performance API entries all come from `browserTracingIntegration()`. A timing span that waits on a request is usually waiting on one that already carries an `http.client` span with a duration. Query `span.op:http.client` with `span.description` matching each endpoint the interval waits on, grouped by `transaction`. Rows mean the timing exists; the new span then has to measure something those do not, and the PR should say what. See `auto-instrumentation`.
+2. **Register a named trace entry** in the repo's trace name enum before writing any span code. Unnamed spans are invisible in Sentry filters.
+3. **Use the repo's `trace()` wrapper**, not raw `Sentry.startSpan()`. Wrappers handle cross-process context propagation, active-span inheritance, and consistent tag injection.
+4. **Inherit parent automatically** — when no `parentContext` is provided, the wrapper inherits from `Sentry.getActiveSpan()`, making the new span a child of the active parent (e.g., a `pageload` span). That parent is whichever span is active at the call, not necessarily the one that caused the work, which metamask-extension#45527 (stop spans silently attaching to whatever trace happens to be active) proposes to fix. A span started by `trace()` without a callback is active only inside that call, so spans created before its `endTrace()` do not nest under it.
 
 ### Updating a Span
 
+- `trace()` takes `tags`, `endTrace()` takes `data`. Tags are applied through `scope.setTag` on the START path only; `data` becomes span attributes at the end. There is no post-start tag path, so a value that must be a tag has to be known when `trace()` is called
 - Adding a tag: no governance required
 - Renaming a trace name enum entry: grep all callsites; update enum and references atomically
 - Changing an `op` value: breaks saved queries and dashboards — coordinate with whoever owns them
 - Moving a span's start (`trace()`) or end (`endTrace()`): changes what its duration measures, so a release-over-release delta mixes a performance change with a definition change
+
+### Timing To Content
+
+**End the span on the state the UI renders from, not on the request settling.** A loading flag flips when the response arrives; the data reaches the component later. In metamask-extension the background's `sendUpdate` is debounced 200 ms with a 1 s `maxWait`, so a span ending on a loading flag excludes 200 to 1000 ms plus render. That excluded window is the only part an `http.client` span does not already cover, so the span measures time-to-response under a time-to-content name.
+
+**Falsifier, before the span ships:** on a cold load, assert the content is in the store at the moment `endTrace` runs. If it is not, the end condition is wrong. A test that only asserts the span ended cannot see this.
+
+### Cross-Platform Parity
+
+**Parity is a property of the definition, not of the name.** Two platforms sharing a trace name and an `op` produce one queryable series, so a dashboard puts them side by side whatever the code does. They are comparable only if the start point, the end condition and every tag derivation match.
+
+- Read the other platform's implementation before choosing the name, not after.
+- A tag derived differently means one value selects different populations. Extension and mobile both emit `source: cold|warm` under `notification.performance`: mobile takes `cold` from the render immediately before the span ends, the extension from any loading render since the span started, and the extension span also waits on `isPending`, so it ends at least a render later.
+- Where the thing timed differs, no naming makes the numbers comparable. Mobile's banner trace times a Braze banner with SDK targeting in its path; the extension carousel times a Contentful fetch.
 
 ---
 
@@ -85,3 +101,8 @@ Caveats: sample population is MetaMetrics opted-in users only. The extension's S
 | New span with no trace name enum entry | Register enum entry first; unnamed spans are invisible in Sentry filters |
 | Multiply a span `count()` by `1 / tracesSampleRate` | `count()` is already extrapolated, so read it as the estimate |
 | Treat Sentry estimates as exact counts | Probabilistic sample — state sample size and confidence |
+| New timing span for a request that already has an `http.client` span | Query the endpoint first, and say what the new span measures that the automatic one does not |
+| Span ends when the fetch settles, under a "time to content" name | End on the state the UI renders from; a debounced store update sits between the response and the render |
+| Same trace name as another platform, different end condition or tag derivation | Parity is the definition. Match start, end and every tag, or use a different name |
+| A value that must be a tag, passed to `endTrace` | `tags` are start-only via `scope.setTag`; `endTrace` data becomes attributes |
+| Effect that owns a span listing dependencies it never reads | React Compiler's effect-dependency validation errors and skips the whole function, so the hook ships unmemoized behind a green build |
