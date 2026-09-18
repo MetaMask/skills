@@ -95,3 +95,47 @@ Example findings:
 | /notification.html | 1.36s → 1.05s (-23%) | 4.30s → 4.71s (+9%, **high variance — inconclusive**) |
 
 Most UI Startup gains and the /home.html p95 gain landed in 13.12 (p95 UI Startup -40% in one release). /home.html p75 moved 1.69s → 1.56s in 13.12, 0.13s of its 0.50s drop, and its larger drops came in 13.14–13.15. Asset Details improved across 13.14 → 13.15. Treat the per-release header deltas as measured totals and attribute individual code changes as likely contributors only.
+
+## Cross-Platform Trace Names
+
+Trace names and ops are plain strings carrying no platform token, so a name the extension shares with `metamask-mobile` is a single series as far as a query is concerned.
+At the shas cited below, 50 of the extension's 84 `TraceName` values and 10 of its 12 `TraceOperation` values also appear in mobile's trace module.
+Two of the four Key Transactions above are in that shared set: `UI Startup` and `Asset Details`.
+
+Any query whose scope spans both platforms' Sentry projects therefore returns one series, and a dashboard will place the two side by side whatever the code does.
+The numbers are comparable only when the start point, the end condition and every tag derivation match. **A matching name is not evidence of a matching definition.**
+
+Regenerate the shared set rather than trusting the counts above, since both enums move:
+
+```bash
+names() { awk '/^export enum TraceName/,/^}/' "$1" | grep -oE "= '[^']+'" | sed "s/^= '//; s/'$//" | sort -u; }
+git show e24e5a017af7a84eeaac7f4f6053eb83cd237f5c:shared/lib/trace.ts > /tmp/ext-trace.ts
+curl -sS https://raw.githubusercontent.com/MetaMask/metamask-mobile/945c2ade9ec8c2989de8769de26978a0ea68c164/app/util/trace.ts > /tmp/mobile-trace.ts
+comm -12 <(names /tmp/ext-trace.ts) <(names /tmp/mobile-trace.ts)   # swap TraceName for TraceOperation to diff ops
+```
+
+### Notification List: One Tag Name, Two Populations
+
+Both platforms emit `Notification List Time To Content` under op `notification.performance`, so the two land in one series ([extension `shared/lib/trace.ts` L40 and L108](https://github.com/MetaMask/metamask-extension/blob/e24e5a017af7a84eeaac7f4f6053eb83cd237f5c/shared/lib/trace.ts#L40-L41), [mobile `app/util/trace.ts` L315 and L395](https://github.com/MetaMask/metamask-mobile/blob/945c2ade9ec8c2989de8769de26978a0ea68c164/app/util/trace.ts#L315-L316)).
+Both tag the span `source: cold` or `source: warm`, and those two tags select different populations.
+
+Mobile holds `isLoading` from the previous run of the same effect and ends the span on the first run where `isLoading` is false, so `cold` means loading was true on the render immediately before the end ([mobile `useNotificationListPerformance.ts` L49-L69](https://github.com/MetaMask/metamask-mobile/blob/945c2ade9ec8c2989de8769de26978a0ea68c164/app/util/notifications/hooks/useNotificationListPerformance.ts#L49-L69)).
+
+Extension latches `sawLoadingRef` on any render since the span started where `isLoading` was true and clears it only when a new span begins, so `cold` means loading was seen at any point in the span ([extension `useNotificationListPerformance.ts` L85-L115](https://github.com/MetaMask/metamask-extension/blob/e24e5a017af7a84eeaac7f4f6053eb83cd237f5c/ui/hooks/metamask-notifications/useNotificationListPerformance.ts#L85-L115)).
+Extension also holds the span open while `isPending` is true, so it ends at least one render later than the mobile condition would.
+
+The two differences interact.
+A span whose `isLoading` flickers true then false before `isPending` clears tags `cold` on extension and would tag `warm` under mobile's rule, so **extension `cold` is a superset of mobile `cold`** and the extension span is the longer of the two by at least one render.
+
+The hooks also take different inputs.
+Extension takes an `error` argument and ends the span `success: false, reason: 'error'` with no `source` tag ([extension `useNotificationListPerformance.ts` L94-L101](https://github.com/MetaMask/metamask-extension/blob/e24e5a017af7a84eeaac7f4f6053eb83cd237f5c/ui/hooks/metamask-notifications/useNotificationListPerformance.ts#L94-L101)), while mobile's config has no error input at all.
+What reaches mobile's `success: true` series on a failed fetch is decided by whatever its caller passes as `isLoading`, which is not visible in the hook and is not established here.
+
+### Banner: Different Work, Not a Naming Mismatch
+
+The banner traces differ in both fields, so they do not share a series today: extension emits `Home Banner Time To Content` under `banner.performance` ([extension `shared/lib/trace.ts` L41 and L109](https://github.com/MetaMask/metamask-extension/blob/e24e5a017af7a84eeaac7f4f6053eb83cd237f5c/shared/lib/trace.ts#L108-L109)), mobile emits `Braze Banner Time To Content` under `braze_banner.performance` ([mobile `app/util/trace.ts` L316 and L396](https://github.com/MetaMask/metamask-mobile/blob/945c2ade9ec8c2989de8769de26978a0ea68c164/app/util/trace.ts#L395-L396)).
+
+Aligning those names would not make the numbers comparable, because the two spans time different work.
+Mobile's span wraps the Braze React Native SDK ([mobile `useBrazeBanner.ts` L269-L276](https://github.com/MetaMask/metamask-mobile/blob/945c2ade9ec8c2989de8769de26978a0ea68c164/app/components/UI/BrazeBanner/useBrazeBanner.ts#L269-L276)), while the extension's carousel times a Contentful fetch and tags the span `banner_source: 'contentful'` ([extension `carousel.tsx` L32-L41](https://github.com/MetaMask/metamask-extension/blob/e24e5a017af7a84eeaac7f4f6053eb83cd237f5c/ui/components/multichain/account-overview/carousel.tsx#L32-L41)).
+
+This is the case where no definition change helps. Renaming aligns a label over two different measurements.
