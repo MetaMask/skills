@@ -1,7 +1,6 @@
 ---
 name: perps-review-pr
 description: Execute the Perps static review checklist when explicitly invoked by name or a selected workflow.
-disable-model-invocation: true
 maturity: stable
 ---
 
