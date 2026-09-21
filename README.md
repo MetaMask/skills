@@ -432,3 +432,8 @@ MIT — see [LICENSE](LICENSE).
 
 See [SECURITY.md](SECURITY.md) for how to report issues with skills or
 the installer.
+
+
+### Explicit-only workflows
+
+Set `disable-model-invocation: true` in source skill frontmatter to require explicit invocation. The installer emits the native invocation controls for each supported runner. Other skills retain their existing selection behavior. Installation does not activate a workflow.
