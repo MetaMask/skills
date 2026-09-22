@@ -49,6 +49,7 @@ Segment event volume is invisible from Sentry, but a correlated `http.client` sp
 3. Read the `count()` aggregate. Span datasets already extrapolate it by each span's sample weight (see *Longer-Range (30D+) Queries and Percentile Fidelity*), so it is the volume estimate.
 4. Do not multiply it by `1 / tracesSampleRate`. That extrapolates twice, and the weight Sentry applies can differ from the configured rate (a per-name sampler rate, a remote override, a trace continued as sampled).
 5. Treat as an **upper bound** — the endpoint may have callers beyond the event path. Sample population = MetaMetrics-opted-in users only (Sentry opt-in is tied to MetaMetrics).
+6. Check that the calling path always runs inside an active span. The SDK records an `http.client` span only when a span is active at request start, so requests outside one leave nothing and the count undercounts (`knowledge/auto-instrumentation.md`). The two errors point opposite ways, so the count is neither bound until the call site is read.
 
 ## Workflow: Release Comparison
 
