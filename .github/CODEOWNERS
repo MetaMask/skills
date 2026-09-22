@@ -32,3 +32,16 @@
 /domains/typescript/skills/*/repos/metamask-extension.md    @MetaMask/extension-platform
 /domains/typescript/skills/*/repos/metamask-mobile.md       @MetaMask/mobile-platform
 /domains/ui/             @MetaMask/design-system-engineers
+
+# Repo overlays name one client, so that client's platform team owns them by default.
+# These follow the domain rules above because the last matching pattern wins.
+**/repos/metamask-extension.md                              @MetaMask/extension-platform
+**/repos/metamask-mobile.md                                 @MetaMask/mobile-platform
+**/repos/core.md                                            @MetaMask/core-platform
+
+# Domains whose own team keeps its overlays.
+/domains/assets/**/repos/                                   @MetaMask/metamask-assets
+/domains/perps/**/repos/                                    @MetaMask/perps
+/domains/swaps/**/repos/                                    @MetaMask/swaps-engineers
+/domains/testing/**/repos/                                  @MetaMask/qa
+/domains/ui/**/repos/                                       @MetaMask/design-system-engineers
