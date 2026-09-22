@@ -391,7 +391,7 @@ homepage) are preserved through install — only `name`, `description`,
 `--exclude` / `SKILLS_EXCLUDE` still wins. The maturity filter runs before the
 base bypass, so `--maturity stable` drops a `base: true` experimental skill.
 A skill with a `repos/` directory and no overlay for `--repo` is skipped
-(this `analytics` skill installs for Mobile and is skipped for Extension).
+(the `navigation` skill installs for Mobile and is skipped for Extension).
 
 The 1,024-character ceiling tracks the strictest operator rather than an opinion
 about ideal length — descriptions well over 1,024 install and load in Claude Code,

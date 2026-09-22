@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `navigation` skill with a repo-agnostic base and a MetaMask Mobile overlay for `Routes` and `NavigationService`. Marked `base: true` so it installs even when its domain is filtered out.
 - Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
+- Add a MetaMask Extension overlay to `analytics` for MetaMetrics and Segment events, and the `metametrics-identity` and `segment-governance` knowledge files to the `platform` domain, which install beside each `platform` skill an install selects: `analytics` in MetaMask Extension, and `analytics`, `feature-flags` and `navigation` in MetaMask Mobile. ([#143](https://github.com/MetaMask/skills/pull/143))
+
+### Changed
+
+- Move MetaMetrics and Segment event guidance from `observability/instrumentation` to `platform/analytics`. `instrumentation` now covers Sentry spans and volume estimation from Sentry span data. ([#143](https://github.com/MetaMask/skills/pull/143))
 
 ## [0.3.1]
 
