@@ -5,13 +5,32 @@
 // in tools/install (Bash) mirrors BUNDLE_DIRS; keep the two in sync.
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
-export const OPTIONAL_FRONTMATTER = ['maturity', 'mandatory', 'scope', 'metadata'];
-export const KNOWN_FRONTMATTER = [...REQUIRED_FRONTMATTER, ...OPTIONAL_FRONTMATTER];
+export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata'];
+
+// Pre-rename spelling of `base`, still READ by tools/install so that content from a
+// source on a different release cadence (the origin/main cache, a private overlay)
+// keeps working while it migrates. Recognised, but the linter warns — it should not
+// be used in new skills, and this list goes away once every source has renamed.
+export const DEPRECATED_FRONTMATTER = ['mandatory'];
+
+export const KNOWN_FRONTMATTER = [
+  ...REQUIRED_FRONTMATTER,
+  ...OPTIONAL_FRONTMATTER,
+  ...DEPRECATED_FRONTMATTER,
+];
 
 export const MATURITY_VALUES = ['experimental', 'stable', 'deprecated'];
 
 // `scope: user` installs to $HOME instead of the target repo; anything else is project scope.
 export const SCOPE_VALUES = ['user', 'project'];
+
+// `base: true` marks a skill as part of the required base set for every consumer
+// repo it applies to: it installs regardless of the engineer's domain selection,
+// so a fresh clone lands it with no flags. Reserve it for the small set that every
+// engineer needs — each base skill is a permanent always-on cost in the operator's
+// skill listing, and an oversized listing gets truncated, which silently strips the
+// trigger cues from the skills nobody has invoked yet. Everything else stays
+// domain-gated and opt-in.
 
 // Directories the installer copies alongside skill.md (see tools/install).
 export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'workflows'];
@@ -29,12 +48,22 @@ export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 // per-skill always-on cost, and the only part of a skill that carries its own trigger
 // cues — cutting it makes the skill less likely to be selected when it is relevant.
 //
-// This is a REPO BUDGET, not an operator limit. No operator observed here rejects or
-// truncates a longer one: `tools/install` emits the value verbatim, and descriptions
-// well over 1024 characters install and load in Claude Code today. Treat a lower number
-// as a deliberate budget decision, and cite the operator and version before claiming any
-// figure is externally imposed.
-export const DESCRIPTION_MAX = 1536;
+// This number tracks the strictest operator observed so far, not a judgement about the
+// ideal length: `tools/install` emits the value verbatim, and descriptions well over
+// 1024 characters install and load in Claude Code today. The pi coding agent (v0.85.1,
+// docs/skills.md) also loads longer descriptions but flags any over 1024 characters
+// with a "[Skill conflicts]" warning at startup — so 1024 is the largest value that
+// trips no operator's validation. Raise it only with evidence that no operator warns
+// below it.
+export const DESCRIPTION_MAX = 1024;
+
+// A base skill installs for every engineer, so its description is always-on
+// context — and a description too thin to match anything is the failure mode
+// that matters. The description is a skill's ENTIRE trigger surface — the model
+// selects on it alone — so "General coding guidelines" will not fire on the work
+// it governs. A base skill that never triggers is worse than one not installed,
+// because it looks covered. State what it does AND when to use it.
+export const BASE_DESCRIPTION_MIN = 120;
 
 export const RECOMMENDED_SECTIONS = ['When To Use', 'Workflow'];
 
