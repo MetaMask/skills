@@ -435,13 +435,6 @@ MIT — see [LICENSE](LICENSE).
 See [SECURITY.md](SECURITY.md) for how to report issues with skills or
 the installer.
 
-
 ### Explicit-only workflows
 
 Set `disable-model-invocation: true` in source skill frontmatter to require explicit invocation. The installer emits the native invocation controls for each supported runner. Other skills retain their existing selection behavior. Installation does not activate a workflow.
-
-### Generated Perps review checklist
-
-Perps review uses a shared checklist plus a repository overlay for Mobile, Extension or Core. Complete execution templates live in `domains/perps/skills/perps-review-pr/references/templates/review-pr/`; rule details live in `references/criteria/`. The parity test checks that each template matches the installed skill and overlay.
-
-Regenerate from the canonical Perps recipe library with `node domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs --library <library>`; add `--check` to verify the generated files. An optional `--analyzer-out <path> --client <client>` export inlines the rules for an existing PR risk analyzer. Exporting a file does not configure or enable that analyzer.
