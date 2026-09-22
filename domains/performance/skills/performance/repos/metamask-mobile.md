@@ -50,17 +50,21 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 
 | Symptom / task | Start with |
 |---|---|
+| Authoring a new or changed Redux selector (file, naming, tests) | `yarn skills --include coding/selector-patterns --save`. Memoization audits stay on this skill ([mm-selector-memoization.md](references/mm-selector-memoization.md)). |
 | Component re-renders too much; account/network switch is laggy | [mm-selector-memoization.md](references/mm-selector-memoization.md) → [js-profile-react.md](references/js-profile-react.md) |
 | `useSelector` returns new refs; `useSelector(x, isEqual)` band-aids | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Whole subtree re-renders under a Context provider | [mm-context-performance.md](references/mm-context-performance.md) |
 | `useEffect`/`useMemo` re-runs constantly; `JSON.stringify` in deps | [mm-hook-dependency-arrays.md](references/mm-hook-dependency-arrays.md) |
+| Effect chains (`setState` in effect triggers next effect); setState after unmount; missing timer/listener cleanup | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
+| **One selector change re-renders half the app**; `isEqual`/`createDeepEqualSelector` band-aids accumulating downstream | [mm-selector-cascade.md](references/mm-selector-cascade.md) |
+| O(n) `.find()` scans per render; parameterized selector recomputes for every list row; component with 5+ `useSelector` calls | [mm-state-normalization.md](references/mm-state-normalization.md) |
 | Animation janky; `useNativeDriver: false` on width/height | [mm-layout-animations.md](references/mm-layout-animations.md) → [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | List scroll jank / unbounded list | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | Search/filter input blocks typing | [js-concurrent-react.md](references/js-concurrent-react.md) |
 | **Opening / navigating to a screen is slow** (tabs/pager fetch everything, N fetches for 1 visible view, waterfall) | [mm-eager-work-on-mount.md](references/mm-eager-work-on-mount.md) → [native-measure-tti.md](references/native-measure-tti.md) |
 | **Real-time / websocket screen slow or janky** (prices, order book, live balances); slow only on first-open / after backgrounding | [mm-streaming-realtime.md](references/mm-streaming-realtime.md) |
 | **List re-renders fully even though children are memoized** (a hook returns a new array/object every render) | [mm-unstable-hook-return.md](references/mm-unstable-hook-return.md) |
-| FPS drops; want to localize JS vs UI thread | [js-measure-fps.md](references/js-measure-fps.md) → [js-profile-react.md](references/js-profile-react.md) |
+| FPS drops; want to localize JS vs UI thread | [js-measure-fps.md](references/js-measure-fps.md) → [js-profile-react.md](references/js-profile-react.md) (optional device-level Android vitals: [js-flashlight.md](references/js-flashlight.md)) |
 | Need a full timeline (React scheduler + JS + network) for a slow flow, not just re-renders | [js-performance-panel.md](references/js-performance-panel.md) |
 | Inspect network requests / API timings; is a slow screen data-bound or render-bound? | [js-network-panel.md](references/js-network-panel.md) |
 | Memory grows over a session | [js-memory-leaks.md](references/js-memory-leaks.md) / [native-memory-leaks.md](references/native-memory-leaks.md) |
@@ -88,6 +92,8 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 | High | lodash main-package imports (98 files, no tree-shaking) | 98 files | [bundle-library-size.md](references/bundle-library-size.md) |
 | High | FlatList missing perf props on growing lists | 65 FlatList JSX | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | High | AppState listener without cleanup | `app/core/SDKConnectV2/services/connection-registry.ts:487` | [js-memory-leaks.md](references/js-memory-leaks.md) |
+| High | Parameterized selector doing an O(n) `Object.values().flat().find()` scan per call | `selectSingleTokenByAddressAndChainId` `app/selectors/tokensController.ts:183`; also `app/selectors/assets/assets-list.ts`, `app/selectors/moneyAccountController/index.ts` | [mm-state-normalization.md](references/mm-state-normalization.md) |
+| Medium | Async effect without cancellation; setState-chain effects; derived state via useEffect+setState | feature-specific — run the guide's greps | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
 | Medium | Inline `useSelector(state => state.x)` bypassing named selectors | 3 files | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Medium | Lottie where Rive fits (Rive already installed) | 5 files | [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | Low | dayjs + luxon both present (dedup) | 4 + 6 files | [bundle-library-size.md](references/bundle-library-size.md) |
@@ -103,4 +109,4 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 
 ## Attribution
 
-Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits.
+Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits. Cross-platform React/Redux guidance (`mm-selector-cascade`, `mm-useeffect-antipatterns`, `mm-state-normalization`) adapted from MetaMask contributor-docs [`frontend-performance.md`](https://github.com/MetaMask/contributor-docs/blob/main/docs/frontend-performance.md) and the extension performance audit (extension PRs metamask-extension#38007, metamask-extension#37147).

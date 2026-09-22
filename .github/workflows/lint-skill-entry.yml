@@ -1,0 +1,66 @@
+name: Lint skill entries
+
+on:
+  pull_request:
+    paths:
+      - 'domains/**'
+      - 'tools/**'
+      - '.github/scripts/lint-skill-entry.mjs'
+      - '.github/workflows/lint-skill-entry.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  lint-skills:
+    name: Lint skill entries
+    runs-on: ubuntu-latest
+    steps:
+      # The repo's own composite action, as every other workflow here uses. Removes the
+      # third-party dependency, and with it the unpinned-reference and credential-
+      # persistence findings that raw actions/checkout raised.
+      # Pinned to a hash per the blanket policy code scanning enforces. The other
+      # workflows here still float on @v3; they predate the policy check.
+      - uses: MetaMask/action-checkout-and-setup@0543b5929698c71e3ccc6ed24eac87825669b5de # v3.5.0
+        with:
+          is-high-risk-environment: false
+          node-version: 24.x
+          # Full history: the changed-file diff needs the base commit.
+          fetch-depth: 0
+
+      # Filenames come from PR contents, so they are untrusted input. They are read
+      # NUL-delimited, passed through the environment, and split on NUL into an array —
+      # never interpolated into a command line. A path containing a space, a quote, or a
+      # shell metacharacter is therefore just a filename.
+      - name: Collect changed skill files
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff -z --name-only --diff-filter=d "$BASE_SHA" "$HEAD_SHA" -- 'domains/**' \
+            > changed-skill-files.bin
+          if [[ -s changed-skill-files.bin ]]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # A schema or installer change re-validates the whole catalogue. Without this the
+          # workflow triggers on tools/**, finds no changed skill files, skips the lint step,
+          # and reports green — so a tightened rule is never applied to what already exists.
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- tools/ .github/scripts/ | grep -q .; then
+            echo "full_audit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "full_audit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Audit every skill (schema or installer changed)
+        if: steps.changed.outputs.full_audit == 'true'
+        run: node .github/scripts/lint-skill-entry.mjs
+
+      - name: Lint changed skills
+        if: steps.changed.outputs.full_audit != 'true' && steps.changed.outputs.any_changed == 'true'
+        run: |
+          mapfile -d '' -t files < changed-skill-files.bin
+          node .github/scripts/lint-skill-entry.mjs "${files[@]}"
