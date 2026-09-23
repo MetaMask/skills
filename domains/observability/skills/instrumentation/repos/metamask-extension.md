@@ -66,3 +66,11 @@ grep -rn "excludeMetaMetricsId: true" app/ ui/ shared/ --include="*.ts" --includ
 
 - Slack: `#metamask-metametrics`
 - Team: `@consensys/data-council`
+
+## Swallowing an Error Deletes Its Report
+
+`Sentry.init` here never sets `defaultIntegrations: false`, so the browser SDK merges `globalHandlersIntegration()` in and an uncaught throw or unhandled rejection already reports on its own.
+
+A `.catch(console.debug)` added to such a path is not graceful degradation. The two states are reported and silent, and the shape that keeps both is a catch calling `captureException` from `shared/lib/sentry`.
+
+Mechanism, sources and the one unestablished case: `knowledge/error-reporting-paths.md`.
