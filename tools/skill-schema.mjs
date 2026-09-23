@@ -5,7 +5,7 @@
 // in tools/install (Bash) mirrors BUNDLE_DIRS; keep the two in sync.
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
-export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata'];
+export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata', 'disable-model-invocation'];
 
 // Pre-rename spelling of `base`, still READ by tools/install so that content from a
 // source on a different release cadence (the origin/main cache, a private overlay)
@@ -37,10 +37,10 @@ export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'work
 
 // Directories allowed beside skill.md: the bundle dirs plus the repo-overlay
 // dir. Anything else is rejected, because the installer does not ship it and any
-// reference to it would dangle post-install. `knowledge/` is not listed here
+// reference to it would dangle post-install. Native agents/ policy is allowed for direct source consumers; the installer generates its own runner metadata. `knowledge/` is not listed here
 // because it is a per-DOMAIN directory, never a skill sibling; the installer
 // delivers it via copy_domain_knowledge.
-export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos'];
+export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos', 'agents'];
 
 export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 
