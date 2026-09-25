@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
+### Changed
+
+- Stop testing skills from prompting unit tests for static styling. Mobile and Extension layer policies now treat spacing, color, typography, and fixed layout props as GAP / ACCEPT, the unit references ban style-value assertions and style-only test IDs, and coding guidelines no longer require tests for every component edit.
+
 ## [0.3.1]
 
 ### Fixed
