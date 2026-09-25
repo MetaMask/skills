@@ -18,7 +18,7 @@ parent: coding-guidelines
 **Code Quality**:
 
 - TypeScript guidelines from contributor docs • Functional components + hooks • PascalCase (components) / camelCase (functions)
-- Reusable components/utilities • TSDoc format • Comprehensive tests following testing layers (below)
+- Reusable components/utilities • TSDoc format • Comprehensive tests following testing layers (below) • No tests for static styling changes (spacing, color, typography, fixed layout props)
 - Redux selectors: install **selector-patterns** (`yarn skills --include coding/selector-patterns --save`) when writing or updating them.
 
 **Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside `mobile-testing`):
