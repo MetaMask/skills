@@ -9,6 +9,34 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 - **ALWAYS use Jest** for unit tests (not Mocha or Tape)
 - Leverage Jest's built-in features: module mocks, timer mocks, snapshots, and parallel test execution
 
+### Do Not Test Static Presentation
+
+Choose the layer first via installed `knowledge/extension-testing-layers.md`. Static or default presentation is GAP / ACCEPT there, so a diff that only changes it needs no new or updated test.
+
+- **NEVER** assert spacing, color, typography, or fixed layout values (computed styles, `className` strings, design-token values)
+- **NEVER** add or refresh a snapshot because only class names, SCSS, or static styles changed
+- **NEVER** add a `data-testid` whose only use is reading `style` or `className`
+- **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.
+- Verify static presentation with screenshots (`visual-testing`) and the PR's before/after evidence
+
+```typescript
+❌ WRONG:
+it('removes the extra padding from the price summary', () => {
+  render(<PriceSummary />);
+  expect(screen.getByTestId('price-summary')).not.toHaveClass('px-4');
+});
+```
+
+Presentation that depends on state or props is behavior. Test it by asserting what the user sees (text shown or hidden, disabled, ARIA state), not class names or style values.
+
+```typescript
+✅ CORRECT:
+it('disables the submit button when the amount is empty', () => {
+  render(<SendForm amount="" />);
+  expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+});
+```
+
 ### Test File Organization
 
 #### File Placement
@@ -188,6 +216,7 @@ async function withController(...args: WithControllerArgs) {
 - **ALWAYS use "render matches snapshot" or similar variants**
 - Add context when needed: "render matches snapshot when not enabled"
 - Remember: Snapshots only check for changes, NOT correctness
+- Do not add a snapshot to cover a static styling change; see [Do Not Test Static Presentation](#do-not-test-static-presentation)
 
 Examples:
 
@@ -748,6 +777,7 @@ Before submitting tests, ensure:
 ### Final Checks
 
 - [ ] Snapshot tests are named "render matches snapshot"
+- [ ] No tests or snapshot updates exist only to cover static styling
 - [ ] All tests pass and are deterministic
 - [ ] Tests run in isolation (can run individually)
 - [ ] No console errors or warnings
