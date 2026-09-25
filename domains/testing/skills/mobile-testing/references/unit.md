@@ -21,6 +21,35 @@ Follow installed `knowledge/testing-layers.md` before choosing unit vs component
 - **Default for screen/view behavior:** `*.view.test.tsx` via [`component-view.md`](component-view.md) — not a broad RTL unit test that mocks hooks/selectors.
 - **This skill applies when:** pure helpers, local utilities, narrow component contracts, or the CV framework cannot cover the case yet (smallest focused unit test + note why).
 - **Do not** add new full-page `*.test.tsx` files that render a screen and mock Redux/hooks to force UI state; convert or write CV instead.
+- **Do not** add a unit test for static presentation (spacing, color, typography, fixed layout props). The layer policy marks it GAP / ACCEPT — see [Do Not Test Static Presentation](#do-not-test-static-presentation).
+
+## Do Not Test Static Presentation
+
+A diff that only changes static or default styling needs no new or updated test, even inside an existing `*.test.tsx`. These assertions do not catch regressions a user would notice, and they break whenever a design token changes.
+
+```tsx
+// ❌ WRONG - asserts padding values after a spacing fix
+const style = StyleSheet.flatten(
+  screen.getByTestId(SelectorsIDs.PRICE_SUMMARY).props.style,
+);
+expect(style.paddingLeft).toBeUndefined();
+
+// ❌ WRONG - asserts fixed truncation props; Jest never renders the overflow
+expect(title.props.numberOfLines).toBe(1);
+expect(title.props.ellipsizeMode).toBe('tail');
+
+// ❌ WRONG - asserts margins set by a Tailwind class
+expect(StyleSheet.flatten(divider.props.style)).toEqual(
+  expect.objectContaining({ marginBottom: 0, marginTop: 20 }),
+);
+```
+
+- **Do not** add a `testID` whose only use is reading `style`.
+- **Do not** remove a `useTailwind` mock so `StyleSheet.flatten` can see real spacing.
+- **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.
+- Verify static presentation with screenshots (`mobile-visual-testing`) and the PR's before/after evidence.
+
+Presentation that depends on state or props is behavior. Test it by asserting what the user sees (text shown or hidden, disabled, accessibility state), not style values.
 
 ## Test Naming Rules
 
@@ -77,7 +106,7 @@ const createTestEvent = (overrides = {}) => ({
 
 - **ALWAYS prefer `testID` props** for selecting elements in tests
 - **Use `getByTestId`** as the primary query method for reliable element selection
-- **Add `testID` props** to components when writing new code or updating existing code
+- **Add `testID` props** when a justified behavior test needs a stable query — not just because a component was touched, and never only to read `style`
 - **Avoid selecting by text** when the text might change (i18n, copy updates)
 
 ```tsx
@@ -418,7 +447,9 @@ describe('MetaMetricsCustomTimestampPlugin', () => {
 
 ## Test Coverage (MANDATORY)
 
-**EVERY component MUST test:**
+Apply this list only after the layer policy says a unit test is justified. Cover the behavior branches the code actually has. A static styling change adds no branch, so it adds no test.
+
+**When a unit test is justified, it MUST cover:**
 
 - ✅ **Happy path** - normal expected behavior
 - ✅ **Edge cases** - null, undefined, empty values, boundary conditions
@@ -597,6 +628,7 @@ expect(result).toBe(false);
 Before submitting any test file, verify:
 
 - [ ] **No `toMatchSnapshot()` calls** — BANNED; use explicit assertions or `toMatchInlineSnapshot()` instead
+- [ ] **No static style assertions** — no `StyleSheet.flatten` padding/margin/color checks, fixed layout-prop checks, or style-only testIDs
 - [ ] **No mocking to inject testIDs** - Use component's built-in testID support
 - [ ] **testIDs via child prop objects** - Use `closeButtonProps={{ testID }}` not mocks
 - [ ] **No "should" in any test name**
@@ -617,6 +649,7 @@ Before submitting any test file, verify:
 
 - ❌ **Using `toMatchSnapshot()`** — BANNED; it writes opaque `.snap` files with no code owner; use explicit assertions or `toMatchInlineSnapshot()` instead
 - ❌ **Mocking to inject testIDs** - Components already support testID (see guidelines above)
+- ❌ **Testing static styling** - Spacing, color, and fixed layout props are verified visually, not in Jest
 - ❌ **Using "should" in test names** - This is the #1 mistake, use action-oriented descriptions
 - ❌ **Testing multiple behaviors in one test** - One test, one behavior
 - ❌ **Sharing state between tests** - Each test must be independent
