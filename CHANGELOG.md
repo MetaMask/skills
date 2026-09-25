@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Stop testing skills from prompting unit tests for static styling. Mobile and Extension layer policies now treat spacing, color, typography, and fixed layout props as GAP / ACCEPT, the unit references ban style-value assertions and style-only test IDs, and coding guidelines no longer require tests for every component edit.
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
 
 ## [0.4.0]
