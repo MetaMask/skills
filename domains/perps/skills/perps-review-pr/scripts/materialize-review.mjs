@@ -61,7 +61,7 @@ function sections(file) {
 
 // Row summary: the family's opening sentence, short enough to scan in the checklist.
 function summary(body) {
-  const first = body.split('\n').find(line => line.trim()) ?? '';
+  const first = body.trim().split(/\n\s*\n|\n(?=[-*]\s)/, 1)[0].replace(/\s+/g, ' ');
   const text = first.replace(/^[-*]\s+/, '').replace(/\*\*/g, '').trim();
   const sentence = text.match(/^[\s\S]*?(?<!\be\.g)(?<!\bi\.e)\.(?=\s|$)/)?.[0] ?? text;
   if (sentence.length <= 200) return sentence;
