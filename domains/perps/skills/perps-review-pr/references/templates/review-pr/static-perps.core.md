@@ -6,7 +6,7 @@ platforms: [core, cli]
 
 # Perps static review
 
-Generated from MetaMask/experimental-metamask-recipe-perps @ cac185cb8083670a06f8f213c0b71c3b34c81724. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
+Generated from MetaMask/experimental-metamask-recipe-perps @ b9f7c354541da18723180a71c6a672429a8e38ed. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no harness, no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
@@ -32,16 +32,16 @@ These families apply to every client.
 
 - [ ] Controller Portability (Core): `PerpsController` lives in `core/packages/perps-controller` and is published as `@metamask/perps-controller`; mobile and extension both consume the package. See references/criteria/perps/controller-portability-core.md
 - [ ] Magic Strings, Magic Numbers & Placeholder Values: Constants live in the controller package (`core/packages/perps-controller/src/constants/perpsConfig.ts`, exported by `@metamask/perps-controller`) and in… See references/criteria/perps/magic-strings-magic-numbers-placeholder-values.md
-- [ ] Protocol Abstraction: Provider identity lost during transformation: Preserve provider identity through fill aggregation and apply provider-specific classification at the normalization boundary. See references/criteria/perps/protocol-abstraction.md
+- [ ] Protocol Abstraction: Execution identity inferred from display fields: Preserve the venue's documented identity at the provider boundary and expose a stable opaque ID shared by REST and WebSocket paths. See references/criteria/perps/protocol-abstraction.md
 - [ ] Pro Mode UI Gating: Pro market UI renders only when the remote flag (`selectPerpsProModeEnabledFlag`) and the controller mode (`PerpsMode.Pro`) are both active; a PR that checks one gate ships a silent no-op that looks… See references/criteria/perps/pro-mode-ui-gating.md
 - [ ] MetaMetrics Events: Every perps event uses one of the eight consolidated events and their typed property constants (mobile `docs/perps/perps-metametrics-reference.md`); no new event names or untyped properties. See references/criteria/perps/metametrics-events.md
 - [ ] Sentry Tracing: Unbounded background trace volume: For unlock, polling, reconnect or fan-out instrumentation, estimate added spans at normal and retry load. See references/criteria/perps/sentry-tracing.md
 - [ ] Connection & WebSocket Architecture: Cleanup has no owner for in-flight setup: Register the owner before asynchronous initialization starts. See references/criteria/perps/connection-websocket-architecture.md
-- [ ] Data Flow & State: Old context remains actionable: On account, provider or network change, clear or re-key committed display/action state immediately. See references/criteria/perps/data-flow-state.md
-- [ ] Trade Flow & Order Execution: Order submission runs the shared pre-trade checks, carries the user's slippage, and refreshes state after confirmation. See references/criteria/perps/trade-flow-order-execution.md
-- [ ] Locale Coverage & Orphaned Keys: Removing a `strings(...)` call or deleting a helper that wrapped locale keys is a regression risk that is cheap to catch during review. See references/criteria/perps/locale-coverage-orphaned-keys.md
+- [ ] Data Flow & State: A changed classification leaves old priority rules: When a validation becomes advisory, audit message ranking and CTA gating together. See references/criteria/perps/data-flow-state.md
+- [ ] Trade Flow & Order Execution: Signed bounds collapsed into magnitudes: A gain-side and loss-side RoE are different inputs. See references/criteria/perps/trade-flow-order-execution.md
+- [ ] Locale Coverage & Orphaned Keys: Duplicate JSON keys shadow new copy: Verify the containing locale object has one definition and search rendered copy across every test layer. See references/criteria/perps/locale-coverage-orphaned-keys.md
 - [ ] Agentic Testability (testIDs): PRs that touch UI components must include testIDs so agentic recipes and E2E tests can navigate and assert on the app without manual interaction. See references/criteria/perps/agentic-testability-testids.md
-- [ ] Test Layer Coverage: Assertions miss the behavior under review: For order, visibility, size or color claims, assert the rendered outcome rather than component presence or arguments passed to a mocked hook. See references/criteria/perps/test-layer-coverage.md
+- [ ] Test Layer Coverage: Degenerate fixtures hide formula errors: Choose values where competing calculations differ, such as a deeper order-book row with size unequal to cumulative total. See references/criteria/perps/test-layer-coverage.md
 - [ ] Navigation Exit Parity: A navigation fix must cover every way the user can leave the screen. See references/criteria/perps/navigation-exit-parity.md
 - [ ] Embedded Signer Boundaries: An embedded signer receives sensitive key material only after its communication boundary is established. See references/criteria/perps/embedded-signer-boundaries.md
 
@@ -58,6 +58,8 @@ Required for changes to the controller package or its public contract, in additi
 - [ ] Package Release Metadata Must Match Contract Impact: The changelog entry and the semver bump match the contract impact, and a bump PR names the package version and the consumers it was checked against. See references/criteria/core/package-release-metadata-must-match-contract-impact.md
 - [ ] HyperLiquid Multi-Sig Account Handling in HyperLiquidProvider: Every user-scoped exchange write in `HyperLiquidProvider` needs both a proactive info probe placed right before the write and a message classifier in its `catch`; HyperLiquid rejects every… See references/criteria/core/hyperliquid-multi-sig-account-handling-in-hyperliquidprovider.md
 - [ ] `#ensureUnifiedAccountEnabled` — Retry vs Permanent-Failure Cache Semantics: An attempted unified-account setup that fails either sets the retry flag (`#unifiedAccountSetupNeedsRetry`, transient) or caches `{ attempted: true, enabled: false }` in `TradingReadinessCache`… See references/criteria/core/ensureunifiedaccountenabled-retry-vs-permanent-failure-cache-semantics.md
+- [ ] Metered Benefits Need a Strict Improvement: A winning fee source and an actual reduction in the charged fee are separate See references/criteria/core/metered-benefits-need-a-strict-improvement.md
+- [ ] Read-only Account Guards Cover Every Write: Inventory exchange calls, transfers, cancellation, withdrawals and registered See references/criteria/core/read-only-account-guards-cover-every-write.md
 - [ ] Evidence Expected Before Core Perps Review: The PR carries a contract impact matrix (state, methods, events, exports, constants), a Mobile/Extension compatibility note or paired PR links, provider abstraction and fallback tests, and grep… See references/criteria/core/evidence-expected-before-core-perps-review.md
 
 ## Verdict and handoff

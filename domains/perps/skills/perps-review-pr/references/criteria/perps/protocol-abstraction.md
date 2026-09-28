@@ -1,5 +1,7 @@
 # Protocol Abstraction
 
+- **Execution identity inferred from display fields**: Preserve the venue's documented identity at the provider boundary and expose a stable opaque ID shared by REST and WebSocket paths. Equal order ID, time, size and price need not identify one fill. Do not deduplicate without that guarantee or key navigable history by array position. Check prepend stability and tied timestamps.
+
 - **Provider identity lost during transformation**: Preserve provider identity through fill aggregation and apply provider-specific classification at the normalization boundary. Adding a provider must retain existing providers and cover equivalent inputs with different provider semantics.
 
 All provider access must go through `AggregatedPerpsProvider` → `ProviderRouter`. HyperLiquid is primary, MYX is feature-flagged.

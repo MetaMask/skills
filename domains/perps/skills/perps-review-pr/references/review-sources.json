@@ -1,10 +1,10 @@
 {
   "repository": "MetaMask/experimental-metamask-recipe-perps",
-  "revision": "cac185cb8083670a06f8f213c0b71c3b34c81724",
+  "revision": "b9f7c354541da18723180a71c6a672429a8e38ed",
   "files": {
-    "review/antipatterns.md": "e1b6161285c5bc26463e06b43aa133f8fd801ed7c00c223a422173dbfd457928",
-    "review/antipatterns.extension.md": "57f7edb43bcd234a2b7fa1344a8f291d4afcd6ffd545fefd081e0787ec0b8548",
-    "review/antipatterns.core.md": "0eeab09bbad7da1fa924cb0688bbcf40e94950e36f934dd2bc613552026a9743",
+    "review/antipatterns.md": "294492ec5d6a3dea60d4f8cecc16abd7f721505cb590669b9ebe0399ccd50635",
+    "review/antipatterns.extension.md": "e3e104e2632edead9e44dff4d20cfdd123a42e3bb4a35e189c7c6e2fc029dbf2",
+    "review/antipatterns.core.md": "2c7b3990b111b50bf2a6b7a4aa3a12344dc5858ce57fa086a4da1a1798c4f392",
     "review/parity.md": "8895a333d526d7819c3bbf526f09f6f216aca41ddd197581e454b0bbd4bc482c",
     "review/shared-packages.md": "11268974eef5e69a3ca2c8b68202bc7789133c352855e3e758bd32069ee8255d",
     "owned-paths.json": "e5a3994708c61c158dd2c4adbc321269bf11435d82ff18f900d9372e831e9eb3"

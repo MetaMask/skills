@@ -1,5 +1,9 @@
 # Data Flow & State
 
+- **A changed classification leaves old priority rules**: When a validation becomes advisory, audit message ranking and CTA gating together. A finished-input warning needs commit/blur state that clears on the next edit; interaction alone is insufficient. Test mixed blockers/advice and editing an already committed value.
+- **State persists outside the rendered control**: Disabling new presses does not dismiss an open keypad or active gesture. Test the transition while editing, and preserve the intended input when live limits update.
+- **React persistence mistaken for WebView synchronization**: Inline and fullscreen charts can remain mounted together. Prove the handoff updates each chart's local range/state, including subsequent stream updates.
+
 - **Old context remains actionable**: On account, provider or network change, clear or re-key committed display/action state immediately. A generation guard against late writes does not invalidate data already shown. Test with the next request held open.
 - **Unknown balance treated as usable balance**: Keep unresolved distinct from zero; never substitute a balance from another account. Verify the committing CTA remains disabled until the selected account/token inputs are valid.
 - **Late defaults overwrite a user choice**: Typing, percent and MAX controls must all mark a value as user-edited. Hold metadata resolution until after each interaction and confirm the chosen value remains. Apply authoritative limit changes explicitly; a delayed persistence acknowledgment is not a new limit.

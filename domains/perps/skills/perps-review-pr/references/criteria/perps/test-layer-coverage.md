@@ -1,5 +1,9 @@
 # Test Layer Coverage
 
+- **Degenerate fixtures hide formula errors**: Choose values where competing calculations differ, such as a deeper order-book row with size unequal to cumulative total. Exercise each changed numerator, denominator or branch independently. Simulations must use real call-site inputs and the producer's quantization grid.
+- **Clock control changes the test mechanism**: Pin the clock the component reads without disabling timers needed by asynchronous view assertions. Restore spies in shared teardown, including failure paths; cover active-to-terminal transitions as well as static states.
+- **Numeric control units change partially**: A percent-domain conversion must preserve caller units, step, accessibility increments and echo suppression. Exercise changing bounds during a gesture; remounting on streaming values can reset input even when accessibility metadata is correct.
+
 - **Assertions miss the behavior under review**: For order, visibility, size or color claims, assert the rendered outcome rather than component presence or arguments passed to a mocked hook. Confirm the assertion fails when that behavior is removed.
 
 Cover every test in its best-fit layer (view, integration, unit); broad mock-heavy unit tests are a review smell. **Same rule as the testing domain's `knowledge/testing-layers.md` (Mobile; installed beside the testing skills):** Screen/view behavior through rendered UI and app state defaults to `*.view.test.tsx`; app-to-controller flows (real `HyperLiquidProvider` / `TradingService` behavior with only the I/O boundary mocked) belong in `*.integration.test.ts` via the perps harnesses; unit tests only for pure logic, narrow contracts, or when the higher layers cannot cover (smallest focused test + reason). Broad unit tests that render a page and mock hooks/selectors, or that mock the controller to fake a flow, are a review smell.

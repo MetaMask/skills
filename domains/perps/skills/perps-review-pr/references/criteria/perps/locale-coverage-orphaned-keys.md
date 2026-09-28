@@ -1,5 +1,7 @@
 # Locale Coverage & Orphaned Keys
 
+- **Duplicate JSON keys shadow new copy**: Verify the containing locale object has one definition and search rendered copy across every test layer. A test accommodating duplicate labels may hide an ambiguous product label.
+
 Removing a `strings(...)` call or deleting a helper that wrapped locale keys is a regression risk that is cheap to catch during review.
 
 - **Hardcoded string replacing a `strings(...)` call** — verify locale coverage across `locales/languages/*.json` before accepting the change. A key translated in only some of the supported locales is a quantified regression, not a nit.
