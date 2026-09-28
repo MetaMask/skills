@@ -18,7 +18,7 @@ test('generated shared and client checks compose through the standard installer 
     mkdirSync(path.join(library, 'review'), { recursive: true });
     const rules = { shared: 'Check shared state', mobile: 'Check native gestures', extension: 'Check background messages', core: 'Check package exports' };
     for (const [client, rule] of Object.entries(rules)) {
-      writeFileSync(path.join(library, `review/antipatterns${client === 'shared' ? '' : `.${client}`}.md`), `# Rules\n\n## ${rule}\n\nA standing invariant spans\ntwo physical lines.\n\n- **Failure case**: Inspect the ${client} failure and its callers.\n  - Preserve this nested example.\n`);
+      writeFileSync(path.join(library, `review/antipatterns${client === 'shared' ? '' : `.${client}`}.md`), `# Rules\n\n## ${rule}\n\nA standing invariant for \`src/**/fees.ts\` spans\ntwo physical lines.\n\n- **Failure case**: Inspect the ${client} failure and its callers.\n  - Preserve this nested example.\n`);
     }
     for (const file of ['parity', 'shared-packages']) writeFileSync(path.join(library, `review/${file}.md`), '# Reference\nContext\n');
     writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: { mobile: ['app/perps'] } }));
@@ -38,6 +38,7 @@ test('generated shared and client checks compose through the standard installer 
       const installed = path.join(target, '.agents/skills/mms-perps-review-pr');
       const body = readFileSync(path.join(installed, 'SKILL.md'), 'utf8');
       assert.ok(body.includes(rules.shared)); assert.ok(body.includes(rules[client]));
+      assert.ok(body.includes("`src/**/fees.ts`"), "scan summaries preserve recursive glob paths");
       for (const other of Object.keys(rules).filter(x => x !== client && x !== 'shared')) assert.ok(!body.includes(rules[other]));
       assert.equal((body.match(/## Verdict and handoff/g) || []).length, 1);
       for (const [, file, anchor] of body.matchAll(/See (references\/[^#\s]+)#([^\s]+)/g)) {

@@ -17,7 +17,7 @@ Required for Extension changes, in addition to the Perps families above.
 - [ ] Batch-Action and Analytics Error-Path Parity: Sibling batch-action handlers (`handleCloseAllPositions`, `handleCancelAllOrders`) share one error contract: the same catch and soft-failure analytics in every sibling, each new branch covered by a… See references/extension.md#batch-action-and-analytics-error-path-parity
 - [ ] CDP / E2E Proof Surfaces: A Perps tab screenshot proves market data only when a non-zero price or position value is visible or a CDP state assertion confirms live data; a navigated route over a loading skeleton is not proof. See references/extension.md#cdp-e2e-proof-surfaces
 - [ ] Evidence Expected Before Extension Perps Review: The PR carries a controller package version and contract compatibility note, a state-flow matrix for the selectors and hooks touched, a market data source matrix across stream, detail, order, chart… See references/extension.md#evidence-expected-before-extension-perps-review
-- [ ] Extension Test Layers: Component-view behavior tested as a unit test: A test under `ui/pages/perps//index.test.tsx` that renders a whole page and asserts UI behavior belongs in the client's component-view framework as… See references/extension.md#extension-test-layers
+- [ ] Extension Test Layers: Component-view behavior tested as a unit test: A test under `ui/pages/perps/**/index.test.tsx` that renders a whole page and asserts UI behavior belongs in the client's component-view framework as… See references/extension.md#extension-test-layers
 
 ## Verdict and handoff
 

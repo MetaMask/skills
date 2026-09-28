@@ -3,7 +3,7 @@
 //
 // Output shape: a small common body (skill.md), one per-client overlay (repos/*.md)
 // merged into it at install time, and shared/client reference files. Farmslot
-// consumes the installed SKILL.md as its child checklist, without a second catalog.
+// freezes the shared source and selected repos/ overlay as consecutive child checklists.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -11,9 +11,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const CLIENTS = {
-  mobile: { repo: 'metamask-mobile', platforms: '[mobile, ios, android]' },
-  extension: { repo: 'metamask-extension', platforms: '[extension, chrome-extension]' },
-  core: { repo: 'core', platforms: '[core, cli]' },
+  mobile: { repo: 'metamask-mobile' },
+  extension: { repo: 'metamask-extension' },
+  core: { repo: 'core' },
 };
 const USAGE = 'Usage: materialize-review.mjs --library <perps-library> [--out <skill-directory>] [--analyzer-out <file> --client <mobile|extension|core>] [--check]';
 
@@ -62,7 +62,7 @@ function sections(file) {
 // Row summary: the family's opening sentence, short enough to scan in the checklist.
 function summary(body) {
   const first = body.trim().split(/\n\s*\n|\n(?=[-*]\s)/, 1)[0].replace(/\s+/g, ' ');
-  const text = first.replace(/^[-*]\s+/, '').replace(/\*\*/g, '').trim();
+  const text = first.replace(/^[-*]\s+/, '').replace(/`[^`]*`|\*\*/g, token => token === '**' ? '' : token).trim();
   const sentence = text.match(/^[\s\S]*?(?<!\be\.g)(?<!\bi\.e)\.(?=\s|$)/)?.[0] ?? text;
   if (sentence.length <= 200) return sentence;
   return `${sentence.slice(0, sentence.lastIndexOf(' ', 199)).trim()}…`;
