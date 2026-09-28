@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
 - Distribute the Perps static review as generated per-client checklists with source-tracked criteria, repository overlays, and optional analyzer context export.
 - Add `navigation` skill with a repo-agnostic base and a MetaMask Mobile overlay for `Routes` and `NavigationService`. Marked `base: true` so it installs even when its domain is filtered out.
