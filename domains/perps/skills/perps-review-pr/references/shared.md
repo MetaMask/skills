@@ -72,7 +72,7 @@ Every perps event uses one of the eight consolidated events and their typed prop
 - [ ] **New event instead of property** — creating a 9th event when the change should be a new `screen_type`, `interaction_type`, or `action_type` value on an existing event. The 8-event model is intentional (Segment cost optimization).
 - [ ] **Missing `source` on screen view** — `PERPS_SCREEN_VIEWED` without `source` property loses navigation flow tracking. Source = current screen, not earlier in the chain.
 - [ ] **Hardcoded source in reusable component** — reusable components (`PerpsMarketTypeSection`, `PerpsWatchlistMarkets`, `PerpsCard`) must receive `source` as a prop from the parent screen, not set it implicitly.
-- [ ] **New screen/view without tracking** — adding a new view without `PERPS_SCREEN_VIEWED` event + `usePerpsMeasurement` Sentry trace.
+- [ ] **New screen/view without tracking** — adding a new view without `PERPS_SCREEN_VIEWED` event and a trace through the reviewed client's instrumentation.
 - [ ] **Missing `completion_duration` on transaction events** — all transaction events (`PERPS_TRADE_TRANSACTION`, `PERPS_POSITION_CLOSE_TRANSACTION`, etc.) require duration tracking.
 
 <a id="sentry-tracing"></a>

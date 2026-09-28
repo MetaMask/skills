@@ -7,13 +7,13 @@ maturity: stable
 
 # Perps static review
 
-Generated from MetaMask/experimental-metamask-recipe-perps @ 72be5ddf0336f2b08775ecd14c2f45a78069d64a. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
+Generated from MetaMask/experimental-metamask-recipe-perps @ c0e3023e6de41163fb3024c0a5c5a17d96b626bb. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no harness, no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
 Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (`.agents/skills/mms-perps-review-pr/`, and the same path under `.claude/skills/` and `.cursor/rules/`).
 
-The installer appends the matching repos/ overlay to this checklist. When reading from the source checkout, append only repos/<repository>.md. A hosted task already has TASK.md and CHECKLIST.md: use its frozen inputs and output directory.
+The installer appends the matching repos/ overlay to this checklist. For a direct source-checkout invocation, execute repos/<repository>.md after the shared checks. In a hosted frozen-source task, follow the parent's separate shared and repository child steps; do not append the overlay to the shared child. Use the existing TASK.md inputs and output directory.
 
 For maintaining or adapting this skill to another team, see references/maintaining.md. That guide is not part of a routine review.
 
