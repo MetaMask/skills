@@ -83,7 +83,7 @@ Reviewer guidance: <highest-value next step and important open evidence>.
 Then one inline comment per new finding:
 
 - Finding: `<SEVERITY>-<n>`.
-- Where: `<path>` line `<n>` on the frozen head.
+- Where: `<path>` line `<n>` on side `LEFT` or `RIGHT` of the frozen diff.
 - Severity: `HIGH`, `MEDIUM`, or `LOW`.
 - Paste this text on that line:
 
@@ -137,6 +137,14 @@ recall: confirmed / (confirmed + missed)
 
 Calculate precision when its denominator is greater than zero. Calculate recall when the missed-defect inventory is defined and its denominator is greater than zero. Exclude unresolved findings from both formulas. Return the assessment in the conversation. Persist a ledger row only after the user explicitly requests a destination outside the reviewed checkout.
 
-## Publishing
+## Pending GitHub review
 
-The conversation report is the review. Posting a GitHub comment or review requires a later explicit approval. Until that approval, do not call `gh pr comment`, `gh pr review`, or a GitHub MCP write tool.
+The conversation report remains the review record. For an existing GitHub pull request, inspect the review body and inline comments for sensitive chat context, then display the exact sanitized content and frozen placements. Ask:
+
+```text
+Create these comments as a pending GitHub review?
+```
+
+After explicit approval, write the approved body, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, remove the temporary manifest, and return the pending review URL. A review with zero inline findings uses the summary body and an empty comments array. The user inspects the pending review in GitHub's **Files changed** view and controls final submission.
+
+Self-reviews and other targets finish with the conversation report.

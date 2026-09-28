@@ -2,17 +2,17 @@
 name: review-pr
 description: >-
   Run an evidence-guided MetaMask pull request review or self-review in one
-  read-only static pass. Use when asked to review a PR, review my branch,
-  assess review findings, or review a peer pull request URL or number.
-  Separate author evidence from peer guidance, route installed specialist
-  skills, and preserve the human review decision.
+  static pass, with an optional approved pending GitHub review. Use when asked
+  to review a PR, review my branch, assess review findings, or review a peer
+  pull request URL or number. Separate author evidence from peer guidance,
+  route installed specialist skills, and preserve the human review decision.
 maturity: stable
 base: true
 ---
 
 # Review a pull request
 
-One read-only, evidence-guided review of the current checkout or an existing pull request. The review helps a peer examine important claims, evidence limits, and concrete next steps. The human reviewer owns the approval decision.
+One evidence-guided review of the current checkout or an existing pull request. Analysis stays read-only. After a peer GitHub review, the user may approve creation of a pending GitHub review for in-place inspection. The human reviewer owns the approval and final submission decisions.
 
 This skill selects installed specialist skills and aggregates their results. Each specialist remains the source of truth for its rules.
 
@@ -33,7 +33,7 @@ This skill selects installed specialist skills and aggregates their results. Eac
 6. **Route the diff.** Open [references/routing.md](references/routing.md) and the repository overlay. Classify each selected skill as a repository `preference` or domain `capability`. Invoke it only when installed and its required inputs are `available`. Record paths, semantic signal, inputs, and the skip or apply result.
 7. **Run one guided static pass.** Read the frozen diff and cited files. For each substantive observation, record the claim, risk checked, evidence, evidence boundary, severity, and reviewer guidance. Keep existing comments as references.
 8. **Aggregate.** Copy specialist results with their source into the stable sections in [references/report.md](references/report.md). Include GitHub-ready comments with exact requested changes.
-9. **Ask before publishing.** Return the report in the conversation. The comments section is the text to post. Posting it to GitHub waits for explicit approval in this conversation.
+9. **Offer a pending GitHub review.** Return the complete report and exact sanitized review body and inline placements first. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` After explicit approval, write the approved manifest outside the reviewed checkout, run `create-pending-review.mjs`, remove the manifest, and return the pending review URL. The user inspects it in GitHub and controls final submission. Self-reviews and other targets finish in the conversation.
 
 When the user asks to assess an earlier report, follow **Later outcome assessment** in [references/report.md](references/report.md). Use later evidence to classify findings and calculate correctness metrics.
 
@@ -60,6 +60,9 @@ When the user asks to assess an earlier report, follow **Later outcome assessmen
 - In an outcome assessment, report zero misses and recall only when later evidence defines the defect inventory.
 - Ask before posting a GitHub review comment.
 - Include paste-ready comments: one review summary and one inline comment per new finding. Each comment states the severity, rationale, and exact requested change.
+- Before the pending-review prompt, show the exact sanitized summary and every path, line, side, and comment body.
+- Create GitHub comments only through `create-pending-review.mjs`, with the frozen head SHA and an approved temporary manifest outside the reviewed checkout.
+- Leave the created review in `PENDING` state and leave final submission to the user in GitHub.
 
 ## Reject
 

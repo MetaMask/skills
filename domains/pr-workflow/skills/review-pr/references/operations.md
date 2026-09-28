@@ -68,6 +68,34 @@ node <skill-root>/scripts/search-frozen-tree.mjs <commit-sha> <pattern> [reposit
 
 Returns bounded matching lines with paths and line numbers. The script treats the pattern as a fixed string and limits output to 500 matches.
 
+## Create a pending GitHub review
+
+After the user approves the exact displayed review body and inline comments, write this manifest to a temporary JSON file outside the reviewed checkout:
+
+```json
+{
+  "schemaVersion": 1,
+  "headSha": "<frozen 40-character head SHA>",
+  "body": "<review summary>",
+  "comments": [
+    {
+      "path": "<changed repository path>",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "<inline review comment>"
+    }
+  ]
+}
+```
+
+An inline comment may add `startLine` and `startSide` for a multiline range. `LEFT` addresses deleted lines; `RIGHT` addresses additions and context lines. A summary-only pending review uses an empty `comments` array.
+
+```bash
+node <skill-root>/scripts/create-pending-review.mjs <pr-url> <temporary-manifest-path>
+```
+
+The operation validates the manifest, confirms the pull request still has the frozen head, detects an existing pending review for the authenticated user, and creates one GitHub review with `event` omitted. Return its URL, then remove the temporary manifest with the native file tool. The user inspects the pending comments in GitHub and controls final submission.
+
 ## Failure contract
 
 Each script validates its arguments, invokes commands without a shell, emits JSON on standard output, and reports one named failure on standard error. A required terminal operation outside this registry produces a `BLOCKED` report with `missing: scripted operation <capability>`.

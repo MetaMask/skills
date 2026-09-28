@@ -6,7 +6,7 @@ The agent follows `skill.md`, `references/`, and the repo overlay. This README r
 
 ## What the skill is
 
-One read-only, evidence-guided peer review of a MetaMask pull request or current local changes. It freezes a diff, separates author validation evidence, maps important claims, routes installed specialist skills, and returns reviewer guidance with paste-ready GitHub comments.
+One evidence-guided peer review of a MetaMask pull request or current local changes. It freezes a diff, separates author validation evidence, maps important claims, routes installed specialist skills, and returns reviewer guidance with paste-ready GitHub comments. Analysis is read-only; an explicitly approved follow-up can create a pending GitHub review.
 
 The skill helps a peer decide what to examine or request next. The human reviewer owns the approval decision. A quiet report records the claims examined and evidence boundaries so it does not read as a certification.
 
@@ -24,7 +24,7 @@ In a Cursor chat opened on the consumer repo:
 
 A pull request URL or number is a peer review of that repository. "Review my branch" or "review my changes" with no URL is a self-review of the current checkout.
 
-The report comes back in the chat. Posting it to GitHub waits for explicit approval in that conversation.
+The report comes back in the chat with the exact sanitized review body and inline placements. For an existing GitHub pull request, the agent asks whether to create them as a pending review. Approval creates the draft for inspection in GitHub; the user controls final submission.
 
 Run it from the repo that owns the pull request. The Mobile overlay and the Extension overlay are different skills after install.
 
@@ -223,9 +223,17 @@ Unresolved findings stay outside both formulas. A ledger row is persisted only a
 
 Recall requires a defined later defect inventory from an adjudicator, accepted follow-up fixes, incident review, or equivalent evidence. An assessment of the reported findings alone uses `missed: unknown` and `recall: unknown`.
 
-### 13. Read-only
+### 13. Read-only analysis and pending review
 
-The review does not edit, commit, or push the checkout, and it does not run the app. Approval to publish is a later message in the same conversation.
+The analysis does not edit, commit, or push the checkout, and it does not run the app. After the complete report, an existing GitHub pull request gets one optional write flow:
+
+1. Display the exact sanitized review summary and every inline path, line, side, and body.
+2. Ask `Create these comments as a pending GitHub review?`.
+3. After explicit approval, write the approved manifest to the operating-system temporary directory.
+4. Run `create-pending-review.mjs`. It rechecks the frozen head, detects an existing pending review for the authenticated reviewer, and sends one atomic create-review request with `event` omitted.
+5. Remove the temporary manifest and return the pending review URL.
+
+The resulting comments remain pending for inspection in GitHub's **Files changed** view. The user submits, edits, or discards the review in GitHub. Self-reviews remain conversation-only.
 
 ## Evaluation preregistration
 
@@ -280,7 +288,7 @@ Outcome labels are `confirmed`, `rejected`, `unresolved`, and `missed`. Human ad
 | `references/reasoning.md`     | Fixed claim, risk, and evidence reasoning flow             |
 | `references/routing.md`       | Which installed skill runs for which surface               |
 | `references/report.md`        | `BLOCKED`, `DEGRADED`, sections, comment text              |
-| `scripts/*.mjs`               | Peer, self-review, commit, frozen-file, JSON, and search operations |
+| `scripts/*.mjs`               | Peer, self-review, frozen evidence, search, and pending-review operations |
 | `scripts/*.test.mjs`          | Unit and terminal-policy tests for the operation surface   |
 | `repos/metamask-mobile.md`    | Mobile paths, commands, and app-vs-script routing          |
 | `repos/metamask-extension.md` | Extension paths, commands, and app-vs-script routing       |
