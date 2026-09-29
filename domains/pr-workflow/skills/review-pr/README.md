@@ -24,7 +24,7 @@ In a Cursor chat opened on the consumer repo:
 
 A pull request URL or number is a peer review of that repository. "Review my branch" or "review my changes" with no URL is a self-review of the current checkout.
 
-The default reply is a completion card with finding counts. The developer then asks for review findings, review evidence, the frozen state, suggested comments, or the full review, one at a time. **Output full review** prints the stored report in the chat. A request that includes `non-interactive` returns that same full report in the first message, including the sanitized review body and inline placements. For an existing GitHub pull request, the pending-review question comes with suggested comments, and at the end of the full report. Approval creates an unpublished review. A second reply publishes that review with its stored summary.
+The default reply is a completion card with finding counts. The developer then asks for review findings, review evidence, the frozen state, suggested comments, or the full review, one at a time. **Output full review** prints the stored report in the chat. A request that includes `non-interactive` returns that same full report in the first message, including the sanitized review body and inline placements. For an existing GitHub pull request, the pending-review question comes with suggested comments, and at the end of the full report. Approval creates pending line comments only. The chat then shows the summary to paste into GitHub's review submission box.
 
 Run it from the repo that owns the pull request. The Mobile overlay and the Extension overlay are different skills after install.
 
@@ -244,12 +244,11 @@ The analysis does not edit, commit, or push the checkout, and it does not run th
 1. Display the exact sanitized review summary and every inline path, line, side, and body.
 2. Ask `Create these comments as a pending GitHub review?`.
 3. After explicit approval, write the approved manifest to the operating-system temporary directory.
-4. Run `create-pending-review.mjs`. It rechecks the frozen head, detects an existing pending review for the authenticated reviewer, and sends one atomic create-review request with `event` omitted.
+4. Run `create-pending-review.mjs`. It rechecks the frozen head, detects an existing pending review for the authenticated reviewer, and sends one atomic create-review request. The manifest keeps the review summary. The GitHub request sends an empty `body` and omits `event`.
 5. Remove the temporary manifest and return the pending review URL.
-6. Ask `Publish this pending review? Reply with Comment, Approve, or Request changes.`
-7. After that reply, run `submit-pending-review.mjs` with `COMMENT`, `APPROVE`, or `REQUEST_CHANGES`. Use `COMMENT` when the reply does not name another event. The script resends the pending review's stored summary and returns the submitted review URL.
+6. Print the summary under **Paste into Leave a comment**. The reviewer opens **Files changed**, pastes that summary, chooses Comment, Approve, or Request changes, and presses **Submit review**.
 
-The file comments stay pending in GitHub's **Files changed** view until that second reply. GitHub's **Finish your review** box replaces the stored summary, so publication goes through the script. Self-reviews remain conversation-only.
+The pending review contains only the line comments. Self-reviews remain conversation-only.
 
 ## Evaluation preregistration
 

@@ -12,7 +12,7 @@ base: true
 
 # Review a pull request
 
-One evidence-guided review of the current checkout or an existing pull request. Analysis stays read-only. After a peer GitHub review, the user may approve a pending GitHub review for in-place inspection. A second reply publishes that review with its stored summary. The human reviewer owns both decisions.
+One evidence-guided review of the current checkout or an existing pull request. Analysis stays read-only. After a peer GitHub review, the user may approve pending inline comments for inspection in GitHub. The reviewer pastes the summary into GitHub's **Finish your review** box and submits there. The human reviewer owns that decision.
 
 This skill selects installed specialist skills and aggregates their results. Each specialist remains the source of truth for its rules.
 
@@ -34,7 +34,7 @@ This skill selects installed specialist skills and aggregates their results. Eac
 6. **Route the diff.** Open [references/routing.md](references/routing.md) and the repository overlay. Classify each selected skill as a repository `preference` or domain `capability`. Invoke it only when installed and its required inputs are `available`. Record paths, semantic signal, inputs, and the skip or apply result.
 7. **Run one guided static pass.** Read the frozen diff and cited files. For each substantive observation, record the claim, risk checked, evidence, evidence boundary, severity, and reviewer guidance. Keep existing comments as references.
 8. **Aggregate and store.** Copy specialist results with their source into the stable sections in [references/report.md](references/report.md). Include GitHub-ready comments with exact requested changes. Write the finished report as JSON in the operating-system temporary directory, outside the reviewed checkout, named with the frozen head SHA.
-9. **Display the stored report.** Follow **Presentation** in [references/report.md](references/report.md). The default prints the completion card and stops. A review started with `non-interactive`, or a later reply that asks to output the full review, prints every section in order in that message. Any other later reply prints one requested slice from the stored report. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` on the Suggested comments slice, or at the end of the full report. After explicit approval, write the approved manifest outside the reviewed checkout, run `create-pending-review.mjs`, remove the manifest, and return the pending review URL. Then ask `Publish this pending review? Reply with Comment, Approve, or Request changes.` After that reply, run `submit-pending-review.mjs` with `COMMENT`, `APPROVE`, or `REQUEST_CHANGES`, using `COMMENT` when the reply does not name another event. Self-reviews and other targets finish in the conversation.
+9. **Display the stored report.** Follow **Presentation** in [references/report.md](references/report.md). The default prints the completion card and stops. A review started with `non-interactive`, or a later reply that asks to output the full review, prints every section in order in that message. Any other later reply prints one requested slice from the stored report. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` on the Suggested comments slice, or at the end of the full report. After explicit approval, write the approved manifest outside the reviewed checkout, including the review summary in `body`. Run `create-pending-review.mjs`, which sends an empty `body` to GitHub, remove the manifest, and return the pending review URL. Then print the summary under **Paste into Leave a comment** and tell the reviewer to submit from GitHub's **Finish your review** control. Self-reviews and other targets finish in the conversation.
 
 When the user asks to assess an earlier report, follow **Later outcome assessment** in [references/report.md](references/report.md). Use later evidence to classify findings and calculate correctness metrics.
 
@@ -64,8 +64,8 @@ When the user asks to assess an earlier report, follow **Later outcome assessmen
 - Ask before posting a GitHub review comment.
 - Include paste-ready comments: one review summary and one inline comment per new finding. Each comment states the severity, rationale, and exact requested change.
 - Before the pending-review prompt, show the exact sanitized summary and every path, line, side, and comment body.
-- Create GitHub comments only through `create-pending-review.mjs`, with the frozen head SHA and an approved temporary manifest outside the reviewed checkout.
-- Leave the created review in `PENDING` state until the user replies to publish. Then submit it only through `submit-pending-review.mjs`, resending the stored summary. Use `COMMENT` when that reply does not name `APPROVE` or `REQUEST_CHANGES`.
+- Create GitHub inline comments only through `create-pending-review.mjs`, with the frozen head SHA and an approved temporary manifest outside the reviewed checkout. The manifest `body` is the review summary. The GitHub request sends an empty `body`.
+- After the pending review is created, print the summary for the reviewer to paste into **Leave a comment**. The reviewer submits from GitHub.
 
 ## Reject
 
@@ -81,7 +81,8 @@ When the user asks to assess an earlier report, follow **Later outcome assessmen
 - Treating a quiet review as evidence that the pull request is correct.
 - Inferring zero missed defects from the findings that were assessed.
 - Publishing to GitHub before explicit approval.
-- Submitting the pending review from GitHub's **Finish your review** control. That control replaces the stored summary. Publication goes through `submit-pending-review.mjs`.
+- Sending the review summary as the pending review `body`. GitHub's **Finish your review** box does not load that field, and submitting the box replaces it.
+- Running `submit-pending-review.mjs`. The reviewer pastes the summary and submits in GitHub.
 - Replacing a specialist skill's rule with a summary written from memory.
 - Reviewing the local checkout diff in place of the pull request branch diff.
 - Applying app test-layer, screen, or component skills to a script-only diff.

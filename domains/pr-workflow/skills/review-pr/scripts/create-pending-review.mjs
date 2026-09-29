@@ -119,7 +119,9 @@ export const validateManifest = (manifest) => {
   if (!Array.isArray(manifest.comments)) {
     throw new Error("manifest comments must be an array");
   }
-
+  if (manifest.comments.length === 0) {
+    throw new Error("manifest comments must include at least one inline comment");
+  }
   return {
     headSha: manifest.headSha,
     body: requireText(manifest.body, "manifest body"),
@@ -204,7 +206,8 @@ export const createPendingReview = (
 
   const payload = {
     commit_id: manifest.headSha,
-    body: manifest.body,
+    // The summary stays in the manifest. GitHub's submit box replaces a pending review body, so the request leaves it empty.
+    body: "",
     comments: manifest.comments,
   };
   const created = parseJson(

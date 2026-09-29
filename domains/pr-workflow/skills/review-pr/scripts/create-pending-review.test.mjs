@@ -75,7 +75,7 @@ test("createPendingReview creates an atomic pending review payload", () => {
   assert.equal(Object.hasOwn(payload, "event"), false);
   assert.deepEqual(payload, {
     commit_id: HEAD_SHA,
-    body: "Review summary",
+    body: "",
     comments: [
       {
         path: "app/file.ts",
@@ -96,12 +96,32 @@ test("createPendingReview creates an atomic pending review payload", () => {
   });
 });
 
-test("createPendingReview supports a summary-only pending review", () => {
+test("createPendingReview keeps the summary out of the GitHub payload", () => {
+  const adapters = createAdapters();
+  assert.equal(validateManifest(manifest()).body, "Review summary");
+
+  createPendingReview(PR_URL, MANIFEST_PATH, adapters);
+
+  assert.equal(JSON.parse(adapters.calls.at(-1).input).body, "");
+});
+
+test("createPendingReview rejects an empty review summary", () => {
+  assert.throws(
+    () => validateManifest(manifest({ body: "  " })),
+    /manifest body must be non-empty text/u,
+  );
+});
+
+test("createPendingReview rejects a review with no inline comments", () => {
   const adapters = createAdapters({
     manifestValue: manifest({ comments: [] }),
   });
 
-  assert.equal(createPendingReview(PR_URL, MANIFEST_PATH, adapters).commentCount, 0);
+  assert.throws(
+    () => createPendingReview(PR_URL, MANIFEST_PATH, adapters),
+    /at least one inline comment/u,
+  );
+  assert.equal(adapters.calls.length, 0);
 });
 
 test("createPendingReview stops when the frozen head moved", () => {

@@ -90,23 +90,13 @@ After the user approves the exact displayed review body and inline comments, wri
 }
 ```
 
-An inline comment may add `startLine` and `startSide` for a multiline range. `LEFT` addresses deleted lines; `RIGHT` addresses additions and context lines. A summary-only pending review uses an empty `comments` array.
+`body` is the review summary. The script keeps it in the manifest and sends an empty `body` on the GitHub review. An inline comment may add `startLine` and `startSide` for a multiline range. `LEFT` addresses deleted lines; `RIGHT` addresses additions and context lines. At least one inline comment is required.
 
 ```bash
 node <skill-root>/scripts/create-pending-review.mjs <pr-url> <temporary-manifest-path>
 ```
 
-The operation validates the manifest, confirms the pull request still has the frozen head, detects an existing pending review for the authenticated user, and creates one GitHub review with `event` omitted. Return its URL, then remove the temporary manifest with the native file tool. The review stays `PENDING`. The user inspects the file comments in GitHub's **Files changed** view.
-
-## Submit the pending GitHub review
-
-After the user replies to publish, submit that same pending review. Resend its stored summary so the summary and the file comments become public together. `COMMENT` is the event when the reply does not name another one.
-
-```bash
-node <skill-root>/scripts/submit-pending-review.mjs <pr-url> <COMMENT|APPROVE|REQUEST_CHANGES>
-```
-
-The operation finds the authenticated user's single pending review, confirms its summary and the current head SHA, and submits it through the reviews events endpoint. Return the submitted review URL.
+The operation validates the manifest, confirms the pull request still has the frozen head, detects an existing pending review for the authenticated user, and creates one GitHub review with an empty `body` and `event` omitted. Return its URL, then remove the temporary manifest with the native file tool. The review stays `PENDING`. The user inspects the line comments in GitHub's **Files changed** view, pastes the summary into **Leave a comment**, and submits from **Finish your review**.
 
 ## Failure contract
 

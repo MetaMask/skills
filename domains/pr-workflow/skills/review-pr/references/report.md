@@ -234,12 +234,15 @@ The stored report remains the review record. For an existing GitHub pull request
 Create these comments as a pending GitHub review?
 ```
 
-After explicit approval, write the approved body, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, remove the temporary manifest, and return the pending review URL. A review with zero inline findings uses the summary body and an empty comments array. The review stays `PENDING`. Tell the user the file comments are in GitHub's **Files changed** view and the summary stays unpublished until the next reply. Then ask:
+After explicit approval, write the approved review summary, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, which sends an empty `body` to GitHub, remove the temporary manifest, and return the pending review URL. A review with zero inline findings stays in the conversation and does not call the script. Then print:
 
 ```text
-Publish this pending review? Reply with Comment, Approve, or Request changes.
+Paste into Leave a comment
+<exact sanitized review summary>
+
+Open Files changed, choose Comment, Approve, or Request changes, and press Submit review.
 ```
 
-After that reply, run `submit-pending-review.mjs` with `COMMENT`, `APPROVE`, or `REQUEST_CHANGES`. Use `COMMENT` when the reply does not name another event. Return the submitted review URL. GitHub's **Finish your review** box replaces the stored summary, so publication goes through this reply.
+The pending review contains only the line comments. The reviewer submits it from GitHub's **Finish your review** control.
 
 Self-reviews and other targets finish with the conversation report.
