@@ -34,10 +34,14 @@ test("reject names discovery commands", () => {
 test("reject forbids GitHub page fetches", () => {
   const skill = readFileSync(join(SKILL_ROOT, "skill.md"), "utf8");
   const reject = skill.split("## Reject")[1] ?? "";
-  assert.match(reject, /github\.com/);
-  assert.match(reject, /raw\.githubusercontent\.com/);
-  assert.match(reject, /collect-pr-context\.mjs/);
-  assert.match(reject, /read-frozen-file\.mjs/);
+  for (const phrase of [
+    "`github.com`",
+    "`raw.githubusercontent.com`",
+    "`collect-pr-context.mjs`",
+    "`read-frozen-file.mjs`",
+  ]) {
+    assert.ok(reject.includes(phrase), phrase);
+  }
 });
 
 test("skill.md links every references markdown file", () => {
