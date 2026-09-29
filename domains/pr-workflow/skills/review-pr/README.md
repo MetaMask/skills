@@ -24,7 +24,7 @@ In a Cursor chat opened on the consumer repo:
 
 A pull request URL or number is a peer review of that repository. "Review my branch" or "review my changes" with no URL is a self-review of the current checkout.
 
-The report comes back in the chat with the exact sanitized review body and inline placements. For an existing GitHub pull request, the agent asks whether to create them as a pending review. Approval creates the draft for inspection in GitHub; the user controls final submission.
+The default reply is a completion card with finding counts. The developer then asks for review findings, review evidence, the frozen state, suggested comments, or the full review, one at a time. **Output full review** prints the stored report in the chat. A request that includes `non-interactive` returns that same full report in the first message, including the sanitized review body and inline placements. For an existing GitHub pull request, the pending-review question comes with suggested comments, and at the end of the full report. Approval creates an unpublished review. A second reply publishes that review with its stored summary.
 
 Run it from the repo that owns the pull request. The Mobile overlay and the Extension overlay are different skills after install.
 
@@ -34,7 +34,7 @@ Run it from the repo that owns the pull request. The Mobile overlay and the Exte
 
 ### 1. Freeze the target before any finding
 
-The first section of the report returns this block once:
+The report stores this block once as its first section. The default display shows it when the developer asks for the frozen state. A review started with `non-interactive` prints it first:
 
 ```text
 review-pr target
@@ -78,6 +78,8 @@ node <skill-root>/scripts/read-frozen-file.mjs <head-sha> <repository-path>
 ```
 
 When the head SHA is not local, the agent runs `ensure-pr-head.mjs` first. The scripts leave the working tree unchanged. A path that cannot be read at that SHA is `unavailable` for that file.
+
+A `github.com` or `raw.githubusercontent.com` page is outside the provider order, including blob, pull, commit, and files views. Peer data comes from the collector, or from one GitHub MCP tool when `gh` cannot authenticate and that tool returns every required peer field. A failed read stays `failed` or `BLOCKED`.
 
 ### 4. Every source is available, unavailable, or failed
 
@@ -169,7 +171,19 @@ Each is `provided`, `needs author evidence`, or `unread`. These statuses are sep
 
 ### 11. The report and comments to paste
 
-A report with an exact diff uses:
+The analysis still finishes every section in one pass. The finished report is written to `review-pr-<head-sha>.json` in the operating-system temporary directory, outside the reviewed checkout, so a later reply can open one slice of that same review.
+
+The default first message is the completion card: repository, short head SHA, coverage, and finding counts, plus these replies:
+
+1. Review findings — titles of the issues found in this review, one `<SEVERITY>-<n> — <subject>` line each. The linked GitHub or Jira issue stays in review evidence.
+2. Review evidence — author evidence, source availability, and the TL;DR.
+3. Frozen state — the frozen target block.
+4. Suggested comments — the paste-ready review body and inline comments.
+5. Output full review — every stored section, in order, in the chat, including comments to add.
+
+A finding id opens that finding's record and its inline comment. The record uses a blank line between sections, and each evidence citation is its own line. A request that includes `non-interactive`, and the **Output full review** reply, print the stored sections in one message.
+
+A report with an exact diff stores:
 
 1. Target and frozen scope.
 2. Data availability and coverage, one line per source.
@@ -225,15 +239,17 @@ Recall requires a defined later defect inventory from an adjudicator, accepted f
 
 ### 13. Read-only analysis and pending review
 
-The analysis does not edit, commit, or push the checkout, and it does not run the app. After the complete report, an existing GitHub pull request gets one optional write flow:
+The analysis does not edit, commit, or push the checkout, and it does not run the app. An existing GitHub pull request gets one optional write flow. The default mode starts it when the developer asks for suggested comments, and at the end of **Output full review**. A review started with `non-interactive` starts it at the end of the full report:
 
 1. Display the exact sanitized review summary and every inline path, line, side, and body.
 2. Ask `Create these comments as a pending GitHub review?`.
 3. After explicit approval, write the approved manifest to the operating-system temporary directory.
 4. Run `create-pending-review.mjs`. It rechecks the frozen head, detects an existing pending review for the authenticated reviewer, and sends one atomic create-review request with `event` omitted.
 5. Remove the temporary manifest and return the pending review URL.
+6. Ask `Publish this pending review? Reply with Comment, Approve, or Request changes.`
+7. After that reply, run `submit-pending-review.mjs` with `COMMENT`, `APPROVE`, or `REQUEST_CHANGES`. Use `COMMENT` when the reply does not name another event. The script resends the pending review's stored summary and returns the submitted review URL.
 
-The resulting comments remain pending for inspection in GitHub's **Files changed** view. The user submits, edits, or discards the review in GitHub. Self-reviews remain conversation-only.
+The file comments stay pending in GitHub's **Files changed** view until that second reply. GitHub's **Finish your review** box replaces the stored summary, so publication goes through the script. Self-reviews remain conversation-only.
 
 ## Evaluation preregistration
 

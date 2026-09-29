@@ -8,9 +8,11 @@ The minimum checkout contract is a local repository, `git`, Node.js, a shell, an
 2. **GitHub MCP as an equivalent adapter.** Use it when `gh` cannot authenticate and one installed GitHub MCP tool returns every required peer field: repository, number, URL, title, body, base SHA, head SHA, diff, checks, and existing review comments. Record the tool name. A partial MCP response does not replace `gh`.
 3. **`local-git`.** Use the checkout diff for self-review. For a peer review, use it only when the exact pull request diff is already in the checkout and GitHub data could not be read. That run is `DEGRADED`.
 
+A `github.com` or `raw.githubusercontent.com` page is outside this order, including blob, pull, commit, and files views. Read peer data through the collector or the GitHub MCP adapter above. Read a cited file through `read-frozen-file.mjs`, `read-frozen-json.mjs`, or `search-frozen-tree.mjs`. A failed read stays `failed` or `BLOCKED`.
+
 ## Freeze the target
 
-Resolve the SHAs, capture this block, and return it once as the report's first section. Freeze it before opening a specialist skill or writing a finding:
+Resolve the SHAs, capture this block, and store it once as the report's first section. Freeze it before opening a specialist skill or writing a finding. The default display shows this block when the user asks for the frozen state. A review started with `non-interactive` prints this block first:
 
 ```text
 review-pr target

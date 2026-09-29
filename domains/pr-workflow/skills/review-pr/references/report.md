@@ -1,6 +1,78 @@
 # Report
 
-Return one report that guides a human reviewer. A `BLOCKED` report stops before claim checks. A report with an exact diff uses every section below and states `Source coverage: complete` or `Source coverage: DEGRADED`.
+Finish one report that guides a human reviewer, then display it with **Presentation**. A `BLOCKED` report stops before claim checks and is shown in full. A report with an exact diff stores every section below and states `Source coverage: complete` or `Source coverage: DEGRADED`.
+
+## Presentation
+
+Finish every section, including **Comments to add**, before the first user-visible review message. Write that report as JSON in the operating-system temporary directory, outside the reviewed checkout. Name the file `review-pr-<40-character-head-sha>.json`.
+
+Choose the mode from the message that starts the review:
+
+- **Default.** Print the completion card and stop.
+- **Non-interactive.** The starting message contains `non-interactive` as its own word, ignoring case. Print every section in **Reports with an exact diff**, in that order, in the same message, including **Comments to add**. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` at the end of that message.
+
+A later reply reads the stored file and prints one slice of the finished review. The same options close each of those replies. Routing decisions, existing review comments, and the coverage conclusion are printed when the user asks for them, and they are included when the user asks for the full review.
+
+### Completion card
+
+```text
+Review complete.
+<repository> · <pr number or branch> · <head SHA, 12 chars>
+Coverage: complete | DEGRADED
+Findings: HIGH <n> · MEDIUM <n> · LOW <n>
+
+Reply with one:
+1. Review findings — titles of the issues found in this review
+2. Review evidence
+3. Frozen state
+4. Suggested comments
+5. Output full review
+Or a finding id, such as HIGH-1.
+```
+
+The counts are the only finding content on the card.
+
+### Slices
+
+1. **Review findings.** One line per issue this review found in the frozen diff: `<SEVERITY>-<n> — <subject>`. The linked GitHub or Jira issue the pull request addresses stays in Review evidence.
+2. **Review evidence.** Author evidence, source availability, and the TL;DR. Evidence for one finding stays on that finding.
+3. **Frozen state.** The frozen target block from [providers.md](providers.md).
+4. **Suggested comments.** The paste-ready review body and inline comments. In the default mode, this reply asks `Create these comments as a pending GitHub review?` for an existing GitHub pull request.
+5. **Output full review.** Print every section in **Reports with an exact diff**, in that order, in the chat. Include **Comments to add**. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` at the end of that message. This reply is the stored review, not the completion card.
+
+A finding id prints that finding's record in the expanded layout below, then its inline comment.
+
+### Stored report
+
+```json
+{
+  "schemaVersion": 1,
+  "displayMode": "default",
+  "target": {
+    "repository": "<owner>/<name>",
+    "provider": "gh",
+    "base": "<40-character SHA>",
+    "head": "<40-character SHA>",
+    "workingTree": "excluded",
+    "sourceCoverage": "complete"
+  },
+  "dataAvailability": [],
+  "tldr": [],
+  "authorEvidence": [],
+  "routingDecisions": [],
+  "findings": [],
+  "claimsExamined": [],
+  "openQuestions": [],
+  "existingComments": [],
+  "conclusion": "",
+  "commentsToAdd": {
+    "body": "",
+    "comments": []
+  }
+}
+```
+
+`displayMode` is `default` or `non-interactive`. `findings` keeps each `<SEVERITY>-<n>` id, subject, severity, claim, risk checked, evidence type, evidence boundary, and reviewer guidance. Store `evidence` as a list of citations, each with a source and what that source shows, so a finding reply prints one citation per line. `commentsToAdd.comments` keeps path, line, side, and body for each new finding.
 
 ## BLOCKED
 
@@ -15,7 +87,7 @@ Do not add findings, specialist results, or a review conclusion.
 
 ## Reports with an exact diff
 
-Print the frozen target block from [providers.md](providers.md) first. Then use these sections, in order:
+Store the frozen target block from [providers.md](providers.md) as the first section. Then store these sections, in order:
 
 1. **Target and frozen scope.** Repository, provider, base SHA, head SHA, working-tree inclusion, and `Source coverage: complete` or `Source coverage: DEGRADED`.
 2. **Data availability and coverage.** One line per source: local diff, repository files, pull request title and body, linked issue context, checks, and existing review comments. Each line is `available`, `unavailable`, or `failed`, plus the command or tool that established it.
@@ -42,21 +114,38 @@ Print the frozen target block from [providers.md](providers.md) first. Then use 
 6. **Guided claim checks.** Start with the high-impact claims selected from [reasoning.md](reasoning.md). Use the finding record below for every new concern. Then list **Claims examined** with their evidence boundaries and **Open questions** whose evidence remains unread.
 7. **Existing comments as references.** Cite comment ids or URLs, state whether each point remains present at the frozen head, and use it for deduplication. Existing comments stay outside the new-finding count and severity.
 8. **Review coverage and conclusion.** Name the claims examined, important claims left open, and the completed checks. For `Source coverage: DEGRADED`, name the guidance affected by each unread source. Describe author preparation as: `Readiness evidence reviewed; open author evidence is listed above.` Reserve approval for the human reviewer.
-9. **Comments to add.** Paste-ready GitHub comments for new findings plus an author-evidence follow-up when useful. Write this section in the same response as the report.
+9. **Comments to add.** Paste-ready GitHub comments for new findings plus an author-evidence follow-up when useful. A review started with `non-interactive`, and the **Output full review** reply, include this section with the other sections. The default display also includes it when the user asks for Suggested comments.
 
 ## Finding record
 
 Give each new finding a stable `<SEVERITY>-<n>` id. `SEVERITY` is `HIGH`, `MEDIUM`, or `LOW`. `n` is the finding's order in one report-wide sequence starting at 1 across all severities. For example, a low-severity first finding followed by a high-severity second finding uses `LOW-1` and `HIGH-2`.
 
+Print the record with a blank line between sections. Put each evidence citation on its own line.
+
 ```text
 HIGH-1 — <short subject>
-severity: HIGH | MEDIUM | LOW
-claim: <behavior or safety claim>
-risk checked: <specific counterexample or failure condition>
-evidence type: diff | check-rollup | visual | runtime | unread
-evidence: <diff hunk, path:line, repository rule, specialist result, or command output>
-evidence boundary: <what this establishes and what remains open>
-reviewer guidance: <request a change, ask a question, or inspect a named path>
+
+Severity
+HIGH | MEDIUM | LOW
+
+Claim
+<behavior or safety claim, as its own paragraph>
+
+Risk checked
+<specific counterexample or failure condition, as its own paragraph>
+
+Evidence
+Type: diff | check-rollup | visual | runtime | unread
+- <path:line or source> — <what that citation shows>
+- <path:line or source> — <what that citation shows>
+
+Evidence boundary
+<what this establishes, as its own paragraph>
+
+<what remains open, as its own paragraph>
+
+Reviewer guidance
+<request a change, ask a question, or inspect a named path, as its own paragraph>
 ```
 
 Severity describes impact if the concern is confirmed:
@@ -139,12 +228,18 @@ Calculate precision when its denominator is greater than zero. Calculate recall 
 
 ## Pending GitHub review
 
-The conversation report remains the review record. For an existing GitHub pull request, inspect the review body and inline comments for sensitive chat context, then display the exact sanitized content and frozen placements. Ask:
+The stored report remains the review record. For an existing GitHub pull request, inspect the review body and inline comments for sensitive chat context, then display the exact sanitized content and frozen placements. In the default mode, do that inside the Suggested comments slice and at the end of **Output full review**. In a review started with `non-interactive`, do that at the end of the full report. Ask:
 
 ```text
 Create these comments as a pending GitHub review?
 ```
 
-After explicit approval, write the approved body, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, remove the temporary manifest, and return the pending review URL. A review with zero inline findings uses the summary body and an empty comments array. The user inspects the pending review in GitHub's **Files changed** view and controls final submission.
+After explicit approval, write the approved body, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, remove the temporary manifest, and return the pending review URL. A review with zero inline findings uses the summary body and an empty comments array. The review stays `PENDING`. Tell the user the file comments are in GitHub's **Files changed** view and the summary stays unpublished until the next reply. Then ask:
+
+```text
+Publish this pending review? Reply with Comment, Approve, or Request changes.
+```
+
+After that reply, run `submit-pending-review.mjs` with `COMMENT`, `APPROVE`, or `REQUEST_CHANGES`. Use `COMMENT` when the reply does not name another event. Return the submitted review URL. GitHub's **Finish your review** box replaces the stored summary, so publication goes through this reply.
 
 Self-reviews and other targets finish with the conversation report.

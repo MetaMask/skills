@@ -23,6 +23,34 @@ export const terminalExamples = (markdown) =>
     .map((line) => line.trim())
     .filter(Boolean);
 
+test("reject names discovery commands", () => {
+  const skill = readFileSync(join(SKILL_ROOT, "skill.md"), "utf8");
+  const reject = skill.split("## Reject")[1] ?? "";
+  for (const command of ["ls", "find", "cat", "git", "gh"]) {
+    assert.match(reject, new RegExp(`\`${command}\``));
+  }
+});
+
+test("reject forbids GitHub page fetches", () => {
+  const skill = readFileSync(join(SKILL_ROOT, "skill.md"), "utf8");
+  const reject = skill.split("## Reject")[1] ?? "";
+  assert.match(reject, /github\.com/);
+  assert.match(reject, /raw\.githubusercontent\.com/);
+  assert.match(reject, /collect-pr-context\.mjs/);
+  assert.match(reject, /read-frozen-file\.mjs/);
+});
+
+test("skill.md links every references markdown file", () => {
+  const skill = readFileSync(join(SKILL_ROOT, "skill.md"), "utf8");
+  const references = readdirSync(join(SKILL_ROOT, "references")).filter((name) =>
+    name.endsWith(".md"),
+  );
+  assert.ok(references.length > 0);
+  for (const name of references) {
+    assert.match(skill, new RegExp(`references/${name}`));
+  }
+});
+
 test("installed review instructions expose only checked-in scripts", () => {
   const mainInstruction = ["skill.md", "RULE.md", "SKILL.md"]
     .map((name) => join(SKILL_ROOT, name))
