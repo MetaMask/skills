@@ -3,10 +3,10 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
-import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+const MANIFEST_NAME = /^review-pr-pending-[0-9a-f]{40}\.json$/u;
 const ALLOWED_SIDES = new Set(["LEFT", "RIGHT"]);
 
 const runGh = (args, input) => {
@@ -149,11 +149,14 @@ const parsePullRequestUrl = (value) => {
   };
 };
 
-const readTemporaryManifest = (manifestPath, readFile) => {
+const readTemporaryManifest = (manifestPath, readFile, repoRoot) => {
   const resolvedPath = resolve(manifestPath);
-  const temporaryRoot = resolve(tmpdir());
-  if (resolvedPath !== temporaryRoot && !resolvedPath.startsWith(`${temporaryRoot}${sep}`)) {
-    throw new Error("manifest path must be inside the operating-system temp directory");
+  const allowedDir = resolve(repoRoot, "temp");
+  const basename = resolvedPath.slice(allowedDir.length + 1);
+  if (!resolvedPath.startsWith(`${allowedDir}${sep}`) || !MANIFEST_NAME.test(basename)) {
+    throw new Error(
+      "manifest path must be temp/review-pr-pending-<40-hex-sha>.json inside the repository",
+    );
   }
   return parseJson(readFile(resolvedPath, "utf8"), "pending review manifest");
 };
@@ -168,10 +171,13 @@ const flattenPages = (pages) => {
 export const createPendingReview = (
   prUrl,
   manifestPath,
-  { executeGh = runGh, readFile = readFileSync } = {},
+  { executeGh = runGh, readFile = readFileSync, repoRoot } = {},
 ) => {
+  if (typeof repoRoot !== "string" || repoRoot.length === 0) {
+    throw new Error("repoRoot is required");
+  }
   const target = parsePullRequestUrl(prUrl);
-  const manifest = validateManifest(readTemporaryManifest(manifestPath, readFile));
+  const manifest = validateManifest(readTemporaryManifest(manifestPath, readFile, repoRoot));
   const pr = parseJson(
     executeGh(["pr", "view", target.url, "--json", "number,url,headRefOid"]),
     "gh pr view",
@@ -234,11 +240,22 @@ export const createPendingReview = (
   };
 };
 
+const repositoryRoot = () => {
+  const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr?.trim() || "could not resolve the git repository root");
+  }
+  return result.stdout.trim();
+};
+
 const main = ([prUrl, manifestPath]) => {
   if (!prUrl || !manifestPath) {
     throw new Error("Usage: node scripts/create-pending-review.mjs <pr-url> <manifest-path>");
   }
-  return createPendingReview(prUrl, manifestPath);
+  return createPendingReview(prUrl, manifestPath, { repoRoot: repositoryRoot() });
 };
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {

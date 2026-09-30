@@ -1,6 +1,6 @@
 # Scripted operations
 
-This registry is the complete terminal interface for `review-pr`. Resolve every path relative to the installed skill root. Run one checked-in script per terminal call. Native file reads, native searches, read-only MCP tools, and native writes of the stored report and the approved review manifest outside the reviewed checkout remain available.
+This registry is the complete terminal interface for `review-pr`. Resolve every path relative to the installed skill root. Run one checked-in script per terminal call. Native file reads, native searches, and read-only MCP tools remain available. A stored report or pending-review manifest is created with `write-temp-json.mjs`, then read and overwritten with the native file tool.
 
 Open each `references/*.md` linked from the instruction file (`skill.md`, installed `SKILL.md`, or `RULE.md`) with the native file read tool, from that file's directory. The bash blocks below are the script paths to run.
 
@@ -70,9 +70,17 @@ node <skill-root>/scripts/search-frozen-tree.mjs <commit-sha> <pattern> [reposit
 
 Returns bounded matching lines with paths and line numbers. The script treats the pattern as a fixed string and limits output to 500 matches.
 
+## Create a temporary JSON file
+
+```bash
+node <skill-root>/scripts/write-temp-json.mjs <basename> --init
+```
+
+`<basename>` is `review-pr-<40-character-head-sha>.json` for the stored report, or `review-pr-pending-<40-character-head-sha>.json` for the pending-review manifest. The script creates `<repository>/temp/<basename>` and writes `{}` when `temp/` is gitignored. Read that path, then overwrite it with the native file tool. The file tool can write the path after this read. Do not create the file with shell redirection or a heredoc.
+
 ## Create a pending GitHub review
 
-After the user approves the exact displayed review body and inline comments, write this manifest to a temporary JSON file outside the reviewed checkout:
+After the user approves the exact displayed review body and inline comments, store this manifest with the temporary-file operation above:
 
 ```json
 {

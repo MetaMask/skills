@@ -22,7 +22,7 @@ This skill selects installed specialist skills and aggregates their results. Eac
 - Review a peer pull request by URL or number.
 - Ask which checks ran, which were skipped, and which sources could not be read.
 - Assess the later outcome of findings from an earlier `review-pr` report.
-- Add `non-interactive` to the review request for the full report in one message. The default shows a completion card, then one stored section per reply, including **Output full review**.
+- Add `non-interactive` to the review request for the full report in one message. The default shows a completion card, then asks `What would you like to do next?` with `AskQuestion` in Cursor or `AskUserQuestion` in Claude.
 
 ## Workflow
 
@@ -33,16 +33,16 @@ This skill selects installed specialist skills and aggregates their results. Eac
 5. **Map and rank claims.** Open [references/reasoning.md](references/reasoning.md). Extract explicit and implicit claims, rank them, and choose concrete risks or counterexamples to examine.
 6. **Route the diff.** Open [references/routing.md](references/routing.md) and the repository overlay. Classify each selected skill as a repository `preference` or domain `capability`. Invoke it only when installed and its required inputs are `available`. Record paths, semantic signal, inputs, and the skip or apply result.
 7. **Run one guided static pass.** Read the frozen diff and cited files. For each substantive observation, record the claim, risk checked, evidence, evidence boundary, severity, and reviewer guidance. Keep existing comments as references.
-8. **Aggregate and store.** Copy specialist results with their source into the stable sections in [references/report.md](references/report.md). Include GitHub-ready comments with exact requested changes. Write the finished report as JSON in the operating-system temporary directory, outside the reviewed checkout, named with the frozen head SHA.
-9. **Display the stored report.** Follow **Presentation** in [references/report.md](references/report.md). The default prints the completion card and stops. A review started with `non-interactive`, or a later reply that asks to output the full review, prints every section in order in that message. Any other later reply prints one requested slice from the stored report. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` on the Suggested comments slice, or at the end of the full report. After explicit approval, write the approved manifest outside the reviewed checkout, including the review summary in `body`. Run `create-pending-review.mjs`, which sends an empty `body` to GitHub, remove the manifest, and return the pending review URL. Then print the summary under **Paste into Leave a comment** and tell the reviewer to submit from GitHub's **Finish your review** control. Self-reviews and other targets finish in the conversation.
+8. **Aggregate and store.** Copy specialist results with their source into the stable sections in [references/report.md](references/report.md). Include GitHub-ready comments with exact requested changes. Store the finished report with `write-temp-json.mjs` from [references/operations.md](references/operations.md), then read and overwrite that file.
+9. **Display the stored report.** Follow **Presentation** in [references/report.md](references/report.md). The default prints the completion card, then asks `What would you like to do next?` with `AskQuestion` in Cursor or `AskUserQuestion` in Claude. The options are Review findings, Review evidence, Suggested comments, and Output full review, in that order. Every later interactive reply prints one requested slice and asks again with that same question and those same four options. A free-text finding id prints that finding. A free-text `Frozen state` prints the frozen target. A free-text `Create the pending review`, after Suggested comments or Output full review for an existing GitHub pull request, is the approval. A review started with `non-interactive` prints every section in order and asks `Create these comments as a pending GitHub review?` in text at the end. After explicit approval, write the approved manifest to `temp/review-pr-pending-<head-sha>.json`, including the review summary in `body`. Run `create-pending-review.mjs`, which sends an empty `body` to GitHub, remove the manifest, and return the pending review URL. Then print the summary under **Paste into Leave a comment** and tell the reviewer to submit from GitHub's **Finish your review** control. Self-reviews and other targets finish in the conversation.
 
 When the user asks to assess an earlier report, follow **Later outcome assessment** in [references/report.md](references/report.md). Use later evidence to classify findings and calculate correctness metrics.
 
 ## Require
 
 - Capture the frozen target before the first specialist skill or finding, and store it as the report's first section.
-- Run every terminal operation as one invocation of a documented script under this skill's `scripts/` directory. Native file reads, native searches, read-only MCP tools, and native writes of the stored report and the approved review manifest outside the reviewed checkout remain available.
-- Store the finished report before the first user-visible review message. The default first message is the completion card in [references/report.md](references/report.md). Each later reply prints one requested slice from that stored report.
+- Run every terminal operation as one invocation of a documented script under this skill's `scripts/` directory. Native file reads, native searches, and read-only MCP tools remain available. Create the stored report and the approved review manifest with `write-temp-json.mjs`, then read and overwrite that file with the native file tool.
+- Store the finished report before the first user-visible review message. The default first message is the completion card in [references/report.md](references/report.md), followed by one question, `What would you like to do next?`, through `AskQuestion` in Cursor or `AskUserQuestion` in Claude. The options are Review findings, Review evidence, Suggested comments, and Output full review. Each later interactive reply prints one requested slice and asks again with that same question and those same options.
 - When the message that starts the review contains `non-interactive` as its own word, ignoring case, print the nine report sections in order in that first message. The **Output full review** reply prints those same nine sections from the stored report.
 - Use `check-worktree.mjs` for checkout status. When terminal invocations are reported, every ledger entry names a checked-in script.
 - Return `BLOCKED` with the missing scripted capability when the operation registry does not cover required terminal evidence.
@@ -64,7 +64,7 @@ When the user asks to assess an earlier report, follow **Later outcome assessmen
 - Ask before posting a GitHub review comment.
 - Include paste-ready comments: one review summary and one inline comment per new finding. Each comment states the severity, rationale, and exact requested change.
 - Before the pending-review prompt, show the exact sanitized summary and every path, line, side, and comment body.
-- Create GitHub inline comments only through `create-pending-review.mjs`, with the frozen head SHA and an approved temporary manifest outside the reviewed checkout. The manifest `body` is the review summary. The GitHub request sends an empty `body`.
+- Create GitHub inline comments only through `create-pending-review.mjs`, with the frozen head SHA and an approved manifest at `temp/review-pr-pending-<head-sha>.json`. The manifest `body` is the review summary. The GitHub request sends an empty `body`.
 - After the pending review is created, print the summary for the reviewer to paste into **Leave a comment**. The reviewer submits from GitHub.
 
 ## Reject
@@ -73,6 +73,8 @@ When the user asks to assess an earlier report, follow **Later outcome assessmen
 - A terminal command that is not `node <skill-root>/scripts/<name>.mjs`, including `ls`, `find`, `cat`, `git`, `gh`, and pipelines used to discover or read this skill's files. Checked-in scripts call `git` and `gh` themselves.
 - Fetching a `github.com` or `raw.githubusercontent.com` page, including blob, pull, commit, and files views, to read a file, diff, check, or review comment. Peer data comes from `collect-pr-context.mjs`, or from one GitHub MCP tool when `gh` cannot authenticate and that tool returns every required peer field. Frozen file contents come from `read-frozen-file.mjs`, `read-frozen-json.mjs`, or `search-frozen-tree.mjs`. A failed read stays `failed` or `BLOCKED`.
 - In the default display, printing the full report in the first message.
+- In the default display, printing a numbered reply menu, a second question in the tool call, or any option other than Review findings, Review evidence, Suggested comments, and Output full review. Finding ids, `Frozen state`, and `Create the pending review` stay free text on that question.
+- Creating the stored report or the pending-review manifest with shell redirection, a heredoc, or a file write to a path the script has not created.
 - Re-running collection scripts or specialist skills to answer a menu choice or to switch display mode.
 - A global review score.
 - A finding with no citation.

@@ -4,14 +4,14 @@ Finish one report that guides a human reviewer, then display it with **Presentat
 
 ## Presentation
 
-Finish every section, including **Comments to add**, before the first user-visible review message. Write that report as JSON in the operating-system temporary directory, outside the reviewed checkout. Name the file `review-pr-<40-character-head-sha>.json`.
+Finish every section, including **Comments to add**, before the first user-visible review message. Store that report with `write-temp-json.mjs` from [operations.md](operations.md), then read the created file and overwrite it with the report JSON. The file is `temp/review-pr-<40-character-head-sha>.json` inside the repository.
 
 Choose the mode from the message that starts the review:
 
-- **Default.** Print the completion card and stop.
-- **Non-interactive.** The starting message contains `non-interactive` as its own word, ignoring case. Print every section in **Reports with an exact diff**, in that order, in the same message, including **Comments to add**. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` at the end of that message.
+- **Default.** Print the completion card, then ask what to open with the question tool in **Interactive questions**.
+- **Non-interactive.** The starting message contains `non-interactive` as its own word, ignoring case. Print every section in **Reports with an exact diff**, in that order, in the same message, including **Comments to add**. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` in that message. Do not call the question tool.
 
-A later reply reads the stored file and prints one slice of the finished review. The same options close each of those replies. Routing decisions, existing review comments, and the coverage conclusion are printed when the user asks for them, and they are included when the user asks for the full review.
+A later reply reads the stored file and prints one slice of the finished review. In the default mode, the question tool asks for the next action after that slice. Routing decisions, existing review comments, and the coverage conclusion are printed when the user asks for them, and they are included when the user asks for the full review.
 
 ### Completion card
 
@@ -20,25 +20,28 @@ Review complete.
 <repository> · <pr number or branch> · <head SHA, 12 chars>
 Coverage: complete | DEGRADED
 Findings: HIGH <n> · MEDIUM <n> · LOW <n>
-
-Reply with one:
-1. Review findings — titles of the issues found in this review
-2. Review evidence
-3. Frozen state
-4. Suggested comments
-5. Output full review
-Or a finding id, such as HIGH-1.
 ```
 
-The counts are the only finding content on the card.
+The counts are the only finding content on the card. The next action is the question tool, not a menu printed under the card.
+
+### Interactive questions
+
+In the default mode, ask with the harness question tool. Cursor calls `AskQuestion`. Claude calls `AskUserQuestion`. The call contains one question. The question text is `What would you like to do next?`. The options are these four labels, in this order, after the completion card and after every later slice:
+
+1. Review findings
+2. Review evidence
+3. Suggested comments
+4. Output full review
+
+A finding id such as `HIGH-1`, the words `Frozen state`, and the words `Create the pending review` are free-text replies on that same question. `Create the pending review` is the approval after **Suggested comments** or **Output full review** for an existing GitHub pull request. A review started with `non-interactive` asks `Create these comments as a pending GitHub review?` in text at the end of the full report.
 
 ### Slices
 
 1. **Review findings.** One line per issue this review found in the frozen diff: `<SEVERITY>-<n> — <subject>`. The linked GitHub or Jira issue the pull request addresses stays in Review evidence.
 2. **Review evidence.** Author evidence, source availability, and the TL;DR. Evidence for one finding stays on that finding.
 3. **Frozen state.** The frozen target block from [providers.md](providers.md).
-4. **Suggested comments.** The paste-ready review body and inline comments. In the default mode, this reply asks `Create these comments as a pending GitHub review?` for an existing GitHub pull request.
-5. **Output full review.** Print every section in **Reports with an exact diff**, in that order, in the chat. Include **Comments to add**. For an existing GitHub pull request, ask `Create these comments as a pending GitHub review?` at the end of that message. This reply is the stored review, not the completion card.
+4. **Suggested comments.** The paste-ready review body and inline comments. For an existing GitHub pull request, end the slice with `Reply Create the pending review to create the pending line comments.`
+5. **Output full review.** Print every section in **Reports with an exact diff**, in that order, in the chat. Include **Comments to add**. For an existing GitHub pull request, end that message with `Reply Create the pending review to create the pending line comments.` This reply is the stored review, not the completion card.
 
 A finding id prints that finding's record in the expanded layout below, then its inline comment.
 
@@ -228,11 +231,7 @@ Calculate precision when its denominator is greater than zero. Calculate recall 
 
 ## Pending GitHub review
 
-The stored report remains the review record. For an existing GitHub pull request, inspect the review body and inline comments for sensitive chat context, then display the exact sanitized content and frozen placements. In the default mode, do that inside the Suggested comments slice and at the end of **Output full review**. In a review started with `non-interactive`, do that at the end of the full report. Ask:
-
-```text
-Create these comments as a pending GitHub review?
-```
+The stored report remains the review record. For an existing GitHub pull request, inspect the review body and inline comments for sensitive chat context, then display the exact sanitized content and frozen placements. In the default mode, do that inside the Suggested comments slice and at the end of **Output full review**, and end that text with `Reply Create the pending review to create the pending line comments.` The question tool stays the four options in **Interactive questions**. In a review started with `non-interactive`, ask `Create these comments as a pending GitHub review?` in text at the end of the full report.
 
 After explicit approval, write the approved review summary, frozen head SHA, and inline placements to the temporary manifest defined in [operations.md](operations.md). Run `create-pending-review.mjs`, which sends an empty `body` to GitHub, remove the temporary manifest, and return the pending review URL. A review with zero inline findings stays in the conversation and does not call the script. Then print:
 

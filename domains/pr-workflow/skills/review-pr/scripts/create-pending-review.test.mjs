@@ -7,7 +7,8 @@ import { createPendingReview, validateManifest } from "./create-pending-review.m
 
 const HEAD_SHA = "a".repeat(40);
 const PR_URL = "https://github.com/MetaMask/metamask-mobile/pull/123";
-const MANIFEST_PATH = join(tmpdir(), "review-pr-pending-123.json");
+const REPO_ROOT = join(tmpdir(), "review-pr-repo");
+const MANIFEST_PATH = join(REPO_ROOT, "temp", `review-pr-pending-${HEAD_SHA}.json`);
 
 const manifest = (overrides = {}) => ({
   schemaVersion: 1,
@@ -61,6 +62,7 @@ const createAdapters = ({
     calls,
     executeGh,
     readFile: () => JSON.stringify(manifestValue),
+    repoRoot: REPO_ROOT,
   };
 };
 

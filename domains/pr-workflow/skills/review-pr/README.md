@@ -24,7 +24,7 @@ In a Cursor chat opened on the consumer repo:
 
 A pull request URL or number is a peer review of that repository. "Review my branch" or "review my changes" with no URL is a self-review of the current checkout.
 
-The default reply is a completion card with finding counts. The developer then asks for review findings, review evidence, the frozen state, suggested comments, or the full review, one at a time. **Output full review** prints the stored report in the chat. A request that includes `non-interactive` returns that same full report in the first message, including the sanitized review body and inline placements. For an existing GitHub pull request, the pending-review question comes with suggested comments, and at the end of the full report. Approval creates pending line comments only. The chat then shows the summary to paste into GitHub's review submission box.
+The default reply is a completion card with finding counts. Cursor then calls `AskQuestion`, and Claude calls `AskUserQuestion`, with the question `What would you like to do next?` and the options Review findings, Review evidence, Suggested comments, and Output full review. Every later reply uses that same question and those same options. A finding id, `Frozen state`, or `Create the pending review` is free text on that question. **Output full review** prints the stored report in the chat. A request that includes `non-interactive` returns that same full report in the first message, including the sanitized review body and inline placements, and asks the pending-review question in text. Approval creates pending line comments only. The chat then shows the summary to paste into GitHub's review submission box.
 
 Run it from the repo that owns the pull request. The Mobile overlay and the Extension overlay are different skills after install.
 
@@ -171,17 +171,16 @@ Each is `provided`, `needs author evidence`, or `unread`. These statuses are sep
 
 ### 11. The report and comments to paste
 
-The analysis still finishes every section in one pass. The finished report is written to `review-pr-<head-sha>.json` in the operating-system temporary directory, outside the reviewed checkout, so a later reply can open one slice of that same review.
+The analysis still finishes every section in one pass. `write-temp-json.mjs` creates `temp/review-pr-<head-sha>.json` inside the repository when `temp/` is gitignored. The agent reads that file and overwrites it with the report, so a later reply can open one slice of that same review.
 
-The default first message is the completion card: repository, short head SHA, coverage, and finding counts, plus these replies:
+The default first message is the completion card: repository, short head SHA, coverage, and finding counts. The question tool then asks `What would you like to do next?` with these options, in this order, after the card and after every slice:
 
 1. Review findings — titles of the issues found in this review, one `<SEVERITY>-<n> — <subject>` line each. The linked GitHub or Jira issue stays in review evidence.
 2. Review evidence — author evidence, source availability, and the TL;DR.
-3. Frozen state — the frozen target block.
-4. Suggested comments — the paste-ready review body and inline comments.
-5. Output full review — every stored section, in order, in the chat, including comments to add.
+3. Suggested comments — the paste-ready review body and inline comments.
+4. Output full review — every stored section in one message.
 
-A finding id opens that finding's record and its inline comment. The record uses a blank line between sections, and each evidence citation is its own line. A request that includes `non-interactive`, and the **Output full review** reply, print the stored sections in one message.
+A finding id, `Frozen state`, and `Create the pending review` are free-text replies on that question. A finding id opens that finding's record and its inline comment. The record uses a blank line between sections, and each evidence citation is its own line. A request that includes `non-interactive`, and the **Output full review** reply, print the stored sections in one message.
 
 A report with an exact diff stores:
 
@@ -243,7 +242,7 @@ The analysis does not edit, commit, or push the checkout, and it does not run th
 
 1. Display the exact sanitized review summary and every inline path, line, side, and body.
 2. Ask `Create these comments as a pending GitHub review?`.
-3. After explicit approval, write the approved manifest to the operating-system temporary directory.
+3. After explicit approval, create `review-pr-pending-<head-sha>.json` with `write-temp-json.mjs`, then read and overwrite it with the approved manifest.
 4. Run `create-pending-review.mjs`. It rechecks the frozen head, detects an existing pending review for the authenticated reviewer, and sends one atomic create-review request. The manifest keeps the review summary. The GitHub request sends an empty `body` and omits `event`.
 5. Remove the temporary manifest and return the pending review URL.
 6. Print the summary under **Paste into Leave a comment**. The reviewer opens **Files changed**, pastes that summary, chooses Comment, Approve, or Request changes, and presses **Submit review**.
