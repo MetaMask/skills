@@ -28,10 +28,10 @@ Each entry: `category_id`, `aus_keys[]`, `notification_types[]`, `visible_on[]`.
 
 - Array order is display order.
 - A client renders only entries whose `visible_on` includes its platform. Empty `visible_on` means hidden on every platform but still present in the manifest.
-- `aus_keys` are the toggle pivot. Non-empty with no local section is a client bug: log the error once and hide the row. Empty means display-only (inbox tab and filtering, no settings row, no error).
+- `aus_keys` are the toggle pivot. Non-empty with no local section is a client bug: log the error and hide the row. Empty means display-only (inbox tab and filtering, no settings row, no error).
 - `category_id` is backend-owned and may not match local naming. Resolve local sections and copy through `aus_keys`, never `category_id`.
 - `notification_types` is advisory; notifications carry a server-resolved `category` (`''` means uncategorized).
-- The fallback snapshot mirrors the live response 1:1, hidden entries included, same order. It is used only when the request fails.
+- Keep the fallback snapshot aligned with the live response, including hidden entries and backend order. Clients may also use the fallback when the endpoint returns an empty category list. Check the consuming client’s resolver for its exact fallback condition.
 
 ## Workflow
 
@@ -45,7 +45,7 @@ Each entry: `category_id`, `aus_keys[]`, `notification_types[]`, `visible_on[]`.
 4. **Add presentation for the key**: copy (title and description, in the source locale; other locales follow the repo's translation process), icon, deeplink slug, whether the row shows channel status, and any feature-flag gate.
 5. **Register the section** in the local registry and every per-key map the compiler flags (analytics settings type, detail-screen layout).
 6. **Mirror per-key touchpoints.** Grep an existing key in all spellings (camelCase, snake_case, kebab-case) and update every per-category list: deeplink docs and tests, API mocks, feature-gate config.
-7. **Update the fallback snapshot and tests**: snapshot mirror, settings-row rendering, the unsupported-category log (called once for non-empty `aus_keys` with no section, never for empty), and display-only skipping.
+7. **Update the fallback snapshot and tests**: snapshot mirror, settings-row rendering, the unsupported-category log for non-empty `aus_keys` with no section, and display-only skipping. Assert the intended logging frequency separately if the client promises deduplication.
 8. **Verify.** Re-run step 1 (no diff left), then the repo's unit tests, type check and lint.
 
 Do not guess a multi-key category's copy or icon; ask. Do not bump dependencies silently.
