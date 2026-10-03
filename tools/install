@@ -471,7 +471,7 @@ is_managed_project_skill() {
 }
 
 remove_stale_project_skills() {
-  local parent label dir
+  local parent label dir target
   for entry in \
     "$CLAUDE_DIR|.claude/skills" \
     "$CURSOR_DIR|.cursor/rules" \
@@ -485,6 +485,16 @@ remove_stale_project_skills() {
       is_managed_project_skill "$dir" "$label" || continue
       action "$label/$(basename "$dir") (remove stale managed skill)"
       $DRY_RUN || rm -rf "$dir"
+    done
+    # An unprefixed alias (e.g. recipe-cook -> mms-recipe-cook) duplicates a
+    # managed skill under a second name; remove the link, never its target.
+    for dir in "$parent"/*; do
+      [[ -L "$dir" ]] || continue
+      target=$(readlink "$dir")
+      [[ "$target" == "${PREFIX}"* && "$target" != */* ]] || continue
+      is_managed_project_skill "$parent/$target" "$label" || continue
+      action "$label/$(basename "$dir") (remove alias of managed $target)"
+      $DRY_RUN || rm -f "$dir"
     done
   done
 }
@@ -717,9 +727,13 @@ for src in "${SOURCES[@]}"; do
         RESOLVED_KEYS+=("$key")
         RESOLVED_DIRS+=("$skill_dir")
         RESOLVED_DOMAINS+=("$domain_name")
-      else
+      elif [[ -f "$skill_dir/skill.md" ]]; then
         RESOLVED_DIRS[$resolved_index]="$skill_dir"
         RESOLVED_DOMAINS[$resolved_index]="$domain_name"
+      else
+        # A later source's directory without skill.md is not a skill; letting it
+        # win would replace a working skill with one process_skill then skips.
+        echo "Warning: no skill.md in $skill_dir; keeping ${RESOLVED_DIRS[$resolved_index]}" >&2
       fi
     done
   done

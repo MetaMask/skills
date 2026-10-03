@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
+### Fixed
+
+- Keep a source's skill when a later source has the same directory without `skill.md`, and remove unprefixed aliases of managed skills during `--prune-stale`.
+
 ## [0.3.1]
 
 ### Fixed

@@ -344,3 +344,71 @@ describe('tools/sync installer resolution', () => {
     assert.doesNotMatch(result.stdout, /STALE-OVERLAY/u, 'must not fall through to the overlay');
   });
 });
+
+describe('source resolution and aliases', () => {
+  let root;
+
+  before(() => {
+    root = mkdtempSync(path.join(os.tmpdir(), 'mms-resolve-'));
+  });
+
+  after(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  function writeSkill(source, name, body) {
+    const dir = path.join(source, 'domains', 'testing', 'skills', name);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skill.md'),
+      ['---', `name: ${name}`, 'description: Fixture skill', 'maturity: stable', '---', body].join('\n'),
+    );
+  }
+
+  function install(target, sources, extra = []) {
+    return spawnSync(
+      '/bin/bash',
+      [INSTALL, '--target', target, '--repo', 'core', ...sources.flatMap((s) => ['--source', s]), ...extra],
+      { encoding: 'utf8' },
+    );
+  }
+
+  test('a later source directory without skill.md does not shadow an earlier skill', () => {
+    const base = path.join(root, 'base');
+    const overlay = path.join(root, 'overlay');
+    const target = path.join(root, 'target-shadow');
+    mkdirSync(target, { recursive: true });
+    writeSkill(base, 'shadowed', 'BASE-BODY');
+    const refs = path.join(overlay, 'domains', 'testing', 'skills', 'shadowed', 'references');
+    mkdirSync(refs, { recursive: true });
+    writeFileSync(path.join(refs, 'extra.md'), 'Overlay reference.\n');
+
+    const result = install(target, [base, overlay]);
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    const installed = path.join(target, '.agents', 'skills', 'mms-shadowed', 'SKILL.md');
+    assert.match(readFileSync(installed, 'utf8'), /BASE-BODY/u);
+    assert.match(result.stderr, /no skill\.md in .*shadowed.*; keeping/u);
+  });
+
+  test('prune-stale removes an unprefixed alias of a managed skill but not other links', () => {
+    const source = path.join(root, 'alias-src');
+    const target = path.join(root, 'target-alias');
+    mkdirSync(target, { recursive: true });
+    writeSkill(source, 'current', 'CURRENT-BODY');
+    assert.equal(install(target, [source]).status, 0);
+    const skills = path.join(target, '.agents', 'skills');
+    const custom = path.join(root, 'custom-skill');
+    mkdirSync(custom, { recursive: true });
+    symlinkSync('mms-current', path.join(skills, 'current'));
+    symlinkSync(custom, path.join(skills, 'custom-link'));
+
+    const result = install(target, [source], ['--prune-stale']);
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stdout, /current \(remove alias of managed mms-current\)/u);
+    assert.equal(existsSync(path.join(skills, 'current')), false);
+    assert.equal(existsSync(path.join(skills, 'mms-current', 'SKILL.md')), true);
+    assert.equal(existsSync(path.join(skills, 'custom-link')), true);
+  });
+});
