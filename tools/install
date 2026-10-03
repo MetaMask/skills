@@ -478,6 +478,20 @@ remove_stale_project_skills() {
     "$AGENTS_DIR|.agents/skills"; do
     parent="${entry%%|*}"
     label="${entry#*|}"
+    # An unprefixed alias (e.g. recipe-cook -> mms-recipe-cook) duplicates a
+    # managed skill under a second name; remove the link, never its target.
+    # Runs before the stale pass so an alias of a skill pruned below, or of a
+    # retired skill already removed (dangling link), is still recognised.
+    for dir in "$parent"/*; do
+      [[ -L "$dir" ]] || continue
+      target=$(readlink "$dir")
+      [[ "$target" == "${PREFIX}"* && "$target" != */* ]] || continue
+      if [[ -e "$parent/$target" ]]; then
+        is_managed_project_skill "$parent/$target" "$label" || continue
+      fi
+      action "$label/$(basename "$dir") (remove alias of managed $target)"
+      $DRY_RUN || rm -f "$dir"
+    done
     for dir in "$parent"/${PREFIX}*; do
       [[ -e "$dir" ]] || continue
       [[ -d "$dir" ]] || continue
@@ -485,16 +499,6 @@ remove_stale_project_skills() {
       is_managed_project_skill "$dir" "$label" || continue
       action "$label/$(basename "$dir") (remove stale managed skill)"
       $DRY_RUN || rm -rf "$dir"
-    done
-    # An unprefixed alias (e.g. recipe-cook -> mms-recipe-cook) duplicates a
-    # managed skill under a second name; remove the link, never its target.
-    for dir in "$parent"/*; do
-      [[ -L "$dir" ]] || continue
-      target=$(readlink "$dir")
-      [[ "$target" == "${PREFIX}"* && "$target" != */* ]] || continue
-      is_managed_project_skill "$parent/$target" "$label" || continue
-      action "$label/$(basename "$dir") (remove alias of managed $target)"
-      $DRY_RUN || rm -f "$dir"
     done
   done
 }

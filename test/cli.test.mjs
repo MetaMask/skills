@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -373,12 +373,22 @@ describe('source resolution and aliases', () => {
     );
   }
 
+  function isLink(file) {
+    try {
+      return lstatSync(file).isSymbolicLink();
+    } catch {
+      return false;
+    }
+  }
+
   test('a later source directory without skill.md does not shadow an earlier skill', () => {
     const base = path.join(root, 'base');
     const overlay = path.join(root, 'overlay');
     const target = path.join(root, 'target-shadow');
     mkdirSync(target, { recursive: true });
     writeSkill(base, 'shadowed', 'BASE-BODY');
+    writeSkill(base, 'overridden', 'BASE-BODY');
+    writeSkill(overlay, 'overridden', 'OVERLAY-BODY');
     const refs = path.join(overlay, 'domains', 'testing', 'skills', 'shadowed', 'references');
     mkdirSync(refs, { recursive: true });
     writeFileSync(path.join(refs, 'extra.md'), 'Overlay reference.\n');
@@ -386,29 +396,51 @@ describe('source resolution and aliases', () => {
     const result = install(target, [base, overlay]);
 
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-    const installed = path.join(target, '.agents', 'skills', 'mms-shadowed', 'SKILL.md');
-    assert.match(readFileSync(installed, 'utf8'), /BASE-BODY/u);
+    const skills = path.join(target, '.agents', 'skills');
+    assert.match(readFileSync(path.join(skills, 'mms-shadowed', 'SKILL.md'), 'utf8'), /BASE-BODY/u);
+    assert.match(readFileSync(path.join(skills, 'mms-overridden', 'SKILL.md'), 'utf8'), /OVERLAY-BODY/u);
     assert.match(result.stderr, /no skill\.md in .*shadowed.*; keeping/u);
   });
 
-  test('prune-stale removes an unprefixed alias of a managed skill but not other links', () => {
+  test('prune-stale removes unprefixed aliases of managed skills in every destination', () => {
     const source = path.join(root, 'alias-src');
     const target = path.join(root, 'target-alias');
     mkdirSync(target, { recursive: true });
     writeSkill(source, 'current', 'CURRENT-BODY');
     assert.equal(install(target, [source]).status, 0);
-    const skills = path.join(target, '.agents', 'skills');
     const custom = path.join(root, 'custom-skill');
     mkdirSync(custom, { recursive: true });
-    symlinkSync('mms-current', path.join(skills, 'current'));
-    symlinkSync(custom, path.join(skills, 'custom-link'));
+    const destinations = ['.claude/skills', '.cursor/rules', '.agents/skills'].map((d) => path.join(target, d));
+    for (const dir of destinations) symlinkSync('mms-current', path.join(dir, 'current'));
+    symlinkSync(custom, path.join(destinations[2], 'custom-link'));
 
     const result = install(target, [source], ['--prune-stale']);
 
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-    assert.match(result.stdout, /current \(remove alias of managed mms-current\)/u);
-    assert.equal(existsSync(path.join(skills, 'current')), false);
-    assert.equal(existsSync(path.join(skills, 'mms-current', 'SKILL.md')), true);
-    assert.equal(existsSync(path.join(skills, 'custom-link')), true);
+    for (const dir of destinations) {
+      assert.equal(isLink(path.join(dir, 'current')), false, `${dir}/current`);
+      assert.equal(existsSync(path.join(dir, 'mms-current')), true, `${dir}/mms-current`);
+    }
+    assert.equal(isLink(path.join(destinations[2], 'custom-link')), true);
+  });
+
+  test('prune-stale removes an alias whose managed target is pruned in the same run', () => {
+    const source = path.join(root, 'stale-src');
+    const target = path.join(root, 'target-stale-alias');
+    mkdirSync(target, { recursive: true });
+    writeSkill(source, 'current', 'CURRENT-BODY');
+    assert.equal(install(target, [source]).status, 0);
+    const skills = path.join(target, '.agents', 'skills');
+    mkdirSync(path.join(skills, 'mms-gone'), { recursive: true });
+    writeFileSync(path.join(skills, 'mms-gone', 'SKILL.md'), `${MANAGED_BANNER}\nBody.\n`);
+    symlinkSync('mms-gone', path.join(skills, 'gone'));
+    symlinkSync('mms-retired-already', path.join(skills, 'dangling'));
+
+    const result = install(target, [source], ['--prune-stale']);
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.equal(existsSync(path.join(skills, 'mms-gone')), false);
+    assert.equal(isLink(path.join(skills, 'gone')), false);
+    assert.equal(isLink(path.join(skills, 'dangling')), false);
   });
 });
