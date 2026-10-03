@@ -12,18 +12,27 @@
 - [ ] **New dependency not in DI interface** — controller code reaching outside its boundary (e.g., importing a hook, React context, or an app utility). Everything the controller needs must come through `PerpsPlatformDependencies`.
 - [ ] **Breaking the publisher contract** — changing PerpsController's public API (state shape, method signatures, event names) without considering both consumers. Controller is a publisher — mobile and extension both consume it.
 
+<a id="missing-numeric-data-stays-undefined"></a>
+
+## Missing numeric data stays undefined
+
+Missing Perps numeric data must remain `undefined` through provider adapters, controller state, selectors, hooks and calculations. Zero means an observed or computed zero from known inputs. It must never stand for missing, loading, failed or invalid data. This applies to prices, balances, PnL, fees, margin, leverage and percentages.
+
+- [ ] **Missing data converted to zero**: Reject `value ?? 0`, `value || 0`, default parameters of `0`, and parsing or arithmetic that turns absent or invalid input into zero. Check availability before conversion or calculation; if a required input is missing, the result stays `undefined`. An explicit accumulator seed for known values is valid, but must not conceal an unavailable collection or missing required member.
+- [ ] **Unknown treated as confirmed zero**: Preserve a genuine `0` with explicit availability checks. Do not use truthiness to decide whether a value exists. Keep actions that require the missing value disabled until it is available.
+- [ ] **Reviewer proposes a fabricated value**: Review fixes follow the same rule. A crash or type error caused by missing data requires explicit missing-state handling, never a numeric fallback. Require separate cases for absent input, invalid input and genuine zero; verify missing inputs cannot enable submission or feed financial calculations as zero.
+- [ ] **Placeholder written into numeric state**: Render missing values with display placeholders only at the formatting boundary:
+  - `PERPS_CONSTANTS.FallbackPriceDisplay` (`'$---'`) — price not yet loaded
+  - `PERPS_CONSTANTS.FallbackPercentageDisplay` (`'--%'`) — percentage not yet loaded
+  - `PERPS_CONSTANTS.FallbackDataDisplay` (`'--'`) — generic data not yet loaded
+  - `PERPS_CONSTANTS.ZeroAmountDisplay` (`'$0'`) / `ZeroAmountDetailedDisplay` (`'$0.00'`) — ONLY for actual confirmed zero values (e.g., no volume), never for "loading" or "unavailable"
+
 <a id="magic-strings-magic-numbers-placeholder-values"></a>
 
 ## Magic Strings, Magic Numbers & Placeholder Values
 
 Constants live in the controller package (`core/packages/perps-controller/src/constants/perpsConfig.ts`, exported by `@metamask/perps-controller`) and in the reviewed client's UI constants module. PRs must use these — not inline literals.
 
-- [ ] **Defaulting to `0` when data is unavailable** — the most common mistake. When price/percentage/data hasn't loaded yet, use the placeholder constants, NOT `0`, `$0`, or `0%`:
-  - `PERPS_CONSTANTS.FallbackPriceDisplay` (`'$---'`) — price not yet loaded
-  - `PERPS_CONSTANTS.FallbackPercentageDisplay` (`'--%'`) — percentage not yet loaded
-  - `PERPS_CONSTANTS.FallbackDataDisplay` (`'--'`) — generic data not yet loaded
-  - `PERPS_CONSTANTS.ZeroAmountDisplay` (`'$0'`) / `ZeroAmountDetailedDisplay` (`'$0.00'`) — ONLY for actual confirmed zero values (e.g., no volume), never for "loading" or "unavailable"
-  - Defaulting to `0` hides loading states, makes bugs invisible, and can mislead users into thinking their balance/PnL is actually zero.
 - [ ] **Inline timeout/delay values** — hardcoded `5000`, `10000`, `300` instead of `PERPS_CONSTANTS.WebsocketTimeout`, `PERPS_CONSTANTS.ConnectionTimeoutMs`, `PERFORMANCE_CONFIG.ValidationDebounceMs`, etc. Every timing constant has a named export.
 - [ ] **Hardcoded slippage** — using `0.03` or `300` instead of `ORDER_SLIPPAGE_CONFIG.DefaultMarketSlippageBps`, `DefaultTpslSlippageBps`, `DefaultLimitSlippageBps`.
 - [ ] **Hardcoded leverage fallback** — using `3` or `50` instead of `PERPS_CONSTANTS.DefaultMaxLeverage` or `MARGIN_ADJUSTMENT_CONFIG.FallbackMaxLeverage`.
@@ -103,6 +112,7 @@ A single `PerpsAlwaysOnProvider` at the wallet root owns connect/disconnect; `Pe
 
 ## Data Flow & State
 
+- [ ] **Delayed balance tracker loses its initiating context**: Bind the initiating account, provider and network. The first channel delivery may replay persisted preload data; it is not proof of fresh credit. Channel clearing also occurs on reconnect, so it is not an account-change signal. A timeout means credit was not observed, not that funds are available. Test provider and network changes while the account address stays fixed.
 - [ ] **A changed classification leaves old priority rules**: When a validation becomes advisory, audit message ranking and CTA gating together. A finished-input warning needs commit/blur state that clears on the next edit; interaction alone is insufficient. Test mixed blockers/advice and editing an already committed value.
 - [ ] **State persists outside the rendered control**: Disabling new presses does not dismiss an open keypad or active gesture. Test the transition while editing, and preserve the intended input when live limits update.
 - [ ] **React persistence mistaken for WebView synchronization**: Inline and fullscreen charts can remain mounted together. Prove the handoff updates each chart's local range/state, including subsequent stream updates.

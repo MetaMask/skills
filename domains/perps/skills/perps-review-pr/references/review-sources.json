@@ -1,8 +1,8 @@
 {
   "repository": "MetaMask/experimental-metamask-recipe-perps",
-  "revision": "e06bb8d750acbbd90ce1af62063260e85f0a0995",
+  "revision": "4d69addb8eb7f2d767a075489f8f5a07ed94f2f2",
   "files": {
-    "review/antipatterns.md": "5d16b3b25757a95c39748a2fe699dbc6bf02a77e42a3bc8d8ed66b7eeed7be36",
+    "review/antipatterns.md": "3de9a72ae4e41c3fbc3ba3e26ba7f2067562a5cd262800b96110e4a703909e7e",
     "review/antipatterns.mobile.md": "541cedb7c79dfe01991472147d5de8b5a38dcbc1a182057e68c2f0fb470b3ab1",
     "review/antipatterns.extension.md": "6fd041ff96e9d864fe5bc62b3d27f5bd022b221d25c159658d00bcd78501bf57",
     "review/antipatterns.core.md": "2c7b3990b111b50bf2a6b7a4aa3a12344dc5858ce57fa086a4da1a1798c4f392",
