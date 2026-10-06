@@ -2,23 +2,18 @@
 name: tsc-blindspots
 description: >-
   Find the type defects `tsc` is structurally unable to report — a green build is
-  not evidence the types are correct. Covers the two classes: (1) hand-written
-  types that restate an authoritative source and disagree with it, caught by
-  substituting the derived type at a fixed commit and diffing `tsc` output; and
-  (2) the standing blind spots in the language and config — unchecked array/record
-  indexing, bivariant method parameters, covariant arrays, `any` absorption at
-  untyped boundaries, precise signatures fed `any` at every call site, ambient
-  `declare module` assertions that launder an `any` into a confident type,
+  not evidence the types are correct. Covers (1) hand-written types that restate
+  an authoritative source and disagree with it, caught by substituting the derived
+  type at a fixed commit and diffing `tsc` output; and (2) the standing blind
+  spots — unchecked indexing, bivariant method parameters, covariant arrays, `any`
+  absorption at untyped boundaries, ambient `declare module` assertions,
   excess-property checks that only fire on fresh literals, and external data
   asserted rather than validated. Also audits typing edits that quietly change
-  runtime behavior:
-  stripped `| undefined`, deleted default parameters, literals swapped for runtime
-  enum lookups, calls made optional so a throw becomes a silent no-op. Use when
-  reviewing a JS→TS migration, a PR that hand-writes types for values that already
-  have them, a "rename-only" refactor, or any PR claiming a change is mechanical.
-  Triggers on /mms-tsc-blindspots, or on phrases like "validate this TypeScript
-  migration", "is this type right", "does this type match the real shape",
-  "why didn't CI catch this type", "derive vs define", and "what can tsc not
+  runtime behavior (stripped `| undefined`, deleted defaults, literals swapped for
+  enum lookups, calls made optional). Use when reviewing a JS→TS migration,
+  hand-written types for already-typed values, a "rename-only" refactor, or any PR
+  claiming a change is mechanical. Triggers on /mms-tsc-blindspots, "validate this
+  TypeScript migration", "why didn't CI catch this type", and "what can tsc not
   check".
 maturity: experimental
 ---
