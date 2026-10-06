@@ -33,22 +33,6 @@ Once in controller, extension imports directly instead of reimplementing.
 | `isHip3Market`/`isCryptoMarket` | `UI/Perps/utils/` | `ui/components/app/perps/utils.ts` | YES |
 | `groupTransactionsByDate` | `UI/Perps/utils/transactionTransforms.ts` | `ui/components/app/perps/utils/transactionTransforms.ts` | Near-identical |
 
-## Priority 3 -- Formatting Abstraction
-
-Extract pure formatting logic into controller:
-
-```
-Controller exports:
-  PRICE_RANGES_CONFIG (range thresholds + sig dig rules)
-  calculateDisplayDecimals(value, config) -> { decimals, sigDigs }
-  roundToDisplayPrecision(value, config) -> number
-
-Platform layer:
-  formatPerpsFiat(value, opts) -> calls calculateDisplayDecimals + locale formatter
-```
-
-Extension currently uses `.toFixed(2)` and `formatNumber({min:2, max:2})` everywhere -- both wrong for low-value and high-precision assets.
-
 ## Can't Share (platform-bound)
 
 | File | Reason |
