@@ -50,7 +50,7 @@ Extension adds: `usePerpsLiveMarketData`, `usePerpsStreamManager`, `usePerpsView
 
 ## Formatting Divergence
 
-Use `formatPerpsFiat` on both platforms (Extension: `shared/lib/perps-formatters.ts`). Do not add `.toFixed(2)`, `formatNumber({min:2,max:2})` or `formatCurrencyWithMinThreshold` for perps values on Extension; migrate a legacy call site the PR touches.
+Use `formatPerpsFiat` on both platforms (Extension: `shared/lib/perps-formatters.ts`). Do not add `.toFixed(2)`, `formatNumber({min:2,max:2})` or `formatCurrencyWithMinThreshold` for displayed perps fiat values on Extension; migrate a legacy call site the PR touches.
 
 ## TestID Mapping
 

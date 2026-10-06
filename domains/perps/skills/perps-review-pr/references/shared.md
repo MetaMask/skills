@@ -57,7 +57,7 @@ All provider access must go through `AggregatedPerpsProvider` → `ProviderRoute
 - [ ] **Provider-specific error handling** — catches errors from one provider but not others. All providers must have consistent error boundaries via the aggregated layer.
 - [ ] **Hardcoded market symbols** — string literals `"BTC"` or `"ETH"` instead of market config constants. Breaks when new markets or providers are added.
 - [ ] **Hardcoded decimals/precision** — using provider-native decimal formats without normalization. Providers use different precision for prices, sizes, and leverage. Must go through `MarketDataFormatters` (DI).
-- [ ] **`detailedOrderType` rendered directly in UI** — `detailedOrderType` is provider-native text, not an enum. HyperLiquid returns `Limit`, `Market`, `Stop Limit`, `Stop Market`, `Take Profit Limit`, `Take Profit Market`. Any UI that renders `detailedOrderType` directly is provider-dependent by construction. **Grep for `detailedOrderType` in any PR touching order display** — it should be mapped through a locale string or normalized constant, not rendered raw.
+- [ ] **`detailedOrderType` rendered directly in UI** — `detailedOrderType` is provider-native text, not an enum. HyperLiquid returns, e.g., `Limit`, `Market`, `Stop Limit`, `Stop Market`, `Take Profit Limit`, `Take Profit Market`. Any UI that renders `detailedOrderType` directly is provider-dependent by construction. **Grep for `detailedOrderType` in any PR touching order display** — it should be mapped through a locale string or normalized constant, not rendered raw.
 
 <a id="pro-mode-ui-gating"></a>
 
