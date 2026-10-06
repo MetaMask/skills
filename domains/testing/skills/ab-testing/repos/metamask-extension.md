@@ -74,9 +74,7 @@ const activeABTests = experiment.isActive
    - Register every new remote A/B test flag in
      `test/e2e/feature-flags/feature-flag-registry.ts` with the production
      default threshold-array JSON value.
-   - Use test overrides such as `manifestFlags.remoteFeatureFlags` or
-     `FixtureBuilder.withRemoteFeatureFlags(...)` when a test needs
-     deterministic assignment.
+   - Override assignment in tests as the `feature-flags` Extension overlay says.
    - If the change is copy-only or config-only, you may skip new tests with a brief rationale.
 7. Run the A/B compliance checker using the repository's current supported
    invocation and report the result.
