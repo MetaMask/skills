@@ -5,9 +5,7 @@ Companion to `parity.md`. Tracks what's shared, what should be, and what can't b
 
 ## Already Shared via @metamask/perps-controller
 
-**Utils (20)**: `significantFigures`, `orderValidation`, `orderCalculations`, `marketDataTransform`, `sortMarkets`, `marketUtils`, `accountUtils`, `errorUtils`, `hyperLiquidAdapter`, `hyperLiquidOrderBookProcessor`, `hyperLiquidValidation`, `myxAdapter`, `standaloneInfoClient`, `stringParseUtils`, `idUtils`, `rewardsUtils`, `transferData`, `wait`
-
-**Services (14)**: `AccountService`, `TradingService`, `MarketDataService`, `DepositService`, `EligibilityService`, `HyperLiquidClientService`, `HyperLiquidSubscriptionService`, `HyperLiquidWalletService`, `MYXClientService`, `MYXWalletService`, `RewardsIntegrationService`, `TradingReadinessCache`, `DataLakeService`, `FeatureFlagConfigurationService`
+**Utils** (`src/utils/`) and **Services** (`src/services/`) of `@metamask/perps-controller`: check them on core `main` before adding a client-side copy.
 
 ## Priority 1 -- Move to Controller (pure TS, no React deps)
 

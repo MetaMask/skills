@@ -60,12 +60,8 @@ See `formatting-rules` knowledge file for full rules.
 | Extension | `.toFixed(2)` | Hardcoded 2 decimals |
 
 **Files with hardcoded formatting (extension):**
-- `ui/components/app/perps/utils/transactionTransforms.ts` -- `.toFixed(2)` x7
-- `ui/components/app/perps/order-entry/components/auto-close-section/` -- `{min:2, max:2}`
-- `ui/components/app/perps/order-entry/components/limit-price-input/` -- `{min:2, max:2}`
+- `ui/components/app/perps/utils/transactionTransforms.ts` -- `.toFixed(2)`
 - `ui/components/app/perps/edit-margin/edit-margin-modal-content.tsx` -- `.toFixed(2)`
-- `ui/components/app/perps/reverse-position/reverse-position-modal.tsx` -- `.toFixed(2)`
-- `ui/hooks/perps/usePerpsOrderForm.ts` -- `formatCurrencyWithMinThreshold` x6
 
 ## TestID Mapping
 
