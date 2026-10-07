@@ -20,19 +20,13 @@ release follow-up. The AUS backend (Go service) is a separate workstream: this
 skill assumes it already accepts the key and merges a default into GETs. If it
 does not, stop and tell the user.
 
-Related: `notifications-category-sync` handles client work when the backend's
-category manifest gains an entry for a key clients already support. If the
-backend also ships a manifest entry for this key, run that skill's client
-steps too.
-
 ## When to use
 
 - A new preference key must be added to `NotificationPreferences` and surfaced in clients
 - A notification category needs a settings row whose key exists in no repo yet
 
-Out of scope: the AUS backend, keys already in the installed storage package
-(use `notifications-category-sync`), notification payload rendering, and
-non-notification AUS blobs.
+Out of scope: the AUS backend, keys already in the installed storage package,
+notification payload rendering, and non-notification AUS blobs.
 
 ## Prerequisites
 
@@ -97,9 +91,8 @@ and wait.
 
 ### Step 1: Inputs and tracker
 
-**Prompt** for the key name (camelCase), the preference shape, whether it is
-required on the type (recommend optional, fact 5), and whether a backend
-category-manifest entry ships with it.
+**Prompt** for the key name (camelCase), the preference shape,
+and whether it is required on the type (recommend optional, fact 5).
 
 Create the tracker outside all working trees (`$TMPDIR/aus-preference-rollout-<key>.md`)
 from the template below.
@@ -189,7 +182,7 @@ the auto-close. After the release publishes, replace each client PR's
 # AUS preference rollout — <key>
 
 ## Inputs
-- Key / shape / required on type / backend manifest entry:
+- Key / shape / required on type:
 
 ## Per-repo decisions
 | Repo      | Add section | Title | Description | Icon | UI (default/custom + component) |
