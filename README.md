@@ -151,7 +151,7 @@ tools/
 | `perps`        | MM product eng    | Perps feature dev + review                  |
 | `pr-workflow`  | MM product eng    | PR title, description, changelog            |
 | `swaps`        | MM product eng    | EVM and non-EVM network integration         |
-| `testing`      | MM product eng    | Mobile testing umbrella, Extension E2E/unit, visual, perf |
+| `testing`      | MM product eng    | Mobile testing umbrella, Extension E2E/unit, API coverage (`api-testing`, experimental), visual, perf |
 | `ui`           | MM product eng    | Component development                       |
 
 ## Two distribution flows
