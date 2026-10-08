@@ -20,9 +20,18 @@ Find every touchpoint with the discovery recipe in `skill.md`. Stable anchors
 
 ## Verify
 
+Use the diff to select tests. Run only affected unit and integration tests for
+changed modules and modules that import the changed code. Do not run full
+package test suites or E2E tests for this workflow. Use the package's Jest
+command with the selected test file paths, for example:
+
 ```bash
-yarn workspace @metamask/authenticated-user-storage run test
-yarn workspace @metamask/notification-services-controller run test
+yarn workspace <package-name> run jest --no-coverage <test-file>
+```
+
+Run the following non-test checks as applicable:
+
+```bash
 yarn changelog:validate
 yarn lint:oxlint
 yarn lint:misc:check

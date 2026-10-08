@@ -24,10 +24,19 @@ constants) usually concern the feature, not the preference.
 Mobile's default jest config ignores `*.view.test.*`; view tests need their own command.
 
 ```bash
-yarn jest <each touched non-view test file or dir>
-yarn test:view:one <each touched *.view.test.tsx>
+yarn jest <affected-unit-test-file>
+yarn test:view:one <affected-view-test-file>
+yarn test:integration:one <affected-integration-test-file>
 yarn lint:tsc
 yarn lint
 ```
+
+Use the diff to identify changed implementation modules, then select tests for
+those modules and modules that import the changed code. Run only affected unit
+tests for pure logic or focused contracts, integration tests for changed
+app-to-controller behavior, and component-view tests for changed rendered UI.
+Component-view tests use `test:view:one` and exercise real Redux state. Do not
+run full unit, view, or integration suites, or E2E tests, for this workflow.
+Omit test-layer commands when the diff has no affected test at that layer.
 
 After `yarn install`, follow the repo's dependency workflow in its `AGENTS.md`.

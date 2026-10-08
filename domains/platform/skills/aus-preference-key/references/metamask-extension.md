@@ -24,8 +24,13 @@ specs, and `app/_locales/en` (and `en_GB`, which the exemplar also has).
 ```bash
 yarn lint:changed:fix
 yarn lint:tsc
-yarn test:unit <each touched test file or dir>
+yarn test:unit <affected-unit-test-file>
 ```
+
+Use the diff to identify changed implementation modules. Run only affected unit
+and integration tests for those modules and modules that import the changed
+code. Do not run the full unit or integration suite, or E2E tests, for this
+workflow.
 
 After `yarn install`, follow the dependency workflow in the repo's `AGENTS.md`
 (`yarn lint:lockfile:dedupe:fix`, `yarn allow-scripts auto`, `yarn lavamoat:auto`).
