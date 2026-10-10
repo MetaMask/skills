@@ -50,5 +50,5 @@ Check applicability against the frozen diff and its affected callers. Open each 
 
 ## Cross-repository conformity
 
-- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Record applicable missing references as NOT_CHECKED.
+- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers from the task's reference checkouts (`MM_HARNESS_REF_MOBILE`, `MM_HARNESS_REF_EXTENSION`, `MM_HARNESS_REF_CORE`) and cite the revision you read; an unavailable checkout is NOT_CHECKED, not verified by this review.
 - [ ] When controller state, methods, events, exports or package versions change, inspect Core and both consumers at recorded revisions, using references/shared-packages.md for the shared surface and references/owned-paths.json for the paths this review covers. Check public imports, compatibility and migrations. Report evidence gaps; do not claim that clients compile from source inspection.
