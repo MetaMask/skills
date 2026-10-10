@@ -10,12 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
+- Add a MetaMask Extension overlay for `feature-flags` (registry sync, E2E flag seeding) and a Core overlay for `controller-guidelines` (failure shapes, public type changes).
 - Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
-- Distribute Perps static review as a shared execution checklist with repository overlays, source-tracked client rules and per-rule evidence outcomes, without a duplicate template catalog.
+- Distribute Perps static review as a shared execution checklist with repository overlays, source-tracked client rules and per-rule evidence outcomes, without a duplicate template catalog. Reviews read consumer code from the provided reference checkouts at a cited revision and end in APPROVE or REQUEST_CHANGES; a check the reviewer could not run is listed as not verified instead of downgrading the verdict to COMMENT.
 - Add `navigation` skill with a repo-agnostic base and a MetaMask Mobile overlay for `Routes` and `NavigationService`. Marked `base: true` so it installs even when its domain is filtered out.
 - Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
 - Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
+
+### Fixed
+
+- Keep a source's skill when a later source has the same directory without `skill.md`, and remove unprefixed aliases of managed skills during `--prune-stale`.
 
 ## [0.3.1]
 
