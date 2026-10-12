@@ -103,7 +103,7 @@ Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-fil
    - **Motion Engineering:** its CSS comes from the renderer repo, pinned like `vw.ts`. From the explainer folder run:
      ```bash
      mkdir -p styles/motion-engineering
-     curl -fsSL https://raw.githubusercontent.com/Prithpal-Sooriya/tiny-video-renderer/v0.2.1/example/styles/motion-engineering/style.css -o styles/motion-engineering/style.css
+     curl -fsSL https://raw.githubusercontent.com/Prithpal-Sooriya/tiny-video-renderer/v0.2.2/example/styles/motion-engineering/style.css -o styles/motion-engineering/style.css
      echo "c2f5f7e9daf7d11718f954c2f1afbe891e0204a12421ec6d2ee7565fff26d17b  styles/motion-engineering/style.css" | (sha256sum -c - 2>/dev/null || shasum -a 256 -c -)
      cp <skill>/assets/styles/motion-engineering/STYLE.md styles/motion-engineering/
      ```
