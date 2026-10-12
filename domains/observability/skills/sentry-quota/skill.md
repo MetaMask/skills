@@ -18,7 +18,7 @@ Find and fix custom Sentry span instrumentation that blows the project span budg
 ## Do Not Use When
 
 - Reading the live span counts themselves — that's `sentry-mcp-queries` (Volume Estimation).
-- Product-analytics events (Segment / `trackEvent`) — that's `instrumentation`, with data domain `knowledge/segment-governance.md` for Segment governance.
+- Product-analytics events (Segment / `trackEvent`) — that's the `analytics` skill (`platform/analytics`), with platform domain `knowledge/segment-governance.md` for Segment governance.
 - The span is already behind a per-trace sample gate **and** a kill-switch — already mitigated.
 - Error volume. Errors are metered separately from spans and transactions, so no change here moves the error quota.
 
@@ -67,7 +67,7 @@ Pick the lowest tier that stops the bleed.
 | **0 — Immediate** | a span fans out and is actively breaching on the live release | disable the `trace()` call at source (or env-guard it) + **cherry-pick to the release branch** + file a sev-1 release blocker on the in-flight release milestone |
 | **1 — Release containment** | spike concentrated in an old, already-patched release with lingering users. A sampler fix in a newer build does not change that release's rates unless it reads its rate remotely | Sentry **inbound filter** dropping `release:<bad>` spans + force-update. The only dashboard action. Filters target a whole release, not one span — don't filter a release you still want data from. There is no inbound filter by transaction name, only a fixed health-check one. Filtered events do not consume quota, so confirm the drop in the filtered outcomes (`stats_v2` grouped by `reason`), not in Explore. It is not instant: one recorded release filter took 3.8 days from filing to taking effect |
 | **2 — Durable** | the span is justified long-term but ungated | deterministic `traceId`-hash sub-sample gate before the span (`span-sub-sampling`) |
-| **3 — Wrong tool** | the metric needs full fidelity; sampling loses the signal | move the metric off trace spans — they are the wrong substrate for always-on high-cardinality metrics. Segment is the usual target, but its events can ship unregistered, with no CI check and no billing review (data domain `knowledge/segment-governance.md`), so it is not a free lunch |
+| **3 — Wrong tool** | the metric needs full fidelity; sampling loses the signal | move the metric off trace spans — they are the wrong substrate for always-on high-cardinality metrics. Segment is the usual target, but its events can ship unregistered, with no CI check and no billing review (platform domain `knowledge/segment-governance.md`), so it is not a free lunch |
 
 Tier 0 + 1 stop the bleed; Tier 2 is the follow-up so the metric returns.
 
@@ -82,7 +82,7 @@ Tier 0 + 1 stop the bleed; Tier 2 is the follow-up so the metric returns.
 | Inbound-filter a release you still need data from | Filters drop the whole release — fix in code (Tier 0/2) instead |
 | "No grep hits, so it's safe" | The culprit may be on a release ref not checked out — verify the version/ref |
 | Disable the span on `main` only | Cherry-pick to the active release branch — `main` alone leaves the live release breaching |
-| Treat "move to Segment" as free | Segment events ship without CI governance or billing review (data domain `knowledge/segment-governance.md`) |
+| Treat "move to Segment" as free | Segment events ship without CI governance or billing review (platform domain `knowledge/segment-governance.md`) |
 | Ship new always-on instrumentation with no kill-switch | Add an env disable flag on day one — turns a future cut into a config flip, not a cherry-pick |
 | An optional `trace?` param passes review because it emits nothing | It is a dormant fan-out — it detonates when any caller supplies the argument. Remove the *param*, not just the argument, so one line can't re-arm it. |
 | Disable one entry point of a multi-path change | One change can reach the backend by more than one path (a controller callback *and* a selector param). Audit every entry point it added, not just the one that fired. |

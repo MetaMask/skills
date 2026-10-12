@@ -9,12 +9,9 @@ parent: instrumentation
 |---------|------|
 | Sentry trace wrapper | `shared/lib/trace.ts` |
 | Trace name enum | `shared/lib/trace.ts` → `TraceName` |
-| MetaMetrics controller | `app/scripts/controllers/metametrics-controller.ts` |
-| Anonymous-event marking (`excludeMetaMetricsId`) | `app/scripts/controllers/analytics/analytics.ts` → `applyAnonymousEventOptions()` |
-| Event enum | `shared/constants/metametrics.ts` → `MetaMetricsEventName` |
+| Traces buffered until MetaMetrics opt-in | `app/scripts/controllers/metametrics-controller.ts` → `bufferedTrace()` |
 | Sentry setup + sample rate | `app/scripts/lib/setupSentry.js` → `getTracesSampleRate()` |
 | Sentry `user.id` (set to the MetaMetrics `analyticsId`) | `app/scripts/lib/sentry-metametrics.ts` → `metaMetricsIntegration()` |
-| Segment tracking plan | `Consensys/segment-schema` → `tracking-plans/metamask-extension.yaml`, which lists event libraries. Event definitions live in `libraries/events/<library>/` |
 
 ## Cross-Process Context (UI → Background)
 
@@ -53,16 +50,3 @@ Query: span.op:http.client span.description:*{endpoint}*
 Group by: span.description, transaction
 Sort: -count(span.duration)
 ```
-
-## Detect `excludeMetaMetricsId` Misuse
-
-```bash
-grep -rn "excludeMetaMetricsId: true" app/ ui/ shared/ --include="*.ts" --include="*.tsx" --include="*.js"
-# Each hit sends its event under the shared anonymous id. Confirm the event must not carry identity.
-# Event names matching /^send|^confirm/iu are anonymous by default: check new event names too.
-```
-
-## Data Council Contact
-
-- Slack: `#metamask-metametrics`
-- Team: `@consensys/data-council`
