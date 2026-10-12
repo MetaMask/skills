@@ -14,7 +14,7 @@
 
 ## Skill Details (if adding a new skill)
 
-**Provider Name:** 
+**Domain:** 
 **Skill Name:** 
 **Brief Description:** 
 
