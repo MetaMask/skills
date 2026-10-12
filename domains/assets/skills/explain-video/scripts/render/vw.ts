@@ -387,7 +387,7 @@ export async function boot() {
 
 import { execFileSync, spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { register, stripTypeScriptTypes } from "node:module";
 import { homedir, platform, tmpdir } from "node:os";
@@ -716,24 +716,55 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 </html>
 `;
 
-/** Resolve a request under `root`, trying TS-style fallbacks. Containment is lexical, so `..` cannot climb out but a symlink the owner put in the project is followed. */
-function resolveUnder(root: string, rel: string): string | null {
-	const base = resolve(root, rel);
-	for (const c of [base, ...(base.endsWith(".js") ? [`${base.slice(0, -3)}.ts`] : []), `${base}.ts`, join(base, "index.ts")]) {
-		if (c !== root && !c.startsWith(root + sep)) continue;
-		try {
-			if (statSync(c).isFile()) return c;
-		} catch {
-			// try next
+// Segment ids become identifiers and import URLs in the generated virtual module, so only plain names are
+// indexed. Anything else is skipped, and the timeline validation then names it as a missing segment.
+const SEGMENT_ID = /^[A-Za-z0-9_-]+$/;
+
+/** Index every file Chrome may need, with the import-specifier fallbacks a TypeScript project uses
+ * (extensionless means the .ts file, ".js" means the .ts file, a directory means its index.ts). Requests are
+ * answered from this index, so no request-derived string ever reaches the filesystem: `..`, absolute paths
+ * and friends simply miss the map. Symlinks the project owner placed inside the project are followed, as
+ * before, each directory once (a cycle is cut). */
+function indexServableFiles(root: string): Map<string, string> {
+	const exact = new Map<string, string>();
+	const tsAliases: Array<[string, string]> = []; // extensionless and ".js" spellings of a .ts file
+	const indexAliases: Array<[string, string]> = []; // directory spelling of a dir/index.ts
+	const seen = new Set<string>([realpathSync(root)]);
+	const walk = (abs: string, rel: string) => {
+		for (const ent of readdirSync(abs, { withFileTypes: true })) {
+			const entAbs = join(abs, ent.name);
+			const entRel = rel ? `${rel}/${ent.name}` : ent.name;
+			let st;
+			try {
+				st = statSync(entAbs); // follows symlinks; a broken one is skipped
+			} catch {
+				continue;
+			}
+			if (st.isDirectory()) {
+				const real = realpathSync(entAbs);
+				if (seen.has(real)) continue; // a symlink cycle or a second link to the same place
+				seen.add(real);
+				walk(entAbs, entRel);
+			} else if (st.isFile()) {
+				exact.set(`/c/${entRel}`, entAbs);
+				const noExt = entRel.replace(/\.ts$/, "");
+				if (noExt !== entRel) {
+					tsAliases.push([`/c/${noExt}`, entAbs], [`/c/${noExt}.js`, entAbs]);
+					if (noExt.endsWith("/index")) indexAliases.push([`/c/${noExt.slice(0, -"/index".length)}`, entAbs]);
+				}
+			}
 		}
-	}
-	return null;
+	};
+	walk(root, "");
+	const files = new Map(exact); // exact spellings win, then .ts aliases, then dir-index aliases
+	for (const aliases of [tsAliases, indexAliases]) for (const [k, v] of aliases) if (!files.has(k)) files.set(k, v);
+	return files;
 }
 
 export async function startServer(projectRoot: string, timelinePath: string, fps: number) {
 	const url = (abs: string) => `/c/${relative(projectRoot, abs).split(sep).map(encodeURIComponent).join("/")}`;
 	const segmentsDir = join(projectRoot, "segments");
-	const ids = existsSync(segmentsDir) ? readdirSync(segmentsDir).filter((n) => existsSync(join(segmentsDir, n, "index.ts"))).sort() : [];
+	const ids = existsSync(segmentsDir) ? readdirSync(segmentsDir).filter((n) => SEGMENT_ID.test(n) && existsSync(join(segmentsDir, n, "index.ts"))).sort() : [];
 	const virtual = [
 		`export const fps = ${fps};`,
 		`export const timelineUrl = ${JSON.stringify(url(timelinePath))};`,
@@ -742,6 +773,8 @@ export async function startServer(projectRoot: string, timelinePath: string, fps
 	].join("\n");
 	// Chrome gets only the browser-safe half of this file, as the module "videowright".
 	const browserSource = stripTypeScriptTypes(readFileSync(SELF, "utf-8").split("// @@NODE_ONLY@@")[0], { mode: "strip" });
+	// Requests are answered from this index of the project; the request path is only ever a map key.
+	const files = indexServableFiles(projectRoot);
 
 	const server = createServer((req, res) => {
 		const send = (status: number, type: string, body: string | Buffer) => (res.writeHead(status, { "content-type": type, "cache-control": "no-store" }), res.end(body));
@@ -751,7 +784,7 @@ export async function startServer(projectRoot: string, timelinePath: string, fps
 			if (path === "/render.html") return send(200, "text/html; charset=utf-8", RENDER_HTML);
 			if (path === "/__vw/vw.ts") return send(200, JS, browserSource);
 			if (path === "/__vw/virtual.js") return send(200, JS, virtual);
-			const file = path.startsWith("/c/") ? resolveUnder(projectRoot, path.slice(3)) : null;
+			const file = files.get(path);
 			if (!file) return send(404, "text/plain", `not found: ${path}`);
 			const ext = extname(file).toLowerCase();
 			const data = readFileSync(file);
@@ -762,8 +795,8 @@ export async function startServer(projectRoot: string, timelinePath: string, fps
 			else send(404, "text/plain", `unsupported file type: ${ext}`);
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
-			console.error(`[serve] ${req.url}: ${message}`); // the browser only sees "failed to fetch module"; say why here
-			send(500, "text/plain", message);
+			console.error(`[serve] ${req.url}: ${message}`); // the reason lands in this log; the response carries no local detail
+			send(500, "text/plain", "internal server error");
 		}
 	});
 	await new Promise<void>((resolve, reject) => (server.once("error", reject), server.listen(0, "127.0.0.1", () => resolve())));
