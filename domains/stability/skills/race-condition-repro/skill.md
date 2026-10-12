@@ -1,0 +1,114 @@
+---
+name: race-condition-repro
+description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving rather than a value. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved — operations run to completion in sequence exercise no race and produce a vacuous green indistinguishable from a real pass, so the proof obligation is to show the interleaving occurred, not that the assertion passed. Triggers on /mms-race-condition-repro, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race.
+maturity: experimental
+---
+
+# /race-condition-repro
+
+A race is nondeterministic in the wild, so you cannot validate "the stale retry was canceled" by
+running the code and hoping the interleaving occurs. The evidence has to **make the race
+deterministic** — force the exact interleaving, then assert the outcome.
+
+The claim shape is distinctive: not a value, not a behavior, but an *ordering guarantee*. "When a
+newer write supersedes a pending retry, the stale retry is dropped." No screenshot, benchmark, or
+value assertion touches that.
+
+> **Falsifier.** A test that never interleaved. If the operations ran to completion in sequence,
+> no race was exercised and the green is vacuous — and it looks identical to a real pass. The
+> proof obligation is to show **the interleaving happened**, not that the assertion passed.
+
+This is the reward-hack specific to the category, and it is easy to write by accident: `await`
+the first operation, then start the second, then assert. Every assertion passes. Nothing was
+tested.
+
+## Method
+
+1. **State each guarantee separately, in interleaving terms.** Not "retries work" but "when B
+   arrives during A's pending window, A's recovery event does not fire." One sentence per
+   guarantee, each naming the arriving operation, the window, and the expected outcome. Take
+   the operations from the bug's actual trigger, as its report and investigation comments
+   record it, rather than assuming a race is two user actions.
+
+   **An asymmetric guarantee can be the crux.** Two paths that deliberately behave differently
+   — a primary retry that *is* cancelable by a newer write, a backup retry that is *not* because a
+   split write could leave backed-up keys stale — need one forced interleaving each. A harness
+   that proves the symmetric half and assumes the other has proven the easy one.
+
+2. **Force the interleaving.** Control time and ordering rather than waiting for them:
+
+   | technique | purpose |
+   |---|---|
+   | `jest.useFakeTimers()` + `advanceTimersByTimeAsync(DELAY)` | fire the delayed action at a known point |
+   | `Promise.all([opA, opB])` | overlap operations rather than sequencing them |
+   | `advanceTimersByTimeAsync(0)` | step to a precise interleaving point between overlapping ops |
+
+   The shape that matters: launch A, advance time *into* its pending window, inject B *during*
+   that window, then assert. Never `await opA` before starting `opB`.
+
+3. **Verify the interleaving before believing the assertion.** This is step 2's trust-gate and it
+   is not optional — confirm time was advanced into the pending window and the superseding op was
+   launched concurrently. Reading the assertion tells you nothing; a sequential test asserts the
+   same things and passes.
+
+   The cheap check: **break the implementation and confirm the test fails.** Revert the ordering
+   logic, keep the test file byte-identical, re-run. A test that still passes never exercised the
+   race. Show both runs — that mutation pair is the evidence, not the green run alone. Where the
+   implementation has more than one ordering mechanism, as an asymmetric guarantee does, revert
+   each one separately: a single revert turns the suite red if any one test catches it, which
+   hides a test that never exercised its own mechanism.
+
+4. **Assert the negative side explicitly.** Cancellation guarantees are proven by absence:
+   `expect(recoveryEvent).not.toHaveBeenCalled()`. A suite that only asserts things happened
+   cannot detect a stale operation that ran when it should have been dropped. Pair every
+   "must complete" (`.toHaveBeenCalledWith(...)`) with its "must not" counterpart.
+
+5. **Corroborate the integration path if the claim reaches beyond the unit.** The deterministic
+   harness is a *model* — exhaustive and fast, but a model. Search first: query existing
+   telemetry (error reports, traces, logs) for the race occurring in the real runtime before
+   building anything that produces it. A forced-race capture staged in the real runtime (CDP or
+   injection) shows the mechanism is reachable there. It does not show the race occurs in use,
+   so label it as staged and never let it stand in for incidence.
+
+6. **Report transition telemetry with enough labeling to distinguish branches.** `retry-recovered`
+   is ambiguous when there are two retry paths; `set-retry-recovered` vs
+   `set-backup-retry-recovered` is not. If the observable can't tell the branches apart, it can't
+   witness an asymmetric guarantee.
+
+## Output
+
+```
+Ordering guarantees — <component> <claim>
+
+| guarantee | forced how | assertion | result |
+|---|---|---|---|
+| B during A's window cancels A | advance <DELAY>, inject B via Promise.all | recovery .not.toHaveBeenCalled() | pass |
+| backup completes despite newer write | advance <DELAY>, inject B | .toHaveBeenCalledWith(...) | pass |
+
+Interleaving verified: <how time was advanced / where the concurrent op was injected>
+Mutation check: <impl reverted> → <N failures>, test file unchanged
+Telemetry search: <query> → <what it found> | not run
+Staged live capture (reachability, not incidence): <capture> | not run
+```
+
+Lead with the guarantee table — one row per guarantee, each naming how the interleaving was
+forced. A row without a forcing mechanism is a sequential test wearing the category's clothes.
+Report the mutation pair (head green / reverted red) as the evidence that the harness discriminates.
+
+## Scope — what this is NOT
+
+- **Not the generic falsifying test.** These *are* falsifying tests, but the category is the
+  *technique* (forced deterministic interleaving) and the *claim shape* (ordering, not values).
+  When the claim is a value or a behavior and the base/head arms are the whole story, a plain
+  falsifying test is enough.
+- **Not flake diagnosis.** A test that fails intermittently is a different problem from a
+  guarantee that needs proving. Determinism here is the *method*, not the goal.
+- **Not performance under load.** Throughput and contention are timing questions; this is about
+  ordering correctness at a specific interleaving.
+
+## Notes
+
+Correctness of the *reasoning* about a race is not something to assert from reading. Where the
+guarantee depends on runtime semantics — what an `AbortController` actually cancels, whether a
+microtask runs before a timer callback — cite the behavior or demonstrate it in the harness rather
+than describing it.
