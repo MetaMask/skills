@@ -309,7 +309,7 @@ class Player {
 	/** A segment threw. Record it where the driver looks, so the render stops instead of finishing a broken video. */
 	private fail(id: string, e: unknown) {
 		const err = e instanceof Error ? e : new Error(String(e));
-		console.error(`Player: segment "${id}" errored:`, err);
+		console.error("Player: segment errored:", id, err); // pass id as an argument, not a format string: a segment named "%s" must not forge the log line
 		(window as any).__VW_RENDER_ERROR__ = `segment "${id}": ${err.message}`;
 		this.setState("errored");
 		this.transitioning = false;
@@ -330,7 +330,10 @@ export async function boot() {
 	w.__VW_RENDER_ERROR__ = null;
 	w.__VW_SEGMENT_ADVANCES__ = {};
 	try {
-		const v = await import("/__vw/virtual.js");
+		// The server generates this module per project, so it only exists at runtime: import it through a
+		// variable to keep TypeScript from trying (and failing) to resolve it statically.
+		const virtualUrl = "/__vw/virtual.js";
+		const v = await import(virtualUrl);
 		const loaders = new Map<string, () => Promise<any>>(Object.entries(v.segmentLoaders as Record<string, () => Promise<any>>));
 		const timeline = (await import(v.timelineUrl)).default;
 		const config = (await import(v.configUrl)).default;
@@ -765,11 +768,15 @@ export async function startServer(projectRoot: string, timelinePath: string, fps
 	const url = (abs: string) => `/c/${relative(projectRoot, abs).split(sep).map(encodeURIComponent).join("/")}`;
 	const segmentsDir = join(projectRoot, "segments");
 	const ids = existsSync(segmentsDir) ? readdirSync(segmentsDir).filter((n) => SEGMENT_ID.test(n) && existsSync(join(segmentsDir, n, "index.ts"))).sort() : [];
+	// Values are embedded in the generated module's source, so encode them as JS string literals. JSON.stringify
+	// escapes quotes and backslashes; the replace also escapes the two line separators it leaves raw, which keeps
+	// a crafted path or id from breaking out of the literal.
+	const jsLiteral = (value: string) => JSON.stringify(value).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 	const virtual = [
 		`export const fps = ${fps};`,
-		`export const timelineUrl = ${JSON.stringify(url(timelinePath))};`,
-		`export const configUrl = ${JSON.stringify(url(join(projectRoot, "videowright.config.ts")))};`,
-		`export const segmentLoaders = {\n${ids.map((id) => `  ${JSON.stringify(id)}: () => import(${JSON.stringify(url(join(segmentsDir, id, "index.ts")))})`).join(",\n")}\n};`,
+		`export const timelineUrl = ${jsLiteral(url(timelinePath))};`,
+		`export const configUrl = ${jsLiteral(url(join(projectRoot, "videowright.config.ts")))};`,
+		`export const segmentLoaders = {\n${ids.map((id) => `  ${jsLiteral(id)}: () => import(${jsLiteral(url(join(segmentsDir, id, "index.ts")))})`).join(",\n")}\n};`,
 	].join("\n");
 	// Chrome gets only the browser-safe half of this file, as the module "videowright".
 	const browserSource = stripTypeScriptTypes(readFileSync(SELF, "utf-8").split("// @@NODE_ONLY@@")[0], { mode: "strip" });
@@ -795,7 +802,7 @@ export async function startServer(projectRoot: string, timelinePath: string, fps
 			else send(404, "text/plain", `unsupported file type: ${ext}`);
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
-			console.error(`[serve] ${req.url}: ${message}`); // the reason lands in this log; the response carries no local detail
+			console.error(`[serve] ${JSON.stringify(req.url ?? "")}: ${message}`); // JSON.stringify escapes newlines, so a request cannot forge a log line; the response carries no local detail
 			send(500, "text/plain", "internal server error");
 		}
 	});

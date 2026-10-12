@@ -94,7 +94,7 @@ After approval, follow these steps in this order. Do not skip or reorder them.
 Run [scripts/setup.sh](scripts/setup.sh) once if `~/.venvs/explain-video` is not yet set up (Kokoro 82M, Misaki, and Whisper).
 Always use the **local Kokoro 82M voice** (`af_heart`, 24 kHz). The voice runs on your machine. Do not use a cloud voice. Do not clone a person's voice.
 
-Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-file renderer for HTML/TypeScript/Web Animations segments: a copy of <https://github.com/Prithpal-Sooriya/tiny-video-renderer> at `v0.2.2` (sha256 `116d1dba33e2b91aebb2c5afa407ff299977d473fb7729c3789e6909a64b7fc9`), derived from Videowright (MIT). It needs **no npm install, no `package.json` and no `node_modules`**: Node 22.18+ (verified on 24), Chrome, and ffmpeg. To update it, re-download a newer tag and verify its hash as that repo's README describes; do not edit it in place.
+Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-file renderer for HTML/TypeScript/Web Animations segments: a copy of <https://github.com/Prithpal-Sooriya/tiny-video-renderer> at `v0.2.3` (sha256 `4311f02377511163984bd222024d2f09e08377102ca91230b1edf80c039b7d51`), derived from Videowright (MIT). It needs **no npm install, no `package.json` and no `node_modules`**: Node 22.18+ (verified on 24), Chrome, and ffmpeg. To update it, re-download a newer tag and verify its hash as that repo's README describes; do not edit it in place.
 
 1. **Project structure & Config:**
    In the explainer folder (e.g. `~/Videos/explainers/<topic-slug>/`):
@@ -103,7 +103,7 @@ Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-fil
    - **Motion Engineering:** its CSS comes from the renderer repo, pinned like `vw.ts`. From the explainer folder run:
      ```bash
      mkdir -p styles/motion-engineering
-     curl -fsSL https://raw.githubusercontent.com/Prithpal-Sooriya/tiny-video-renderer/v0.2.2/example/styles/motion-engineering/style.css -o styles/motion-engineering/style.css
+     curl -fsSL https://raw.githubusercontent.com/Prithpal-Sooriya/tiny-video-renderer/v0.2.3/example/styles/motion-engineering/style.css -o styles/motion-engineering/style.css
      echo "c2f5f7e9daf7d11718f954c2f1afbe891e0204a12421ec6d2ee7565fff26d17b  styles/motion-engineering/style.css" | (sha256sum -c - 2>/dev/null || shasum -a 256 -c -)
      cp <skill>/assets/styles/motion-engineering/STYLE.md styles/motion-engineering/
      ```
