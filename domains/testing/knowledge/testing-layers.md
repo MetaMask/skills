@@ -49,6 +49,28 @@ Is this scenario worth covering? (distinct realistic regression)
             └─ No → GAP / ACCEPT (do not invent E2E)
 ```
 
+## Not worth covering: static presentation
+
+A change to static or default presentation is **GAP / ACCEPT** at every layer.
+Do not add or update a test for it. This includes:
+
+- Spacing, padding, margin, inset, and alignment
+- Color, typography, and design-token values
+- Unconditional `numberOfLines` / `ellipsizeMode` or other fixed layout props
+- Swapping one Tailwind class or style value for another
+
+Do not add a `testID` only so a test can read `style` or `className`. Verify
+these changes with screenshots (`mobile-visual-testing`) and the PR's
+before/after evidence.
+
+Presentation that depends on state or props is behavior. Test it, and assert
+the outcome a user or caller sees (text shown or hidden, disabled, accessibility
+state), not pixel or class values.
+
+Do not use a coverage delta as the reason to add or skip a test. Coverage can
+rise from a render that asserts nothing, and a real bug fix can leave coverage
+flat. Coverage reports only point at uncovered branches worth considering.
+
 ## Defaults
 
 | Layer              | Owns                                                                                               | File pattern                      |
