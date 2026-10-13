@@ -7,9 +7,9 @@ maturity: stable
 
 # Perps static review
 
-Generated from MetaMask/experimental-metamask-recipe-perps @ f9f8cb914c4c0fd1f7a592b9b4507b410a5d8651. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.
+Generated from the canonical Perps review rules @ f9f8cb914c4c0fd1f7a592b9b4507b410a5d8651. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
-Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no harness, no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
+Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
 Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (`.agents/skills/mms-perps-review-pr/`, and the same path under `.claude/skills/` and `.cursor/rules/`).
 
@@ -50,5 +50,5 @@ Check applicability against the frozen diff and its affected callers. Open each 
 
 ## Cross-repository conformity
 
-- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers from the task's reference checkouts (`MM_HARNESS_REF_MOBILE`, `MM_HARNESS_REF_EXTENSION`, `MM_HARNESS_REF_CORE`) and cite the revision you read; an unavailable checkout is NOT_CHECKED, not verified by this review.
+- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers from the Mobile, Extension and Core reference checkouts supplied with the task and cite the revision you read; an unavailable checkout is NOT_CHECKED, not verified by this review.
 - [ ] When controller state, methods, events, exports or package versions change, inspect Core and both consumers at recorded revisions, using references/shared-packages.md for the shared surface and references/owned-paths.json for the paths this review covers. Check public imports, compatibility and migrations. Report evidence gaps; do not claim that clients compile from source inspection.

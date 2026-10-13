@@ -2,8 +2,8 @@
 // Generate distributable review instructions from the team's canonical rules.
 //
 // Output shape: a small common body (skill.md), one per-client overlay (repos/*.md)
-// merged into it at install time, and shared/client reference files. Farmslot
-// freezes the shared source and selected repos/ overlay as consecutive child checklists.
+// merged into it at install time, and shared/client reference files. A hosting workflow
+// can run the shared source and selected repos/ overlay as consecutive child checklists.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -87,8 +87,8 @@ function rows(family, list, inline) {
 function baseBody(inline) {
   return [
     '# Perps static review', '',
-    `Generated from MetaMask/experimental-metamask-recipe-perps @ ${revision}. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records every source digest.`, '',
-    'Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no harness, no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.', '',
+    `Generated from the canonical Perps review rules @ ${revision}. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.`, '',
+    'Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.', '',
     inline
       ? 'Each criterion carries its full text under its row. Record NOT_APPLICABLE with the reason for families the diff does not touch. Work from the supplied diff and report unavailable references honestly.'
       : 'Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (`.agents/skills/mms-perps-review-pr/`, and the same path under `.claude/skills/` and `.cursor/rules/`).',
@@ -103,13 +103,13 @@ function baseBody(inline) {
     '- [ ] Trace each changed behavior from caller through state updates and observable result. Check normal, error, empty, boundary and cleanup paths where applicable. Name the concrete failure each changed guard prevents; inspect sibling paths and tests for that failure.',
     '- [ ] Inspect tests for meaningful coverage of changed behavior, failures and regressions. Record which tests were inspected versus executed; static inspection cannot establish runtime success.',
     '- [ ] Inspect permissions, secrets/user-data handling, dependency changes and product wiring such as flags, localization and telemetry.',
-    // Same rule as the base review in mm-harness, so every review applies it whatever the domain.
+    // Shared base-review rule, applied whatever the domain.
     '- [ ] Signal over noise: comments say why in a line or two and never restate the code; no ticket keys, PR numbers or tool mentions in source; no leftover TODOs, debug logs, commented-out code or unused helpers; no catch that swallows, no abstraction with one caller, no padded tests or PR text. Prefer deleting to rewording.', '',
     '## Perps criteria', '',
     'Check applicability against the frozen diff and its affected callers. Open each applicable family and examine every rule in it; a family checkbox is complete only when its individual outcomes are recorded.', '',
     ...rows('shared', perps, inline),
     '## Cross-repository conformity', '',
-    `- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map${inline ? ' below' : ' in references/parity.md'}. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers from the task's reference checkouts (\`MM_HARNESS_REF_MOBILE\`, \`MM_HARNESS_REF_EXTENSION\`, \`MM_HARNESS_REF_CORE\`) and cite the revision you read; an unavailable checkout is NOT_CHECKED, not verified by this review.`,
+    `- [ ] When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map${inline ? ' below' : ' in references/parity.md'}. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers from the Mobile, Extension and Core reference checkouts supplied with the task and cite the revision you read; an unavailable checkout is NOT_CHECKED, not verified by this review.`,
     `- [ ] When controller state, methods, events, exports or package versions change, inspect Core and both consumers at recorded revisions${inline ? '' : ', using references/shared-packages.md for the shared surface and references/owned-paths.json for the paths this review covers'}. Check public imports, compatibility and migrations. Report evidence gaps; do not claim that clients compile from source inspection.`, '',
     ...(inline
       ? [documents['review/parity.md'].replace(/^#/gm, '##').trim(), '',
