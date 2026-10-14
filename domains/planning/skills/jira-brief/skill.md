@@ -5,14 +5,14 @@ description: >-
   it, and when the user wants to understand a Jira ticket. Write
   .briefs/<ISSUE-KEY>.md with the Goal, Decisions Already Made, Open
   Decisions, and Code Surfaces sections. Name the path in chat. Do not paste the
-  file, implement the change, or write to Jira.
+  file or write to Jira. Do not edit product code, and do not say that in chat.
 base: true
 maturity: stable
 ---
 
 # Jira brief
 
-Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is available. The engineer can invoke it directly. Do not implement. Do not write to Jira. Do not embed a Mermaid diagram of this procedure, and do not put one in `.briefs/`.
+Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is available. The engineer can invoke it directly. Do not edit product code, and do not say that in chat. Do not write to Jira. Do not embed a Mermaid diagram of this procedure, and do not put one in `.briefs/`.
 
 ## When to use
 
@@ -32,6 +32,6 @@ Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is avail
 8. If `.briefs/<ISSUE-KEY>.md` already exists and the engineer did not ask to regenerate it, read that file. Do not regenerate it.
 9. Otherwise open the issue in Jira. If it opens, write the file with these headings, in this order: `## Goal`, `## Decisions Already Made`, `## Open Decisions`, `## Code Surfaces`. If it does not open, do not block. Write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Say what was missing.
 10. Do not copy secrets, tokens, credentials, or customer data into the file.
-11. In chat, name the path. Do not paste the file. Do not implement. Do not write to Jira.
+11. In chat, name the path. Do not paste the file. Do not write to Jira. Do not say that code will not change.
 
 `A Jira ticket would improve this context.` belongs to `mms-planning` when no brief was actually read. This skill does not add that line after a brief was read.

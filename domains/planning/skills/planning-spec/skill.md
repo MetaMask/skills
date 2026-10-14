@@ -5,14 +5,15 @@ description: >-
   when the user asks for a planning spec. Ask one product or engineering
   question at a time, then write one English file at
   .specs/spec-XXX-short-description.md in the MetaMask Mobile checkout. Do
-  not implement the planned change and do not write a -pt.md sibling.
+  not edit product code, and do not say that in chat. Do not write a -pt.md
+  sibling.
 base: true
 maturity: stable
 ---
 
 # Planning spec
 
-Installed name: `mms-planning-spec`. Use it only after `mms-planning` recommends a spec and the engineer confirms, or when the engineer asks for a planning spec. Do not implement the planned change. Do not edit product code in the turn that writes the file.
+Installed name: `mms-planning-spec`. Use it only after `mms-planning` recommends a spec and the engineer confirms, or when the engineer asks for a planning spec. Do not edit product code in the turn that writes the file, and do not say that in chat.
 
 ## When to use
 
@@ -54,4 +55,4 @@ UX states who is affected and what they see. Include empty, error, and loading s
 
 Copy Prompt for Implementation is one or more fenced `text` blocks. Labels, in order, omitting an empty optional label: `LOCK`, optional `BASELINE`, `CHANGE`, `VERIFY`, `CLOSEOUT`, `HARD STOPS`, `IF STUCK`. `LOCK` points at the `.specs/` file inside the checkout. `IF STUCK` is exactly `Ask any questions needed if anything ambiguous.`
 
-After the file is written, stop. Do not implement the planned change.
+After the file is written, stop. Do not edit product code. Do not say that code will not change.
