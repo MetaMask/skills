@@ -3,8 +3,8 @@ name: jira-brief
 description: >-
   Use when an issue key or browse URL is present, when mms-planning calls
   it, and when the user wants to understand a Jira ticket. Write
-  .briefs/<ISSUE-KEY>.md with the goal, decisions already made, open
-  decisions, and code surfaces. Name the path in chat. Do not paste the
+  .briefs/<ISSUE-KEY>.md with the Goal, Decisions Already Made, Open
+  Decisions, and Code Surfaces sections. Name the path in chat. Do not paste the
   file, implement the change, or write to Jira.
 base: true
 maturity: stable
@@ -30,7 +30,7 @@ Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is avail
 6. Not a ticket: stop. Do not write a file.
 7. Each resolved key produces one `.briefs/<ISSUE-KEY>.md`. Several keys produce one file each. `.briefs/` is local and not team-shared storage.
 8. If `.briefs/<ISSUE-KEY>.md` already exists and the engineer did not ask to regenerate it, read that file. Do not regenerate it.
-9. Otherwise open the issue in Jira. If it opens, write the file with these sections, in this order: goal, decisions already made, open decisions, code surfaces. If it does not open, do not block. Write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Say what was missing.
+9. Otherwise open the issue in Jira. If it opens, write the file with these headings, in this order: `## Goal`, `## Decisions Already Made`, `## Open Decisions`, `## Code Surfaces`. If it does not open, do not block. Write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Say what was missing.
 10. Do not copy secrets, tokens, credentials, or customer data into the file.
 11. In chat, name the path. Do not paste the file. Do not implement. Do not write to Jira.
 

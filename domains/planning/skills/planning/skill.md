@@ -63,7 +63,7 @@ A matching skill that is unavailable is named in the brief. Do not pretend it wa
 
 Then brief scope and non-goals. Include performance, security, UX, and tests only when that area can change the work. Omit empty areas.
 
-After the brief, recommend `mms-planning-spec` when any of these is true:
+After the brief, recommend a spec when any of these is true. Say why in one line. Do not name `mms-planning-spec` in chat:
 
 - New user-facing behavior.
 - A security or privacy surface.
