@@ -12,7 +12,7 @@ maturity: stable
 
 # Jira brief
 
-Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is available. The engineer can invoke it directly. Do not edit product code, and do not say that in chat. Do not write to Jira. Do not embed a Mermaid diagram of this procedure, and do not put one in `.briefs/`.
+Installed name: `mms-jira-brief`. `mms-planning` calls it for ticket identification. The engineer can invoke it directly. Do not edit product code, and do not say that in chat. Do not write to Jira. Do not embed a Mermaid diagram of this procedure, and do not put one in `.briefs/`.
 
 ## When to use
 
@@ -21,7 +21,7 @@ Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is avail
 
 ## Workflow
 
-1. If there is no browse URL and no key, ask which ticket. On standalone `mms-jira-brief` with no key, that question is required. Then continue with the answer.
+1. When the engineer invokes this skill directly and there is no browse URL and no key, ask which ticket. Then continue with the answer. When `mms-planning` delegates and there is no candidate browse URL or key, return no ticket identified. Do not ask.
 2. A browse URL whose path contains `/browse/<KEY>` is a ticket. Do not ask.
 3. A bare `<PROJECT>-<number>` token is not a ticket from the pattern alone. `MCWP` is the mobile platform project, not the only valid project. There is no project allowlist.
 4. Ignore tokens that are clearly not Jira issues, without a question. Examples: `EIP-7702`, `CAIP-19`, and `HIP-3`.
