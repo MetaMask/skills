@@ -12,7 +12,7 @@ maturity: stable
 
 # Planning
 
-Installed names: `mms-planning`, `mms-planning-spec`, `mms-jira-brief`. Domain skills use their installed `mms-*` names. This skill applies to MetaMask Mobile engineers. Other repositories are out of scope.
+This skill installs as `mms-planning`. Related skills are `mms-planning-spec` and `mms-jira-brief`. Domain skills use their installed `mms-*` names. This skill applies to MetaMask Mobile engineers. Other repositories are out of scope.
 
 ## Decision order
 
@@ -24,13 +24,11 @@ A change is mechanical when it cannot change behavior, a contract, or a risk sur
 
 ### 2. Jira
 
-Apply these rules on the mechanical path and on the non-mechanical path.
+Apply this step on the mechanical path and on the non-mechanical path.
 
-A browse URL whose path contains `/browse/<KEY>` is a ticket. Do not ask. A bare token is a ticket only when Jira resolves it or the engineer confirms it. Tokens that are clearly not Jira issues are ignored without a question. `mms-jira-brief` owns that identification.
+Follow `mms-jira-brief` for ticket identification and the brief. That skill owns URL, bare-key, and non-Jira-token identification.
 
-If a Jira issue is identified, follow `mms-jira-brief`. On standalone `mms-jira-brief` with no key, ask which ticket. When Jira cannot open a named key, write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Do not block.
-
-If no ticket is identified, or a named ticket cannot be opened, say what was missing and add this line. It is not a question and does not wait:
+If no brief was actually read, say what was missing and add this line. It is not a question and does not wait:
 
 `A Jira ticket would improve this context.`
 
@@ -38,7 +36,7 @@ Include that line on mechanical changes too. Omit it when a brief was actually r
 
 ### 3. Mechanical
 
-Proceed. Do not show a brief. Do not ask for approval. Apply the Jira step. Run Checks, then edit. Do not load the installed `mms-*` catalog. Before calling the edit done, run the finish checks.
+Proceed. Do not show a brief. Do not ask for approval. Apply the Jira step. Run Checks, then edit. Do not load the installed `mms-*` catalog.
 
 ### 4. Non-mechanical
 
@@ -81,7 +79,7 @@ If none of those is true, write the brief in the chat output, then end that same
 
 `Do you agree, or do you want to discuss something in more detail?`
 
-More detail returns to the brief. Agreement is the point where the edit may start. Before calling the edit done, run the finish checks.
+More detail returns to the brief. Agreement is the point where the edit may start.
 
 ## Checks
 
@@ -92,15 +90,6 @@ Run these before a mechanical edit, before a spec recommendation, and before the
 - On a non-mechanical change, the catalog was read, each matching skill was read or named missing, and the performance check ran.
 - On a non-mechanical change, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
 
-When this flow edits, finish only after these checks. Discover the repo's real commands from `package.json`, Makefile, CI, or installed skills. Do not invent a runner.
-
-- Add or update tests next to the change. Run the targeted suite for touched files. A mechanical change runs tests only when an existing test can fail because of the edit.
-- Run the project lint, typecheck, and format pipeline used in CI.
-- Re-read the diff against the brief, when one was shown, and against the installed skills that applied. Fix what that review finds.
-- On failure, fix, then repeat tests, quality, and review. At most 3 fix cycles after the first red run. Each failed cycle notes what failed, what changed, and why the next attempt differs. Do not repeat the same fix.
-- A UI change exercises the flow with browser or device tools when available, after tests and quality.
-- Auth, secrets, payments, production data, or a user-facing outage risk: after green quality, flag the engineer's review before calling the work signed off.
-
 ## When to use
 
 - Before the first edit on any MetaMask Mobile change, including when the user did not ask for a plan.
@@ -108,4 +97,4 @@ When this flow edits, finish only after these checks. Discover the repo's real c
 
 ## Workflow
 
-Follow Decision order, in that sequence. Run Checks at the points it names. Do not measure skill adoption. Do not write to Jira. `.specs/` and `.briefs/` are local and not team-shared storage.
+Follow Decision order, in that sequence. Run Checks at the points it names. Do not measure skill adoption. Do not write to Jira. `.specs/` and `.briefs/` are local and not team-shared storage. Do not stage them.

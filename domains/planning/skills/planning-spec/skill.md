@@ -28,27 +28,27 @@ Installed name: `mms-planning-spec`. Use it only after `mms-planning` recommends
 3. Stop asking when every precise unknown is decided, explicitly deferred, or recorded as an open question, and every remaining in-scope area is not yet specified. State the direction.
 4. When the direction is ready, state it and wait. Write the file only after the engineer approves. If they do not approve, ask the next unblocked question.
 5. After approval, and before writing, use the same catalog rule as `mms-planning`. Read the installed `mms-*` catalog. Read every skill whose area the spec touches, including a partial fit. Skip a skill only when the spec has no surface for it. Run an explicit performance check. Read `mms-performance` when the change has a performance surface. The named routing list in `mms-planning` is a floor, not an allowlist. Name a matching skill that is unavailable. Do not pretend it was applied.
-6. Write one English file at `.specs/spec-XXX-short-description.md` in the checkout. `.specs/` is local and not team-shared storage. Sharing the file is a manual step outside this skill.
+6. Write one English file at `.specs/spec-XXX-short-description.md` in the checkout. `.specs/` is local and not team-shared storage. Do not stage it. Sharing the file is a manual step outside this skill.
 
 Numbering is the highest existing `.specs/spec-*.md` plus one. If none exist, start at `001`. The slug is two to five kebab-case words. The H1 is `# spec-XXX: <short name>`.
 
 Section order:
 
-1. Summary
-2. Copy Prompt for Implementation
-3. Context
-4. Hypothesis
-5. Decisions
-6. Implementation Details
+1. `## Summary`
+2. `## Copy Prompt for Implementation`
+3. `## Context`
+4. `## Hypothesis`
+5. `## Decisions`
+6. `## Implementation Details`
 7. `## Development Flow`
 8. `## Performance`
 9. `## Security`
 10. `## UX`
-11. Open Questions
-12. Not yet specified
-13. Acceptance Criteria
+11. `## Open Questions`
+12. `## Not yet specified`
+13. `## Acceptance Criteria`
 14. `## How to Test`, with `### Agent`, `### Human — Android`, `### Human — iOS`, and `### Optional`
-15. Log
+15. `## Log`
 
 Keep every heading. When Performance, Security, or UX has no surface, the body of that section is `N/A`. The chat brief from `mms-planning` still omits empty areas. This file does not.
 
@@ -62,14 +62,6 @@ UX states who is affected and what they see. Include empty, error, and loading s
 
 Copy Prompt for Implementation is one or more fenced `text` blocks. Labels, in order, omitting an empty optional label: `LOCK`, optional `BASELINE`, `CHANGE`, `VERIFY`, `CLOSEOUT`, `HARD STOPS`, `IF STUCK`. `LOCK` points at the `.specs/` file inside the checkout. `IF STUCK` is exactly `Ask any questions needed if anything ambiguous.`
 
-`VERIFY` and `CLOSEOUT` are one quality loop written into the Copy Prompt. They tell the implementing agent what to do. This skill does not run them. The prompt tells that agent to discover the repo's real commands from `package.json`, Makefile, CI, or installed skills. Do not invent a runner.
-
-The Copy Prompt's `VERIFY` block tells the implementing agent to add or update tests next to the change and run the targeted suite for touched files, run the project lint, typecheck, and format pipeline used in CI, and re-read the diff against this spec and the installed skills that applied, fixing what that review finds. On failure, it fixes, then repeats tests, quality, and review, at most 3 fix cycles after the first red run. Each failed cycle notes what failed, what changed, and why the next attempt differs. It does not repeat the same fix.
-
-The Copy Prompt's `CLOSEOUT` block tells the implementing agent to state that targeted tests passed, quality is green, and review issues that agent can fix are fixed. It records remaining failures and what each cycle changed.
-
-The same prompt tells the implementing agent that a UI change exercises the flow with browser or device tools when available, after tests and quality. Auth, secrets, payments, production data, or a user-facing outage risk: after green quality, `CLOSEOUT` flags the engineer's review before the work is called signed off. That agent runs tests and quality. Manual testing and that review stay with the engineer.
-
-`### Agent` under How to Test points at this loop. It does not name a runner.
+`VERIFY` and `CLOSEOUT` name what the spec says to check. They do not run a quality pipeline and they do not set a retry policy. `VERIFY` points at `## How to Test`. `CLOSEOUT` points at `## Acceptance Criteria` and the evidence to record in `## Log`. `### Agent` under How to Test names the checks for this change. It does not name a runner.
 
 After the file is written, stop. Do not edit product code. Do not say that code will not change.
