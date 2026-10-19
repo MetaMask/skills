@@ -38,7 +38,7 @@ Include that line on mechanical changes too. Omit it when a brief was actually r
 
 ### 3. Mechanical
 
-Proceed. Do not show a brief. Do not ask for approval. Apply the Jira step, then edit. Do not load the installed `mms-*` catalog.
+Proceed. Do not show a brief. Do not ask for approval. Apply the Jira step. Run Checks, then edit. Do not load the installed `mms-*` catalog. Before calling the edit done, run the finish checks.
 
 ### 4. Non-mechanical
 
@@ -63,7 +63,7 @@ A matching skill that is unavailable is named in the brief. Do not pretend it wa
 
 Then brief scope and non-goals. Include performance, security, UX, and tests only when that area can change the work. Omit empty areas.
 
-After the brief, recommend a spec when any of these is true. Say why in one line. Do not name `mms-planning-spec` in chat:
+Run Checks. Then recommend a spec when any of these is true. Say why in one line. Do not name `mms-planning-spec` in chat:
 
 - New user-facing behavior.
 - A security or privacy surface.
@@ -71,13 +71,35 @@ After the brief, recommend a spec when any of these is true. Say why in one line
 - More than one screen or system.
 - Scope and non-goals that do not fit in a few lines.
 
-Wait for confirmation. A refusal returns to the brief and still waits for the question below. A confirmation reads and follows `mms-planning-spec` and does not edit product code in that turn.
+Do not end on the recommendation alone. Write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet.
 
-If none of those is true, end the brief with this question and wait. No product edit happens before the answer:
+`Do you want me to continue with a planning spec, continue from this brief, or discuss something in more detail?`
+
+Continuing with a planning spec reads and follows `mms-planning-spec` and does not edit product code in that turn. Continuing from the brief is agreement and the edit may start. More detail returns to the brief and asks this question again.
+
+If none of those is true, write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet. No product edit happens before the answer:
 
 `Do you agree, or do you want to discuss something in more detail?`
 
-More detail returns to the brief. Agreement is the point where the edit may start.
+More detail returns to the brief. Agreement is the point where the edit may start. Before calling the edit done, run the finish checks.
+
+## Checks
+
+Run these before a mechanical edit, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
+
+- Classification is mechanical or not.
+- The Jira step is done.
+- On a non-mechanical change, the catalog was read, each matching skill was read or named missing, and the performance check ran.
+- On a non-mechanical change, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
+
+When this flow edits, finish only after these checks. Discover the repo's real commands from `package.json`, Makefile, CI, or installed skills. Do not invent a runner.
+
+- Add or update tests next to the change. Run the targeted suite for touched files. A mechanical change runs tests only when an existing test can fail because of the edit.
+- Run the project lint, typecheck, and format pipeline used in CI.
+- Re-read the diff against the brief, when one was shown, and against the installed skills that applied. Fix what that review finds.
+- On failure, fix, then repeat tests, quality, and review. At most 3 fix cycles after the first red run. Each failed cycle notes what failed, what changed, and why the next attempt differs. Do not repeat the same fix.
+- A UI change exercises the flow with browser or device tools when available, after tests and quality.
+- Auth, secrets, payments, production data, or a user-facing outage risk: after green quality, flag the engineer's review before calling the work signed off.
 
 ## When to use
 
@@ -86,4 +108,4 @@ More detail returns to the brief. Agreement is the point where the edit may star
 
 ## Workflow
 
-Follow Decision order, in that sequence. Do not measure skill adoption. Do not write to Jira. `.specs/` and `.briefs/` are local and not team-shared storage.
+Follow Decision order, in that sequence. Run Checks at the points it names. Do not measure skill adoption. Do not write to Jira. `.specs/` and `.briefs/` are local and not team-shared storage.
