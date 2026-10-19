@@ -29,8 +29,8 @@ Installed name: `mms-jira-brief`. `mms-planning` calls it when a ticket is avail
 5. A bare token is a ticket when Jira resolves it, or when the engineer confirms it. When no URL is present and a token might be a Jira issue but Jira does not resolve it, or the lookup is inconclusive, infer from surrounding words such as ticket, Jira, or issue. If still unsure, ask whether that token is a Jira issue. Yes continues the brief flow. No treats it as not a ticket.
 6. Not a ticket: stop. Do not write a file.
 7. Each resolved key produces one `.briefs/<ISSUE-KEY>.md`. Several keys produce one file each. `.briefs/` is local and not team-shared storage.
-8. If `.briefs/<ISSUE-KEY>.md` already exists and the engineer did not ask to regenerate it, read that file. Do not regenerate it.
-9. Otherwise open the issue in Jira. If it opens, write the file with these headings, in this order: `## Goal`, `## Decisions Already Made`, `## Open Decisions`, `## Code Surfaces`. If it does not open, do not block. Write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Say what was missing.
+8. If `.briefs/<ISSUE-KEY>.md` already exists and the engineer did not ask to regenerate it, open the issue and compare its updated time with the `Jira updated:` line in the brief. If they match, read the file and do not regenerate it. If they differ, or the line is missing, regenerate the file. If the issue does not open, read the existing file and say that freshness was not checked.
+9. Otherwise open the issue in Jira. If it opens, write the file with these headings, in this order: `## Goal`, `## Decisions Already Made`, `## Open Decisions`, `## Code Surfaces`. End the file with `Jira updated:` and the updated time Jira returned. If it does not open, do not block. Write `.briefs/<KEY>.md` that records the key, the failure, and any ticket text the user already provided. Say what was missing. A failure file has no `Jira updated:` line.
 10. Do not copy secrets, tokens, credentials, or customer data into the file.
 11. In chat, name the path. Do not paste the file. Do not write to Jira. Do not say that code will not change.
 
