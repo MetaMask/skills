@@ -4,8 +4,8 @@ description: >-
   Use before the first edit in MetaMask Mobile, including when the user did
   not ask for a plan. Decide whether to proceed, write a scope brief, read
   Jira through mms-jira-brief, open installed mms-* domain skills, or
-  recommend mms-planning-spec. A mechanical edit proceeds. Any other change
-  stops until the engineer agrees.
+  recommend mms-planning-spec. A mechanical edit, an unkept spike or POC,
+  and CI-only work proceed. Any other change stops until the engineer agrees.
 base: true
 maturity: stable
 ---
@@ -20,31 +20,39 @@ This is the first procedure. Follow it before the first edit. Do not embed a dia
 
 ### 1. Classify
 
-A change is mechanical when it cannot change behavior, a contract, or a risk surface. Formatting, comments, behavior-preserving renames, and copy typos that do not change what the product does are mechanical. Uncertainty means the change is not mechanical.
+A change proceeds without a brief when any of these is true:
+
+- It is mechanical. A change is mechanical when it cannot change behavior, a contract, or a risk surface. Formatting, comments, behavior-preserving renames, and copy typos that do not change what the product does are mechanical.
+- The engineer will not keep the result. That is a throwaway, exploratory, or disposable spike or POC. A spike or POC the engineer will merge does not proceed without a brief. A spike or POC that touches security or privacy does not proceed without a brief.
+- It is CI-only: coverage, Jest flags, Sonar, or a workflow edit that does not change how jobs or E2E launch. A CI change that changes how jobs or E2E launch does not proceed without a brief.
+
+Uncertainty about whether the result will be kept, or whether a workflow changes launch, means the change does not proceed without a brief. Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
 
 ### 2. Jira
 
-Apply this step on the mechanical path and on the non-mechanical path.
+Apply this step on every path.
 
 Follow `mms-jira-brief` for ticket identification and the brief. That skill owns URL, bare-key, and non-Jira-token identification.
 
-If no brief was actually read, say what was missing and add this line. It is not a question and does not wait:
+When no brief was actually read, say what was missing. A failure file is not a brief that was read.
+
+Add this line only when no brief was actually read and the change does not proceed without a brief. It is not a question and does not wait:
 
 `A Jira ticket would improve this context.`
 
-Include that line on mechanical changes too. Omit it when a brief was actually read. A failure file is not a brief that was read.
+Omit that line when a brief was actually read, or when the change proceeds without a brief.
 
-### 3. Mechanical
+### 3. Proceed without a brief
 
-Proceed. Do not show a brief. Do not ask for approval. Apply the Jira step. Run Checks, then edit. Do not load the installed `mms-*` catalog.
+Proceed. Do not show a brief. Do not ask for approval. Do not recommend a spec. Apply the Jira step. Run Checks, then edit. Do not load the installed `mms-*` catalog.
 
-### 4. Non-mechanical
+### 4. Stop for a brief
 
 Stop before the first product edit. Apply the Jira step. Do not block on a missing ticket.
 
-Read the installed `mms-*` catalog on every non-mechanical change, before the brief. Read every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
+Read the installed `mms-*` catalog on every change that stops for a brief, before the brief. Read every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
 
-Performance is an explicit check on every non-mechanical change. Read `mms-performance` before the brief when the task has any of these surfaces: screen, list, animation, polling, prefetch, realtime data, heavy image, blur, frequent update, large collection, startup path, account or network switch, selector, context provider, bundle, memory, battery, latency, or profiling. This list is a floor for that skill, not an allowlist of skills.
+Performance is an explicit check on every change that stops for a brief. Read `mms-performance` before the brief when the task has any of these surfaces: screen, list, animation, polling, prefetch, realtime data, heavy image, blur, frequent update, large collection, startup path, account or network switch, selector, context provider, bundle, memory, battery, latency, or profiling. This list is a floor for that skill, not an allowlist of skills.
 
 Minimum routing, also a floor and not an allowlist:
 
@@ -83,12 +91,12 @@ More detail returns to the brief. Agreement is the point where the edit may star
 
 ## Checks
 
-Run these before a mechanical edit, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
+Run these before an edit that proceeds without a brief, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
 
-- Classification is mechanical or not.
-- The Jira step is done.
-- On a non-mechanical change, the catalog was read, each matching skill was read or named missing, and the performance check ran.
-- On a non-mechanical change, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
+- Classification says whether the change proceeds without a brief.
+- The Jira step is done. The Jira line is present only when that step requires it.
+- When the change stops for a brief, the catalog was read, each matching skill was read or named missing, and the performance check ran.
+- When the change stops for a brief, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
 
 ## When to use
 
