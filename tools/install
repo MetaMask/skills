@@ -713,6 +713,8 @@ for src in "${SOURCES[@]}"; do
       skill_name=$(basename "$skill_dir")
       key="${domain_name}/${skill_name}"
       resolved_index=$(find_resolved_index "$key")
+      # Reference-only overlays cannot replace an existing skill entrypoint.
+      if [[ "$resolved_index" != "-1" && ! -f "$skill_dir/skill.md" ]]; then continue; fi
       if [[ "$resolved_index" == "-1" ]]; then
         RESOLVED_KEYS+=("$key")
         RESOLVED_DIRS+=("$skill_dir")

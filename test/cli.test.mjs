@@ -344,3 +344,59 @@ describe('tools/sync installer resolution', () => {
     assert.doesNotMatch(result.stdout, /STALE-OVERLAY/u, 'must not fall through to the overlay');
   });
 });
+
+describe('multi-source skill resolution', () => {
+  const clients = [['.agents/skills', 'SKILL.md'], ['.claude/skills', 'SKILL.md'], ['.cursor/rules', 'RULE.md']];
+  const entry = (body) => `---\nname: mobile-testing\ndescription: Mobile test layer policy\nmaturity: stable\nbase: true\n---\n${body}\n`;
+
+  function fixture(t) {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'skills-source-overlay-'));
+    t.after(() => rmSync(root, { recursive: true, force: true }));
+    const publicSource = path.join(root, 'public');
+    const privateSource = path.join(root, 'private');
+    const target = path.join(root, 'target');
+    const skillPath = 'domains/testing/skills/mobile-testing';
+    const publicSkill = path.join(publicSource, skillPath);
+    const privateSkill = path.join(privateSource, skillPath);
+    for (const dir of [target, `${publicSource}/domains/perps`, `${publicSource}/domains/agentic`, `${publicSource}/domains/testing/knowledge`, `${publicSkill}/references`, `${privateSkill}/references`]) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(`${publicSkill}/skill.md`, entry('Public policy'));
+    for (const name of ['layers', 'placement']) writeFileSync(`${publicSkill}/references/${name}.md`, `Public ${name}\n`);
+    writeFileSync(`${publicSource}/domains/testing/knowledge/testing-layers.md`, 'Public testing layers\n');
+    writeFileSync(`${privateSkill}/references/notes.md`, 'Private reference only\n');
+    for (const [base, entrypoint] of clients) {
+      const installed = path.join(target, base, 'mms-mobile-testing');
+      mkdirSync(installed, { recursive: true });
+      writeFileSync(path.join(installed, entrypoint), `${MANAGED_BANNER}\nOld policy\n`);
+    }
+    return { target, privateSkill, install() {
+      const result = spawnSync('/bin/bash', [INSTALL, '--repo', 'metamask-mobile', '--target', target, '--domain', 'perps,agentic', '--prune-stale', '--source', publicSource, '--source', privateSource], { encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+    } };
+  }
+
+  test('reference-only overlays preserve the public base policy through pruning', (t) => {
+    const f = fixture(t);
+    f.install();
+    for (const [base, entrypoint] of clients) {
+      const installed = path.join(f.target, base, 'mms-mobile-testing');
+      assert.match(readFileSync(path.join(installed, entrypoint), 'utf8'), /Public policy/u);
+      for (const name of ['layers', 'placement']) {
+        assert.equal(readFileSync(`${installed}/references/${name}.md`, 'utf8'), `Public ${name}\n`);
+      }
+      assert.equal(readFileSync(`${installed}/knowledge/testing-layers.md`, 'utf8'), 'Public testing layers\n');
+    }
+  });
+
+  test('a complete private skill still overrides the public skill', (t) => {
+    const f = fixture(t);
+    writeFileSync(`${f.privateSkill}/skill.md`, entry('Private policy'));
+    f.install();
+    for (const [base, entrypoint] of clients) {
+      const installed = path.join(f.target, base, 'mms-mobile-testing');
+      assert.match(readFileSync(path.join(installed, entrypoint), 'utf8'), /Private policy/u);
+      assert.equal(readFileSync(`${installed}/references/notes.md`, 'utf8'), 'Private reference only\n');
+    }
+  });
+});

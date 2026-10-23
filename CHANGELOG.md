@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 
+### Fixed
+
+- Preserve a public skill when a private source contains only references for it, so sync does not prune the installed policy. Complete private skills still override public skills.
+
 ## [0.3.1]
 
 ### Fixed
