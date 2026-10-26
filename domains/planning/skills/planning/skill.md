@@ -59,7 +59,9 @@ A fully specified ask names the target, the action, and the expected result, and
 
 Decide whether a spec trigger applies. Recommend a spec when the work is a new design, a contract or API change, or multi-surface work. Those triggers win over a fully specified ask and over a single-file change. Say why in one line. Do not name `mms-planning-spec` in chat.
 
-A fully specified ask that touches security or privacy, as defined above, stops for a brief instead of this yes/no. When no spec trigger applies and the ask is fully specified, and it does not touch security or privacy, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line. Run Checks, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
+A new public method is a contract or API change. That trigger still stops for a brief and a spec recommendation when the objection is that this repo should not hold the edit (wrong owner, a core package, or an existing API elsewhere). Put that objection in the brief. Do not answer with the objection alone. This does not use the yes/no path.
+
+A fully specified ask that touches security or privacy, as defined above, stops for a brief instead of this yes/no. A new public method or other contract or API change does not use that yes/no. When no spec trigger applies and the ask is fully specified, and it does not touch security or privacy, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line. Run Checks, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
 
 When a spec trigger applies, the ask is not fully specified, or a fully specified ask touches security or privacy, the change stops for a brief. Apply the Jira step.
 
@@ -103,8 +105,8 @@ Run these before an edit that proceeds without a brief, before the revert yes/no
 - Classification says whether the change proceeds without a brief, is a revert, takes the fully specified fast path, or stops for a brief.
 - Before the revert yes/no: the message is one line, whether or not there is a security or privacy risk. That line names the target pull request or commit, names the files, and asks exactly one yes/no. A security or privacy revert names the risk in that question. A message that omits the target, the files, or the question is not done. There is no brief, spec, catalog, menu, or Jira line.
 - The Jira step is done except on a revert. The Jira line is present only when that step requires it.
-- A spec trigger is a new design, a contract or API change, or multi-surface work. A spec trigger wins over a fully specified ask and over a single-file change.
-- Before the fully specified yes/no: a fully specified ask with no spec trigger and no security or privacy surface states scope in one line and ends with one yes/no. There is no brief and no spec. A fully specified ask that touches security or privacy does not use this path.
+- A spec trigger is a new design, a contract or API change, or multi-surface work. A new public method is a contract or API change. A spec trigger wins over a fully specified ask and over a single-file change. An objection that another package should own the edit does not remove the trigger. Put that objection in the brief.
+- Before the fully specified yes/no: a fully specified ask with no spec trigger and no security or privacy surface states scope in one line and ends with one yes/no. There is no brief and no spec. A fully specified ask that touches security or privacy does not use this path. A new public method or other contract or API change does not use this path.
 - When the change stops for a brief, the catalog was read, each matching skill was read or named missing, and the performance check ran.
 - When the change stops for a brief, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
 
