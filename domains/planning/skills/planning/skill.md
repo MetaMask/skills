@@ -5,10 +5,12 @@ description: >-
   not ask for a plan. Decide whether to proceed, write a scope brief, read
   Jira through mms-jira-brief, open installed mms-* domain skills, or
   recommend mms-planning-spec. A mechanical edit, an unkept spike or POC,
-  and CI-only work proceed. A revert of a merged pull request or commit
-  states the target and files, then one yes or no. A spec is only for a new
-  design, a contract or API change, or multi-surface work. Any other change
-  stops until the engineer agrees.
+  and routine CI-only work proceed. A CI change that is a new design, a
+  contract or API change, or multi-surface work stops for a brief and a spec.
+  A revert of a merged pull request or commit states the target and files,
+  then one yes or no. A spec is only for a new design, a contract or API
+  change, or multi-surface work. Any other change stops until the engineer
+  agrees.
 base: true
 maturity: stable
 ---
@@ -27,9 +29,9 @@ A change proceeds without a brief when any of these is true:
 
 - It is mechanical. A change is mechanical when it cannot change behavior, a contract, or a risk surface. Formatting, comments, behavior-preserving renames, and copy typos that do not change what the product does are mechanical.
 - The engineer will not keep the result. That is a throwaway, exploratory, or disposable spike or POC. A spike or POC the engineer will merge does not proceed without a brief. A spike or POC that touches security or privacy does not proceed without a brief.
-- It is CI-only: coverage, Jest flags, Sonar, or a workflow edit that does not change how jobs or E2E launch. A CI change that changes how jobs or E2E launch does not proceed without a brief.
+- It is routine CI-only: coverage, Jest flags, Sonar, or another workflow edit. Changing how jobs or E2E launch stays on this path. A CI change that is a new design, a contract or API change, or multi-surface work does not use this path. That change stops for a brief and recommends a spec. The brief path reads the catalog and every matching skill before the brief.
 
-Uncertainty about whether the result will be kept, or whether a workflow changes launch, means the change does not proceed without a brief. Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
+Uncertainty about whether the result will be kept, or whether CI work is a new design, a contract or API change, or multi-surface work, means the change does not proceed without a brief. Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
 
 A revert of a merged pull request or commit does not use steps 2, 3, or 4. Scope is that original change. The message is one line, whether or not it touches security or privacy. That line names the target pull request or commit, names the files, and asks exactly one yes/no question. When it touches security or privacy, that question names the risk. A shorter message is not this step. Do not offer a menu. Do not write a brief and do not recommend a spec. On yes, edit. Security or privacy means auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state.
 
@@ -105,7 +107,7 @@ Run these before an edit that proceeds without a brief, before the revert yes/no
 - Classification says whether the change proceeds without a brief, is a revert, takes the fully specified fast path, or stops for a brief.
 - Before the revert yes/no: the message is one line, whether or not there is a security or privacy risk. That line names the target pull request or commit, names the files, and asks exactly one yes/no. A security or privacy revert names the risk in that question. A message that omits the target, the files, or the question is not done. There is no brief, spec, menu, or Jira line.
 - The Jira step is done except on a revert. The Jira line is present only when that step requires it.
-- A spec trigger is a new design, a contract or API change, or multi-surface work. A new public method is a contract or API change. A spec trigger wins over a fully specified ask and over a single-file change. An objection that another package should own the edit does not remove the trigger. Put that objection in the brief.
+- A spec trigger is a new design, a contract or API change, or multi-surface work. A new public method is a contract or API change. A spec trigger wins over a fully specified ask, over a single-file change, and over routine CI-only. An objection that another package should own the edit does not remove the trigger. Put that objection in the brief. Routine CI-only proceeds without a brief, including a workflow edit that changes how jobs or E2E launch. CI with a spec trigger stops for a brief, reads the catalog and matching skills, and recommends a spec.
 - Before the fully specified yes/no: a fully specified ask with no spec trigger and no security or privacy surface states scope in one line and ends with one yes/no. There is no brief and no spec. A fully specified ask that touches security or privacy does not use this path. A new public method or other contract or API change does not use this path.
 - On every path, the catalog was read and each matching skill was read or named missing. On every path, the performance check ran.
 - When the change stops for a brief, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
