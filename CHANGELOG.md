@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `planning` treats a revert of a merged pull request or commit as the original change: one line naming the target and files, then one yes/no. A revert that touches security or privacy names that risk in the yes/no. Those paths skip the brief, the spec, the catalog, and the Jira line. A spec is recommended only for a new design, a contract or API change, or multi-surface work. A fully specified ask that still stops ends with one yes/no.
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 
 ## [0.3.1]
