@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update the MetaMask Mobile performance overlay environment table for React Native 0.86.x, Expo SDK 57, and Reanimated 4.x with `react-native-worklets`. From a worklet, call `scheduleOnRN` (`runOnJS` is a deprecated alias). Static-ESM tree-shaking stays off.
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 
 ## [0.3.1]
