@@ -31,7 +31,7 @@ A change proceeds without a brief when any of these is true:
 
 Uncertainty about whether the result will be kept, or whether a workflow changes launch, means the change does not proceed without a brief. Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
 
-A revert of a merged pull request or commit does not use steps 2, 3, or 4. Scope is that original change. State the revert target and the files in one line. When it touches security or privacy, name that risk in one yes/no question and wait. Otherwise end with one yes/no and wait. Do not offer a menu. Do not write a brief, do not recommend a spec, and do not read the catalog. On yes, edit. Security or privacy means auth, secrets, logs or exports of state, permissions, or keyring or vault.
+A revert of a merged pull request or commit does not use steps 2, 3, or 4. Scope is that original change. State the revert target and the files in one line. When it touches security or privacy, name that risk in one yes/no question and wait. Otherwise end with one yes/no and wait. Do not offer a menu. Do not write a brief, do not recommend a spec, and do not read the catalog. On yes, edit. Security or privacy means auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state.
 
 ### 2. Jira
 
@@ -45,7 +45,7 @@ Add this line only when no brief was actually read and the change stops for a br
 
 `A Jira ticket would improve this context.`
 
-Omit that line when a brief was actually read, when the change proceeds without a brief, or when the change is a revert.
+Omit that line when a brief was actually read, when the change proceeds without a brief, when the change is a revert, or when a fully specified ask has no spec trigger.
 
 ### 3. Proceed without a brief
 
@@ -53,7 +53,15 @@ A revert does not use this step. Proceed. Do not show a brief. Do not ask for ap
 
 ### 4. Stop for a brief
 
-A revert does not use this step. Stop before the first product edit. Apply the Jira step. Do not block on a missing ticket.
+A revert does not use this step. Stop before the first product edit. Do not block on a missing ticket.
+
+A fully specified ask names the target, the action, and the expected result, and it leaves no open product or contract decision.
+
+Run Checks. Recommend a spec when the work is a new design, a contract or API change, or multi-surface work. Those triggers win over a fully specified ask and over a single-file change. Say why in one line. Do not name `mms-planning-spec` in chat.
+
+When no spec trigger applies and the ask is fully specified, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
+
+When a spec trigger applies, or the ask is not fully specified, the change stops for a brief. Apply the Jira step.
 
 Read the installed `mms-*` catalog on every change that stops for a brief, before the brief. Read every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
 
@@ -74,17 +82,13 @@ A matching skill that is unavailable is named in the brief. Do not pretend it wa
 
 Then brief scope and non-goals. Include performance, security, UX, and tests only when that area can change the work. Omit empty areas.
 
-Run Checks. Then recommend a spec only for a new design, a contract or API change, or multi-surface work. Say why in one line. Do not name `mms-planning-spec` in chat. Do not recommend a spec for a single-file change or a fully specified ask.
-
-A fully specified ask names the target and the action. When the ask is fully specified, do not recommend a spec. End with one yes/no and wait. Do not offer a menu, and do not use either question below.
-
 When a spec was recommended, do not end on the recommendation alone. Write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet.
 
 `Do you want me to continue with a planning spec, continue from this brief, or discuss something in more detail?`
 
 Continuing with a planning spec reads and follows `mms-planning-spec` and does not edit product code in that turn. Continuing from the brief is agreement and the edit may start. More detail returns to the brief and asks this question again.
 
-When a spec was not recommended, and the ask is not fully specified, write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet. No product edit happens before the answer:
+When a spec was not recommended, write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet. No product edit happens before the answer:
 
 `Do you agree, or do you want to discuss something in more detail?`
 
@@ -92,13 +96,13 @@ More detail returns to the brief. Agreement is the point where the edit may star
 
 ## Checks
 
-Run these before an edit that proceeds without a brief, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
+Run these before an edit that proceeds without a brief, before the revert yes/no, before the fully specified yes/no, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
 
 - Classification says whether the change proceeds without a brief, is a revert, or stops for a brief.
-- A revert states the target and the files in one line and ends with one yes/no. A security or privacy revert names the risk in that question. There is no brief, spec, catalog, menu, or Jira line.
+- Before the revert yes/no: the message states the target and the files in one line and ends with one yes/no. A security or privacy revert names the risk in that question. There is no brief, spec, catalog, menu, or Jira line.
 - The Jira step is done except on a revert. The Jira line is present only when that step requires it.
-- A spec is recommended only for a new design, a contract or API change, or multi-surface work, and not for a single-file change or a fully specified ask.
-- A fully specified ask that stops for a brief ends with one yes/no.
+- A spec trigger is a new design, a contract or API change, or multi-surface work. A spec trigger wins over a fully specified ask and over a single-file change.
+- Before the fully specified yes/no: a fully specified ask with no spec trigger states scope in one line and ends with one yes/no. There is no brief and no spec.
 - When the change stops for a brief, the catalog was read, each matching skill was read or named missing, and the performance check ran.
 - When the change stops for a brief, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
 
