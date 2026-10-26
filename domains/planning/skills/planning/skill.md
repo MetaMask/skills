@@ -59,7 +59,7 @@ A fully specified ask names the target, the action, and the expected result, and
 
 Decide whether a spec trigger applies. Recommend a spec when the work is a new design, a contract or API change, or multi-surface work. Those triggers win over a fully specified ask and over a single-file change. Say why in one line. Do not name `mms-planning-spec` in chat.
 
-A fully specified single-file ask that touches security or privacy stops for a brief instead of this yes/no. When no spec trigger applies and the ask is fully specified, and it does not touch security or privacy, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line. Run Checks, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
+A fully specified ask that touches security or privacy, as defined above, stops for a brief instead of this yes/no. When no spec trigger applies and the ask is fully specified, and it does not touch security or privacy, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line. Run Checks, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
 
 When a spec trigger applies, the ask is not fully specified, or a fully specified ask touches security or privacy, the change stops for a brief. Apply the Jira step.
 
