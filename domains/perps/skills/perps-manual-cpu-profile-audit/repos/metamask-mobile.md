@@ -23,6 +23,14 @@ Use a physical phone. These steps are for the person recording, in plain languag
 
 Each recording is saved as its own file, and earlier files are not overwritten. The name looks like `io.metamask.MetaMask_v8.15.0_1791215876954.cpuprofile`: the app id, the version, and the time. Do not rename it. The analyzer reads the version from the name.
 
+## Phone settings that change results
+
+Add the ones that apply to **Before you start**:
+
+- **MetaMetrics: on** (Settings › Security and privacy › Participate in MetaMetrics) when the suspected cost is Sentry tracing (`trace`, `_onSpanEnded`, `normalize`). Without consent, `app/util/trace.ts` buffers trace requests instead of opening Sentry spans, so that cost never shows up.
+- **Auto-Lock: longer than the capture.** A screen lock mid-capture leaves a gap.
+- **Low Power Mode: off.** It throttles the CPU.
+
 ## Getting the file off the phone
 
 - **iPhone:** after Stop, tap **Export** on the card. In the share sheet, send the file to yourself with AirDrop, Files, iCloud, or any app you use. iOS saves the file in the app's cache, so Export is how you get it out.
@@ -40,9 +48,9 @@ In the 8.15.0 reference profile, about one in seven JavaScript frames has no nam
 - The React Compiler runs over the whole app in real builds, but not under Jest. A unit test that passes says nothing about a regression that comes from compiler output, so a capture is the proof.
 - For fix recipes and Mobile-specific traps (selector memoization, effects, context providers), use the `performance` skill.
 
-## Example capture plan
+## Example passes
 
-A Perps capture usually has one pass per surface. For example: one pass that opens the Lite trade sheet, and one pass for the Pro sheets (close, adjust margin, flip). Run each pass the same way every time, keep the capture length fixed, and take at least 2 baseline captures before touching code.
+Examples only; passes come from the complaint. An interaction pass that opens and closes the Lite trade sheet from market details. An interaction pass over the Pro sheets (close, adjust margin, flip). An idle pass on market details with no taps.
 
 ## Reference values
 

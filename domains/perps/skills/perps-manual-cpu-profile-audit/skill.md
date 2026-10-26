@@ -30,6 +30,19 @@ Not for:
 - **Numbers come from the script.** Never count or estimate from the raw profile by hand. Quote the metric row for every claim.
 - **Never write to Jira.** A ticket draft is text in the investigation file. The engineer reviews it and files it.
 
+## How to reply
+
+The skill is judged by how fast the person gets to a proven fix, not by how much it explains.
+
+- **Short.** Say only what the person needs for the next action. Details, reasoning, and metric tables go in the investigation file. Point to the file instead of repeating it.
+- **Tickets by name.** Never write a Jira key alone. Write the ticket's title in plain words with the key in brackets: "MarketInsights trace fix (TAT-4102)".
+- **Phone checklist.** When the person must set something up on the phone, list it under **Before you start**, one line per item in the form `Thing: state` ("Low Power Mode: off"). No reasons.
+- **Work quietly.** Write nothing between tool calls. The first text the person sees is the reply.
+- **Caveats in the file.** Confidence levels, assumptions, and unverified claims go in the investigation file. The reply gets at most one short line about them, before "What you do next".
+- **Ask, don't assign.** Never ask the person to edit the investigation file. Every question goes in "What you do next" (OS version, which variant they saw), and you write the answers in yourself.
+- **End with "What you do next".** It is always the last section of the reply. Nothing comes after it.
+- **Literal actions.** Each item in "What you do next" is something the person physically does, in order, with waits: "Open BTC market details. Wait 10 s. Shake the phone and tap Start." Never use a capture label such as `lite-1` unless the steps it stands for are written in the same item.
+
 ## Workflow
 
 Six steps, one per invocation: intake, capture, check, recommend, verify, and an optional ticket draft. The status in the investigation file says which one is next. Steps 3 to 5 can loop: a failed check goes back to capture, and an unproven fix goes back to recommend.
@@ -39,7 +52,7 @@ Six steps, one per invocation: intake, capture, check, recommend, verify, and an
 Write it in the working directory as `perps-profile-audit-<slug>.md`, where the slug is the Jira key in lower case or a short kebab-case name for the complaint. Tell the person not to commit it. Keep it short. Sections:
 
 - **Status**, one of: `intake`, `awaiting-capture`, `recommend`, `awaiting-recapture`, `verify`, `closed`.
-- **Complaint** in the person's words, and the Jira key if there is one.
+- **Complaint** in the person's words, and the ticket title and Jira key if there is one.
 - **Hypothesis**.
 - **Capture plan**.
 - **Captures**: one row per file with its label (`baseline-1`, `after-1`), file name, app version, build number and type, device, and the check result.
@@ -48,7 +61,7 @@ Write it in the working directory as `perps-profile-audit-<slug>.md`, where the 
 
 ## Step 1: Intake
 
-Input is a Jira key or a plain-English complaint. If it is a key and a Jira tool is available, read the ticket. Otherwise ask the person to paste it.
+Input is a Jira key or a plain-English complaint. If the person already described the problem, do not fetch the ticket. If they gave only a key and a Jira tool is available, read that ticket and no linked ones. Otherwise ask them to paste it.
 
 Produce two things and stop:
 
@@ -56,13 +69,20 @@ Produce two things and stop:
 2. **A capture plan** the person can follow without you:
    - **Build**: one build for every capture in this investigation. Same version, same type.
    - **Device**: a physical phone. Record the model and OS. Use the same phone for before and after.
-   - **State**: account, funded or not, network, and the market.
-   - **Steps**: numbered taps with waits, written as one repeatable pass. Repeat the pass inside the capture if the moment is short.
+   - **State**: only what the hypothesis needs (account, funded or not, market). Every extra setup item slows the capture.
+   - **Steps**: numbered taps with waits, written as one repeatable pass. Repeat the pass inside the capture if the moment is short. Use waits a person can count in their head. Never require a stopwatch or a second device.
+   - **Passes**: build them from the complaint. If the person names a slow moment, target exactly that. If the complaint is vague, use one idle pass on the named screen and one interaction pass. If the person points at an existing plan (an earlier investigation file, or a ticket that spells out passes), reuse its steps exactly. Two shapes, filled in from the complaint:
+     - **Idle**: open the screen, wait 10 s, start, no taps for a fixed time, stop.
+     - **Interaction**: open the screen, wait 10 s, start, do the slow action N times at a fixed spacing, wait 5 s, stop.
    - **Length**: fixed. Choose it once (at least 30 seconds) and keep it for every capture.
    - **Frames to expect**: component names that must show up if the screens were reached. Find them in the code.
    - **Baseline**: at least 2 captures of the unchanged build. The difference between them is the noise band. One capture cannot tell a fix from noise.
 
-Set the status to `awaiting-capture` and show the person the recording steps for their platform.
+Write the full plan to the investigation file and set the status to `awaiting-capture`. The reply has three parts and nothing else:
+
+1. The hypothesis, in one sentence.
+2. **Before you start**: the build, device, and state checklist, one line each.
+3. **What you do next**: every capture written out as literal steps, in the order to record them, including how to start and stop the profiler and how to get the files off the phone for their platform. Write each pass once and refer back to it for repeats ("Repeat step 2"). Say the order matters because files are matched to passes by their timestamp.
 
 ## Step 2: Capture
 
@@ -89,6 +109,8 @@ Each line is `PASS`, `WARN`, `FAIL`, or `SKIP`. Exit code 2 means a `FAIL`. Do n
 | `expected-screens` SKIP | No `--expect` frames were given, so the screens are not confirmed. Add them and rerun. |
 
 Record the passing capture as a row in the investigation file. Note the build number yourself: the file name carries the version only, not the build number or whether it was an RC or exp build.
+
+Reply with one line per capture (passed, or what to redo), then **What you do next**.
 
 ## Step 4: Recommend
 
