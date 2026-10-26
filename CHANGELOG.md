@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require every revert yes/no to be one line that names the pull request or commit, the files, and exactly one yes/no question, whether or not security or privacy is involved. A shorter message is not that step.
 - Skip a planning brief for an unkept spike or POC and for CI-only work that does not change how jobs or E2E launch. For a revert of a merged pull request or commit, name the target and files, then ask one yes/no, and name the risk when security or privacy is involved. Recommend a spec for a new design, a contract or API change, or multi-surface work even when the ask is fully specified or single-file; any other fully specified ask gets one line of scope and one yes/no instead of a brief, unless it touches auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state, which still gets a brief.
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 

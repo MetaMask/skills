@@ -31,7 +31,7 @@ A change proceeds without a brief when any of these is true:
 
 Uncertainty about whether the result will be kept, or whether a workflow changes launch, means the change does not proceed without a brief. Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
 
-A revert of a merged pull request or commit does not use steps 2, 3, or 4. Scope is that original change. State the revert target and the files in one line. When it touches security or privacy, name that risk in one yes/no question and wait. Otherwise end with one yes/no and wait. Do not offer a menu. Do not write a brief, do not recommend a spec, and do not read the catalog. On yes, edit. Security or privacy means auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state.
+A revert of a merged pull request or commit does not use steps 2, 3, or 4. Scope is that original change. The message is one line, whether or not it touches security or privacy. That line names the target pull request or commit, names the files, and asks exactly one yes/no question. When it touches security or privacy, that question names the risk. A shorter message is not this step. Do not offer a menu. Do not write a brief, do not recommend a spec, and do not read the catalog. On yes, edit. Security or privacy means auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state.
 
 ### 2. Jira
 
@@ -101,7 +101,7 @@ More detail returns to the brief. Agreement is the point where the edit may star
 Run these before an edit that proceeds without a brief, before the revert yes/no, before the fully specified yes/no, and before the spec question or the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
 
 - Classification says whether the change proceeds without a brief, is a revert, takes the fully specified fast path, or stops for a brief.
-- Before the revert yes/no: the message states the target and the files in one line and ends with one yes/no. A security or privacy revert names the risk in that question. There is no brief, spec, catalog, menu, or Jira line.
+- Before the revert yes/no: the message is one line, whether or not there is a security or privacy risk. That line names the target pull request or commit, names the files, and asks exactly one yes/no. A security or privacy revert names the risk in that question. A message that omits the target, the files, or the question is not done. There is no brief, spec, catalog, menu, or Jira line.
 - The Jira step is done except on a revert. The Jira line is present only when that step requires it.
 - A spec trigger is a new design, a contract or API change, or multi-surface work. A spec trigger wins over a fully specified ask and over a single-file change.
 - Before the fully specified yes/no: a fully specified ask with no spec trigger and no security or privacy surface states scope in one line and ends with one yes/no. There is no brief and no spec. A fully specified ask that touches security or privacy does not use this path.
