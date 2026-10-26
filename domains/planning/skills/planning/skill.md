@@ -45,7 +45,7 @@ Add this line only when no brief was actually read and the change stops for a br
 
 `A Jira ticket would improve this context.`
 
-Omit that line when a brief was actually read, when the change proceeds without a brief, when the change is a revert, or when a fully specified ask has no spec trigger.
+Omit that line when a brief was actually read, when the change proceeds without a brief, when the change is a revert, or when a fully specified ask has no spec trigger and does not touch security or privacy.
 
 ### 3. Proceed without a brief
 
@@ -57,11 +57,11 @@ A revert does not use this step. Stop before the first product edit. Do not bloc
 
 A fully specified ask names the target, the action, and the expected result, and it leaves no open product or contract decision.
 
-Run Checks. Recommend a spec when the work is a new design, a contract or API change, or multi-surface work. Those triggers win over a fully specified ask and over a single-file change. Say why in one line. Do not name `mms-planning-spec` in chat.
+Decide whether a spec trigger applies. Recommend a spec when the work is a new design, a contract or API change, or multi-surface work. Those triggers win over a fully specified ask and over a single-file change. Say why in one line. Do not name `mms-planning-spec` in chat.
 
-When no spec trigger applies and the ask is fully specified, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
+A fully specified single-file ask that touches security or privacy stops for a brief instead of this yes/no. When no spec trigger applies and the ask is fully specified, and it does not touch security or privacy, this does not stop for a brief. Apply the Jira step and omit the Jira line. Do not write a brief and do not read the catalog. State scope in one line. Run Checks, then end with one yes/no and wait. Do not offer a menu. Do not use either question below. On yes, the edit may start.
 
-When a spec trigger applies, or the ask is not fully specified, the change stops for a brief. Apply the Jira step.
+When a spec trigger applies, the ask is not fully specified, or a fully specified ask touches security or privacy, the change stops for a brief. Apply the Jira step.
 
 Read the installed `mms-*` catalog on every change that stops for a brief, before the brief. Read every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
 
@@ -82,6 +82,8 @@ A matching skill that is unavailable is named in the brief. Do not pretend it wa
 
 Then brief scope and non-goals. Include performance, security, UX, and tests only when that area can change the work. Omit empty areas.
 
+Run Checks, then ask the question below that matches whether a spec was recommended.
+
 When a spec was recommended, do not end on the recommendation alone. Write the brief in the chat output, then end that same output with this question and wait. Do not use a structured choice prompt or a bottom sheet.
 
 `Do you want me to continue with a planning spec, continue from this brief, or discuss something in more detail?`
@@ -96,13 +98,13 @@ More detail returns to the brief. Agreement is the point where the edit may star
 
 ## Checks
 
-Run these before an edit that proceeds without a brief, before the revert yes/no, before the fully specified yes/no, before a spec recommendation, and before the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
+Run these before an edit that proceeds without a brief, before the revert yes/no, before the fully specified yes/no, and before the spec question or the agreement question. Every item that applies is required. A miss goes back to that step. Do not continue with it open.
 
-- Classification says whether the change proceeds without a brief, is a revert, or stops for a brief.
+- Classification says whether the change proceeds without a brief, is a revert, takes the fully specified fast path, or stops for a brief.
 - Before the revert yes/no: the message states the target and the files in one line and ends with one yes/no. A security or privacy revert names the risk in that question. There is no brief, spec, catalog, menu, or Jira line.
 - The Jira step is done except on a revert. The Jira line is present only when that step requires it.
 - A spec trigger is a new design, a contract or API change, or multi-surface work. A spec trigger wins over a fully specified ask and over a single-file change.
-- Before the fully specified yes/no: a fully specified ask with no spec trigger states scope in one line and ends with one yes/no. There is no brief and no spec.
+- Before the fully specified yes/no: a fully specified ask with no spec trigger and no security or privacy surface states scope in one line and ends with one yes/no. There is no brief and no spec. A fully specified ask that touches security or privacy does not use this path.
 - When the change stops for a brief, the catalog was read, each matching skill was read or named missing, and the performance check ran.
 - When the change stops for a brief, the brief states scope and non-goals. Performance, security, UX, and tests are present only when that area can change the work.
 
