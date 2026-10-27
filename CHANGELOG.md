@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update the MetaMask Mobile performance overlay and animation references for React Native 0.86.x, Expo SDK 57, and Reanimated 4.x with `react-native-worklets`. From a worklet, call `scheduleOnRN` (`runOnJS` is a deprecated alias). Static-ESM tree-shaking stays off. ([#203](https://github.com/MetaMask/skills/pull/203))
+- Require every revert yes/no to be one line that names the pull request or commit, the files, and exactly one yes/no question, whether or not security or privacy is involved. A shorter message is not that step.
+- Keep a new public method or other contract change on the brief and spec path when the objection is that another package should own the edit. Put that objection in the brief.
+- Skip a planning brief for an unkept spike or POC and for routine CI-only work, including a workflow edit that changes how jobs or E2E launch. A CI change that is a new design, a contract or API change, or multi-surface work still stops for a brief and a spec. For a revert of a merged pull request or commit, name the target and files, then ask one yes/no, and name the risk when security or privacy is involved. Recommend a spec for a new design, a contract or API change, or multi-surface work even when the ask is fully specified or single-file; any other fully specified ask gets one line of scope and one yes/no instead of a brief, unless it touches auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state, which still gets a brief. Always read the installed skill catalog, including for reverts and fully specified asks.
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 
 ## [0.3.1]
