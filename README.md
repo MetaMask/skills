@@ -144,6 +144,7 @@ tools/
 | `platform`     | MM product eng    | Product analytics and other platform skills  |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools (Consensys/skills overlay) |
 | `assets`       | MM product eng    | Assets domain skills |
+| `ci`           | MM product eng    | `ci-run-triage`, `workflow-fork-testing`    |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
