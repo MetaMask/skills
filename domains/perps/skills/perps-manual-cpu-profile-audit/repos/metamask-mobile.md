@@ -27,7 +27,11 @@ Each recording is saved as its own file, and earlier files are not overwritten. 
 
 Add the ones that apply to **Before you start**:
 
-- **MetaMetrics: on** (Settings › Security and privacy › Participate in MetaMetrics) when the suspected cost is Sentry tracing (`trace`, `_onSpanEnded`, `normalize`). Without consent, `app/util/trace.ts` buffers trace requests instead of opening Sentry spans, so that cost never shows up.
+- **MetaMetrics** (Settings › Security and privacy › Participate in MetaMetrics) cuts both ways. Plan for it:
+  - **On** to measure Sentry tracing cost (`trace`, `_onSpanEnded`, `normalize`). Without consent, `app/util/trace.ts` buffers trace requests instead of opening Sentry spans, so that cost never shows up.
+  - **But with it on, a pass that opens a sheet or another screen can come back empty**: about 740 bytes, zero samples, even though the card said Recording. The app sets `profilesSampleRate: 1.0`, and Sentry's own profiler shares the one Hermes sampler, so a Sentry-profiled transaction can stop it mid-capture. Seen on 8.18.0 RC: three Long sheet passes empty with MetaMetrics on, a full capture with it off.
+  - So: measure tracing cost with MetaMetrics on and idle passes only. Measure anything that opens a sheet or screen with MetaMetrics off. Never mix the two settings within one before/after comparison.
+- **File size: check it after every export.** Under 10 KB means the capture is empty. Redo it before going on.
 - **Auto-Lock: longer than the capture.** A screen lock mid-capture leaves a gap.
 - **Low Power Mode: off.** It throttles the CPU.
 
