@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Serialize updates of each shared skill source so concurrent syncs and farm prepares cannot race on Git's fetch state.
+- Keep the `typescript/tsc-blindspots` description within the skill catalog's size limit.
 
 ## [0.3.1]
 
