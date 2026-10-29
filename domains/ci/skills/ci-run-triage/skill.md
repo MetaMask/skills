@@ -45,6 +45,8 @@ gh run watch RUN_ID --repo OWNER/REPO --exit-status
 
 The exit code is the verdict. Then read the jobs, because a green run can hide skipped jobs that mattered.
 
+`gh run watch` blocks and polls GitHub itself (every 3 seconds, `--interval` changes it). It needs a run id, so find the run first. Do not write your own loop of `gh run view` and `sleep`. In an agent environment, start the watch in a background or async terminal and end your turn instead of waiting on it. The tool notifies you when the command exits, and the exit code is the result. Do not poll the terminal while you wait.
+
 ### List Jobs Without Losing Any
 
 Large repositories run 100+ jobs per run. Depending on the `gh` version, `gh run view --json jobs` may not return all of them, so do not count failures from it. Use the jobs endpoint and extract the array so the pages concatenate:
