@@ -24,7 +24,7 @@ Run a workflow change on a fork you control, so the result describes the change 
 
 MetaMask workflow tests run in per-person forks in the `consensys-test` organization, not in personal-account forks. They are named `<upstream-repo>-<your-name>`, for example `consensys-test/metamask-extension-howard` and `consensys-test/metamask-mobile-howard`. An organization can hold several forks of the same upstream as long as their names differ, so each person gets their own and no one's fixtures, secrets or open PRs interfere with anyone else's. The org also has older shared or ticket-named forks (`metamask-extension-test`, `metamask-mobile-infra-3037`). Do not reuse those, because you cannot tell what state someone left them in.
 
-If you already have a fork, reuse it and reset it (see below). To create one:
+If you already have a fork, reuse it and reset it (see below). An agent must never create a repository or fork on its own, not even a throwaway one to test a setting. It asks the human first, and reuses an existing fork when it can. To create one:
 
 1. **Get access.** You need to be a member of `consensys-test`. Members can create repositories there. If `gh api user/memberships/orgs/consensys-test` returns 404, ask an org owner to invite you.
 2. **Fork server-side, without cloning.** The upstream is large, and you already have a clone:
