@@ -1,5 +1,5 @@
-import { writeNewFile } from './write-new-file.mjs';
 #!/usr/bin/env node
+import { writeNewFile } from './write-new-file.mjs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
