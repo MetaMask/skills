@@ -1,7 +1,8 @@
+import { writeNewFile } from './write-new-file.mjs';
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -123,7 +124,7 @@ function main() {
   if (existsSync(values.record)) throw new Error('Runtime artifact record already exists. Reuse it or create a new task.');
   const record = acquireOfficialArtifact({ scope: JSON.parse(readFileSync(values.scope, 'utf8')), platform: values.platform, out: path.resolve(values.out), runId: values['run-id'], version: values.version });
   mkdirSync(path.dirname(path.resolve(values.record)), { recursive: true });
-  writeFileSync(values.record, JSON.stringify(record, null, 2) + '\n', { flag: 'wx' });
+  writeNewFile(values.record, JSON.stringify(record, null, 2) + '\n');
   console.log(JSON.stringify(record));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) main();

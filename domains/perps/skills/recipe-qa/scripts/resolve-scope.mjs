@@ -1,7 +1,8 @@
+import { writeNewFile } from './write-new-file.mjs';
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
@@ -195,7 +196,7 @@ function main() {
       if (readFileSync(values.out, 'utf8') !== request) throw new Error('Scope request differs from the frozen one: this is a new task, not a resume.');
     } else {
       mkdirSync(path.dirname(path.resolve(values.out)), { recursive: true });
-      writeFileSync(values.out, request, { flag: 'wx' });
+      writeNewFile(values.out, request);
     }
     console.log(request.trim());
     return;
@@ -205,7 +206,7 @@ function main() {
   const input = JSON.parse(readFileSync(values.input, 'utf8'));
   const result = resolveScope(input, { repo: values.repo });
   mkdirSync(path.dirname(path.resolve(values.out)), { recursive: true });
-  writeFileSync(values.out, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+  writeNewFile(values.out, JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify({ path: path.resolve(values.out), sha256: result.sha256, headSha: result.headSha, files: result.files.length, empty: result.empty }));
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) main();

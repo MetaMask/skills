@@ -847,7 +847,7 @@ grep -q 'Require PASS before marking the gate; UI flows retain `validation-summa
 for template in "$skill"/references/templates/{dev,fix-bug}/{core,extension,mobile}.md; do
   grep -q 'Read and apply .*references/dev-fix-bug.md' "$template"
 done
-grep -q 'mark no-change' "$shared_rules"
+grep -q "follow Cook's Finish before marking no-change" "$shared_rules"
 for template in "$skill"/references/templates/fix-bug/*.md; do
   refute grep -q 'closeout\|--share' "$template"
 done

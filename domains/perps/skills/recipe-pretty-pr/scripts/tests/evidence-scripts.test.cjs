@@ -16,7 +16,8 @@ const fakeHarnessRoot = path.join(scratch, 'harness');
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: options.cwd || scratch,
-    env: { ...process.env, ...options.env },
+    // Published-runtime checks must not override this fixture's recorded harness.
+    env: { ...process.env, MM_HARNESS_BIN: '', ...options.env },
     encoding: 'utf8',
   });
 }

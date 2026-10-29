@@ -7,8 +7,6 @@ maturity: experimental
 
 # Recipe Cook
 
-For TASK.md runtime-capability requirements, read Recipe Harness's "Farmslot runtime capabilities" section. Use its verified CLI RPC transport when the session has no matching tools before reporting those methods unavailable.
-
 Use only when explicitly named by the user or a selected workflow. Descriptions, labels and changed paths never activate this skill or another skill. A selected template may declare dependencies by name; read their installed files explicitly as part of that workflow.
 
 Cook selects or resumes one execution template and works its checklist. Team skills own domain criteria. QA uses recipes for runtime proof; static review needs no app, device, recipe or harness. Template metadata filters candidates only after invocation.

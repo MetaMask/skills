@@ -300,11 +300,15 @@ function readBoundedTaskText(taskDir, filePath) {
     if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
       throw new Error('EVIDENCE_PR_BODY_INVALID: rendered PR body must stay inside the task directory.');
     }
-    const stat = fs.lstatSync(realFile);
-    if (!stat.isFile() || stat.isSymbolicLink()) {
-      throw new Error('EVIDENCE_PR_BODY_INVALID: rendered PR body must be a regular file inside the task directory.');
+    const descriptor = fs.openSync(realFile, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+    try {
+      if (!fs.fstatSync(descriptor).isFile()) {
+        throw new Error('EVIDENCE_PR_BODY_INVALID: rendered PR body must be a regular file inside the task directory.');
+      }
+      return fs.readFileSync(descriptor, 'utf8');
+    } finally {
+      fs.closeSync(descriptor);
     }
-    return fs.readFileSync(realFile, 'utf8');
   } catch (error) {
     if (error && typeof error.message === 'string' && error.message.startsWith('EVIDENCE_PR_BODY_INVALID')) throw error;
     throw new Error('EVIDENCE_PR_BODY_INVALID: rendered PR body must stay inside the task directory.');
