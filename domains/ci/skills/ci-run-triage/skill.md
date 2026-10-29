@@ -30,7 +30,9 @@ A run for a just-pushed commit can take a few seconds to appear. Retry briefly a
 gh run list --repo OWNER/REPO --branch BRANCH --limit 5 --json databaseId,headSha,status,conclusion,workflowName
 ```
 
-If nothing starts, check that the workflow is enabled and that the trigger matches (branch filter, `github.event.created` for new refs only, path filters). A re-run is not a new run: it reuses `vars.*` values resolved at creation, so push a new commit to pick up a changed variable.
+If nothing starts, check that the workflow is enabled and that the trigger matches (branch filter, `github.event.created` for new refs only, path filters). A re-run is not a new run. It reuses the original event, `GITHUB_SHA` and `GITHUB_REF`. To test a changed workflow, secret or variable, start a new run (new push or dispatch) instead of trusting a re-run to pick it up.
+
+If the run failed at startup (`startup_failure`) with no jobs, the workflow file is usually invalid. Run `actionlint` on it.
 
 ### Wait For The Result
 
@@ -42,14 +44,18 @@ The exit code is the verdict. Then read the jobs, because a green run can hide s
 
 ### List Jobs Without Losing Any
 
-Large repositories run 100+ jobs per run. `gh run view --json jobs` truncates silently, so a failure count from it is wrong. Use the jobs endpoint and extract the array so the pages concatenate:
+Large repositories run 100+ jobs per run. Depending on the `gh` version, `gh run view --json jobs` may not return all of them, so do not count failures from it. Use the jobs endpoint and extract the array so the pages concatenate:
 
 ```bash
 gh api --paginate "repos/OWNER/REPO/actions/runs/RUN_ID/jobs?per_page=100" \
   --jq '.jobs[] | {name, conclusion}'
 ```
 
-Filter with `select(.conclusion == "failure")` for failures. `--paginate` on a JSON object response without `--jq` produces invalid concatenated JSON.
+Filter with `select(.conclusion == "failure")` for failures. `--paginate` on a JSON object response without `--jq` produces invalid concatenated JSON. Use `--paginate --slurp` instead if you need one JSON array to process further.
+
+The endpoint returns the latest attempt only. For a re-run, add `&filter=all` to see every attempt, or use `runs/RUN_ID/attempts/N/jobs` for one attempt, and `gh run view RUN_ID --attempt N` for its logs. Otherwise a failure that a re-run fixed disappears, and so does a flake.
+
+Classify a failure by its failing step and log line, not by the job name. A test job can fail while downloading a tool or installing dependencies, which is an infrastructure failure, not a test failure. A job that only aggregates other jobs' results (a status gate) fails because something upstream failed. Find that root failure.
 
 ### Read Logs
 
@@ -58,23 +64,29 @@ gh run view RUN_ID --repo OWNER/REPO --log-failed
 gh api repos/OWNER/REPO/actions/jobs/JOB_ID/logs     # one job, raw
 ```
 
-Raw log lines carry a job and step prefix, a timestamp and ANSI color codes. Strip them before `grep`:
+`--log-failed` and `--log` work only after the run completes, and logs expire under the repository's retention setting (the API then returns 404 `BlobNotFound`).
+
+The two formats differ. The raw job log has `TIMESTAMP message` lines. `gh run view --log` and `--log-failed` add a tab-separated `JOB<TAB>STEP<TAB>` prefix (the step is often `UNKNOWN STEP`). Both can start with a byte-order mark and contain ANSI color codes. Strip them before `grep` (GNU sed, as in Git Bash and Linux):
 
 ```bash
-sed 's/^[^\t]*\t[^\t]*\t[0-9T:.-]*Z //; s/\x1b\[[0-9;]*m//g'
+# gh run view --log output
+sed 's/^[^\t]*\t[^\t]*\t//; s/^\xef\xbb\xbf//; s/^[0-9T:.-]*Z //; s/\x1b\[[0-9;]*m//g'
+# raw job log
+sed 's/^\xef\xbb\xbf//; s/^[0-9T:.-]*Z //; s/\x1b\[[0-9;]*m//g'
 ```
 
-An `::error::` match is not proof of an error. A setup action's log can echo its own script source, which contains the string. Confirm with the step's conclusion.
+Search for `##[error]`, which is how the runner renders an error annotation. Do not search for `::error::`: a step's log can echo a script's source, which contains that string without an error happening. Confirm with the step's conclusion.
 
 ## Behaviors That Mislead
 
 | Looks like | Usually |
 |---|---|
-| A step silently did not run | It has an `if:` condition, which drops the implicit `success()` check. Add `!cancelled()` or `always()` when it must run after a failure. |
+| A step silently did not run | An earlier step failed. An `if:` without a status function (`always()`, `failure()`, `cancelled()`, `success()`) gets an implicit `success() &&`. Add `!cancelled()` or `always()` when it must run after a failure. |
 | A fix did not take effect | A `workflow_run` workflow runs the YAML on the default branch, not the pushed branch. |
-| A secret is empty in a called workflow | `workflow_call` only passes secrets the caller lists and the callee declares. A direct dispatch reads repo secrets and hides this. |
-| Fewer failures than expected | The job list was truncated. Paginate. |
+| A secret is empty in a called workflow | `workflow_call` only passes secrets the caller lists (or `secrets: inherit`) and the callee declares. A direct dispatch reads repo secrets and hides this. |
+| A job was `cancelled` | A `concurrency` group replaced the run with a newer one, or someone cancelled it. It is not a test failure. |
+| Fewer failures than expected | The job list was truncated, or you are looking at a later attempt. Paginate, and check `filter=all`. |
 
 ## Report
 
-State the run and commit, which jobs failed, the likely cause with the log line that shows it, and whether a re-run is worthwhile. Do not say a run passed without the exit code or the job conclusions.
+State the run, attempt and commit, which jobs failed, the failing step and the log line that shows the cause, whether it is a test, code or infrastructure failure, and whether a re-run is worthwhile. Do not say a run passed without the exit code or the job conclusions.

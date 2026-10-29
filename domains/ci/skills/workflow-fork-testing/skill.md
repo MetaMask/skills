@@ -49,12 +49,14 @@ If you already have a fork, reuse it and reset it (see below). To create one:
    R=consensys-test/metamask-extension-$NAME
    gh api -X PUT repos/$R/actions/permissions -F enabled=true -f allowed_actions=all
    gh api -X PUT repos/$R/actions/permissions/workflow \
-     -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
+     -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
    ```
 
-   Keep `GITHUB_TOKEN` read-only by default. Upstream workflows declare the `permissions:` they need, and a write default would hide a missing declaration.
-5. **Add only the secrets the workflow under test reads.** Org and upstream secrets are not inherited, and a fork has none. Run `gh secret set NAME --repo $R` with no `--body`, so it prompts for the value and the value stays out of shell history. For a token the workflow uses to push or open PRs (`PR_TOKEN` in the release workflows), create a fine-grained token with `consensys-test` as resource owner, limited to your fork, with Contents and Pull requests write. Never use a token that can write to `MetaMask/*`. An org owner may need to approve the fine-grained token before it works.
-6. **Disable workflows you are not testing.** Every fixture push otherwise starts dozens of runs, which bury the one you care about and use the org's minutes. `gh workflow list --repo $R`, then `gh workflow disable NAME --repo $R` for the rest. Enable one again with `gh workflow enable` when you need it.
+   Keep `GITHUB_TOKEN` read-only by default. Upstream workflows declare the `permissions:` they need, and a write default would hide a missing declaration. Set `can_approve_pull_request_reviews=true` only if the workflow under test opens or approves PRs with `GITHUB_TOKEN`. Organization policy can override both settings, so read them back with `gh api repos/$R/actions/permissions/workflow`. Confirm that Actions really run with `gh workflow list --repo $R` and one trivial push. If nothing runs, open the fork's Actions tab in a browser and accept the prompt to enable workflows.
+
+   `allowed_actions=all` is looser than upstream's action allowlist. If your change adds a third-party action, check that upstream allows it. The fork cannot show that.
+5. **Add only the secrets and variables the workflow under test reads.** Org and upstream secrets and `vars.*` are not inherited, and a fork has none. Set variables with `gh variable set NAME --repo $R --body VALUE`. A secret must be set by the human with `gh secret set NAME --repo $R` and no `--body`, so it prompts for the value and the value stays out of shell history and out of an agent's context. An agent hands this step to the human instead of answering the prompt. For a token the workflow uses to push or open PRs (`PR_TOKEN` in the release workflows), create a fine-grained token with `consensys-test` as resource owner, limited to your fork, with Contents and Pull requests write. Never use a token that can write to `MetaMask/*`. An org owner may need to approve the fine-grained token before it works.
+6. **Disable workflows you are not testing.** Every fixture push otherwise starts dozens of runs, which bury the one you care about and use the org's minutes. `gh workflow list --repo $R`, then `gh workflow disable NAME --repo $R` for the rest. Enable one again with `gh workflow enable` when you need it. Keep the whole chain under test enabled: the workflows that trigger it, `workflow_run` consumers, and reusable workflows it calls.
 7. **Create labels the workflow applies or filters on** with `gh label create NAME --repo $R`. A fork has GitHub's default labels only, so `--add-label` fails on the others.
 8. **Check for upstream-only guards.** Search the workflow for `github.repository ==` and `github.repository_owner ==`. Jobs behind those guards are skipped on the fork, which looks like a pass. Edit the guard in the fork copy and list it as a deviation.
 
@@ -64,26 +66,31 @@ When you use the fork, pass `--repo $R` to every `gh pr`, `gh run` and `gh workf
 
 ## Workflow
 
-1. **Test the committed file.** Derive the fork copy from the branch (`git show BRANCH:path`), apply only edits the fork cannot avoid (the token source, a hardcoded repository URL, a secret pass-through), and show `diff` between the original and the copy. Copies derived from a working tree can pass while the committed branch is wrong, for example when only part of the change was staged.
-2. **Use the real trigger path.** A push-triggered workflow runs the file from the pushed commit. `workflow_dispatch` runs the file from `--ref`. A `workflow_run` workflow runs the default branch's YAML. A reusable workflow reached by dispatch reads repo secrets, but through `workflow_call` it only gets what the caller passes, so test the caller.
+1. **Test the committed file.** Derive the fork copy from the branch (`git show BRANCH:path`), apply only edits the fork cannot avoid (the token source, a hardcoded repository URL, a secret pass-through, a runner label), and show `diff` between the original and the copy. Copies derived from a working tree can pass while the committed branch is wrong, for example when only part of the change was staged.
+2. **Use the real trigger path.** A push-triggered workflow runs the file from the pushed commit. `workflow_dispatch` runs the file from `--ref`. A `workflow_run` workflow runs the default branch's YAML, so to test a change to one, put it on the fork's `main`. A reusable workflow reached by dispatch reads repo secrets, but through `workflow_call` it only gets what the caller passes, so test the caller. Events caused by `GITHUB_TOKEN` (a push, or a PR it opens) do not start other workflows, so a chain that works upstream with a personal token stops on the fork if the copy uses `GITHUB_TOKEN`.
 3. **Prove a bug fix with a control.** Run the unfixed version first and show the failure, then the fixed one. A fix with no reproduced failure is a guess.
-4. **Keep the experiment out of your working tree.** Build fixture commits with plumbing so the checked-out branch is untouched:
+4. **Keep the experiment out of your working tree.** Build fixture commits with plumbing so the checked-out branch is untouched. Run it in a subshell so `GIT_INDEX_FILE` cannot leak into your shell if a command fails. A leaked value makes your next `git commit` record the fixture tree:
 
    ```bash
-   export GIT_INDEX_FILE=.tmp-idx; git read-tree BASE_COMMIT
-   H=$(git hash-object -w copy.yml)
-   git update-index --cacheinfo 100644,$H,.github/workflows/name.yml
-   T=$(git commit-tree "$(git write-tree)" -p BASE_COMMIT -m "test: fixture"); rm -f .tmp-idx; unset GIT_INDEX_FILE
-   git push FORK $T:refs/heads/release/9.9.9
+   T=$(
+     set -e
+     export GIT_INDEX_FILE="$(git rev-parse --absolute-git-dir)/fixture-index"
+     trap 'rm -f "$GIT_INDEX_FILE"' EXIT
+     git read-tree BASE_COMMIT
+     H=$(git hash-object -w copy.yml)
+     git update-index --add --cacheinfo 100644,$H,.github/workflows/name.yml
+     git commit-tree "$(git write-tree)" -p BASE_COMMIT -m "test: fixture"
+   )
+   [ -n "$T" ] && git show --stat "$T" && git push FORK "$T:refs/heads/release/9.9.9"
    ```
 
    On Windows Git Bash, prefix a path-like `git show REF:path` with `MSYS2_ARG_CONV_EXCL='*'` for that command only.
 5. **Push only to forks.** Never push a commit that makes an open PR's base and head identical, and never merge.
-6. **Verify the commit before pushing.** `git show --stat` should list every intended file. `git rm` stages only the deletion, so a commit made from it can omit the edits.
+6. **Verify the commit before pushing.** Run `git show --stat COMMIT` and check that it lists every file you meant to change. For example, if you edit some files and delete another with `git rm`, only the deletion is staged, and a plain `git commit` leaves the edits out.
 
 ## Reset Between Runs
 
-Record the old SHAs, then close the test PR, delete its branch and any generated branch, and rebuild the fixture. A run needs a new commit SHA to trigger. If you enabled a disabled workflow to dispatch it, disable it again afterwards. Leftover fixtures change results: a script that picks a baseline from earlier release branches fails on an older branch that never got its changelog section.
+Record the old SHAs, then close the test PR, delete its branch and any generated branch, and rebuild the fixture. Pushing a ref that already points at the same commit does nothing. To rerun a push workflow, push to a new branch name or build a new fixture commit. `workflow_dispatch` can always run again on the same ref. If you enabled a disabled workflow to dispatch it, disable it again afterwards. Leftover fixtures change results: a script that picks a baseline from earlier release branches fails on an older branch that never got its changelog section.
 
 ## Fork-Only Traps
 
@@ -91,9 +98,11 @@ Record the old SHAs, then close the test PR, delete its branch and any generated
 |---|---|
 | Validation fails on repository links | A URL taken from `github.repository` is the fork's, but the fixture's links point at upstream. Hardcode the upstream URL in the copy. |
 | No run starts | Workflow disabled on the fork, branch filter, or `github.event.created` needs a newly created ref. |
+| A job stays queued forever | It requests a larger or custom runner label, or an org runner group, that the fork does not have. Point the copy at `ubuntu-latest` and list it as a deviation. |
 | Script skips opening a PR | It treats closed PRs for the branch as "already handled". Open the PR by hand to mimic the state you want. |
+| The first runs are slow or behave differently | The fork's Actions cache starts empty. |
 | Line-ending noise in diffs | Windows autocrlf. Normalize both files to LF before diffing. |
 
 ## Report
 
-For each run give the fork branch and commit that ran, the run id, the deviations from the committed file, the result, and what the fork could not cover (real tokens, org secrets, other trigger paths). Say which branch the tests did not run on if that differs from the one under review.
+For each run give the fork branch and commit that ran, the run id, the deviations from the committed file, the result, and what the fork could not cover (real tokens, org secrets, other trigger paths, `merge_group` unless the fork has a merge queue ruleset). Say which branch the tests did not run on if that differs from the one under review.
