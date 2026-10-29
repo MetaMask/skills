@@ -13,7 +13,7 @@ Run `mm-harness doctor` through `scripts/setup-check`, from the MetaMask checkou
 
 ## harness
 
-This skill installs before the harness, so a missing `mm-harness` is step one: `npm i -g @deeeed/metamask-harness@0.94.6` (the recommended release), then `mm-harness --version`. Everything below runs inside a MetaMask checkout (metamask-extension, metamask-mobile, core). If the user did not start you in one, run `mm-harness setup-base --dry-run`, show what it would create, and ask before running it for real.
+This skill installs before the harness, so a missing `mm-harness` is step one: `npm i -g @deeeed/metamask-harness@0.94.7` (the recommended release), then `mm-harness --version`. Everything below runs inside a MetaMask checkout (metamask-extension, metamask-mobile, core). If the user did not start you in one, run `mm-harness setup-base --dry-run`, show what it would create, and ask before running it for real.
 
 ## doctor
 

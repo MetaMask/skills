@@ -3,5 +3,5 @@
 
 HARNESS_PACKAGE_NAME="@deeeed/metamask-harness"
 # Recommended provider release; the configured runtime may use another version.
-HARNESS_PACKAGE_CHANNEL="0.94.6"
+HARNESS_PACKAGE_CHANNEL="0.94.7"
 HARNESS_PACKAGE_SPEC="$HARNESS_PACKAGE_NAME@$HARNESS_PACKAGE_CHANNEL"
