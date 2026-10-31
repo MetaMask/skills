@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip a planning brief for an unkept spike or POC and for routine CI-only work, including a workflow edit that changes how jobs or E2E launch. A CI change that is a new design, a contract or API change, or multi-surface work still stops for a brief and a spec. For a revert of a merged pull request or commit, name the target and files, then ask one yes/no, and name the risk when security or privacy is involved. Recommend a spec for a new design, a contract or API change, or multi-surface work even when the ask is fully specified or single-file; any other fully specified ask gets one line of scope and one yes/no instead of a brief, unless it touches auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state, which still gets a brief. Always read the installed skill catalog, including for reverts and fully specified asks.
 - Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
 
+### Fixed
+
+- `perps/recipe-cook`: a worker whose visual criteria are `awaiting-review` finishes the task and leaves those criteria to the run gate, instead of holding the task pending for a review that only happens after completion.
+
 ## [0.3.1]
 
 ### Fixed
