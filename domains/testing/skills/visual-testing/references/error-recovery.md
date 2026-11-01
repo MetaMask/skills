@@ -14,13 +14,7 @@
    - `home` → continue, but check for modals or blockers
    - `onboarding-*` → complete onboarding
    - `unknown` → take a screenshot and investigate
-3. Query prior runs:
-   ```bash
-   mm knowledge-search "send"
-   mm knowledge-sessions
-   mm knowledge-last
-   ```
-4. Capture `mm screenshot --name "debug"` for diagnosis
+3. Capture `mm screenshot --name "debug"` for diagnosis
 
 ## Error Codes
 
@@ -65,3 +59,7 @@
 | `MM_CONTEXT_SWITCH_BLOCKED`                 | Active session               | `mm cleanup` before `mm set-context`                          |
 | Fixtures not available                      | Running in prod context      | `mm set-context e2e`                                          |
 | Stale a11yRefs after navigate               | Refs not refreshed           | `mm describe-screen` for fresh refs                           |
+| Ref clicks the wrong element                | Ref used after `--observe none` | `mm describe-screen`, or target by `--testid`              |
+| Strict mode violation on click              | Target matches more than one element | Target by `--testid` or `--selector`                  |
+| `Tool execution timed out`                  | Call cancelled after the request limit | `mm describe-screen` before retry; the action can have happened |
+| `Error: unknown command 'knowledge-...'`    | Knowledge store removed      | No replacement. Discover with `mm describe-screen`           |
