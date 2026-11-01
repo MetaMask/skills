@@ -169,7 +169,7 @@ All interaction commands accept on iOS:
 | `yarn mm screenshot [--name <name>]` | Capture the current simulator screen |
 | `yarn mm accessibility-snapshot` | Return a trimmed accessibility tree (the shared `--root <selector>` flag is ignored on iOS; the full tree is always returned) |
 | `yarn mm list-testids [--limit <n>]` | List visible test IDs |
-| `yarn mm get-state` | Return a partial app-state snapshot: `isLoaded`, `extensionId` (the bundle ID / package), `source: "stub"`, and `currentScreen` only when a known test ID identifies the screen. Wallet fields (unlock, account, network, balance) are omitted, not guessed |
+| `yarn mm get-state` | Return a partial app-state snapshot: `isLoaded`, `extensionId` (the bundle ID / package) and `source: "stub"`. There is no `currentScreen`, and wallet fields (unlock, account, network, balance) are omitted, not guessed. Identify the screen from `describe-screen` test IDs (for example `login-password-input` = unlock, `wallet-screen` = wallet home) |
 | `yarn mm get-context` | Report the static prod environment and available mobile capabilities |
 
 Mutating tools (`click`, `type`, ...) and `run-steps` return observations with fresh references, as a compact diff from the prior observation by default. Reads, discovery commands and `cdp` return no observation. Use `describe-screen` whenever a complete tree or refreshed baseline is needed.
