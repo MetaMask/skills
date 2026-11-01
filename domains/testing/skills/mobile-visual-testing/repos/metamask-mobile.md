@@ -224,7 +224,7 @@ Pattern: discover with `yarn mm describe-screen` → batch known steps with `yar
 - No `mm build`; build/install separately.
 - No URL navigation, tab switching, browser notification pages, or browser clipboard APIs.
 - `navigate-home` and `navigate-settings` are not implemented; navigate through visible UI elements.
-- `mm cdp` requires Metro.
+- `mm cdp` requires Metro. It does not reuse the launch's `--metro-port`, so pass `--metro-port <port>` on each `cdp` / `hermes-targets` call when Metro is not on 8081.
 - One Metro process per worktree is recommended.
 - Mutating commands return compact diff observations; request a full `describe-screen` whenever refs or state are uncertain.
 - **After a call with `--observe none`, refs are not refreshed.** Target by `--testid`, or run `describe-screen` before you use refs again: a stale ref can tap a different element.

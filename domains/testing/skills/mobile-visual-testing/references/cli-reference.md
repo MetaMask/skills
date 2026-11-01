@@ -239,6 +239,8 @@ yarn mm launch --metro-port 8081
 MM_METRO_PORT=8081 yarn mm launch
 ```
 
+`yarn mm cdp` and `yarn mm hermes-targets` do not reuse the launch's `--metro-port`: they use the daemon's `HERMES_METRO_PORT` or 8081. When Metro runs on another port, pass `--metro-port <port>` on every `cdp` / `hermes-targets` call, or the call fails with `HERMES_CONNECTION_FAILED`.
+
 On Node 20, add `NODE_OPTIONS="--experimental-websocket"` when launching. `yarn mm cdp` returns no observation by default. After runtime mutation, add `--observe full` or run `yarn mm describe-screen` to resynchronize observations.
 
 ## Simulator Selection
