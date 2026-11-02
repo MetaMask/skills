@@ -47,7 +47,7 @@
 | ------------------------------------------- | ---------------------------- | ------------------------------------------------------------- |
 | `MM_SESSION_ALREADY_RUNNING`                | Previous session not cleaned | `mm cleanup`                                                  |
 | `MM_NO_ACTIVE_SESSION`                      | No browser running           | `mm launch`                                                   |
-| Extension not loading                       | Extension not built          | `yarn build:test:webpack` then `mm launch`                    |
+| Extension not loading                       | Extension not built          | `yarn build:test` then `mm launch`                            |
 | `EADDRINUSE` port error                     | Orphan processes             | Check `.mm-server` for ports, kill orphaned process           |
 | `MM_TARGET_NOT_FOUND`                       | Element not visible          | `mm describe-screen` to check state                           |
 | `MM_WAIT_TIMEOUT`                           | Slow environment             | Increase `--timeout`, inspect screenshot                      |

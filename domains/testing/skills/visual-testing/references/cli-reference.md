@@ -143,7 +143,7 @@ Two contexts: `e2e` (default — local Anvil, fixtures, seeding) and `prod` (no 
 | `mm get-contract-address` | Get deployed contract address                               |
 | `mm list-contracts`       | List all deployed contracts                                 |
 
-The knowledge store commands (`mm knowledge-search`, `mm knowledge-last`, `mm knowledge-sessions`, `mm knowledge-summarize`) and the `mm launch --goal` / `--flow-tags` flags were removed in `@metamask/client-mcp-core` 0.13.0. Session metadata is written to `test-artifacts/<sessionId>/session.json`.
+The knowledge store commands (`mm knowledge-search`, `mm knowledge-last`, `mm knowledge-sessions`, `mm knowledge-summarize`) and the `mm launch --goal` / `--flow-tags` flags were removed in `@metamask/client-mcp-core` 0.13.1 (the first published 0.13 version). Session metadata is written to `test-artifacts/<sessionId>/session.json`.
 
 ## Advanced
 

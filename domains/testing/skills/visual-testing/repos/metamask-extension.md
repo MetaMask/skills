@@ -56,7 +56,7 @@ yarn mm <command>        # or: npx mm <command>
 - `mm launch` validates the build and returns an actionable error if missing.
 
 ```bash
-yarn install && yarn build:test:webpack
+yarn install && yarn build:test        # fresh worktree: run `yarn webpack:tsc` first
 ```
 
 **Port conflicts** — if ports are stuck from a previous run, check `.mm-server` for active ports:
