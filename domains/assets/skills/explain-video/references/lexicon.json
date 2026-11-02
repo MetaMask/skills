@@ -1,0 +1,18 @@
+{
+  "PEPE": {"spoken": "ˈpɛpeɪ"},
+  "TanStack": {"spoken": "tan-stack"},
+  "OHLCV": {"spoken": "O-H-L-C-V"},
+  "launchpad": {"spoken": "launch-pad"},
+  "memecoin": {"spoken": "meme-coin"},
+  "prefetch": {"spoken": "pre-fetch"},
+  "/v2/assets": {"spoken": "version two assets"},
+  "SecurityTab.test.tsx": {"spoken": "security tab dot test dot T S X"},
+  "SecurityTab.tsx": {"spoken": "security tab dot T S X"},
+  "SectionHeader": {"spoken": "section header"},
+  "SectionHeading": {"spoken": "section heading"},
+  "HeadingMd": {"spoken": "heading M D"},
+  "titleProps": {"spoken": "title props"},
+  "EVM": {"spoken": "E V M"},
+  "ID": {"spoken": "I D", "phonemes": "ˌIˈdi"},
+  "id": {"spoken": "I D", "phonemes": "ˌIˈdi"}
+}
