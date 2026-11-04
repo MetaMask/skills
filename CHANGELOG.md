@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rewrite `ui/content-guidelines` as the shared copy source for Mobile and Extension. Confirmed button, fee, wallet, error, and terminology decisions now live in `skill.md`. The Mobile overlay keeps client paths and examples. Add `repos/metamask-extension.md` so Extension installs the skill.
 - Update the MetaMask Mobile performance overlay and animation references for React Native 0.86.x, Expo SDK 57, and Reanimated 4.x with `react-native-worklets`. From a worklet, call `scheduleOnRN` (`runOnJS` is a deprecated alias). Static-ESM tree-shaking stays off. ([#203](https://github.com/MetaMask/skills/pull/203))
 - Require every revert yes/no to be one line that names the pull request or commit, the files, and exactly one yes/no question, whether or not security or privacy is involved. A shorter message is not that step.
 - Keep a new public method or other contract change on the brief and spec path when the objection is that another package should own the edit. Put that objection in the brief.
