@@ -20,7 +20,7 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 
 - Unmarked rules are confirmed. Follow them.
 - **PROPOSED** rules are drafts for Ali Forrest. Use one for new copy only when it does not conflict with a confirmed rule. Do not rewrite existing copy only to satisfy a PROPOSED rule.
-- [Open questions](#open-questions) and [Pending verification](#pending-verification) are not rules. Do not enforce them and do not lint them.
+- [Open questions](#open-questions) are not rules. Do not enforce them and do not lint them.
 
 ## When to use
 
@@ -41,7 +41,7 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 3. Match a [do / don't](#do--dont) example.
 4. Read the repo overlay for where the string lives. On install, that overlay is already appended to this skill. In a source checkout, open `repos/metamask-mobile.md` or `repos/metamask-extension.md`.
 5. Edit the English source in the app repo. Do not edit the generated `mms-content-guidelines` copy under `.claude/`, `.cursor/`, or `.agents/`. The next sync overwrites it.
-6. Skip [Open questions](#open-questions) and [Pending verification](#pending-verification). Apply a **PROPOSED** rule only as the note above allows.
+6. Skip [Open questions](#open-questions). Apply a **PROPOSED** rule only as the note above allows.
 
 ## Voice and tone
 
@@ -76,21 +76,25 @@ Use contractions. No exceptions.
 | successfully, "was successful", "has been" on a success | Past participle. "Order placed", "{{name}} added" |
 | please | Name the action. "Enter a limit price" |
 | sorry, unfortunately | State what happened, then the action |
-| click here | Name the destination. "Tap to…" is allowed |
-| fiat | local currency |
-| gas, gas fee, transaction fee in a default flow | network fee. See [Fees](#fees) |
+| click here | Name the destination. "Tap to…" is allowed on mobile only |
+| fiat | The currency name (USD, EUR). "Local currency" only for the setting that picks one |
+| gas, gas fee, transaction fee in a default flow | network fee. See [Fees](#fees). Leadership confirmed this |
 | dapp, dApp, DAPP, ÐApps | site |
 | native currency | network currency |
-| allowance, spend limit, token allowance | spending cap |
+| allowance, spend limit, token allowance | spending cap. On Tron, do not say "allowance" for daily resources either |
 | cryptocurrency | crypto |
-| coins | tokens |
+| coins | tokens. "coin" is allowed only on Perps market screens |
 | delete wallet, erase, erase wallet | reset wallet |
 | seed phrase, SRP, mnemonic | Secret Recovery Phrase |
-| sign in, when it means the same action as log in | log in |
+| sign in, when it is the same action as log in | log in. Social login buttons stay "Sign in with Apple" and "Sign in with Google" |
 
-"Tap to…" is allowed. The older ban on that phrase is retired.
+"Tap to…" is allowed on mobile only. Do not use it in the extension. Name the control there. The older ban on that phrase is retired for mobile.
 
-Partner exceptions for "coin", "fiat", and Tron "allowance" are [open](#open-questions). Do not grant them yourself.
+Do not use "allowance" for Tron daily resources. It clashes with spending caps. Name the resource without that word.
+
+Do not write "fiat". Use the currency's name. Use "local currency" only when the screen is the setting that chooses a currency, and no single currency is named.
+
+"coin" is allowed only on Perps market screens. Everywhere else, say "tokens".
 
 ## Capitalization
 
@@ -104,7 +108,7 @@ Partner exceptions for "coin", "fiat", and Tron "allowance" are [open](#open-que
 | MetaMask product names | MetaMask, MetaMask Card, Metal Card, Virtual Card, Snaps, Perps, Predictions, Rewards (the product) |
 | Legal document names | Terms of Use, Privacy Policy. A partner document uses the partner's own title. Never "T&C" or "Terms and Conditions" for MetaMask's own |
 | The Settings screen | "Settings" when it names that screen ("Open Settings"). A sub-screen is sentence case ("Security and privacy") |
-| Other proper nouns | Ethereum, OpenSea, Ledger, Apple, Google, Consensys, X. Write "X", not "Twitter" or "X (Twitter)" |
+| Other proper nouns | Ethereum, OpenSea, Ledger, Apple, Google, Consensys, Hyperliquid, X. Write "X", not "Twitter" or "X (Twitter)". Write "Hyperliquid", not "HyperLiquid" |
 | Network names | Ethereum Mainnet, Polygon Mainnet, Arbitrum One |
 | Abbreviations | NFT, API, DAO, DeFi, ETH, BTC, SOL, plus the trading abbreviations in [Abbreviations](#abbreviations) |
 
@@ -136,7 +140,20 @@ Also sentence case: titles, buttons, menus, settings labels, section headers, ta
 
 No all-caps headlines (`predict.gtm_content.title` is "PREDICT AND WIN"; use "Predict and win").
 
-Imported Predictions market and sports names are an [open question](#open-questions). Leave the venue's casing alone.
+Predictions market labels we write are sentence case. Keep team names and league names as proper nouns.
+
+```
+❌ "Exact Score" (`predict.sports_market_types.exact_score`)
+✅ "Exact score"
+
+❌ "1st Half Team Totals" (`predict.sports_market_types.soccer_first_half_team_totals`)
+✅ "1st half team totals"
+
+❌ "Both Teams Slay Baron Nashor"
+✅ "Both teams slay Baron Nashor"
+```
+
+On mobile, those labels are our strings: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*` in `locales/languages/en.json`. The market question on a card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text in code. Team and league names inside it stay as the feed sent them. Team matching compares `groupItemTitle` to the feed's team name, so a casing rewrite would also break that match.
 
 **PROPOSED.** Transaction Shield, MetaMask Swaps, and Basic functionality are not on the title-case list and are not confirmed as product names. Match the casing already shipped in that flow. Do not invent a third casing, and do not start a migration.
 
@@ -179,17 +196,17 @@ Confirmed allowlist:
 
 ### Ellipsis
 
-Loading and in-progress text ends in three ASCII dots. Shortened addresses use the same three dots. Do not use the unicode ellipsis character. Do not trail off a sentence.
+Loading and in-progress text is a present participle. Do not trail off a sentence. Do not use a filler.
 
 ```
 ✅ "Loading your tokens..."
 ✅ "Processing deposit..."
-✅ "0x0000...0000"
-❌ "Loading your tokens…"
 ❌ "Something went wrong...."
 ❌ "Hang tight"
 ❌ "Please wait"
 ```
+
+Whether that ellipsis is three ASCII dots (`...`) or curly punctuation is an [open question](#open-questions). Do not migrate one form to the other. Shortened addresses stay `0x0000...0000`.
 
 ### Ampersands, commas, colons
 
@@ -210,15 +227,27 @@ Do not use a colon in a label or a heading.
 ❌ "Tokens, NFTs and DeFi"
 ```
 
-### Apostrophes and quotes
-
-Use curly apostrophes and quotes in UI strings: ’ and “ ”.
-
 ### Em dash and bullets
 
 Do not use an em dash. Rewrite with a period or a comma.
 
-A bullet `•` is a data separator only ("Get USDC • Ethereum"). Do not use it in a sentence or as a list marker.
+A bullet `•` is a data separator only ("Get USDC • Hyperliquid"). Do not use it in a sentence or as a list marker.
+
+### Plurals and line breaks
+
+Do not write "(s)" for one or many. "(s)" does not translate. Use a count and a separate string for the singular and the plural.
+
+```
+❌ "Successfully closed {{count}} position(s)" (`perps.close_all_modal.success_message`)
+✅ "Closed 1 position" and "Closed {{count}} positions"
+```
+
+Do not put a newline inside a string. Split it into separate strings.
+
+```
+❌ "You don't have any open positions yet.\nStart trading to see your positions here." (`perps.position.list.empty_description`)
+✅ One string for the state, and one string for the next step
+```
 
 ### Emoji
 
@@ -236,8 +265,8 @@ One emoji is allowed at the end of a title in a celebratory moment, for example 
 - Spell out duration units: "1 minute", "5 minutes", "1 hour". Compact chips may use "1m", "1h", "24h".
 - "about" means an estimate. "within" means a maximum. "up to" means an upper limit. Do not write "typically" or "should" for these.
 - Addresses: `0x0000...0000`
-
-Hardcoded time zones, and any switch from `a.m.` / `p.m.` to `am` / `pm`, are an [open question](#open-questions). Keep the clock style above.
+- Do not hardcode "EST" or "EDT". Show the user's local time. If you cannot, write "ET".
+- Written copy keeps `a.m.` and `p.m.` A time the locale formatter generates uses that formatter. Do not hand-build it, and do not switch written copy to `am` / `pm`.
 
 ## Buttons and actions
 
@@ -445,7 +474,7 @@ A placeholder is a short action ("Enter amount", "Search tokens") or a format ex
 
 ### Field wording
 
-Drop possessives in field prompts: "Enter password", "Enter email". Keep "your" in full sentences. This replaces prompts such as "Enter your password" and "Enter your Secret Recovery Phrase".
+For new copy, drop possessives in field prompts: "Enter password", "Enter email". Keep "your" in full sentences. Do not migrate existing onboarding strings, including "Enter your Secret Recovery Phrase" and "Enter your password", until content leadership signs off on that migration.
 
 Mark an optional field with "(optional)".
 
@@ -495,6 +524,8 @@ Authentication:
 
 ## Fees
 
+Content leadership confirmed this fee rule, including where "gas" survives.
+
 Name the fee by who is paid.
 
 | Term | Who is paid |
@@ -542,7 +573,7 @@ Account group labels are "Secret Recovery Phrase 1", "Secret Recovery Phrase 2",
 
 American English. "canceled", not "cancelled". "authorizes", not "authorises". The existing example "so it was canceled" is the spelling to copy.
 
-Two words for the verb, one word for the noun: "log in" / "login", "set up" / "setup", "back up" / "backup". "opt in" is the verb. "opt-in" is the adjective. "Backup and sync" may stay as the feature name. Where "sign in" and "log in" mean the same action, use "log in".
+Two words for the verb, one word for the noun: "log in" / "login", "set up" / "setup", "back up" / "backup". "opt in" is the verb. "opt-in" is the adjective. "Backup and sync" may stay as the feature name. Where "sign in" and "log in" mean the same action, use "log in". Social login buttons are the exception: Apple and Google require "Sign in with Apple" and "Sign in with Google". Do not rewrite those.
 
 ## Abbreviations
 
@@ -564,12 +595,12 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Account | Account | wallet, when you mean one address | Add, rename, switch, export private key. "Imported account", "Ledger account" |
 | Secret Recovery Phrase | Secret Recovery Phrase | seed phrase, SRP, mnemonic | Always spelled out. Groups: "Secret Recovery Phrase 1" |
 | Private key | private key | Private Key, seed | Sentence case, including titles |
-| Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Education may add "(also called gas)" once |
+| Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Leadership confirmed this. Education may add "(also called gas)" once |
 | MetaMask fee | MetaMask fee | Fee | The fee MetaMask is paid |
 | Provider fee | Provider fee, or the partner's name | Fee | Third party |
 | Gas limit, Max base fee, Priority fee, Gwei | Those labels | gas price, GWEI, gas fee | Advanced editor only |
 | Advanced network fee | Advanced network fee | Advanced gas, Gas fee | **PROPOSED** editor title |
-| Spending cap | spending cap | allowance, spend limit, token allowance | Button is Approve |
+| Spending cap | spending cap | allowance, spend limit, token allowance | Button is Approve. Do not say "allowance" for Tron daily resources |
 | Confirm | Confirm | Sign, Proceed, Submit, Accept | Transactions, signatures, final review |
 | Approve | Approve | Confirm, for a spending cap or permission | Spending caps and permissions |
 | Continue | Continue | Next, except in a numbered step | Move forward |
@@ -578,9 +609,9 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Learn more | Learn more | Learn more. | No period |
 | Network | network | chain, on-chain | **PROPOSED** for the chain synonym. "Chain ID" is the field |
 | Site | site | dapp, dApp, ÐApps | |
-| Local currency | local currency | fiat | Partner exception is open |
+| Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
-| Tokens | tokens | coins, cryptocurrency | "crypto" is fine for the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
+| Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
 | NFT | NFT | collectible | **PROPOSED** for collectible |
 | Reset wallet | Reset wallet | delete wallet, erase | |
 | Add funds | Add funds | Deposit, except an activity-list type | |
@@ -592,9 +623,10 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Terms of Use, Privacy Policy | Those titles | T&C, Terms and Conditions | MetaMask's own documents |
 | Pix key | Pix key | PIX key, pix key | |
 | X | X | Twitter, X (Twitter) | |
-| Log in | log in (verb), login (noun) | sign in, for the same action | |
+| Log in | log in (verb), login (noun) | sign in, for the same action | Social buttons stay "Sign in with Apple" and "Sign in with Google" |
 | Back up | back up (verb), backup (noun) | backup as the verb | |
-| P&L | P&L | PnL | Define on first use. Hyperliquid spelling is not confirmed |
+| P&L | P&L | PnL | Define on first use |
+| Hyperliquid | Hyperliquid | HyperLiquid | Brand spelling. Migrate the capital L |
 
 ## Do / don't
 
@@ -616,7 +648,10 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep, for finishing onboarding or wallet creation | On the exclamation allowlist |
 | "Learn more." (`app_settings.learn_more` and `learnMore` variants) | "Learn more" | No period |
 | "Dapp browser" / "Dapps" / "ÐApps" | "Sites" | `trending.tabs.dapps` already says "Sites" |
-| "Display fiat values in using a specific currency…" (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | Broken grammar, and "fiat" |
+| "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
+| "HyperLiquid" | "Hyperliquid" | Brand spelling. Migrate it |
+| "Exact Score" (`predict.sports_market_types.exact_score`) | "Exact score" | Our label, sentence case. The card's question still comes from the Polymarket feed |
+| "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site." and a plural string | "(s)" does not translate |
 | "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." | Keep | Names the actor, the problem, and the action |
 | "Back up your Secret Recovery Phrase to keep your wallet and funds secure." (`backupApprovalNotice`) | Keep | Calm, and the right noun for the wallet |
 | "File import not working? Click here!" | "Try a different file" | Question, "click here", and an exclamation |
@@ -643,26 +678,20 @@ Client-specific drafts are in the mobile and extension overlays: `toSentenceCase
 
 ## Open questions
 
-Content leadership has not decided these. Do not enforce them, do not lint them, and do not invent the answer in a string.
+Content leadership has not decided this. Do not enforce it, do not lint it, and do not migrate strings to satisfy either side.
 
-1. **Predictions market and sports labels.** Casing of imported names such as "1st Half Team Totals" is open. Leave the venue's text alone.
-2. **Partner and industry terms.** Possible exceptions for "coin" (Perps), "fiat" (partner flows), and "allowance" (Tron daily resources) are open. The standing bans still apply. Do not write the exception.
-3. **"(s)" plurals and raw newlines in strings.** Open. Do not migrate them and do not add a lint.
-4. **Time zones and `am` / `pm`.** Open. Keep `Jun 16 at 5:55 p.m.` Do not add a rule for EST or EDT, and do not switch the clock style.
-
-## Pending verification
-
-**Hyperliquid.** The working spelling is "Hyperliquid", not "HyperLiquid", but it is not confirmed against the partner's brand page. Do not treat either spelling as a guidelines failure, and do not migrate existing strings, until content design verifies it.
+**Loading ellipsis and curly punctuation.** Loading text as three ASCII dots (`...`, rule 10) contradicts curly apostrophes, quotes, and punctuation everywhere (rule 16). Corey Janssen asked for one approach. Until that choice is made, do not require `...`, do not require `…`, and do not require curly quotes or apostrophes. Do not migrate a string from one form to the other. The rest of the loading rule still applies: a present participle, no "Hang tight", and no "Please wait". Address abbreviations stay `0x0000...0000`.
 
 ## Checklist
 
 Before you finish a user-facing string:
 
-- Sentence case, unless the word is on the title-case list. "Private key" is sentence case. "Secret Recovery Phrase" is spelled out.
-- Curly apostrophe or quote. Period only on a full sentence. No em dash. No `&` for "and".
-- Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more."
-- Wallet, account, network fee, and spending cap match the glossary.
+- Sentence case, unless the word is on the title-case list. "Private key" is sentence case. "Secret Recovery Phrase" is spelled out. Predictions labels we write are sentence case, with team and league names left as proper nouns. "Hyperliquid" uses that spelling.
+- Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not enforce curly quotes or a specific loading ellipsis.
+- Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
+- Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
 - No "please" or "successfully". Exclamation points only for finishing onboarding or wallet creation.
 - Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
-- You did not enforce an open question or the Hyperliquid spelling.
+- No hardcoded EST or EDT. Written clock times use `a.m.` and `p.m.`
+- You did not enforce the open punctuation question, and you did not rewrite an existing onboarding field prompt.

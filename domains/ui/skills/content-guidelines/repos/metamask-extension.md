@@ -16,7 +16,7 @@ Shared rules are in the content-guidelines skill. This overlay is the MetaMask b
 
 The generated skill under `.claude/skills/mms-content-guidelines/`, `.cursor/rules/mms-content-guidelines/`, and `.agents/skills/mms-content-guidelines/` is overwritten on the next sync. Change this overlay or the shared skill, then sync.
 
-"Click here" is banned. Name the control ("Connect your Ledger", not `clickToConnectLedgerViaWebHID`).
+"Click here" is banned. Name the control ("Connect your Ledger", not `clickToConnectLedgerViaWebHID`). Do not write "Tap to…". That phrase is mobile only.
 
 Signature requests, transactions, and final review use Confirm. Do not label that button Sign. `QRHardwareSignRequestCancel` is "Reject"; do not copy that label onto new screens (see the shared **PROPOSED** note on Reject).
 

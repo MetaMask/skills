@@ -16,7 +16,9 @@ Shared rules are in the content-guidelines skill. This overlay is MetaMask Mobil
 
 The generated skill under `.claude/skills/mms-content-guidelines/`, `.cursor/rules/mms-content-guidelines/`, and `.agents/skills/mms-content-guidelines/` is overwritten on the next sync. Change this overlay or the shared skill, then sync.
 
-On mobile, do not say "clicking" in a consent line. "Tap to…" is allowed.
+On mobile, do not say "clicking" in a consent line. "Tap to…" is allowed in this client. It is not allowed in the extension.
+
+Predictions market-type labels are ours: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*`. Sentence-case those. The question on a market card comes from the Polymarket feed (`question`, `groupItemTitle`, event `title` in `PolymarketProvider`). Do not sentence-case that feed text.
 
 ## PROPOSED
 
