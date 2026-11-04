@@ -9,7 +9,7 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
+   `domains/testing/`, `domains/pr-workflow/`, etc. carry the conventions
    and review heuristics for `metamask-extension`, `metamask-mobile`, and `core`.
    These install into consumer repos via a small CLI.
 
@@ -83,7 +83,7 @@ From inside an integrated consumer repo:
 ```bash
 yarn skills
 
-# To opt into experimental ADR-58 recipe skills:
+# To opt into experimental ADR-58 recipe skills (needs the Consensys/skills overlay):
 yarn skills --domain agentic --maturity experimental
 ```
 
@@ -109,9 +109,7 @@ curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstra
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
   bash -s -- --repo core
 
-# To opt into experimental ADR-58 recipe skills:
-curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
-  bash -s -- --repo metamask-extension --domain agentic --maturity experimental
+# Experimental recipe skills need the Consensys/skills overlay, which bootstrap does not use.
 ```
 
 The bootstrap script clones this repo into a cache dir under
@@ -144,7 +142,7 @@ tools/
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
 | `platform`     | MM product eng    | Product analytics and other platform skills  |
-| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
+| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools (Consensys/skills overlay) |
 | `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
@@ -287,10 +285,11 @@ than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/
 inside an installed skill, while prune-stale removes whole generated skill
 directories that no longer exist in the resolved source/filter set.
 
-Recipe skills currently live in the experimental `agentic` domain. Install all
-lower-level recipe tools in this rollout with `--domain agentic --maturity
-experimental`, or cherry-pick only the ones you want with
-`--include agentic/<skill>`.
+Recipe skills live in the experimental `agentic` domain of the private
+`Consensys/skills` overlay, so every `agentic` example here needs
+`CONSENSYS_SKILLS_DIR`. Install all lower-level recipe tools in this rollout with
+`--domain agentic --maturity experimental`, or cherry-pick only the ones you want
+with `--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -357,7 +356,8 @@ yarn skills
 ```
 
 Engineers without access to the private repo simply don't set
-`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own.
+`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own, without the
+`agentic` recipe skills.
 
 ## Authoring a skill
 
