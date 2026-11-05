@@ -80,3 +80,37 @@ test('a configured launcher inside a retained pin refuses before bootstrap mutat
   assert.deepEqual(await snapshot(retainedProvider), pinBefore);
   assert.deepEqual(await snapshot(task), before);
 });
+
+test('a retained task honors an explicit harness without changing frozen inputs', async (t) => {
+  const { task, poolProvider, scripts, env, before } = await retainedFixture(t, 'pool-update');
+  const override = path.join(poolProvider, 'bin/mm-harness');
+  const result = spawnSync(path.join(scripts, 'resolve-harness'), [task, '--verify-only'], {
+    encoding: 'utf8', env: { ...env, MM_HARNESS_BIN: override },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim(), override);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(await snapshot(task), before);
+});
+
+test('an invalid explicit harness on a retained task refuses instead of using the pool', async (t) => {
+  const { task, scripts, env, before } = await retainedFixture(t, 'pool-update');
+  const result = spawnSync(path.join(scripts, 'resolve-harness'), [task, '--verify-only'], {
+    encoding: 'utf8', env: { ...env, MM_HARNESS_BIN: path.join(task, 'missing-harness') },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /ENOENT/);
+  assert.deepEqual(await snapshot(task), before);
+});
+
+test('an explicit harness inside the retained pin is refused without changing it', async (t) => {
+  const { task, retainedProvider, scripts, env, before } = await retainedFixture(t, 'pool-update');
+  const pinBefore = await snapshot(retainedProvider);
+  const result = spawnSync(path.join(scripts, 'resolve-harness'), [task, '--verify-only'], {
+    encoding: 'utf8', env: { ...env, MM_HARNESS_BIN: path.join(retainedProvider, 'bin/mm-harness') },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /launcher is inside the frozen task pin/);
+  assert.deepEqual(await snapshot(task), before);
+  assert.deepEqual(await snapshot(retainedProvider), pinBefore);
+});

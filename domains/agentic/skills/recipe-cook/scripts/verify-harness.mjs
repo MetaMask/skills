@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { access, readFile, realpath } from 'node:fs/promises';
-import { constants } from 'node:fs';
+import { constants, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -51,23 +51,33 @@ export async function recordedHarnessExecutable(task, lock) {
     projectsDir: process.env.FARMSLOT_PROJECTS_DIR,
     slotPoolDir: process.env.FARMSLOT_POOL_DIR,
   };
-  const location = await sdk.resolveHarnessContext({ ...options, adapter: false });
   let root = process.env.MM_HARNESS_PACKAGE_ROOT;
-  if (location.slot?.value && location.slot.poolFile) {
-    if (!options.projectsDir) {
-      const packInput = lock.retainedInputs.find(entry => selected.packRoot === entry.source
-        || selected.packRoot.startsWith(`${entry.source}${path.sep}`));
-      assert(packInput, 'Task project configuration was not retained');
-      const packRoot = path.join(packInput.path, path.relative(packInput.source, selected.packRoot));
-      options.projectsDir = path.dirname(packRoot);
+  const override = process.env.MM_HARNESS_BIN ? await realpath(process.env.MM_HARNESS_BIN) : undefined;
+  if (override) {
+    root = path.dirname(override);
+    while (!existsSync(path.join(root, 'package.json'))) {
+      const parent = path.dirname(root);
+      assert(parent !== root, 'Explicit harness has no package manifest');
+      root = parent;
     }
-    root = (await sdk.resolveProjectContext({ ...options, load: { env: {} } })).project.provider.root;
+  } else {
+    const location = await sdk.resolveHarnessContext({ ...options, adapter: false });
+    if (location.slot?.value && location.slot.poolFile) {
+      if (!options.projectsDir) {
+        const packInput = lock.retainedInputs.find(entry => selected.packRoot === entry.source
+          || selected.packRoot.startsWith(`${entry.source}${path.sep}`));
+        assert(packInput, 'Task project configuration was not retained');
+        const packRoot = path.join(packInput.path, path.relative(packInput.source, selected.packRoot));
+        options.projectsDir = path.dirname(packRoot);
+      }
+      root = (await sdk.resolveProjectContext({ ...options, load: { env: {} } })).project.provider.root;
+    }
   }
   const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
   assert.equal(manifest.name, '@deeeed/metamask-harness', 'Selected provider is not the MetaMask harness');
   const bin = typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.['mm-harness'];
   assert(typeof bin === 'string' && bin, 'Selected provider has no mm-harness executable');
-  const executable = await realpath(path.resolve(root, bin));
+  const executable = override ?? await realpath(path.resolve(root, bin));
   assert(executable.startsWith(`${await realpath(root)}${path.sep}`), 'Harness executable is outside its selected package');
   assert(!lock.retainedInputs.some(entry => executable.startsWith(`${entry.path}${path.sep}`)),
     'Selected harness launcher is inside the frozen task pin');

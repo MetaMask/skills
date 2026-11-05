@@ -76,6 +76,10 @@ if (!packageJson) {
   console.error(`resolve-harness: refused ${identity}; expected ${supported}.`);
   process.exit(1);
 }
+if (expectedVersion && packageJson.version !== expectedVersion) {
+  console.error(`resolve-harness: installed ${expectedName}@${packageJson.version}; expected ${expectedName}@${expectedVersion}.`);
+  process.exit(1);
+}
 
 // External runner bookkeeping is mutable state, not shipped harness implementation.
 const isRunnerState = (name) => name === '.omc' || name === '.omx';
@@ -211,7 +215,7 @@ receipt_executable() {
   local candidate recorded_version inspection source_kind
   candidate="${MM_HARNESS_BIN:-$(node -e 'try { process.stdout.write(require(process.argv[1]).resolvedExecutable) } catch { process.exit(1) }' "$receipt")}" || return 1
   recorded_version="$(node -e 'try { const j=require(process.argv[1]); if(typeof j.package?.version!=="string" || !j.package.version) process.exit(1); process.stdout.write(j.package.version) } catch { process.exit(1) }' "$receipt")" || return 1
-  inspection="$(inspect_executable "$candidate" "$recorded_version")" || return 1
+  inspection="$(inspect_executable "$candidate")" || return 1
   if node - "$receipt" "$inspection" <<'NODE'
 const fs = require('node:fs');
 const receipt = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));

@@ -387,7 +387,7 @@ done
 pkg="$prefix/node_modules/@deeeed/metamask-harness"
 validator="$prefix/node_modules/@farmslot/recipe-cli"
 mkdir -p "$pkg/bin" "$pkg/dist" "$pkg/adapters" "$pkg/library" "$prefix/node_modules/.bin" "$validator/dist"
-node - "$pkg/package.json" "$FAKE_INSTALL_VERSION" <<'NODE'
+node - "$pkg/package.json" "${FAKE_PACKAGE_VERSION:-$FAKE_INSTALL_VERSION}" <<'NODE'
 const fs = require('node:fs');
 const [file, version] = process.argv.slice(2);
 fs.writeFileSync(file, `${JSON.stringify({name:'@deeeed/metamask-harness', version, repository:'https://github.com/MetaMask/experimental-metamask-harness.git'})}\n`);
@@ -607,6 +607,18 @@ set -e
 test "$wrong_version_status" -eq 1
 grep -Fq "must resolve exactly $HARNESS_PACKAGE_SPEC" <<< "$wrong_version_output"
 test ! -e "$wrong_version_task/artifacts/harness-provenance.json"
+
+# Exact lock metadata cannot hide a different installed package version.
+wrong_package_task="$root/wrong-package-version-task"
+mkdir -p "$wrong_package_task"
+set +e
+wrong_package_output="$(FAKE_INSTALL_VERSION="$HARNESS_RECOMMENDED_VERSION" FAKE_PACKAGE_VERSION="$newer_version" FAKE_NPM_LOG="$root/npm-wrong-package.log" PATH="$install_bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+  "$resolver" "$wrong_package_task" --choice 1 2>&1)"
+wrong_package_status=$?
+set -e
+test "$wrong_package_status" -eq 1
+grep -Fq "expected $HARNESS_PACKAGE_SPEC" <<< "$wrong_package_output"
+test ! -e "$wrong_package_task/artifacts/harness-provenance.json"
 
 # npm v6 package-lock v1 carries the same exact provenance under dependencies.
 v1_task="$root/v1-install-task"
