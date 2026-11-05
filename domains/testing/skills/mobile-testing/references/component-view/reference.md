@@ -60,7 +60,7 @@ Before declaring the task done, go through this checklist for every test written
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | 1   | **No render scenarios** — every test has at least one `fireEvent`, `waitFor`/`findBy`, `store.dispatch`, or Engine spy                                                                                                                                       | Rewrite the test to add a user interaction or system reaction          |
 | 2   | **No selector mocking** — no `(useSelector as jest.Mock).mockImplementation(...)` anywhere in the file                                                                                                                                                       | Remove; drive behavior through state overrides instead                 |
-| 3   | **No fake timers** — no `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`                                                                                                                                                      | Remove fake timers; move time behaviour to a unit test or serve fixtures already in the target state (rule 21) |
+| 3   | **No fake timers** — no `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`                                                                                                                                                      | Remove fake timers; move time behaviour to a unit test or serve fixtures already in the target state (*Keep time-dependent behaviour out of view tests*) |
 | 4   | **Data-completeness test exists** — if the view loads data asynchronously (API, Engine polling), there is one test that waits for the load and validates all fields of all items in the full base mock using `within()` per row                              | Add the data-completeness test                                         |
 | 5   | **Filter/segmentation tests have paired assertions** — every test that selects a filter or changes a network asserts both what appears (`findByTestId`) AND what disappears (`queryByTestId(...).not.toBeOnTheScreen()`) for each item from the previous set. Spy-only checks (refetch count / analytics) are **not** enough | Seed distinct before/after rows; add the missing negative assertions |
 | 6   | **No raw strings in `getByTestId` / `findByTestId` / `queryByTestId`** — all test IDs reference constants from the component's `ComponentName.testIds.ts`                                                                                                    | Create or update the testIds file; replace raw strings with constants  |
@@ -104,7 +104,7 @@ Before declaring the task done, go through this checklist for every test written
 | `Warning: An update was not wrapped in act(...)`                       | Async state update not awaited                                                                       | Use `await waitFor(...)`                                                                                            |
 | `No QueryClient set`                                                   | Missing provider — not in Engine mock                                                                | Add to mocks.ts or wrap with QueryClientProvider in renderer                                                        |
 | Flakey number assertions                                               | Non-deterministic exchange rates                                                                     | Add `deterministicFiat: true`                                                                                       |
-| Test passes locally, fails in CI                                       | Time-sensitive assertions, stale press under CI load, or a sync assert on content that is still loading | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer; await each async-gated value    |
+| Test passes locally, fails in CI                                       | Time-sensitive assertions, stale press under CI load, or a sync assert on content that is still loading | Use `waitFor` / `findBy`; re-query before press when the UI re-renders on a timer; await each async-gated value. Name which of these it is and follow Fixing a Flake; CI load is not a cause by itself |
 | `Timed out in waitFor.` with no assertion detail                       | Nested `find*` inside `waitFor` — both share the 1s default; the outer waiter expires first             | Use `await findBy*` **or** `waitFor(() => getBy*)`; never `waitFor(async () => findBy*)`                        |
 | Pull-to-refresh never refetches                                        | `fireEvent(scrollView, 'refresh')` did not hit the handler                                           | `await act(async () => { await scrollView.props.refreshControl.props.onRefresh(); })`                             |
 | `Expected number of calls: N, Received: M`; passes alone, fails after another test | Shared Engine / `controllerMessenger.call` `jest.fn()` kept call history (or a `mockImplementation`) from an earlier test | `mockClear()` on that mock in `beforeEach`; `mockReset()` / restore if a case changed implementations |
@@ -118,7 +118,7 @@ Before declaring the task done, go through this checklist for every test written
 1. **Name the cause** — map the failure to a row above. "CI is slow" is not a cause.
 2. **Reproduce it locally first** — order leaks with `--randomize --seed=<seed from the failing run>`, timing races under CPU load (for example a parallel full-suite run).
 3. **Show the fix holds under the same condition** — re-run with the same seed or load and report the result.
-4. **A longer timeout is not a fix** — do not merge a PR whose only change is a raised budget. A `{ timeout }` that stays needs a comment naming its async boundary (Golden Rule 14).
+4. **A longer timeout is not a fix** — do not merge a PR whose only change is a raised budget. A `{ timeout }` that stays needs a comment naming its async boundary (*Do not nest `find*` inside `waitFor`*).
 
 ### Inspect what's rendered
 
@@ -319,7 +319,7 @@ extraRoutes: [{ name: Routes.FEATURE.ROOT }];
 // ❌ Filter/segmentation: analytics or refetch count only
 await waitFor(() => expect(listSpy.mock.calls.length).toBeGreaterThan(n));
 expect(trackFilterSpy).toHaveBeenCalled();
-// ✅ Assert both list membership sides (Golden Rule 10)
+// ✅ Assert both list membership sides ("Filter / segmentation tests must assert both sides")
 expect(await findByText('Games market')).toBeOnTheScreen();
 fireEvent.press(getByText('Props'));
 expect(await findByText('Props market')).toBeOnTheScreen();

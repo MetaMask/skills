@@ -107,7 +107,7 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 3. **Reuse presets and renderers** — never rebuild the full state manually from scratch.
 
-4. **No fake timers** — never use `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`. For time-dependent UI, see rule 21.
+4. **No fake timers** — never use `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`. For time-dependent UI, see *Keep time-dependent behaviour out of view tests*.
 
 5. **Test behavior, not snapshots** — use `toBeOnTheScreen()`, `not.toBeOnTheScreen()`, interaction assertions.
 
@@ -137,11 +137,11 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 18. **Negative assertions after the positive path could have rendered** — wait for the owning load phase or skeleton to finish, then assert absence. Immediate `queryBy*` after render is a false green.
 
-19. **Clear call history before asserting call counts** — `toHaveBeenCalledTimes` on a shared Engine or `controllerMessenger.call` mock also counts calls made by earlier tests. Call `mockClear()` on that mock in `beforeEach` (`mockReset()` when a test changes implementations, see rule 15). Signature: `Expected number of calls: N, Received: M`; passes alone, fails after another test.
+19. **Clear call history before asserting call counts** — `toHaveBeenCalledTimes` on a shared Engine or `controllerMessenger.call` mock also counts calls made by earlier tests. Call `mockClear()` on that mock in `beforeEach` (`mockReset()` when a test changes implementations, see *Reset mock implementations between tests*). Signature: `Expected number of calls: N, Received: M`; passes alone, fails after another test. When background work (prefetches, cache refreshes) calls the same mock during the test, also `mockClear()` immediately before the action and assert the exact call with `toHaveBeenCalledWith(...)`.
 
 20. **A `findBy*` result is valid only until the next state change** — if the component can remount between the `await` and the assertion (a query resolving, a loading branch swapping for the loaded one), the held node detaches. Await a marker that only the loaded tree renders, then re-query with `getBy*`. Signatures: `Unable to find node on an unmounted component` or `element could not be found in the element tree` right after an `await`.
 
-21. **Keep time-dependent behaviour out of view tests** — rule 4 bans fake timers here. Test countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state (an expired quote, an ended game). Never widen a budget to cover a timer.
+21. **Keep time-dependent behaviour out of view tests** — *No fake timers* applies here. Test countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state (an expired quote, an ended game). Never widen a budget to cover a timer.
 
 22. **Fix a flake at its cause** — name the cause, reproduce it locally first (a `--randomize --seed` or CPU load), and show the fix passes under the same condition. A PR whose only change is a longer timeout is not a fix. See [`component-view/reference.md`](component-view/reference.md) (Fixing a Flake).
 
