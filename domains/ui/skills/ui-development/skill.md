@@ -12,7 +12,7 @@ base: true
 
 # MetaMask UI Development — MMDS Guidance
 
-Strategy context: [Agentic Design System Strategy](../../knowledge/agentic-design-system-strategy.md)
+Strategy context: [Agentic Design System Strategy](https://github.com/MetaMask/skills/blob/main/domains/ui/knowledge/agentic-design-system-strategy.md)
 
 The MetaMask Design System (MMDS) is the default for MetaMask product UI. This
 base holds the rules shared by every client. The repository overlay below it
@@ -25,8 +25,8 @@ client: components, screens, sheets, modals, stories, styles, tokens, themes,
 and UI behavior. Use it to decide between an MMDS component, a legacy
 component-library component, a feature component, and custom UI.
 
-Copy and wording rules live in `content-guidelines`. File layout and test
-setup live in `component-scaffold` where the repository has it.
+Copy and wording rules live in `content-guidelines`, and file layout and test
+setup live in `component-scaffold`, where the repository has them.
 
 ## Sources, in order
 
@@ -93,8 +93,9 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
      recorded in the PR or the repository's exception format.
 - A component, prop, or enum value is deprecated when its installed type
   carries `@deprecated` or its manifest entry has `jsDocTags.deprecated`. Do
-  not add new usage. Use the replacement the JSDoc names; if none is named,
-  keep existing usage and record the gap.
+  not add new usage. Use the replacement the JSDoc names if the installed
+  platform package exports it. If no replacement is named, or the named one is
+  not exported on this platform, keep existing usage and record the gap.
 - Do not invent button or control chrome that MMDS does not have. Keep
   single-select (checkmark) and multi-select (checkbox) patterns distinct.
 - If an MMDS layout makes a primary data point read as secondary, compose a
@@ -135,10 +136,11 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
 
 ## Incremental migration: `Legacy*` aliases
 
-When a file still imports a legacy component-library export whose name is also
-exported by the MMDS platform package, alias the legacy import with a `Legacy`
-prefix and keep the MMDS import on the plain name. Do the same for clashing
-enums. Do not alias legacy names that MMDS does not export, and never put the
+When a file imports the same name from a legacy source and from the MMDS
+platform package, alias the legacy import with a `Legacy` prefix and keep the
+MMDS import on the plain name. Do the same for clashing enums. Leave legacy
+imports that have no MMDS counterpart in the same file on their plain names
+until that step migrates them. Do not alias legacy names that MMDS does not export, and never put the
 prefix on the MMDS import. Finishing the migration is deleting the `Legacy*`
 import and its usages. The overlay gives the platform's import paths and an
 example.

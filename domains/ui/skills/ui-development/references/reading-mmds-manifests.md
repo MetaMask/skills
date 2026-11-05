@@ -41,8 +41,19 @@ or props: read those from the manifest and the installed package.
 }
 ```
 
-Entries are keyed by Storybook story id, not by component name. Some entries
-are design-token or foundation pages rather than components. Match on `name`.
+Entries are keyed by Storybook story id, not by component name, and not every
+entry is a component:
+
+- Design-token and foundation pages (ids starting `design-tokens-` or `docs-`,
+  with story paths in `packages/design-tokens`).
+- Pattern stories (ids starting `patterns-`). These are composition examples.
+  Their `name` can look like a component (for example `MarketingMoment`) or
+  be a code fragment (`() => null`), and nothing with that name is exported.
+- Story wrappers whose `name` is a cast expression rather than an identifier.
+
+Treat an entry as a component only when its `path` is a story under the
+platform package's `src/components/` (including `temp-components/`) and the
+component name appears in the installed export index.
 
 ## Common queries
 
