@@ -547,6 +547,22 @@ Education may say "network fee (also called gas)" on the first mention. After th
 
 **PROPOSED.** Do not explain a network fee as a payment to miners or a "miner tip". `transaction.gas_education_1` ("Gas fees are paid to crypto miners…") and `edit_gas_fee_eip1559.learn_more_max_priority_fee` ("aka miner tip") are the pattern to retire.
 
+### Paid by MetaMask
+
+Use "Paid by MetaMask" only when MetaMask sponsors a network fee (gas sponsorship). The user would otherwise pay that fee, and MetaMask covers it. Confirmations and Activity may show it next to Network fee on eligible sponsored swaps and sends.
+
+Do not use "Paid by MetaMask" when the MetaMask fee is $0 or waived. That fee is ours, so MetaMask is not paying anyone. Do not add a MetaMask fee row just to show it cancelled.
+
+When the MetaMask fee is zero, prefer no MetaMask fee row, or a signal under the primary button such as a Promo badge. Honest labels are "No MetaMask fee" or "MetaMask fee waived". Do not show the waived MetaMask fee in dollars on a pre-swap upsell unless research or an A/B test supports it.
+
+```
+✅ Network fee row shows "Paid by MetaMask" for gas sponsorship (for example Monad, SEI, or eligible Solana swaps)
+❌ MetaMask fee row shows "Paid by MetaMask" when the MetaMask fee is $0
+✅ "No MetaMask fee" or a Promo badge under the primary button when the MetaMask fee is waived
+```
+
+Scope is product UI in mobile and extension, wherever fee rows, confirmations, or Activity show fee labels. Not marketing. Existing gas-sponsorship surfaces are correct as is.
+
 ## Secret Recovery Phrase and private key
 
 Always write "Secret Recovery Phrase". Never "seed phrase", "SRP", or "mnemonic", including in a gloss.
@@ -597,6 +613,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Private key | private key | Private Key, seed | Sentence case, including titles |
 | Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Leadership confirmed this. Education may add "(also called gas)" once |
 | MetaMask fee | MetaMask fee | Fee | The fee MetaMask is paid |
+| Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | Only for a sponsored network fee. MetaMask covers a fee the user would otherwise pay |
 | Provider fee | Provider fee, or the partner's name | Fee | Third party |
 | Gas limit, Max base fee, Priority fee, Gwei | Those labels | gas price, GWEI, gas fee | Advanced editor only |
 | Advanced network fee | Advanced network fee | Advanced gas, Gas fee | **PROPOSED** editor title |
@@ -635,6 +652,7 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | Current | Use | Why |
 | --- | --- | --- |
 | "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee." | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
+| MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | "Paid by MetaMask" means MetaMask covers a network fee. A waived MetaMask fee is not MetaMask paying itself |
 | "Gas Price: (GWEI)" (`custom_gas.gas_price`) | "Gas limit", "Max base fee", "Priority fee", "Gwei", and only in the advanced editor | Retired label, colon, and unit casing |
 | "Increase allowance" (`transactions.increase_allowance`) | "Spending cap" as the label. "Approve" as the button | "Allowance" is retired. Approve is for a spending cap or a permission |
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
@@ -690,6 +708,7 @@ Before you finish a user-facing string:
 - Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not enforce curly quotes or a specific loading ellipsis.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen.
+- "Paid by MetaMask" only for sponsored network fees, never for a $0 MetaMask fee.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
 - No "please" or "successfully". Exclamation points only for finishing onboarding or wallet creation.
 - Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
