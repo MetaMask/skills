@@ -46,7 +46,7 @@ Uncertainty splits by whether a wrong edit is cheap to undo.
 
 Cheap uncertainty is only whether the engineer will keep the result, or whether an existing spec, plan, or ticket covers the change, and only when the change is not security-sensitive or performance-sensitive. Do not stop for a brief. Proceed as in step 3. End the final summary with one line that names that uncertainty and asks the engineer to confirm it. That line does not wait before the edit.
 
-Risk uncertainty is whether the work is security-sensitive, a contract or API change, or large, including whether CI work is large or a contract or API change. Stop before the first product edit. Write a short brief, not the brief in step 4. The short brief is one line that names the uncertainty. It has no scope essay, no performance, UX, or test sections, and no spec. Then ask `Do you agree, or do you want to discuss something in more detail?` and wait. On agreement, the edit may start. More detail stays stopped.
+Risk uncertainty is whether the work is security-sensitive, performance-sensitive, a contract or API change, or large, including whether CI work is large or a contract or API change. Stop before the first product edit. Write a short brief, not the brief in step 4. The short brief is one line that names the uncertainty. It has no scope essay, no performance, UX, or test sections, and no spec. Then ask `Do you agree, or do you want to discuss something in more detail?` and wait. On agreement, the edit may start. More detail stays stopped.
 
 Uncertainty about behavior, a contract, or a risk surface means the change is not mechanical.
 
