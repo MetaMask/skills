@@ -91,7 +91,6 @@ Launch errors use the core `ErrorCode` set. `@metamask/client-mcp-core` only pre
 | Stale accessibility references | Screen changed after the references were generated | Run `yarn mm describe-screen` and use fresh references |
 | Ref taps the wrong element | Ref used after a call with `--observe none` | Run `yarn mm describe-screen`, or target by `--testid` |
 | `Tool execution timed out` | Call cancelled after the request limit | Run `yarn mm describe-screen` before retrying; the action can have happened |
-| `Error: unknown command 'knowledge-...'` | Knowledge store removed in `@metamask/client-mcp-core` 0.13.0 | No replacement. Discover with `yarn mm describe-screen` |
 | Interaction timeout | Animation, overlay, or stale/ambiguous target | Re-`describe-screen`, target by a unique test ID or fresh a11y ref (no `--within` on mobile), and increase `--timeout` only when appropriate |
 | `--testId` times out | Incorrect capitalization | Use `--testid` in lowercase |
 | Daemon address already in use | Stale daemon state (`MM_PORT_IN_USE`) | Run `yarn mm stop --force`, then `yarn mm launch` |

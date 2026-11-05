@@ -176,8 +176,6 @@ Mutating tools (`click`, `type`, ...) and `run-steps` return observations with f
 
 Only mutating and batch calls wait for animations before they observe. To get a settled screen after an action, let the action observe (`--observe full`) instead of running a read afterwards.
 
-The knowledge store commands (`yarn mm knowledge-search`, `knowledge-last`, `knowledge-sessions`, `knowledge-summarize`) were removed in `@metamask/client-mcp-core` 0.13.0. There is no replacement: discover with `yarn mm describe-screen`.
-
 ## Batching
 
 ### `yarn mm run-steps '<json>'`
