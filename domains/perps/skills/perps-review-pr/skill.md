@@ -7,7 +7,7 @@ maturity: stable
 
 # Perps static review
 
-Generated from the canonical Perps review rules @ ab847c348c6880c7f4273f892734922bcbac47ae. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
+Generated from the canonical Perps review rules @ c8198dd6289791efdf975aff3339faf46ff9fe4d. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source and diff only: no app launch, no product change, no publish, no workspace cleanup. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
