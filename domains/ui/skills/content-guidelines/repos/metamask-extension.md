@@ -16,12 +16,16 @@ Shared rules are in the content-guidelines skill. This overlay is the MetaMask b
 
 The generated skill under `.claude/skills/mms-content-guidelines/`, `.cursor/rules/mms-content-guidelines/`, and `.agents/skills/mms-content-guidelines/` is overwritten on the next sync. Change this overlay or the shared skill, then sync.
 
-"Click here" is banned. Name the control ("Connect your Ledger", not `clickToConnectLedgerViaWebHID`). Do not write "Tap to…". That phrase is mobile only.
+"Click here" is banned. Name the control ("Connect your Ledger", not `clickToConnectLedgerViaWebHID`). Do not write "Tap to…". That phrase is mobile only. On mobile the rule is tap, not click.
 
-Signature requests, transactions, and final review use Confirm. Do not label that button Sign. `QRHardwareSignRequestCancel` is "Reject"; do not copy that label onto new screens (see the shared **PROPOSED** note on Reject).
+Signature requests, transactions, and final review use Confirm. Do not label that button Sign. `QRHardwareSignRequestCancel` is "Reject". Do not copy it onto new screens. Do not replace that existing "Reject" until the shared skill's Cancel check is done.
+
+Activity descriptions add the amount, the counterparty, or the reason. Do not copy the title ("Buy failed" / "Buy failed"). Do not leave the description empty (`activity_swap_failed_description` and the other empty `activity_*_failed_description` keys).
+
+Developer-only strings (debug tabs, developer confirmation buttons) are out of scope. The shared skill states that rule.
 
 ## PROPOSED
 
+Not part of the reviewed proposals 1–16.
+
 1. **Translator descriptions.** Add a `description` on every new key so the term survives translation. Security, fee, wallet, and account strings need one when you touch them. `docs/translating-guide.md` does not require this today.
-2. **Activity rows.** The description should add the amount, the counterparty, or the reason. Do not copy the title ("Buy failed" / "Buy failed") and do not leave the description an empty string (`activity_swap_failed_description` and the other empty `activity_*_failed_description` keys).
-3. **Developer-only strings** (debug tabs, developer confirmation buttons) are out of scope. They must not be reused as product copy, and a product lint should skip them.

@@ -19,8 +19,8 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 ## How to apply
 
 - Unmarked rules are confirmed. Follow them.
-- **PROPOSED** rules are drafts for Ali Forrest. Use one for new copy only when it does not conflict with a confirmed rule. Do not rewrite existing copy only to satisfy a PROPOSED rule.
-- [Open questions](#open-questions) are not rules. Do not enforce them and do not lint them.
+- **PROPOSED** is not decided. Do not enforce it. "Paid by MetaMask" is pending Corey Janssen.
+- [Checks pending](#checks-pending) are not finished. Do not claim them done, and do not migrate strings ahead of them.
 
 ## When to use
 
@@ -33,6 +33,7 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 - Marketing or external comms
 - Code style, TypeScript, or component API decisions (`ui-development`)
 - A prop-level detail this file does not mention. Component READMEs may still document that prop. If the README disagrees with this file, follow this file.
+- Developer-only and debug strings. They may use internal names, including SRP. Do not reuse them as product copy, and do not lint them as product copy. Paths are in the repo overlays.
 
 ## Workflow
 
@@ -41,7 +42,7 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 3. Match a [do / don't](#do--dont) example.
 4. Read the repo overlay for where the string lives. On install, that overlay is already appended to this skill. In a source checkout, open `repos/metamask-mobile.md` or `repos/metamask-extension.md`.
 5. Edit the English source in the app repo. Do not edit the generated `mms-content-guidelines` copy under `.claude/`, `.cursor/`, or `.agents/`. The next sync overwrites it.
-6. Skip [Open questions](#open-questions). Apply a **PROPOSED** rule only as the note above allows.
+6. Skip a **PROPOSED** rule. A check listed under [Checks pending](#checks-pending) is not done.
 
 ## Voice and tone
 
@@ -67,7 +68,9 @@ Use contractions. No exceptions.
 ❌ "We are here to help."  ❌ "This cannot be undone."
 ```
 
-**PROPOSED.** MetaMask sounds direct and calm. It names the object and the next step. It does not apologize, cheer, or warn with punctuation.
+MetaMask sounds direct and calm. It names the object and the next step. Apologize, celebrate, and warn when the situation calls for it. Do that in words. Do not do it with punctuation.
+
+"Please" stays banned. An apology is not the word "please". Error copy still does not use "sorry" or "unfortunately" as filler.
 
 ### Words to avoid
 
@@ -89,6 +92,8 @@ Use contractions. No exceptions.
 | sign in, when it is the same action as log in | log in. Social login buttons stay "Sign in with Apple" and "Sign in with Google" |
 
 "Tap to…" is allowed on mobile only. Do not use it in the extension. Name the control there. The older ban on that phrase is retired for mobile.
+
+On mobile, say tap, not click. The Apple Pay side button stays "double-click", because that is the platform's name for that control.
 
 Do not use "allowance" for Tron daily resources. It clashes with spending caps. Name the resource without that word.
 
@@ -155,9 +160,9 @@ Predictions market labels we write are sentence case. Keep team names and league
 
 On mobile, those labels are our strings: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*` in `locales/languages/en.json`. The market question on a card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text in code. Team and league names inside it stay as the feed sent them. Team matching compares `groupItemTitle` to the feed's team name, so a casing rewrite would also break that match.
 
-**PROPOSED.** Transaction Shield, MetaMask Swaps, and Basic functionality are not on the title-case list and are not confirmed as product names. Match the casing already shipped in that flow. Do not invent a third casing, and do not start a migration.
+Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing already shipped. Do not invent a third casing, and do not migrate them.
 
-**PROPOSED.** For a feature toggle, prefer "Turn on" and "Turn off" over "Enable" and "Disable". Use one name per feature.
+"Turn on" and "Turn off" are the default for a feature toggle. They are not a universal replacement for "Enable" and "Disable". Keep Enable or Disable when that word more accurately names the action. A pass for those edge cases is still pending. Do not replace Enable and Disable everywhere.
 
 ## Punctuation
 
@@ -177,26 +182,24 @@ Use a period when the string is a complete sentence. Do not use a period on labe
 
 ### Exclamation points
 
-Use an exclamation point only on the allowlist. Never on an error, a warning, a quiz result, a security instruction, or a routine success (a token added, an order placed, a login).
+Use an exclamation point very sparingly. It is allowed for a celebration, and for a major feature announcement. Never on an error, a warning, a quiz result, a security instruction, or a routine success (a token added, an order placed, a login).
 
-Confirmed allowlist:
-
-- Finishing onboarding
-- Wallet creation
+Celebrations include finishing onboarding and creating a wallet. A major feature announcement is rare. "The Ethereum Merge is here!" is that kind of line. Do not add one anywhere else.
 
 ```
 ✅ "Your wallet is ready!"
+✅ "The Ethereum Merge is here!"
 ❌ "Let's get started!"
 ❌ "Wrong!"
 ❌ "Account successfully imported!"
 ❌ "“$1” was successfully added!"
 ```
 
-**PROPOSED** remainder of the allowlist: a new-feature announcement of the same weight as a product milestone. The old example "The Ethereum Merge is here!" is in this unconfirmed set. Do not add other exclamation points.
-
 ### Ellipsis
 
-Loading and in-progress text is a present participle. Do not trail off a sentence. Do not use a filler.
+Loading and in-progress text is a present participle followed by three separate periods (`...`). That ellipsis is an explicit exception to curly typography. Do not trail off a sentence. Do not use a filler. Shortened addresses stay `0x0000...0000`.
+
+This choice is settled. Four strings use the single ellipsis character (`…`). Do not change those until engineering confirms there is no rendering or functional dependency. That check is not done.
 
 ```
 ✅ "Loading your tokens..."
@@ -206,7 +209,7 @@ Loading and in-progress text is a present participle. Do not trail off a sentenc
 ❌ "Please wait"
 ```
 
-Whether that ellipsis is three ASCII dots (`...`) or curly punctuation is an [open question](#open-questions). Do not migrate one form to the other. Shortened addresses stay `0x0000...0000`.
+New loading text uses `...`. Leave an existing loading `…` in place until the engineering check is done.
 
 ### Ampersands, commas, colons
 
@@ -226,6 +229,10 @@ Do not use a colon in a label or a heading.
 ✅ "Tokens, NFTs, and DeFi"
 ❌ "Tokens, NFTs and DeFi"
 ```
+
+### Apostrophes and quotes
+
+Use curly apostrophes and quotes in UI strings: ’ and “ ”. Loading text is the exception, above. Apostrophes are not an open question.
 
 ### Em dash and bullets
 
@@ -300,15 +307,15 @@ Sentence case. No punctuation. Default length is 1 to 3 words. Up to 5 words whe
 | Got it | Acknowledge and dismiss. Retire "OK", "Ok", and "Understood" |
 | Not now | Decline an optional prompt or upsell. Retire "Maybe later" and "No thanks" |
 | Skip | Move past a step in a numbered sequence only |
-| Cancel | Abort an action in progress. Nothing changes |
+| Cancel | Abort an action in progress. Nothing changes. See the Reject note below before using Cancel to replace "Reject" |
 | Close | Dismiss. No action was taken |
 | Done | Something was completed or saved |
 | Back, Go back | Return to the previous step. Retire "Exit" |
 | Try again | The only retry label. Retire "Retry". Offer it only when retrying can work. See [Errors](#errors) |
 
-**PROPOSED.** "Yes" and "No" are allowed only when they are the position itself, as in Predictions. They are not confirmation buttons. `drawer.lock_ok` / `drawer.lock_cancel` are "Yes" / "No"; use "Lock" / "Cancel".
+"Yes" and "No" are allowed only when they are the position itself, as in Predictions. They are not confirmation buttons. `drawer.lock_ok` / `drawer.lock_cancel` are "Yes" / "No"; use "Lock" / "Cancel".
 
-**PROPOSED.** Do not introduce "Reject". To decline a request, use Cancel.
+**Default, not universal.** Do not add a new "Reject" button. The default decline label is Cancel. Before replacing an existing "Reject" on a signature or permission request, confirm that Cancel's meaning ("nothing changes") describes that decline. That check is not done. Do not replace those labels in a blanket pass. `QRHardwareSignRequestCancel` is "Reject" today. Do not copy it onto new screens.
 
 ### Remove, clear, delete, reset
 
@@ -424,7 +431,7 @@ Do not reuse a page-load string for a different failure. `somethingWentWrong` ("
 ✅ "Open the Ethereum app on your device."
 ```
 
-**PROPOSED.** Do not split one sentence across locale keys. The consent rule below is already confirmed for consent lines.
+Do not split one sentence across locale keys. A newline becomes separate strings, and each of those strings is a whole sentence or a label, not half of a sentence. The consent rule below is the same rule for a consent line.
 
 ## Warnings
 
@@ -474,7 +481,11 @@ A placeholder is a short action ("Enter amount", "Search tokens") or a format ex
 
 ### Field wording
 
-For new copy, drop possessives in field prompts: "Enter password", "Enter email". Keep "your" in full sentences. Do not migrate existing onboarding strings, including "Enter your Secret Recovery Phrase" and "Enter your password", until content leadership signs off on that migration.
+For new field prompts, drop "your": "Enter password", "Enter email". Keep "your" in full sentences.
+
+Do not remove "your" when that strands a word alone on a line. On a title, "Enter Secret Recovery Phrase" can leave "Phrase" by itself. Keep "your", or change the wording or the layout, so the line still reads. Check small screens, larger text settings, and translations before changing a shipped string. Those checks are not done.
+
+Leadership has conditionally approved migrating existing onboarding prompts, including "Enter your Secret Recovery Phrase" and "Enter your password". The migration is not waiting on another approval. It waits on the layout checks above. Do not migrate those strings until the checks are done.
 
 Mark an optional field with "(optional)".
 
@@ -518,9 +529,9 @@ Authentication:
 - Never "your biometric" as a noun.
 - "Passcode" is the device passcode. "PIN" is an in-app code. They are not interchangeable.
 
-**PROPOSED.** Say "NFT", not "collectible". `wallet.collectible` is "Collectible" and `wallet.collectibles` is "NFTs".
+When you mean an NFT, say "NFT", not "collectible". `wallet.collectibles` is "NFTs". This is not a blanket replacement. The upcoming Collectibles feature (gacha cards) keeps that feature name.
 
-**PROPOSED.** "Disconnect" is for a site. "Revoke" is for a spending cap ("Revoking spending cap"). Do not swap them.
+"Disconnect" is for a site. "Revoke" is for a spending cap ("Revoking spending cap"). Do not swap them.
 
 ## Fees
 
@@ -541,13 +552,15 @@ Retire "gas" in default flows, including buttons and errors. `bridge.insufficien
 
 These words appear only inside the advanced gas editor, as the control labels: Gas limit, Max base fee, Priority fee, and Gwei. Do not write "GWEI", "gas price", or "Gas Price: (GWEI)" (`custom_gas.gas_price`). In a sentence on that screen, use sentence case ("Raise the gas limit") and keep "Gwei" capped as the unit.
 
-**PROPOSED.** The editor's user-facing entry point and title are "Advanced network fee". Pending confirmation from Ali Forrest.
+The editor's user-facing entry point and title are "Advanced network fee".
 
 Education may say "network fee (also called gas)" on the first mention. After that, say "network fee".
 
-**PROPOSED.** Do not explain a network fee as a payment to miners or a "miner tip". `transaction.gas_education_1` ("Gas fees are paid to crypto miners…") and `edit_gas_fee_eip1559.learn_more_max_priority_fee` ("aka miner tip") are the pattern to retire.
+Do not explain a network fee as a payment to miners or a "miner tip". `transaction.gas_education_1` ("Gas fees are paid to crypto miners…") and `edit_gas_fee_eip1559.learn_more_max_priority_fee` ("aka miner tip") are the pattern to retire.
 
 ### Paid by MetaMask
+
+**PROPOSED. Pending Corey Janssen. Not decided.** Do not rewrite existing fee rows to satisfy this section.
 
 Use "Paid by MetaMask" only when MetaMask sponsors a network fee (gas sponsorship). The user would otherwise pay that fee, and MetaMask covers it. Confirmations and Activity may show it next to Network fee on eligible sponsored swaps and sends.
 
@@ -601,7 +614,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 
 ## Network
 
-**PROPOSED.** "Network" is what the user switches. "Chain ID" is the field label, with "ID" capped. Mid-sentence, write "chain ID". Do not use "chain" or "on-chain" as a synonym for network. `app_settings.primary_currency_desc` says "native currency of the chain"; that becomes "network currency" of that network.
+"Network" is what the user switches. "Chain ID" is the field label, with "ID" capped. Mid-sentence, write "chain ID". Do not use "chain" or "on-chain" as a synonym for network. `app_settings.primary_currency_desc` says "native currency of the chain"; that becomes "network currency" of that network.
 
 ## Glossary
 
@@ -613,10 +626,10 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Private key | private key | Private Key, seed | Sentence case, including titles |
 | Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Leadership confirmed this. Education may add "(also called gas)" once |
 | MetaMask fee | MetaMask fee | Fee | The fee MetaMask is paid |
-| Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | Only for a sponsored network fee. MetaMask covers a fee the user would otherwise pay |
+| Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | **PROPOSED.** Pending Corey. Not decided. Only for a sponsored network fee |
 | Provider fee | Provider fee, or the partner's name | Fee | Third party |
 | Gas limit, Max base fee, Priority fee, Gwei | Those labels | gas price, GWEI, gas fee | Advanced editor only |
-| Advanced network fee | Advanced network fee | Advanced gas, Gas fee | **PROPOSED** editor title |
+| Advanced network fee | Advanced network fee | Advanced gas, Gas fee | Editor entry point and title |
 | Spending cap | spending cap | allowance, spend limit, token allowance | Button is Approve. Do not say "allowance" for Tron daily resources |
 | Confirm | Confirm | Sign, Proceed, Submit, Accept | Transactions, signatures, final review |
 | Approve | Approve | Confirm, for a spending cap or permission | Spending caps and permissions |
@@ -624,12 +637,12 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Try again | Try again | Retry, Please try again | Only when a retry can work |
 | Got it | Got it | OK, Ok, Understood | Dismiss |
 | Learn more | Learn more | Learn more. | No period |
-| Network | network | chain, on-chain | **PROPOSED** for the chain synonym. "Chain ID" is the field |
-| Site | site | dapp, dApp, ÐApps | |
+| Network | network | chain, on-chain | "Chain ID" is the field. Do not say "chain" for a network |
+| Site | site | dapp, dApp, ÐApps | Disconnect a site. Revoke a spending cap |
 | Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
 | Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
-| NFT | NFT | collectible | **PROPOSED** for collectible |
+| NFT | NFT | collectible, when you mean an NFT | The Collectibles feature name stays. Not a blanket replacement |
 | Reset wallet | Reset wallet | delete wallet, erase | |
 | Add funds | Add funds | Deposit, except an activity-list type | |
 | Smart account | smart account | smart contract account, Smart Account | |
@@ -652,7 +665,7 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | Current | Use | Why |
 | --- | --- | --- |
 | "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee." | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
-| MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | "Paid by MetaMask" means MetaMask covers a network fee. A waived MetaMask fee is not MetaMask paying itself |
+| MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | **PROPOSED, not decided.** "Paid by MetaMask" would mean MetaMask covers a network fee. A waived MetaMask fee is not MetaMask paying itself |
 | "Gas Price: (GWEI)" (`custom_gas.gas_price`) | "Gas limit", "Max base fee", "Priority fee", "Gwei", and only in the advanced editor | Retired label, colon, and unit casing |
 | "Increase allowance" (`transactions.increase_allowance`) | "Spending cap" as the label. "Approve" as the button | "Allowance" is retired. Approve is for a spending cap or a permission |
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
@@ -663,7 +676,7 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | "Your password is incorrect. Try again." | Keep | State, then an action that can work. Replaces a bare "Incorrect password" |
 | "Card Added Successfully" | "Card added to Apple Wallet" | Title case, "successfully" |
 | "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase." | Exclamation on an error. Same for "Nope!" |
-| "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep, for finishing onboarding or wallet creation | On the exclamation allowlist |
+| "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep | A celebration. Major feature announcements may also use one, very sparingly. Never on an error or a warning |
 | "Learn more." (`app_settings.learn_more` and `learnMore` variants) | "Learn more" | No period |
 | "Dapp browser" / "Dapps" / "ÐApps" | "Sites" | `trending.tabs.dapps` already says "Sites" |
 | "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
@@ -675,42 +688,42 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | "File import not working? Click here!" | "Try a different file" | Question, "click here", and an exclamation |
 | "MetaMask is not connected to this site. To connect to a web3 site, find and click the connect button." | "MetaMask isn't connected to this site yet. You'll be asked to connect when the site needs an account." | "web3", "click", and a gesture instead of the situation |
 
+## Activity rows (extension)
+
+The description adds the amount, the counterparty, or the reason. Do not copy the title. Do not leave the description empty. The keys are in the extension overlay.
+
 ## PROPOSED
 
-Drafts for Ali Forrest. Not confirmed.
+Not decided. Do not rewrite existing copy to satisfy these.
 
-1. **Tone.** Direct and calm. Name the object and the next step. Do not apologize, cheer, or warn with punctuation.
-2. **Exclamation allowlist, remainder.** New-feature announcements, such as "The Ethereum Merge is here!" Finishing onboarding and wallet creation are already confirmed.
-3. **Turn on / Turn off.** Prefer these to Enable / Disable for a feature toggle. One name per feature.
-4. **Yes / No.** Only when they are the Predictions position, not a confirmation.
-5. **Reject.** Do not introduce it. Decline with Cancel.
-6. **Unlisted names.** Transaction Shield, MetaMask Swaps, and Basic functionality: match the casing already shipped. Do not migrate them.
-7. **Collectible.** Use NFT, not collectible.
-8. **Disconnect / revoke.** Disconnect a site. Revoke a spending cap.
-9. **Split strings.** Do not split one sentence across locale keys.
-10. **Miners.** Do not explain a network fee as a payment to miners or a miner tip.
-11. **Advanced network fee.** Pending Ali. Use this as the advanced editor's entry point and title.
-12. **Network vs chain.** Network for what the user switches. Chain ID only as the field. Do not say "chain" or "on-chain" for a network.
+1. **Paid by MetaMask** (proposal 16). Pending Corey Janssen. The draft text is in [Fees](#paid-by-metamask). It was not in the review he approved.
+2. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
+3. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
 
-Client-specific drafts are in the mobile and extension overlays: `toSentenceCase`, locale files, tap vs click, developer strings, translator descriptions, and activity-row descriptions.
+## Checks pending
 
-## Open questions
+These decisions are made. The checks are not done. Do not claim they are, and do not migrate strings ahead of them.
 
-Content leadership has not decided this. Do not enforce it, do not lint it, and do not migrate strings to satisfy either side.
-
-**Loading ellipsis and curly punctuation.** Loading text as three ASCII dots (`...`, rule 10) contradicts curly apostrophes, quotes, and punctuation everywhere (rule 16). Corey Janssen asked for one approach. Until that choice is made, do not require `...`, do not require `…`, and do not require curly quotes or apostrophes. Do not migrate a string from one form to the other. The rest of the loading rule still applies: a present participle, no "Hang tight", and no "Please wait". Address abbreviations stay `0x0000...0000`.
+1. **Loading `…`.** New loading text uses three periods (`...`). Four existing strings use `…`. Engineering has not confirmed that changing them has no rendering or functional dependency.
+2. **Dropping "your".** Conditionally approved for onboarding prompts. Layout checks are not done: small screens, larger text, translations, and a title that would leave "Phrase" alone on a line.
+3. **Turn on / Turn off.** Default only. The pass for Enable and Disable edge cases is not done. Do not replace those words everywhere.
+4. **Reject to Cancel.** Default for new buttons. No one has confirmed that Cancel ("nothing changes") describes declining an existing signature or permission request. Do not replace those labels in a blanket pass.
 
 ## Checklist
 
 Before you finish a user-facing string:
 
 - Sentence case, unless the word is on the title-case list. "Private key" is sentence case. "Secret Recovery Phrase" is spelled out. Predictions labels we write are sentence case, with team and league names left as proper nouns. "Hyperliquid" uses that spelling.
-- Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not enforce curly quotes or a specific loading ellipsis.
+- Curly apostrophes and quotes. Loading text is the exception: three separate periods (`...`). Do not rewrite an existing loading `…` until engineering confirms there is no rendering or functional dependency. That check is not done.
+- Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
-- Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen.
-- "Paid by MetaMask" only for sponsored network fees, never for a $0 MetaMask fee.
+- "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
+- Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
+- "Paid by MetaMask" is proposed and pending Corey. Do not rewrite fee labels to match it.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
-- No "please" or "successfully". Exclamation points only for finishing onboarding or wallet creation.
+- No "please" or "successfully". "Please" is not an apology. An exclamation point is only for a celebration or a major feature announcement, very sparingly, and never on an error or a warning.
+- "Turn on" and "Turn off" are the default, not a universal replacement. Do not replace Enable or Disable until the edge-case pass is done.
+- "NFT" for an NFT. Do not rename the Collectibles feature.
 - Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
 - No hardcoded EST or EDT. Written clock times use `a.m.` and `p.m.`
-- You did not enforce the open punctuation question, and you did not rewrite an existing onboarding field prompt.
+- Do not drop "your" from a shipped onboarding prompt until the layout checks are done. Do not leave "Phrase" alone on a line.
