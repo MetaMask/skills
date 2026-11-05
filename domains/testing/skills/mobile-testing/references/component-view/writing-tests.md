@@ -110,7 +110,7 @@ await act(async () => {
 
 **Flag-gated sheets / branches** — UI behind remote flags only mounts when the flag is on in Redux. Drive via preset / `RemoteFeatureFlagController` overrides; do not assert a sheet `testID` if the flag routes to a full screen instead.
 
-**Migration assert parity** — When moving unit → CV, compare deleted unit expects field-by-field. If the unit checked `tabId` / `filterId` / formatted dates / full analytics payloads, the CV replacement must keep that specificity. Partial `objectContaining({ feedId })` after deleting a full payload assert is a regression. See [`../placement/unit-cv-overlap.md`](../placement/unit-cv-overlap.md).
+**Migration assert parity** — When moving unit → CV, compare deleted unit expects field-by-field. If the unit checked `tabId` / `filterId` / formatted dates / full analytics payloads, the CV replacement must keep that specificity. Partial `objectContaining({ feedId })` after deleting a full payload assert is a regression. See [`../placement/unit-cv-overlap.md`](../placement/unit-cv-overlap.md). The same parity applies when the source is an Appium spec — see [`../placement/e2e-to-lower-layer.md`](../placement/e2e-to-lower-layer.md).
 
 ### 4. Deduplicate against existing tests
 

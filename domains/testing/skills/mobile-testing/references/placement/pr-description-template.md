@@ -27,7 +27,10 @@ Report: <link to Jira comment or “see ticket comment”>
 - [ ] <KEEP / add pure unit: helper — scenario>
 - [ ] <EXTRACT+UNIT: extract \`foo\` + unit matrix>  <!-- only if needed -->
 - [ ] <ADD integration: …>  <!-- if applicable -->
-- [ ] <E2E: document gap / no change / add>  <!-- if applicable -->
+- [ ] <MIGRATE e2e→CV: spec — scenario>  <!-- if applicable -->
+- [ ] <MIGRATE e2e→integration: spec — scenario>  <!-- if applicable -->
+- [ ] <SPLIT e2e: spec — keep device assertions, move the rest>  <!-- if applicable -->
+- [ ] <KEEP e2e: spec — device/native boundary>  <!-- if applicable -->
 - [ ] Post final Jira report + canvas
 - [ ] Re-run unit/CV (integration) for touched files
 
