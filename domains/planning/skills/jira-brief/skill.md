@@ -6,8 +6,7 @@ description: >-
   .briefs/<ISSUE-KEY>.md with the Goal, Decisions Already Made, Open
   Decisions, and Code Surfaces sections. Name the path in chat. Do not paste the
   file or write to Jira. Do not edit product code, and do not say that in chat.
-base: true
-maturity: stable
+maturity: experimental
 ---
 
 # Jira brief

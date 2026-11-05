@@ -5,10 +5,9 @@ description: >-
   when the user asks for a planning spec. Ask one unblocked product or
   engineering question at a time, the one that most reduces uncertainty,
   then write one English file at
-  .specs/spec-XXX-short-description.md in the MetaMask Mobile or MetaMask Extension checkout. Do
-  not edit product code, and do not say that in chat.
-base: true
-maturity: stable
+  .specs/spec-XXX-short-description.md in the MetaMask Mobile or MetaMask
+  Extension checkout. Do not edit product code, and do not say that in chat.
+maturity: experimental
 ---
 
 # Planning spec
