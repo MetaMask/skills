@@ -19,7 +19,7 @@ The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, a
 ## How to apply
 
 - Unmarked rules are confirmed. Follow them.
-- **PROPOSED** is not decided. Do not enforce it. "Paid by MetaMask" is pending Corey Janssen.
+- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
 - [Checks pending](#checks-pending) are not finished. Do not claim them done, and do not migrate strings ahead of them.
 
 ## When to use
@@ -560,9 +560,9 @@ Do not explain a network fee as a payment to miners or a "miner tip". `transacti
 
 ### Paid by MetaMask
 
-**PROPOSED. Pending Corey Janssen. Not decided.** Do not rewrite existing fee rows to satisfy this section.
+Use "Paid by MetaMask" only when it is actually true. That means MetaMask covers a fee the user would otherwise pay (a sponsored network fee). Never use it for a $0 or waived MetaMask fee.
 
-Use "Paid by MetaMask" only when MetaMask sponsors a network fee (gas sponsorship). The user would otherwise pay that fee, and MetaMask covers it. Confirmations and Activity may show it next to Network fee on eligible sponsored swaps and sends.
+Confirmations and Activity may show it next to Network fee on eligible sponsored swaps and sends.
 
 Do not use "Paid by MetaMask" when the MetaMask fee is $0 or waived. That fee is ours, so MetaMask is not paying anyone. Do not add a MetaMask fee row just to show it cancelled.
 
@@ -626,7 +626,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Private key | private key | Private Key, seed | Sentence case, including titles |
 | Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Leadership confirmed this. Education may add "(also called gas)" once |
 | MetaMask fee | MetaMask fee | Fee | The fee MetaMask is paid |
-| Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | **PROPOSED.** Pending Corey. Not decided. Only for a sponsored network fee |
+| Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | Only when MetaMask covers a fee the user would otherwise pay |
 | Provider fee | Provider fee, or the partner's name | Fee | Third party |
 | Gas limit, Max base fee, Priority fee, Gwei | Those labels | gas price, GWEI, gas fee | Advanced editor only |
 | Advanced network fee | Advanced network fee | Advanced gas, Gas fee | Editor entry point and title |
@@ -665,7 +665,7 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | Current | Use | Why |
 | --- | --- | --- |
 | "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee." | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
-| MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | **PROPOSED, not decided.** "Paid by MetaMask" would mean MetaMask covers a network fee. A waived MetaMask fee is not MetaMask paying itself |
+| MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | "Paid by MetaMask" means MetaMask covers a fee the user would otherwise pay. A waived MetaMask fee is not MetaMask paying itself |
 | "Gas Price: (GWEI)" (`custom_gas.gas_price`) | "Gas limit", "Max base fee", "Priority fee", "Gwei", and only in the advanced editor | Retired label, colon, and unit casing |
 | "Increase allowance" (`transactions.increase_allowance`) | "Spending cap" as the label. "Approve" as the button | "Allowance" is retired. Approve is for a spending cap or a permission |
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
@@ -696,9 +696,8 @@ The description adds the amount, the counterparty, or the reason. Do not copy th
 
 Not decided. Do not rewrite existing copy to satisfy these.
 
-1. **Paid by MetaMask** (proposal 16). Pending Corey Janssen. The draft text is in [Fees](#paid-by-metamask). It was not in the review he approved.
-2. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
-3. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
+1. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
+2. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
 
 ## Checks pending
 
@@ -719,7 +718,7 @@ Before you finish a user-facing string:
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
-- "Paid by MetaMask" is proposed and pending Corey. Do not rewrite fee labels to match it.
+- "Paid by MetaMask" only when MetaMask covers a fee the user would otherwise pay. Never for a $0 or waived MetaMask fee.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
 - No "please" or "successfully". "Please" is not an apology. An exclamation point is only for a celebration or a major feature announcement, very sparingly, and never on an error or a warning.
 - "Turn on" and "Turn off" are the default, not a universal replacement. Do not replace Enable or Disable until the edge-case pass is done.
