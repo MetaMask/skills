@@ -17,8 +17,6 @@ maturity: experimental
 
 # Planning
 
-This skill installs as `mms-planning`. Related skills are `mms-planning-spec` and `mms-jira-brief`. Domain skills use their installed `mms-*` names.
-
 ## Decision order
 
 When this skill applies, follow this procedure before the first edit of that task. Do not embed a diagram of this procedure.
