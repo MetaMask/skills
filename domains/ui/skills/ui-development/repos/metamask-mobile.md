@@ -24,6 +24,7 @@ accessibility rules.
   `components-temp/` holds MetaMask-specific components such as `Tabs`.
 - Product UI: `app/components/`. Real MMDS usage:
   `app/component-library/components/design-system.stories.tsx`.
+- Marketing-moment headlines: `app/components/UI/MarketingMomentTitle`.
 
 Do not apply React web guidance (`className`, HTML tags, `aria-*` props) to
 Mobile.
@@ -39,6 +40,9 @@ Mobile.
   `flex-1`. `Box` has no `borderRadius` prop; use `twClassName="rounded-xl"`.
 - No `StyleSheet.create()` and no new `.styles.ts` files. Inline style objects
   only for truly dynamic values.
+- When you change a component that uses `useStyles` with a `*.styles.ts`
+  file, move its styles to typed `Box` props or `twClassName`, then delete the
+  styles file and the `useStyles` call.
 - Pressed state: `ButtonBase` takes a function in `twClassName`; its `style`
   prop is a plain style, so a `style={({ pressed }) => ...}` function does not
   type-check. For a custom `Pressable`, use `tw.style()` in its style function.
@@ -56,9 +60,10 @@ Mobile.
 />
 ```
 
-- Interactive list rows use MMDS `ListItem` with its interactive mode and the
-  pressed background token. Keep the row's own horizontal padding; do not add
-  an outer pad that double-indents it.
+- Interactive list rows use MMDS `ListItem` with `isInteractive`, which
+  applies the pressed background itself; do not add `bg-pressed` again. Keep
+  the row's own horizontal padding; do not add an outer pad that
+  double-indents it.
 
 ## Sheets
 
