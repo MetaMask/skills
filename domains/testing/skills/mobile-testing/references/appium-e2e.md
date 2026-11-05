@@ -21,7 +21,11 @@ Live source of truth in the mobile repo (read these when details change):
    insufficient, and the required device/native boundary. If you cannot fill
    those three, stop and open installed `knowledge/testing-layers.md` or
    [`placement.md`](placement.md) instead of writing Appium.
-1. Inspect existing Appium specs in the same feature folder.
+1. Inspect existing Appium specs in the same feature folder. A scenario there
+   that fails the layer gate migrates in this same change per
+   [`placement/e2e-to-lower-layer.md`](placement/e2e-to-lower-layer.md). Do not
+   add Appium coverage for behavior an in-scope spec already covers at the
+   wrong layer.
 2. Reuse page objects, flows, fixtures, and tags already used there.
 3. Prefer shared `Gestures` / `Assertions` / `Matchers` — avoid
    raw `device.*` calls.

@@ -21,7 +21,7 @@ Do **not** implement in ANALYZE mode. Present the plan and wait.
 Accept any of: **Jira key**, **code path/folder**, **PR URL/number**. Resolve scope from what is given.
 
 1. **Jira** — fetch issue + comments + links (Atlassian MCP / browse URL). Pull linked PRs and follow-up tickets. Prefer scope from description / AC / comments.
-2. **PR** — `gh pr view` for files changed, body, linked issues. Scope = touched production + sibling test files under those folders.
+2. **PR** — `gh pr view` for files changed, body, linked issues. Scope = touched production + sibling test files under those folders + Appium specs under `tests/smoke-appium/` that reference the touched screens / testIDs / page objects.
 3. **Path** — treat as the audit root (e.g. `app/components/UI/Perps`).
 4. If only one input is given, derive the others when possible (ticket ↔ PR links, PR files ↔ paths). If scope is still ambiguous, ask one clarifying question.
 
@@ -39,6 +39,7 @@ Before classifying or writing tests, load as needed (do not reinvent layer rules
 | App↔controller seam                                       | [`integration.md`](integration.md)                                                                                                                                                      |
 | Device/native E2E (only after CV + integration ruled out) | [`appium-e2e.md`](appium-e2e.md)                                                                                                                                                        |
 | Unit↔CV overlap migrate/delete                            | [`placement/unit-cv-overlap.md`](placement/unit-cv-overlap.md) — if personal Cursor skill `test-layer-overlap-audit` is available, load it too and prefer its process for that sub-pass |
+| E2E→CV / integration migrate                              | [`placement/e2e-to-lower-layer.md`](placement/e2e-to-lower-layer.md)                                                                                                                    |
 
 ## Workflow checklist
 
@@ -50,6 +51,7 @@ Test layer placement:
 - [ ] 2. Inventory all layers
 - [ ] 3. Classify reason → layer → decision
 - [ ] 4. Unit↔CV overlap sub-pass (if siblings exist)
+- [ ] 4b. E2E→lower-layer sub-pass (if in-scope Appium specs exist)
 - [ ] 5. Disposition plan (ANALYZE stop here unless asked to implement)
 - [ ] 6. IMPLEMENT (only if asked): apply + re-run
 - [ ] 7. Report (canvas + Jira comment)
@@ -83,7 +85,7 @@ For each meaningful scenario (especially each `it(...)` in shallow screen units,
 | ---------------- | ------------------------------------------------------------------------------------------------- |
 | **KEEP**         | Already in the correct layer                                                                      |
 | **ADD**          | Missing coverage → add at best layer                                                              |
-| **MIGRATE**      | Wrong layer (usually shallow unit UI → CV); add target first, then remove source                  |
+| **MIGRATE**      | Wrong layer (shallow unit UI → CV, or E2E → CV / integration); add target first, then remove source |
 | **DELETE**       | Duplicate of coverage already owned by a better layer                                             |
 | **EXTRACT+UNIT** | Toast/wiring matrix (etc.) needs a **minimal pure helper** + unit tests; do not invent product UX |
 | **GAP / ACCEPT** | Intentionally uncovered or blocked (document why)                                                 |
@@ -105,6 +107,11 @@ For each meaningful scenario (especially each `it(...)` in shallow screen units,
 
 When `ComponentName.test.tsx` and `ComponentName.view.test.tsx` both exist (or shallow screen units mock hooks for UI), run Approach A from
 [`placement/unit-cv-overlap.md`](placement/unit-cv-overlap.md).
+
+### 4b. E2E→lower-layer sub-pass
+
+When in-scope Appium specs exist, classify each scenario per
+[`placement/e2e-to-lower-layer.md`](placement/e2e-to-lower-layer.md) (KEEP / MIGRATE / SPLIT).
 
 ### 5. Disposition plan (ANALYZE output)
 
