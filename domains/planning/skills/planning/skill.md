@@ -114,6 +114,7 @@ Run these before an edit that proceeds without a brief, before the revert yes/no
 
 - Scope is ambiguous. The ask does not name the target, the action, and the expected result, or it leaves an open product or contract decision.
 - The change is large. Large means only a new product area, or a cross-system design whose scope is not decided. A long diff, several screens, security, a contract or API change, keyring, vault, auth, migrations, or persisted state is not large by itself.
+- The change introduces or modifies a public contract or API, including adding a public method. Stop for a brief, even when the change is fully specified. Recommend a spec only when the change is also large.
 - The work is security-sensitive. That means auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state. Stop for agreement before the edit. This is not large by itself.
 - The work is performance-sensitive. That means a screen's render or data path, list, animation, polling, prefetch, realtime data, startup, account or network switch, a new or changed selector, context provider, bundle, memory, battery, latency, or profiling. Stop for agreement before the edit. This is not large by itself. A copy typo, comment, behavior-preserving rename, or reading an existing selector to show a value already in the store, is not performance-sensitive.
 - The engineer asks for `mms-planning`, a plan, or a planning spec.
