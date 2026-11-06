@@ -109,7 +109,7 @@ Do not write "fiat". Use the currency's name. Use "local currency" only when the
 
 | Category | Examples |
 | --- | --- |
-| Recovery term | Secret Recovery Phrase |
+| Recovery term | Secret Recovery Phrase, Private Key |
 | MetaMask product names | MetaMask, MetaMask Card, Metal Card, Virtual Card, Snaps, Perps, Predictions, Rewards (the product) |
 | Legal document names | Terms of Use, Privacy Policy. A partner document uses the partner's own title. Never "T&C" or "Terms and Conditions" for MetaMask's own |
 | The Settings screen | "Settings" when it names that screen ("Open Settings"). A sub-screen is sentence case ("Security and privacy") |
@@ -119,7 +119,7 @@ Do not write "fiat". Use the currency's name. Use "local currency" only when the
 
 ### Sentence case, including these
 
-"Private key" is sentence case, including in titles and buttons. It is not a title-case pair with Secret Recovery Phrase.
+"Private Key" is title case, including in titles and buttons, same as Secret Recovery Phrase.
 
 Also sentence case: titles, buttons, menus, settings labels, section headers, tags, and feature names that are not on the list. "Smart transactions", "Hardware wallet", "Smart account", "NFT media", "Money account", "Pix key".
 
@@ -506,9 +506,9 @@ A wallet holds one or more accounts.
 | Term | Means | Use for |
 | --- | --- | --- |
 | Wallet | Everything controlled by one Secret Recovery Phrase, including all of its accounts | Create, import, back up, lock, reset |
-| Account | One address, with its own balance and activity | Add, rename, switch, export the private key |
+| Account | One address, with its own balance and activity | Add, rename, switch, export the Private Key |
 
-An account from an imported private key or a hardware wallet is still an account. Describe the origin: "Imported account", "Ledger account". "Ledger" stays capitalized. Do not call that account a wallet.
+An account from an imported Private Key or a hardware wallet is still an account. Describe the origin: "Imported account", "Ledger account". "Ledger" stays capitalized. Do not call that account a wallet.
 
 ```
 ❌ Title "Wallet already exists" while the body treats the account as the thing being created, or the reverse
@@ -576,7 +576,7 @@ When the MetaMask fee is zero, prefer no MetaMask fee row, or a signal under the
 
 Scope is product UI in mobile and extension, wherever fee rows, confirmations, or Activity show fee labels. Not marketing. Existing gas-sponsorship surfaces are correct as is.
 
-## Secret Recovery Phrase and private key
+## Secret Recovery Phrase and Private Key
 
 Always write "Secret Recovery Phrase". Never "seed phrase", "SRP", or "mnemonic", including in a gloss.
 
@@ -590,12 +590,13 @@ Account group labels are "Secret Recovery Phrase 1", "Secret Recovery Phrase 2",
 ✅ "Hold to reveal Secret Recovery Phrase"
 ```
 
-"Private key" is sentence case everywhere.
+"Private Key" is title case everywhere, including titles and buttons.
 
 ```
-❌ "Hold to reveal Private Key" (`holdToRevealPrivateKey`)
-✅ "Hold to reveal private key"
-✅ `reveal_credential.private_key_text` "Private key"
+❌ "Hold to reveal private key"
+✅ "Hold to reveal Private Key" (`holdToRevealPrivateKey`)
+❌ `reveal_credential.private_key_text` "Private key"
+✅ "Private Key"
 ```
 
 ## Spelling and word forms
@@ -621,9 +622,9 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Term | Use | Don't use | Notes |
 | --- | --- | --- | --- |
 | Wallet | Wallet | account, when you mean the whole Secret Recovery Phrase and its accounts | Create, import, back up, lock, reset |
-| Account | Account | wallet, when you mean one address | Add, rename, switch, export private key. "Imported account", "Ledger account" |
+| Account | Account | wallet, when you mean one address | Add, rename, switch, export the Private Key. "Imported account", "Ledger account" |
 | Secret Recovery Phrase | Secret Recovery Phrase | seed phrase, SRP, mnemonic | Always spelled out. Groups: "Secret Recovery Phrase 1" |
-| Private key | private key | Private Key, seed | Sentence case, including titles |
+| Private Key | Private Key | private key, seed | Title case, including titles and buttons |
 | Network fee | Network fee | gas, gas fee, transaction fee, a bare Fee | Default flows. Leadership confirmed this. Education may add "(also called gas)" once |
 | MetaMask fee | MetaMask fee | Fee | The fee MetaMask is paid |
 | Paid by MetaMask | Paid by MetaMask | Paid by MetaMask on a $0 or waived MetaMask fee | Only when MetaMask covers a fee the user would otherwise pay |
@@ -671,7 +672,7 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
 | "Using a 12, 18 or 24-word seed phrase" | "Using a 12, 18, or 24-word Secret Recovery Phrase" | Banned synonym, missing Oxford comma. Same text in `importAWalletDescription` |
 | "SRP #{{index}}" (`accounts.srp_index`) | "Secret Recovery Phrase {{index}}" | Produces "Secret Recovery Phrase 1" |
-| "Hold to reveal Private Key" | "Hold to reveal private key" | Sentence case |
+| "Hold to reveal private key" | "Hold to reveal Private Key" | Title case |
 | "Please, try to visit this page again." (`notificationsPageErrorContent`) | "This page didn't load. Try again." | "please", and a retry is plausible for a page load |
 | "Your password is incorrect. Try again." | Keep | State, then an action that can work. Replaces a bare "Incorrect password" |
 | "Card Added Successfully" | "Card added to Apple Wallet" | Title case, "successfully" |
@@ -712,7 +713,7 @@ These decisions are made. The checks are not done. Do not claim they are, and do
 
 Before you finish a user-facing string:
 
-- Sentence case, unless the word is on the title-case list. "Private key" is sentence case. "Secret Recovery Phrase" is spelled out. Predictions labels we write are sentence case, with team and league names left as proper nouns. "Hyperliquid" uses that spelling.
+- Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. Predictions labels we write are sentence case, with team and league names left as proper nouns. "Hyperliquid" uses that spelling.
 - Curly apostrophes and quotes. Loading text is the exception: three separate periods (`...`). Do not rewrite an existing loading `…` until engineering confirms there is no rendering or functional dependency. That check is not done.
 - Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
