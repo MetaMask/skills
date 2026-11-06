@@ -3,7 +3,7 @@ name: planning
 description: >-
   Use in MetaMask Mobile or MetaMask Extension when scope is ambiguous, the
   change is large, the work is security-sensitive or performance-sensitive,
-  or the engineer asks for mms-planning or a plan. Ambiguous means the ask
+  a contract or API is being changed, or the engineer asks for mms-planning or a plan
   does not name the target, the action, and the expected result, or it leaves
   an open product or contract decision. Large means only a new product area,
   or a cross-system design whose scope is not decided. Security, performance,
