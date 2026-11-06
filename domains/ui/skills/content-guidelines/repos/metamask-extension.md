@@ -26,6 +26,6 @@ Developer-only strings (debug tabs, developer confirmation buttons) are out of s
 
 ## PROPOSED
 
-Not part of the reviewed proposals 1–16.
+A draft. Do not enforce it until content design confirms it.
 
 1. **Translator descriptions.** Add a `description` on every new key so the term survives translation. Security, fee, wallet, and account strings need one when you touch them. `docs/translating-guide.md` does not require this today.

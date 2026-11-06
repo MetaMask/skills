@@ -1,10 +1,11 @@
 ---
 name: content-guidelines
 description: >-
-  MetaMask product copy rules for user-facing strings in metamask-mobile
-  and metamask-extension. Canonical source for sentence case, voice,
-  buttons, wallet and account, network fee, spending cap, Secret Recovery
-  Phrase, and errors. Use when writing or reviewing locale files (en.json,
+  Agent-readable implementation of approved MetaMask content guidance
+  for user-facing strings in metamask-mobile and metamask-extension.
+  Covers sentence case, voice, buttons, wallet and account, network fee,
+  spending cap, Secret Recovery Phrase, and errors. Use when writing or
+  reviewing locale files (en.json,
   messages.json), buttons, toasts, empty states, errors, confirmations, or
   the same standards in stories, constants, and README examples.
 maturity: stable
@@ -14,7 +15,7 @@ maturity: stable
 
 This file is the agent-readable implementation of approved MetaMask content guidance. Agents use it day to day. Mobile and extension overlays add file paths and client examples. They do not replace these rules.
 
-Approved sources: the [MetaMask Content Design Style Guide](https://app.notion.com/p/43cbae51680544b28d5287683089cc9b) and [Design Brain](https://x.ai/bot/agent/0af56719-2c18-5697-8805-f40bff9d486e). If those sources disagree with this file, flag it to the content owner. Do not invent a rule.
+Approved sources: the [MetaMask Content Design Style Guide](https://app.notion.com/p/43cbae51680544b28d5287683089cc9b) and Design Brain. If those sources disagree with this file, flag it to the content owner. Do not invent a rule.
 
 Component READMEs are background. When they disagree with this file, follow this file.
 
@@ -70,9 +71,9 @@ Use contractions when they read naturally.
 ❌ "We are here to help."  ❌ "This cannot be undone."
 ```
 
-MetaMask sounds direct and calm. It names the object and the next step. Apologize, celebrate, and warn when the situation calls for it. Do that in words. Do not do it with punctuation.
+MetaMask sounds direct and calm. It names the object and the next step. Celebrate and warn when the situation calls for it. Do that in words. Do not do it with punctuation.
 
-"Please" stays banned. An apology is not the word "please". Error copy still does not use "sorry" or "unfortunately" as filler.
+Do not apologize in a routine error. Do not use "sorry" or "unfortunately" there. Say what happened and the next step. "Please" stays banned. It is not an apology.
 
 ### Words to avoid
 
@@ -81,7 +82,7 @@ MetaMask sounds direct and calm. It names the object and the next step. Apologiz
 | successfully, "was successful", "has been" on a success | Past participle. "Order placed", "{{name}} added" |
 | please | Name the action. "Enter a limit price" |
 | sorry, unfortunately | State what happened, then the action |
-| click here, above, below, left, right | Name the control. "Tap to…" is allowed on mobile only |
+| click here | Name the control. "Tap to…" is allowed on mobile only |
 | fiat | The currency name (USD, EUR). "Local currency" only for the setting that picks one |
 | gas, gas fee, transaction fee in a default flow | network fee. See [Fees](#fees). Leadership confirmed this |
 | dApp, DAPP, ÐApps | site in consumer UI. A technical audience may say "dapp" |
@@ -95,7 +96,7 @@ MetaMask sounds direct and calm. It names the object and the next step. Apologiz
 
 "Tap to…" is allowed on mobile only. Do not use it in the extension. Name the control there. The older ban on that phrase is retired for mobile.
 
-Do not point with above, below, left, or right. Name the control.
+Do not use above, below, left, or right to point to something on screen. Name the control.
 
 Default to "site" in consumer UI. A technical audience may use "dapp". Do not write "dApp", "DAPP", or "ÐApps".
 
@@ -123,11 +124,11 @@ Do not write "fiat". Use the currency's name. Use "local currency" only when the
 | Network names | Ethereum Mainnet, Polygon Mainnet, Arbitrum One |
 | Abbreviations | NFT, API, DAO, DeFi, ETH, BTC, SOL, plus the trading abbreviations in [Abbreviations](#abbreviations) |
 
-### Sentence case, including these
-
 "Private Key" is title case, including in titles and buttons, same as Secret Recovery Phrase.
 
-Also sentence case: titles, buttons, menus, settings labels, section headers, tags, and feature names that are not on the list. "Smart transactions", "Hardware wallet", "Smart account", "NFT media", "Money account", "Pix key".
+### Sentence case, including these
+
+Sentence case for titles, buttons, menus, settings labels, section headers, tags, and feature names that are not on the list. "Smart transactions", "Hardware wallet", "Smart account", "NFT media", "Money account", "Pix key".
 
 ```
 ❌ "Turn on Device Authentication"
@@ -153,8 +154,6 @@ On the first mention in a page or flow, write "MetaMask Snaps". After that, "Sna
 
 No all-caps headlines (`predict.gtm_content.title` is "PREDICT AND WIN"; use "Predict and win").
 
-Predictions market-label casing for Mobile, including Polymarket feed text, is in the mobile overlay.
-
 Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing already shipped. Do not invent a third casing, and do not migrate them.
 
 "Turn on" and "Turn off" are the default for a feature toggle. They are not a universal replacement for "Enable" and "Disable". Keep Enable or Disable when that word more accurately names the action. A pass for those edge cases is still pending. Do not replace Enable and Disable everywhere.
@@ -163,21 +162,28 @@ Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing a
 
 ### Periods
 
-Use a period when the string is a complete sentence. Do not use a period on labels, headings, button text, tags, tab labels, or "Learn more".
+Do not use a period unless the string is more than one sentence. When it is, end every sentence with a period. Never double-space after a period.
+
+Do not use a period on a header, menu item, subheader, label, button, tag, tab, or "Learn more".
 
 ```
-✅ "Your transaction couldn't be completed, so it was canceled."
+✅ "Your transaction couldn't be completed, so it was canceled"
 ✅ "Network fee"
 ✅ "Turn on notifications"
+❌ "Your transaction couldn't be completed, so it was canceled."
 ❌ "Network fee."
 ❌ "Learn more."
 ❌ "Incorrect password. Try again"
 ✅ "Your password is incorrect. Try again."
 ```
 
+### Question marks
+
+Avoid a question mark when a statement will do. A question mark is fine when the outcome is unknown. Do not put one on a button, a toggle, or most calls to action.
+
 ### Exclamation points
 
-Use an exclamation point very sparingly. It is allowed for a celebration, and for a major feature announcement. Never on an error, a warning, a quiz result, a security instruction, or a routine success (a token added, an order placed, a login).
+Use an exclamation point very sparingly, if at all. Save it for a really exciting moment, such as finishing onboarding, creating a wallet, or a major feature announcement. Never in an error, an alert, a quiz result, a security instruction, or a routine success (a token added, an order placed, a login).
 
 Celebrations include finishing onboarding and creating a wallet. A major feature announcement is rare. "The Ethereum Merge is here!" is that kind of line. Do not add one anywhere else.
 
@@ -192,29 +198,29 @@ Celebrations include finishing onboarding and creating a wallet. A major feature
 
 ### Ellipsis
 
-Loading and in-progress text is a present participle followed by three separate periods (`...`). That ellipsis is an explicit exception to curly typography. Do not trail off a sentence. Do not use a filler. Shortened addresses stay `0x0000...0000`.
+Use an ellipsis only to shorten an address (`0x0000...0000`). Avoid one everywhere else. It reads as an unfinished thought.
 
-This choice is settled. Four strings use the single ellipsis character (`…`). Do not change those until engineering confirms there is no rendering or functional dependency. That check is not done.
+Show loading with animation, not with `...` or `…`. If you need words, use a present participle and no ellipsis ("Loading your tokens"). Do not use a filler ("Hang tight", "Please wait").
+
+Announce loading status and errors to assistive tech. Do not rely on animation alone.
 
 ```
-✅ "Loading your tokens..."
-✅ "Processing deposit..."
+✅ "0x0000...0000"
+✅ "Loading your tokens"
+❌ "Loading your tokens..."
+❌ "Loading your tokens…"
 ❌ "Something went wrong...."
 ❌ "Hang tight"
 ❌ "Please wait"
 ```
 
-New loading text uses `...`. Leave an existing loading `…` in place until the engineering check is done.
-
-Announce loading status and errors to assistive tech. Do not rely on animation alone.
-
 ### Ampersands, commas, colons
 
 Never use `&` where "and" works. Never use `+` instead of "and". "P&L" is an allowed abbreviation, so its ampersand stays.
 
-Use the Oxford comma in lists of three or more.
+Use the Oxford comma in lists of three or more. Do not end a bullet with a comma.
 
-Do not use a colon in a label or a heading.
+A colon may offset a list. Do not use one on a label or a heading. If a sentence is long enough to need a colon otherwise, split it.
 
 ```
 ❌ "Approve & submit"
@@ -229,11 +235,11 @@ Do not use a colon in a label or a heading.
 
 ### Apostrophes and quotes
 
-Use curly apostrophes and quotes in UI strings: ’ and “ ”. Loading text is the exception, above. Apostrophes are not an open question.
+Use curly apostrophes and quotes in UI strings: ’ and “ ”.
 
 ### Em dash and bullets
 
-Do not use an em dash. Rewrite with a period or a comma.
+Use an em dash (—) with no spaces to offset an aside. Use a real em dash, not two hyphens.
 
 A bullet `•` is a data separator only ("Get USDC • Hyperliquid"). Do not use it in a sentence or as a list marker.
 
@@ -255,23 +261,23 @@ Do not put a newline inside a string. Split it into separate strings.
 
 ### Emoji
 
-One emoji is allowed at the end of a title in a celebratory moment, for example a Rewards celebration. No emoji in an error, a warning, or a confirmation.
+Use an emoji sparingly. It can add delight on a lower-impact message, such as a what's new screen or a push notification. Do not use one in an error, a warning, or a confirmation.
 
 ## Numbers, dates, and durations
 
-- Dates and clock times: `Jun 16 at 5:55 p.m.` Never ordinals (no "16th"). Never 24-hour time.
+- Dates and clock times: `Jun 16 at 6:30 am`. Never ordinals (no "16th"). Never 24-hour time. Put a space before lowercase `am` or `pm`.
 - Days: Mon, Tue, Wed, Thu, Fri, Sat, Sun
 - Months: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
 - Large amounts: `$500K`, `$20M`, `$100B`
 - Thousands: comma separator (`100,000`). No exception for gas units.
-- **PROPOSED.** Numeric ranges such as `1-20` (hyphen, no spaces, as in `5x-10x`) are unresolved in the Style Guide (hyphen vs en dash). Do not treat either form as settled, and do not migrate ranges to one form.
+- **PROPOSED.** The Style Guide says both "a hyphen with no space, as in 1-20" and "an en dash (–) with no spaces for a fixed range." Do not treat either form as settled, and do not migrate ranges to one form.
 - A hyphen never joins two phrases. Use a comma, or split the string.
 - Duration ranges use words: "1 to 2 days"
 - Spell out duration units: "1 minute", "5 minutes", "1 hour". Compact chips may use "1m", "1h", "24h".
 - "about" means an estimate. "within" means a maximum. "up to" means an upper limit. Do not write "typically" or "should" for these.
 - Addresses: `0x0000...0000`
 - Do not hardcode "EST" or "EDT". Show the user's local time. If you cannot, write "ET".
-- Written copy keeps `a.m.` and `p.m.` A time the locale formatter generates uses that formatter. Do not hand-build it, and do not switch written copy to `am` / `pm`.
+- A time the locale formatter generates uses that formatter. Do not hand-build it.
 
 ## Buttons and actions
 
@@ -362,18 +368,19 @@ Retire "You don't have any…" and "Nothing to see yet…".
 
 ### Loading
 
-Present participle, then `...`. That includes in-progress statuses. No filler. Announce the status to assistive tech. Do not rely on animation alone.
+Prefer animation. If you need words, use a present participle and no ellipsis. That includes in-progress statuses. No filler. Announce the status to assistive tech. Do not rely on animation alone.
 
 ```
-✅ "Loading your tokens..."
-✅ "Checking spending cap..."
+✅ "Loading your tokens"
+✅ "Checking spending cap"
 ❌ "Checking token allowance..."
+❌ "Loading your tokens..."
 ```
 
 ### Success
 
 - Title: past participle. "Order placed", "Password changed", "Card added to Apple Wallet".
-- Description, if there is one: a full sentence with a period. "Your deposit will arrive in about 5 minutes."
+- Description, if there is one sentence: no period. "Your deposit will arrive in about 5 minutes"
 - No "successfully", "has been", or "was successful".
 - An exclamation point only from the allowlist above.
 
@@ -420,9 +427,9 @@ Retire these as openers: "Failed to…", "Unable to…", "An unexpected error oc
 ❌ `error_screen.title` "An error occurred" with no specific next step
 ❌ "Something went wrong, but don't worry!"
 ✅ Title "Something went wrong". Body "This screen didn't load. Try again."
+```
 
 Do not claim the wallet or funds are safe unless the product has verified it.
-```
 
 Do not reuse a page-load string for a different failure. `somethingWentWrong` ("We couldn't load this page.") is for a page that did not load, not for an order, deposit, or withdraw.
 
@@ -439,7 +446,7 @@ The title names the risk. Severity comes from the component (color and icon), no
 
 ```
 ❌ "Warning: the transaction gas cost will account for more than {{percentOverDeposit}}% of your deposit."
-✅ "The network fee is more than {{percentOverDeposit}}% of your deposit."
+✅ "The network fee is more than {{percentOverDeposit}}% of your deposit"
 
 ✅ "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." (`alertMessageSuggestedGasFeeHigh`)
 ✅ "You're sending assets to an address flagged by security partners. If this is a scam, your funds can't be recovered." (`blockaid_banner.transfer_farming_description`)
@@ -447,17 +454,17 @@ The title names the risk. Severity comes from the component (color and icon), no
 
 ## Destructive confirmations
 
-- The title names the action: "Remove this token?"
+- The title names the action as a statement: "Remove this token"
 - The body says what will happen and what will not.
 - The buttons repeat the verb: "Remove" / "Cancel".
 - Retire "Are you sure?", "We are about to…", and "Would you like to…" / "Do you want to…".
 
 ```
 ❌ "Do you really want to lock your wallet?" with Yes / No (`drawer.lock_title`, `drawer.lock_ok`)
-✅ "Lock your wallet?" with Lock / Cancel
+✅ "Lock your wallet" with Lock / Cancel
 
 ❌ "Are you sure?" (`areYouSure`, `login.are_you_sure`)
-✅ "This removes browser history from this device."
+✅ "This removes browser history from this device"
 ```
 
 ## Consent
@@ -529,7 +536,7 @@ Authentication:
 - Never "your biometric" as a noun.
 - "Passcode" is the device passcode. "PIN" is an in-app code. They are not interchangeable.
 
-When you mean an NFT, say "NFT", not "collectible". `wallet.collectibles` is "NFTs". This is not a blanket replacement. The upcoming Collectibles feature (gacha cards) keeps that feature name.
+When you mean an NFT, say "NFT", not "collectible". `wallet.collectibles` is "NFTs". This is not a blanket replacement. The Collectibles feature keeps its name.
 
 "Disconnect" is for a site. "Revoke" is for a spending cap ("Revoking spending cap"). Do not swap them.
 
@@ -569,7 +576,7 @@ Do not use "Paid by MetaMask" when the MetaMask fee is $0 or waived. That fee is
 When the MetaMask fee is zero, prefer no MetaMask fee row, or a signal under the primary button such as a Promo badge. Honest labels are "No MetaMask fee" or "MetaMask fee waived". Do not show the waived MetaMask fee in dollars on a pre-swap upsell unless research or an A/B test supports it.
 
 ```
-✅ Network fee row shows "Paid by MetaMask" for gas sponsorship (for example Monad, SEI, or eligible Solana swaps)
+✅ A Network fee row shows "Paid by MetaMask" when MetaMask is sponsoring that fee
 ❌ MetaMask fee row shows "Paid by MetaMask" when the MetaMask fee is $0
 ✅ "No MetaMask fee" or a Promo badge under the primary button when the MetaMask fee is waived
 ```
@@ -665,24 +672,23 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 
 | Current | Use | Why |
 | --- | --- | --- |
-| "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee." | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
+| "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee" | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
 | MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | "Paid by MetaMask" means MetaMask covers a fee the user would otherwise pay. A waived MetaMask fee is not MetaMask paying itself |
 | "Gas Price: (GWEI)" (`custom_gas.gas_price`) | "Gas limit", "Max base fee", "Priority fee", "Gwei", and only in the advanced editor | Retired label, colon, and unit casing |
 | "Increase allowance" (`transactions.increase_allowance`) | "Spending cap" as the label. "Approve" as the button | "Allowance" is retired. Approve is for a spending cap or a permission |
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
 | "Using a 12, 18 or 24-word seed phrase" | "Using a 12, 18, or 24-word Secret Recovery Phrase" | Banned synonym, missing Oxford comma. Same text in `importAWalletDescription` |
 | "SRP #{{index}}" (`accounts.srp_index`) | "Secret Recovery Phrase {{index}}" | Produces "Secret Recovery Phrase 1" |
-| "Hold to reveal private key" | "Hold to reveal Private Key" | Title case |
 | "Please, try to visit this page again." (`notificationsPageErrorContent`) | "This page didn't load. Try again." | "please", and a retry is plausible for a page load |
 | "Your password is incorrect. Try again." | Keep | State, then an action that can work. Replaces a bare "Incorrect password" |
 | "Card Added Successfully" | "Card added to Apple Wallet" | Title case, "successfully" |
-| "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase." | Exclamation on an error. Same for "Nope!" |
+| "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase" | Exclamation on an error. Same for "Nope!" |
 | "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep | A celebration. Major feature announcements may also use one, very sparingly. Never on an error or a warning |
-| "Learn more." (`app_settings.learn_more` and `learnMore` variants) | "Learn more" | No period |
+| "Learn more." (`app_settings.learn_more`, `predict.consent_sheet.learn_more`) | "Learn more" | No period |
 | "Dapp browser" / "Dapps" / "ÐApps" | "Sites" in consumer UI | `trending.tabs.dapps` already says "Sites". A technical audience may say "dapp" |
-| "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
+| "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask" | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
 | "HyperLiquid" | "Hyperliquid" | Brand spelling. Migrate it |
-| "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site." and a plural string | "(s)" does not translate |
+| "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site" and a plural string | "(s)" does not translate |
 | "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." | Keep | Names the actor, the problem, and the action |
 | "Back up your Secret Recovery Phrase to keep your wallet and funds secure." (`backupApprovalNotice`) | Keep | Calm, and the right noun for the wallet |
 | "File import not working? Click here!" | "Try a different file" | Question, "click here", and an exclamation |
@@ -693,34 +699,33 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 Not decided. Do not rewrite existing copy to satisfy these.
 
 1. **Numeric ranges.** Hyphen (`1-20`) vs en dash is unresolved in the Style Guide.
-2. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
-3. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
+2. **Locale file and `toSentenceCase`.** Drafts in the mobile overlay. Do not enforce them until content design confirms them.
+3. **Translator descriptions.** A draft in the extension overlay. Do not enforce it until content design confirms it.
 
 ## Checks pending
 
 These decisions are made. The checks are not done. Do not claim they are, and do not migrate strings ahead of them.
 
-1. **Loading `…`.** New loading text uses three periods (`...`). Four existing strings use `…`. Engineering has not confirmed that changing them has no rendering or functional dependency.
-2. **Dropping "your".** Conditionally approved for onboarding titles only. Layout checks are not done: small screens, larger text, translations, and a title that would leave "Phrase" alone on a line. Field labels and inline instructions stay as they are unless content design signs off.
-3. **Turn on / Turn off.** Default only. The pass for Enable and Disable edge cases is not done. Do not replace those words everywhere.
-4. **Reject to Cancel.** Default for new buttons. No one has confirmed that Cancel ("nothing changes") describes declining an existing signature or permission request. Do not replace those labels in a blanket pass.
+1. **Dropping "your".** Conditionally approved for onboarding titles only. Layout checks are not done: small screens, larger text, translations, and a title that would leave "Phrase" alone on a line. Field labels and inline instructions stay as they are unless content design signs off.
+2. **Turn on / Turn off.** Default only. The pass for Enable and Disable edge cases is not done. Do not replace those words everywhere.
+3. **Reject to Cancel.** Default for new buttons. No one has confirmed that Cancel ("nothing changes") describes declining an existing signature or permission request. Do not replace those labels in a blanket pass.
 
 ## Checklist
 
 Before you finish a user-facing string:
 
 - Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. "Hyperliquid" uses that spelling. First mention in a page or flow is "MetaMask Snaps".
-- Curly apostrophes and quotes. Loading text is the exception: three separate periods (`...`). Do not rewrite an existing loading `…` until engineering confirms there is no rendering or functional dependency. That check is not done.
-- Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys.
+- Curly apostrophes and quotes. An ellipsis only in a shortened address. Loading uses animation, not `...` or `…`.
+- A single sentence has no period. A description with more than one sentence periods every sentence. An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
 - "Paid by MetaMask" only when MetaMask covers a fee the user would otherwise pay. Never for a $0 or waived MetaMask fee.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
-- No "please" or "successfully". "Please" is not an apology. An exclamation point is only for a celebration or a major feature announcement, very sparingly, and never on an error or a warning.
+- No "please", "sorry", or "unfortunately" in a routine error. No "successfully". An exclamation point only for a really exciting moment, never in an error or an alert.
 - "Turn on" and "Turn off" are the default, not a universal replacement. Do not replace Enable or Disable until the edge-case pass is done.
 - "NFT" for an NFT. Do not rename the Collectibles feature.
 - Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
-- No hardcoded EST or EDT. Written clock times use `a.m.` and `p.m.`
+- No hardcoded EST or EDT. Written clock times use `6:30 am`.
 - Do not drop "your" from a shipped onboarding title until the layout checks are done. Do not leave "Phrase" alone on a line. Do not drop "your" from a field label or inline instruction unless content design signs off.
-- Do not claim the wallet or funds are safe unless the product has verified it. Do not use above, below, left, or right. Name the control.
+- Do not claim the wallet or funds are safe unless the product has verified it. Do not use above, below, left, or right to point to something on screen. Name the control.

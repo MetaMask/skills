@@ -35,13 +35,13 @@ Market-type and group labels we write are sentence case. Keep team names and lea
 
 Those labels are our strings: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*` in `locales/languages/en.json`.
 
-The question on a market card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text. Team and league names inside it stay as the feed sent them. Team matching compares `groupItemTitle` to the feed's team name, so a casing rewrite would also break that match.
+The question on a market card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text. Team and league names inside it stay as the feed sent them.
 
 Developer-only strings (`app_settings.developer_options.*`, debug screens) are out of scope. The shared skill states that rule.
 
 ## PROPOSED
 
-Not part of the reviewed proposals 1–16.
+Drafts. Do not enforce them until content design confirms them.
 
 1. **Locale file.** If a person can read it, it belongs in `locales/languages/en.json`. That includes accessibility labels and empty states. Hardcoded examples to move when you touch them: "Date of Birth" in `app/components/UI/Card/components/Onboarding/PersonalDetails.tsx`, "Games couldn't be loaded." / "No games available." / "Retry" in `FeedPreviewSection.tsx`, and "Unable to load price history" in `PredictGameChartContent.tsx`.
 2. **Do not run `toSentenceCase` on product copy.** `app/util/string/index.ts` lowercases everything after the first character. Bridge quote UI calls it on `bridge.network_fee`. It will also lowercase "NFT" and "Secret Recovery Phrase".
