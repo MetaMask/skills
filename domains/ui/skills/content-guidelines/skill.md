@@ -12,14 +12,16 @@ maturity: stable
 
 # Content guidelines
 
-This file is the canonical source for MetaMask product UI copy. Mobile and extension overlays add file paths and client examples. They do not replace these rules.
+This file is the agent-readable implementation of approved MetaMask content guidance. Agents use it day to day. Mobile and extension overlays add file paths and client examples. They do not replace these rules.
 
-The Notion MetaMask Content Design Style Guide, the design-system Cursor rule, and component READMEs are background. When they disagree with this file, follow this file.
+Approved sources: the [MetaMask Content Design Style Guide](https://app.notion.com/p/43cbae51680544b28d5287683089cc9b) and Design Brain. If those sources disagree with this file, flag it to the content owner. Do not invent a rule.
+
+Component READMEs are background. When they disagree with this file, follow this file.
 
 ## How to apply
 
 - Unmarked rules are confirmed. Follow them.
-- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
+- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are numeric ranges, plus the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
 - [Checks pending](#checks-pending) are not finished. Do not claim them done, and do not migrate strings ahead of them.
 
 ## When to use
@@ -58,10 +60,10 @@ Point of view:
 - The user's things are **your**. Never "my" for the user's things (`drawer.share_address` is "Share my public address"; use "Share your public address").
 - MetaMask is **we / our**.
 - MetaMask never says I, me, or my.
-- First person is allowed only in a consent checkbox: "I understand that…". Questionnaire answers (including `scam_questionnaire.*`) are neutral, not first person.
+- First person is allowed only in a consent checkbox: "I understand that…". This exception is documented in this skill. It is not yet in the Notion Style Guide. Questionnaire answers (including `scam_questionnaire.*`) are neutral, not first person.
 - The consent line is second person, not a checkbox. See [Consent](#consent).
 
-Use contractions. No exceptions.
+Use contractions when they read naturally.
 
 ```
 ✅ "We're here to help."   ✅ "This can't be undone."
@@ -79,10 +81,10 @@ MetaMask sounds direct and calm. It names the object and the next step. Apologiz
 | successfully, "was successful", "has been" on a success | Past participle. "Order placed", "{{name}} added" |
 | please | Name the action. "Enter a limit price" |
 | sorry, unfortunately | State what happened, then the action |
-| click here | Name the destination. "Tap to…" is allowed on mobile only |
+| click here, above, below, left, right | Name the control. "Tap to…" is allowed on mobile only |
 | fiat | The currency name (USD, EUR). "Local currency" only for the setting that picks one |
 | gas, gas fee, transaction fee in a default flow | network fee. See [Fees](#fees). Leadership confirmed this |
-| dapp, dApp, DAPP, ÐApps | site |
+| dApp, DAPP, ÐApps | site in consumer UI. A technical audience may say "dapp" |
 | native currency | network currency |
 | allowance, spend limit, token allowance | spending cap. On Tron, do not say "allowance" for daily resources either |
 | cryptocurrency | crypto |
@@ -92,6 +94,10 @@ MetaMask sounds direct and calm. It names the object and the next step. Apologiz
 | sign in, when it is the same action as log in | log in. Social login buttons stay "Sign in with Apple" and "Sign in with Google" |
 
 "Tap to…" is allowed on mobile only. Do not use it in the extension. Name the control there. The older ban on that phrase is retired for mobile.
+
+Do not point with above, below, left, or right. Name the control.
+
+Default to "site" in consumer UI. A technical audience may use "dapp". Do not write "dApp", "DAPP", or "ÐApps".
 
 On mobile, say tap, not click. The Apple Pay side button stays "double-click", because that is the platform's name for that control.
 
@@ -137,28 +143,17 @@ Also sentence case: titles, buttons, menus, settings labels, section headers, ta
 ✅ "Date of birth"
 ```
 
-"Predict" is only a verb. "Predictions" is the product. "predictions" is the generic noun. "Perps" is the product. "perps" is the generic noun. "Rewards" is the product. "rewards" is the generic noun.
+"Predict" is only a verb. "Predictions" is the product. "predictions" is the generic noun. "Perps" is the product. "perps" is the generic noun.
 
-"Snaps" is the platform. "A Snap" is one installed instance. Do not write "snap" for the platform.
+"Rewards" is the product. "rewards" is the generic noun. Keep three meanings apart: Rewards (the product), points, and redeemed rewards. Do not describe network rewards with yield, ROI, or securities analogies.
+
+On the first mention in a page or flow, write "MetaMask Snaps". After that, "Snaps" is fine. "Snaps" is the platform. "A Snap" is one installed instance. Do not write "snap" for the platform.
 
 "Pix" is the proper noun in "Pix key". "Key" stays generic.
 
 No all-caps headlines (`predict.gtm_content.title` is "PREDICT AND WIN"; use "Predict and win").
 
-Predictions market labels we write are sentence case. Keep team names and league names as proper nouns.
-
-```
-❌ "Exact Score" (`predict.sports_market_types.exact_score`)
-✅ "Exact score"
-
-❌ "1st Half Team Totals" (`predict.sports_market_types.soccer_first_half_team_totals`)
-✅ "1st half team totals"
-
-❌ "Both Teams Slay Baron Nashor"
-✅ "Both teams slay Baron Nashor"
-```
-
-On mobile, those labels are our strings: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*` in `locales/languages/en.json`. The market question on a card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text in code. Team and league names inside it stay as the feed sent them. Team matching compares `groupItemTitle` to the feed's team name, so a casing rewrite would also break that match.
+Predictions market-label casing for Mobile, including Polymarket feed text, is in the mobile overlay.
 
 Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing already shipped. Do not invent a third casing, and do not migrate them.
 
@@ -210,6 +205,8 @@ This choice is settled. Four strings use the single ellipsis character (`…`). 
 ```
 
 New loading text uses `...`. Leave an existing loading `…` in place until the engineering check is done.
+
+Announce loading status and errors to assistive tech. Do not rely on animation alone.
 
 ### Ampersands, commas, colons
 
@@ -267,7 +264,8 @@ One emoji is allowed at the end of a title in a celebratory moment, for example 
 - Months: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
 - Large amounts: `$500K`, `$20M`, `$100B`
 - Thousands: comma separator (`100,000`). No exception for gas units.
-- Numeric ranges: `1-20`, hyphen, no spaces (`5x-10x`). A hyphen never joins two phrases. Use a comma, or split the string.
+- **PROPOSED.** Numeric ranges such as `1-20` (hyphen, no spaces, as in `5x-10x`) are unresolved in the Style Guide (hyphen vs en dash). Do not treat either form as settled, and do not migrate ranges to one form.
+- A hyphen never joins two phrases. Use a comma, or split the string.
 - Duration ranges use words: "1 to 2 days"
 - Spell out duration units: "1 minute", "5 minutes", "1 hour". Compact chips may use "1m", "1h", "24h".
 - "about" means an estimate. "within" means a maximum. "up to" means an upper limit. Do not write "typically" or "should" for these.
@@ -364,7 +362,7 @@ Retire "You don't have any…" and "Nothing to see yet…".
 
 ### Loading
 
-Present participle, then `...`. That includes in-progress statuses. No filler.
+Present participle, then `...`. That includes in-progress statuses. No filler. Announce the status to assistive tech. Do not rely on animation alone.
 
 ```
 ✅ "Loading your tokens..."
@@ -421,7 +419,9 @@ Retire these as openers: "Failed to…", "Unable to…", "An unexpected error oc
 ```
 ❌ `error_screen.title` "An error occurred" with no specific next step
 ❌ "Something went wrong, but don't worry!"
-✅ Title "Something went wrong". Body "Your wallet and funds are safe. This screen didn't load. Try again."
+✅ Title "Something went wrong". Body "This screen didn't load. Try again."
+
+Do not claim the wallet or funds are safe unless the product has verified it.
 ```
 
 Do not reuse a page-load string for a different failure. `somethingWentWrong` ("We couldn't load this page.") is for a page that did not load, not for an order, deposit, or withdraw.
@@ -471,7 +471,7 @@ Use the real document name (Terms of Use, Privacy Policy). One string, with the 
 ✅ "By continuing, you agree to the Terms of Use."
 ```
 
-A checkbox that records the person's own acknowledgment may say "I understand that…". That is the only first-person exception.
+A checkbox that records the person's own acknowledgment may say "I understand that…". That is the only first-person exception. This exception is documented in this skill. It is not yet in the Notion Style Guide.
 
 ## Forms
 
@@ -481,11 +481,11 @@ A placeholder is a short action ("Enter amount", "Search tokens") or a format ex
 
 ### Field wording
 
-For new field prompts, drop "your": "Enter password", "Enter email". Keep "your" in full sentences.
+On onboarding titles, you may drop "your" when the title still reads. "Enter Secret Recovery Phrase" can leave "Phrase" alone on a line. Keep "your", or change the wording or the layout. Check small screens, larger text settings, and translations before changing a shipped title. Those checks are not done.
 
-Do not remove "your" when that strands a word alone on a line. On a title, "Enter Secret Recovery Phrase" can leave "Phrase" by itself. Keep "your", or change the wording or the layout, so the line still reads. Check small screens, larger text settings, and translations before changing a shipped string. Those checks are not done.
+This does not apply to field labels or inline instructions unless content design signs off. Keep "your" in full sentences.
 
-Leadership has conditionally approved migrating existing onboarding prompts, including "Enter your Secret Recovery Phrase" and "Enter your password". The migration is not waiting on another approval. It waits on the layout checks above. Do not migrate those strings until the checks are done.
+Leadership has conditionally approved migrating existing onboarding titles, including "Enter your Secret Recovery Phrase". The migration waits on the layout checks above. Do not migrate those strings until the checks are done.
 
 Mark an optional field with "(optional)".
 
@@ -639,7 +639,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Got it | Got it | OK, Ok, Understood | Dismiss |
 | Learn more | Learn more | Learn more. | No period |
 | Network | network | chain, on-chain | "Chain ID" is the field. Do not say "chain" for a network |
-| Site | site | dapp, dApp, ÐApps | Disconnect a site. Revoke a spending cap |
+| Site | site | dApp, DAPP, ÐApps | Default in consumer UI. A technical audience may say "dapp". Disconnect a site. Revoke a spending cap |
 | Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
 | Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
@@ -648,8 +648,8 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Add funds | Add funds | Deposit, except an activity-list type | |
 | Smart account | smart account | smart contract account, Smart Account | |
 | Money account | Money account | Money Account | Sentence case |
-| Snaps | Snaps, a Snap | snap for the platform | |
-| Perps, Predictions, Rewards | Product form, or lower for the generic noun | Predict as a noun | |
+| Snaps | MetaMask Snaps, then Snaps | snap for the platform | First mention in a page or flow is "MetaMask Snaps". "A Snap" is one instance |
+| Perps, Predictions, Rewards | Product form, or lower for the generic noun | Predict as a noun. Yield, ROI, or securities analogies for network rewards | Rewards (the product), points, and redeemed rewards are three meanings |
 | Settings | Settings | settings, when it names the screen | Sub-screens stay sentence case |
 | Terms of Use, Privacy Policy | Those titles | T&C, Terms and Conditions | MetaMask's own documents |
 | Pix key | Pix key | PIX key, pix key | |
@@ -679,33 +679,29 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 | "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase." | Exclamation on an error. Same for "Nope!" |
 | "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep | A celebration. Major feature announcements may also use one, very sparingly. Never on an error or a warning |
 | "Learn more." (`app_settings.learn_more` and `learnMore` variants) | "Learn more" | No period |
-| "Dapp browser" / "Dapps" / "ÐApps" | "Sites" | `trending.tabs.dapps` already says "Sites" |
+| "Dapp browser" / "Dapps" / "ÐApps" | "Sites" in consumer UI | `trending.tabs.dapps` already says "Sites". A technical audience may say "dapp" |
 | "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
 | "HyperLiquid" | "Hyperliquid" | Brand spelling. Migrate it |
-| "Exact Score" (`predict.sports_market_types.exact_score`) | "Exact score" | Our label, sentence case. The card's question still comes from the Polymarket feed |
 | "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site." and a plural string | "(s)" does not translate |
 | "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." | Keep | Names the actor, the problem, and the action |
 | "Back up your Secret Recovery Phrase to keep your wallet and funds secure." (`backupApprovalNotice`) | Keep | Calm, and the right noun for the wallet |
 | "File import not working? Click here!" | "Try a different file" | Question, "click here", and an exclamation |
 | "MetaMask is not connected to this site. To connect to a web3 site, find and click the connect button." | "MetaMask isn't connected to this site yet. You'll be asked to connect when the site needs an account." | "web3", "click", and a gesture instead of the situation |
 
-## Activity rows (extension)
-
-The description adds the amount, the counterparty, or the reason. Do not copy the title. Do not leave the description empty. The keys are in the extension overlay.
-
 ## PROPOSED
 
 Not decided. Do not rewrite existing copy to satisfy these.
 
-1. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
-2. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
+1. **Numeric ranges.** Hyphen (`1-20`) vs en dash is unresolved in the Style Guide.
+2. **Locale file and `toSentenceCase`.** Still drafts in the mobile overlay. Not part of proposals 1–16.
+3. **Translator descriptions.** Still a draft in the extension overlay. Not part of proposals 1–16.
 
 ## Checks pending
 
 These decisions are made. The checks are not done. Do not claim they are, and do not migrate strings ahead of them.
 
 1. **Loading `…`.** New loading text uses three periods (`...`). Four existing strings use `…`. Engineering has not confirmed that changing them has no rendering or functional dependency.
-2. **Dropping "your".** Conditionally approved for onboarding prompts. Layout checks are not done: small screens, larger text, translations, and a title that would leave "Phrase" alone on a line.
+2. **Dropping "your".** Conditionally approved for onboarding titles only. Layout checks are not done: small screens, larger text, translations, and a title that would leave "Phrase" alone on a line. Field labels and inline instructions stay as they are unless content design signs off.
 3. **Turn on / Turn off.** Default only. The pass for Enable and Disable edge cases is not done. Do not replace those words everywhere.
 4. **Reject to Cancel.** Default for new buttons. No one has confirmed that Cancel ("nothing changes") describes declining an existing signature or permission request. Do not replace those labels in a blanket pass.
 
@@ -713,7 +709,7 @@ These decisions are made. The checks are not done. Do not claim they are, and do
 
 Before you finish a user-facing string:
 
-- Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. Predictions labels we write are sentence case, with team and league names left as proper nouns. "Hyperliquid" uses that spelling.
+- Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. "Hyperliquid" uses that spelling. First mention in a page or flow is "MetaMask Snaps".
 - Curly apostrophes and quotes. Loading text is the exception: three separate periods (`...`). Do not rewrite an existing loading `…` until engineering confirms there is no rendering or functional dependency. That check is not done.
 - Period only on a full sentence. No em dash. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
@@ -726,4 +722,5 @@ Before you finish a user-facing string:
 - "NFT" for an NFT. Do not rename the Collectibles feature.
 - Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
 - No hardcoded EST or EDT. Written clock times use `a.m.` and `p.m.`
-- Do not drop "your" from a shipped onboarding prompt until the layout checks are done. Do not leave "Phrase" alone on a line.
+- Do not drop "your" from a shipped onboarding title until the layout checks are done. Do not leave "Phrase" alone on a line. Do not drop "your" from a field label or inline instruction unless content design signs off.
+- Do not claim the wallet or funds are safe unless the product has verified it. Do not use above, below, left, or right. Name the control.

@@ -18,7 +18,24 @@ The generated skill under `.claude/skills/mms-content-guidelines/`, `.cursor/rul
 
 On mobile, do not say "clicking" in a consent line. "Tap to…" is allowed in this client. It is not allowed in the extension. Say tap, not click. The Apple Pay side button stays "double-click" (`card.apple_pay_confirmation.instructions`). Drop "Simply". Keep "double-click" only because that is the platform's name for that control.
 
-Predictions market-type labels are ours: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*`. Sentence-case those. The question on a market card comes from the Polymarket feed (`question`, `groupItemTitle`, event `title` in `PolymarketProvider`). Do not sentence-case that feed text.
+## Predictions labels
+
+Market-type and group labels we write are sentence case. Keep team names and league names as proper nouns.
+
+```
+❌ "Exact Score" (`predict.sports_market_types.exact_score`)
+✅ "Exact score"
+
+❌ "1st Half Team Totals" (`predict.sports_market_types.soccer_first_half_team_totals`)
+✅ "1st half team totals"
+
+❌ "Both Teams Slay Baron Nashor"
+✅ "Both teams slay Baron Nashor"
+```
+
+Those labels are our strings: `predict.sports_market_types.*`, `predict.outcome_groups.*`, and `predict.market_groups.*` in `locales/languages/en.json`.
+
+The question on a market card is not one of those strings. `PolymarketProvider` copies Polymarket's `question`, `groupItemTitle`, and event `title`, with light formatting only. Do not sentence-case that feed text. Team and league names inside it stay as the feed sent them. Team matching compares `groupItemTitle` to the feed's team name, so a casing rewrite would also break that match.
 
 Developer-only strings (`app_settings.developer_options.*`, debug screens) are out of scope. The shared skill states that rule.
 
