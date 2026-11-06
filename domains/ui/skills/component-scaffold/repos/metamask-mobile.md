@@ -50,7 +50,7 @@ Two systems coexist in the repo:
 
 ### Layer 1 — `@metamask/design-system-react-native` (MMDS, npm package) ✅ Always use first
 
-The only correct choice for new component primitives. Exports `Box`, `Text`, `BottomSheet`, `BottomSheetHeader`, `BottomSheetFooter`, `ButtonBase`, `ButtonIcon`, `HeaderStandard`, `Icon`, `Skeleton`, `Tag`, and more.
+The only correct choice for new component primitives (`Box`, `Text`, `Button`, `ButtonBase`, `Icon`, `ListItem`, `BottomSheet`, and more). For the current inventory and deprecations, use the [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json) as described in `ui-development`.
 
 Before writing any UI, verify what the installed version actually exports — the package changes frequently:
 
@@ -64,7 +64,15 @@ node_modules/@metamask/design-system-react-native/dist/components/index.d.ts
 node_modules/@metamask/design-system-react-native/src/components/index.ts
 ```
 
-The installed package is the source of truth, not this skill's examples.
+The installed package is the source of truth, not this skill's examples. Read props from `dist/components/<Component>/<Component>.types.d.cts`. For behavior and examples, read the component README on GitHub at the release tag (READMEs are not in the npm package):
+
+```
+https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react-native@<installed version>/packages/design-system-react-native/src/components/<Component>/README.md
+```
+
+Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`. When a README and the types disagree, the types win. No MCP server is needed; if Storybook MCP happens to be configured it is optional, so never block scaffolding on it.
+
+Do not add new usage of anything marked `@deprecated` in the installed types or in the manifest's `jsDocTags.deprecated`.
 
 For local visual testing of a component in isolation, see `docs/readme/storybook.md`.
 
@@ -128,12 +136,25 @@ import {
 
 ### Interactive / pressed state
 
+`ButtonBase` takes pressed styling through a `twClassName` function. Its `style` prop is a plain style, so a `style={({ pressed }) => ...}` function does not type-check:
+
+```tsx
+<ButtonBase
+  onPress={onPress}
+  twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
+>
+  {strings('foo.action')}
+</ButtonBase>
+```
+
+For a custom pressable container, use `Pressable` with `tw.style()`:
+
 ```tsx
 import { useTailwind } from '@metamask/design-system-twrnc-preset';
 
 const tw = useTailwind();
 
-<ButtonBase
+<Pressable
   style={({ pressed }) =>
     tw.style('w-full flex-row items-center', pressed && 'bg-pressed')
   }
@@ -144,14 +165,13 @@ const tw = useTailwind();
 
 ## 5. Bottom sheet specifics
 
-1. Apply `useElevatedSurface()` to the `BottomSheet`'s `twClassName` — required for pure-black theme support:
+1. Use the MMDS `BottomSheet`, `BottomSheetHeader`, and `BottomSheetFooter`. The sheet surface already uses the `bg-elevated1` token, so do not add a surface class unless the design puts the sheet on a different surface (then pass a token class such as `twClassName="bg-default"`):
 
 ```tsx
-import { useElevatedSurface } from '../../../../util/theme/themeUtils'; // adjust depth
-
-const surfaceClass = useElevatedSurface();
-
-<BottomSheet twClassName={surfaceClass}>
+<BottomSheet ref={sheetRef} goBack={navigation.goBack}>
+  <BottomSheetHeader onClose={handleClose}>{strings('foo.title')}</BottomSheetHeader>
+  {/* content */}
+</BottomSheet>
 ```
 
 2. `ScrollView` inside a `BottomSheet` must come from `react-native-gesture-handler` — the standard React Native `ScrollView` will not scroll on Android inside a gesture-managed bottom sheet:
@@ -176,7 +196,7 @@ import { strings } from '../../../../locales/i18n'; // adjust depth to file loca
 {strings('namespace.key')}
 ```
 
-Add new keys to `app/locales/languages/en.json` only. Crowdin picks up new English strings automatically after the PR merges — do not edit other language files manually.
+Add new keys to `locales/languages/en.json` (repo root) only. Crowdin picks up new English strings automatically after the PR merges — do not edit other language files manually.
 
 ---
 
@@ -187,7 +207,7 @@ Add new keys to `app/locales/languages/en.json` only. Crowdin picks up new Engli
 Example from `app/components/UI/Compliance/AccessRestrictedModal/AccessRestrictedModal.tsx`:
 ```tsx
 import { strings } from '../../../../../locales/i18n';
-import { useElevatedSurface } from '../../../../util/theme/themeUtils';
+import { AccessRestrictedModalProps } from './AccessRestrictedModal.types';
 ```
 
 ---
@@ -255,13 +275,11 @@ testID={`${FooSelectorsIDs.ITEM}-${item.id}`}
 ```tsx
 import React from 'react';
 import {
-  Box,
   ButtonBase,
   Text,
   TextColor,
   TextVariant,
 } from '@metamask/design-system-react-native';
-import { useTailwind } from '@metamask/design-system-twrnc-preset';
 import { strings } from '../../../../locales/i18n'; // adjust depth
 import { FooProps } from './Foo.types';
 import { FooSelectorsIDs } from './Foo.testIds';
@@ -271,17 +289,13 @@ const Foo: React.FC<FooProps> = ({
   onClose,
   testID = FooSelectorsIDs.CONTAINER,
 }) => {
-  const tw = useTailwind();
-
   if (!isVisible) return null;
 
   return (
     <ButtonBase
       onPress={onClose}
       testID={testID}
-      style={({ pressed }) =>
-        tw.style('px-4 pb-6', pressed && 'bg-pressed')
-      }
+      twClassName={(pressed) => `px-4 pb-6 ${pressed ? 'bg-pressed' : ''}`}
     >
       <Text
         variant={TextVariant.BodyMd}
@@ -297,7 +311,7 @@ const Foo: React.FC<FooProps> = ({
 export default Foo;
 ```
 
-> For a bottom sheet, add `useElevatedSurface()` — see Section 5.
+> For a bottom sheet, use the MMDS `BottomSheet` components — see Section 5.
 
 ### `index.ts`
 
@@ -385,6 +399,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
 - [ ] If consumed outside the folder: parent feature `index.ts` updated (Section 10)
-- [ ] If bottom sheet: `useElevatedSurface()` applied; `ScrollView` from `react-native-gesture-handler`
+- [ ] If bottom sheet: MMDS `BottomSheet` components, no extra surface class unless the design needs one; `ScrollView` from `react-native-gesture-handler`
+- [ ] No new usage of `@deprecated` MMDS APIs; pressed styles via `ButtonBase twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
 - [ ] All user-visible strings use `strings()` — no hardcoded copy
 

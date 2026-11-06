@@ -12,8 +12,11 @@ maturity: stable
 
 Encodes the MetaMask Content Design Style Guide for AI-assisted development.
 Covers capitalization, punctuation, voice and tone, and the approved
-terminology list. For component-specific copy rules, refer to the relevant
-component README in MetaMask/metamask-design-system (exposed via Storybook MCP).
+terminology list. For component-specific copy rules, read the "Content
+guidelines" section of the relevant component README in
+[MetaMask/metamask-design-system](https://github.com/MetaMask/metamask-design-system)
+on GitHub, at the tag that matches the installed package version. No MCP
+server is needed.
 
 ## When to use
 

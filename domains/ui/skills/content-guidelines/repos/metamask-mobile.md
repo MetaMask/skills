@@ -5,7 +5,7 @@ parent: content-guidelines
 
 # MetaMask Content Design Guidelines — Mobile
 
-> Source of truth: MetaMask Content Design Style Guide (internal). This skill encodes the decisions from that guide for AI-assisted development. For component-specific copy rules, read the relevant component README in MetaMask/metamask-design-system via Storybook MCP.
+> Source of truth: MetaMask Content Design Style Guide (internal). This skill encodes the decisions from that guide for AI-assisted development. For component-specific copy rules, read the "Content guidelines" section of the component README in MetaMask/metamask-design-system on GitHub, at the tag `@metamask/design-system-react-native@<installed version>` (`packages/design-system-react-native/src/components/<Component>/README.md`). No MCP server is needed.
 
 ---
 
