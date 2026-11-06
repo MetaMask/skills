@@ -9,7 +9,7 @@ description: >-
   or a cross-system design whose scope is not decided. Security, performance,
   a contract or API change, a long diff, or several screens is not large by
   itself. Security and performance stop for agreement before the edit, even
-  when fully specified, and get a spec only when also large. Do not use it
+  itself. Contract or API changes require a brief. Security and performance stop for agreement before the edit, even when fully specified. Recommend a spec only when the change is also large. Do not use it
   before every edit. When it applies, read the installed mms-* catalog and
   every matching skill before the edit, brief, or yes/no.
 maturity: experimental
