@@ -23,7 +23,7 @@ When this skill applies, follow this procedure before the first edit of that tas
 
 ### Catalog
 
-Run this before any edit, brief, revert yes/no, or fully specified yes/no. Mechanical, revert, unkept spike or POC, routine CI-only, and fully specified asks do not skip it. Do not start a later step until this step has run. If a later step is reached before it has run, run it first.
+When `mms-planning` is triggered, run this catalog step before any edit, brief, or approval question. This applies to every execution path, including mechanical changes, reverts, spikes or POCs, routine CI-only work, and fully specified requests. Do not proceed to another step until the catalog check is complete.
 
 Read the installed `mms-*` catalog. Assess every installed `mms-*` skill by its description. Read the body of every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. When an installed `mms-*` skill and a skill outside that catalog both fit, follow the `mms-*` skill. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
 
