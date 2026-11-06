@@ -3,15 +3,17 @@ name: planning
 description: >-
   Use in MetaMask Mobile or MetaMask Extension when scope is ambiguous, the
   change is large, the work is security-sensitive or performance-sensitive,
-  a contract or API is being changed, or the engineer asks for mms-planning or a plan
-  does not name the target, the action, and the expected result, or it leaves
-  an open product or contract decision. Large means only a new product area,
-  or a cross-system design whose scope is not decided. Security, performance,
-  a contract or API change, a long diff, or several screens is not large by
-  itself. Security and performance stop for agreement before the edit, even
-  itself. Contract or API changes require a brief. Security and performance stop for agreement before the edit, even when fully specified. Recommend a spec only when the change is also large. Do not use it
-  before every edit. When it applies, read the installed mms-* catalog and
-  every matching skill before the edit, brief, or yes/no.
+  a contract or API is being changed, or the engineer asks for mms-planning
+  or a plan. Ambiguous means the ask does not name the target, the action,
+  and the expected result, or it leaves an open product or contract decision.
+  Large means only a new product area, or a cross-system design whose scope
+  is not decided. Security, performance, a contract or API change, a long
+  diff, or several screens is not large by itself. Contract or API changes
+  stop for a brief. Security and performance stop for agreement before the
+  edit, even when fully specified. Recommend a spec only when the change is
+  also large. Do not use it before every edit. When it applies, read the
+  installed mms-* catalog and every matching skill before the edit, brief,
+  or yes/no.
 maturity: experimental
 ---
 
@@ -23,7 +25,7 @@ When this skill applies, follow this procedure before the first edit of that tas
 
 ### Catalog
 
-When `mms-planning` is triggered, run this catalog step before any edit, brief, or approval question. This applies to every execution path, including mechanical changes, reverts, spikes or POCs, routine CI-only work, and fully specified requests. Do not proceed to another step until the catalog check is complete.
+When `mms-planning` is triggered, run this catalog step before any edit, brief, or approval question. This applies to every execution path, including mechanical changes, reverts, spikes or POCs, routine CI-only work, and fully specified requests. Do not proceed to another step until the catalog check is complete. If a later step is reached before it has run, run it first.
 
 Read the installed `mms-*` catalog. Assess every installed `mms-*` skill by its description. Read the body of every skill whose area the task touches. A partial or uncertain fit is read. Skip a skill only when the task has no surface for it. When an installed `mms-*` skill and a skill outside that catalog both fit, follow the `mms-*` skill. Prefer an installed skill over restating its guidance. The engineer does not have to name a skill.
 
