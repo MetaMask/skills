@@ -14,7 +14,7 @@ maturity: stable
 
 This file is the agent-readable implementation of approved MetaMask content guidance. Agents use it day to day. Mobile and extension overlays add file paths and client examples. They do not replace these rules.
 
-Approved sources: the [MetaMask Content Design Style Guide](https://app.notion.com/p/43cbae51680544b28d5287683089cc9b) and Design Brain. If those sources disagree with this file, flag it to the content owner. Do not invent a rule.
+Approved sources: the [MetaMask Content Design Style Guide](https://app.notion.com/p/43cbae51680544b28d5287683089cc9b) and [Design Brain](https://x.ai/bot/agent/0af56719-2c18-5697-8805-f40bff9d486e). If those sources disagree with this file, flag it to the content owner. Do not invent a rule.
 
 Component READMEs are background. When they disagree with this file, follow this file.
 
