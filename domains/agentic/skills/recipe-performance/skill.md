@@ -15,6 +15,28 @@ Read `references/performance-evidence.md` before planning proof. For Extension r
 
 The result must be reproducible: retain the rerunnable root recipe and run-scoped evidence that proves the same flow and finding. Treat an uncorrelated profiler observation as a hypothesis, not proof.
 
+## How to use
+
+Start with a running Mobile app on an explicit simulator/emulator or device, a
+repeatable fixture and the task-locked `mm-harness`. Record the build mode; a
+compatible dev client with Metro supports JS diagnosis without a native rebuild.
+Use Recipe Harness to discover and prepare missing prerequisites. A lower-end
+physical device is preferred for confirming a user-facing win, since a fast
+simulator host can hide JS cost.
+
+Example prompt:
+
+> Using the recipe-performance skill, make the Perps order sheet (tap Long or Short on a market) open faster. Find the biggest bottleneck, fix it, and give before/after stats from the device.
+
+Expect a bottleneck diagnosis backed by a CPU profile and viewable flame graph,
+a focused code change when requested, and paired before/after evidence with n,
+p50/p75, frame gaps and a noise verdict. The report records the target, source,
+build/sampler configuration, raw artifacts and actual wall time.
+
+For planning, budget about 5–15 minutes for a prepared four-block comparison per
+flow. First-time fixture setup, instrumentation and bisection can take hours;
+that capture budget is not an end-to-end time guarantee.
+
 ## Interactive checkpoints
 
 Let Cook initialize and prepare the task before product discovery. Then present the proposed user journey, exact measured start/end boundary, client/lifecycle/environment, evidence authorities, failure verdict, and whether the run is baseline-only or may lead to a fix. A request to measure, diagnose, or compare a named flow authorizes its baseline/comparison measurement. Confirm only an unresolved scope or environment choice before measuring.
