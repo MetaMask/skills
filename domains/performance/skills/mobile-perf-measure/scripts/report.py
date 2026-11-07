@@ -34,7 +34,7 @@ def timings(path, start_mark, end_mark, layout_mark, spans, events):
         raise ValueError(f'{path}: frame timestamps are not chronological')
     gaps = [b - a for a, b in zip(frames, frames[1:]) if b > start and a < end]
     after = [frame for frame in frames if frame > start]
-    if not gaps or not after:
+    if not gaps or not after or frames[0] > start or frames[-1] < end:
         raise ValueError(f'{path}: frame probe did not cover the open')
     result = {'window ms': end - start,
               'fps': sum(start <= frame <= end for frame in frames) / ((end - start) / 1000),

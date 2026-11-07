@@ -102,6 +102,7 @@ test('completion waits for both slide and first content layout, excluding later 
       const file = path.join(dir, block, `data/timed-${n}.json`);
       const raw = JSON.parse(JSON.parse(fs.readFileSync(file)));
       raw.marks.push({ n: 'content-layout', t: 2100 }, { n: 'content-layout', t: 3500 });
+      raw.frames.push(2250);
       fs.writeFileSync(file, JSON.stringify(raw));
     }
   }
@@ -109,4 +110,17 @@ test('completion waits for both slide and first content layout, excluding later 
   const result = python('report.py', [dir, 'base', 'head', '--end-mark', 'open-complete,content-layout', '--json', output]);
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(fs.readFileSync(output)).open.metrics['window ms'].states.base.p50, 1100);
+});
+
+test('captures must bracket both boundaries so a collection cutoff cannot hide a long gap', (t) => {
+  const dir = fixture(t);
+  captures(dir, [[100, 100], [100, 100]], [[50, 50], [50, 50]]);
+  const file = path.join(dir, 'a1/data/timed-0.json');
+  const raw = JSON.parse(JSON.parse(fs.readFileSync(file)));
+  for (const frames of [[1100, 1500, 2200], [900, 1100, 1500, 1900]]) {
+    fs.writeFileSync(file, JSON.stringify({ ...raw, frames }));
+    const result = python('report.py', [dir, 'base', 'head']);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /frame probe did not cover the open/);
+  }
 });
