@@ -21,7 +21,7 @@ Let Cook initialize and prepare the task before product discovery. Then present 
 
 Choose the path the request needs. A diagnosis asks for bottleneck evidence and a proposed fix; an existing-PR or null comparison goes directly to paired measurement, without requiring a new fix.
 
-After the baseline, present the verdict and evidence. Diagnosis may use reversible task-local timing probes and elimination variants, with their patches retained and restored. Keep those experiments separate from a product fix. Apply a shipping fix only after the human approves the proven change. After approval, apply the smallest change and rerun the identical recipe and evidence collection to prove the result.
+After the baseline, present the verdict and evidence. Diagnosis may use reversible task-local timing probes and elimination variants, with their patches retained and restored. If the caller requested a fix or optimization, apply the smallest change supported by that baseline and rerun the identical recipe. For a diagnosis-only request, present the proposed fix for approval first.
 
 ## Contract first
 
@@ -46,7 +46,7 @@ Resolve names, routes, selectors, controller methods, and telemetry attributes f
    - controller read: resulting application state.
 5. For a Mobile diagnosis, correlate the CPU profile with JS frame gaps and source, then use blank-then-add elimination or mount-read runtime switches to test the cause. Follow the Mobile reference.
 6. On an unexpected result, stop and classify `PROVEN`, `DISPROVEN`, `INCONCLUSIVE`, or `BLOCKED`. Do not broaden queries, change actions, or retry a nondeterministic path to manufacture a pass.
-7. Fix only an approved, proven defect, then rerun the identical recipe and evidence query. Cleanup must leave the selected account/market deterministic even after failure.
+7. Fix only a proven defect within the authorised scope, then rerun the identical recipe and evidence query. Cleanup must leave the selected account/market deterministic even after failure.
 
 ## Efficiency gate
 

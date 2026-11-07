@@ -139,7 +139,7 @@ one's contribution. Trace the causal chain from gesture through scheduled work
 and layout/transition, including hidden mounted children and pre-existing screen
 work when the evidence points there.
 
-Propose the smallest fix to the proven chain. After approval, prove the code
+Propose the smallest fix to the proven chain. For an authorised fix, prove the code
 states with [paired device measurement](paired-device-measurement.md), including
 adjacent-screen/deferred-work checks. For a requested PR comparison, use that
 reference directly; no new fix or approval cycle is needed.

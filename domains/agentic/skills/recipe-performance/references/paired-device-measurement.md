@@ -10,7 +10,10 @@ elimination opens are separate from these unprofiled measurement blocks.
    Use the same dev client and Metro settings in both states. Dev-bundle times
    are relative comparisons, not release-build timings. If lockfiles differ,
    state which shared dependency tree was used; do not call it an unmodified
-   shipping-build comparison. Use an owned measurement checkout/device session.
+   shipping-build comparison. Use an owned measurement checkout/device session. For an authorised
+   uncommitted fix, freeze and retain the candidate patch and its hash over the
+   baseline ref; the adapter applies it only in candidate blocks and records
+   that delivered state. Do not label an uncommitted patch a shipping commit.
 2. Prepare a screen-specific capture adapter using the [adapter contract](references/capture-adapter.md).
    It checks out the requested source, applies identical diagnostic marks,
    restarts the app, verifies the served source and effective trace sampling,
