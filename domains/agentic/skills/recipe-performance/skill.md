@@ -17,7 +17,7 @@ The result must be reproducible: retain the rerunnable root recipe and run-scope
 
 ## Interactive checkpoints
 
-Let Cook initialize and prepare the task before product discovery. Then present the proposed user journey, exact measured start/end boundary, client/lifecycle/environment, evidence authorities, failure verdict, and whether the run is baseline-only or may lead to a fix. Wait for human confirmation before measuring unless the caller already authorized that measurement contract.
+Let Cook initialize and prepare the task before product discovery. Then present the proposed user journey, exact measured start/end boundary, client/lifecycle/environment, evidence authorities, failure verdict, and whether the run is baseline-only or may lead to a fix. A request to measure, diagnose, or compare a named flow authorizes its baseline/comparison measurement. Confirm only an unresolved scope or environment choice before measuring.
 
 Choose the path the request needs. A diagnosis asks for bottleneck evidence and a proposed fix; an existing-PR or null comparison goes directly to paired measurement, without requiring a new fix.
 
