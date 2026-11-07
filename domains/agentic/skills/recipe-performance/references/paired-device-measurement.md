@@ -26,7 +26,11 @@ elimination opens are separate from these unprofiled measurement blocks.
    sampling readback, usable marks and a single chronological rAF sample chain.
    A shared fixture may change the action between blocks. Invalid setup is not
    a slow open. Freeze recipes, probes and driver scripts before the series;
-   only planned state/condition switches occur between blocks.
+   only planned state/condition switches occur between blocks. Finish source,
+   test, instrumentation, recipe and driver edits before starting the series.
+   The harness fingerprint includes test files: adding a test during a capture
+   invalidates the series even when it is not bundled into the app. Finish
+   validation edits first; run CPU-heavy repository checks outside timing runs.
 4. Alternate baseline/candidate blocks with an app restart per block. Two blocks
    per state and five timed opens per block give n=10 per state per scenario.
    Keep each warm-up out of the timed files. Run as a tracked job and inspect

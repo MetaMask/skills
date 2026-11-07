@@ -35,3 +35,26 @@ test('CPU view weights the caller tree, escapes labels and rejects empty profile
   assert.match(empty.stderr, /CPU samples and matching timeDeltas are required/);
   assert.equal(fs.existsSync(output), false);
 });
+
+
+test('deep sampled stacks render without changing the interpreter recursion limit', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'profile-flame-deep-'));
+  t.after(() => fs.rmSync(dir, { recursive: true }));
+  const count = 1500;
+  const profile = {
+    nodes: Array.from({ length: count }, (_, id) => ({
+      id, callFrame: { functionName: `frame${id}` },
+      children: id + 1 < count ? [id + 1] : [],
+    })),
+    samples: [count - 1], timeDeltas: [1000], startTime: 0, endTime: 1000,
+  };
+  const input = path.join(dir, 'deep.cpuprofile');
+  const output = path.join(dir, 'deep.html');
+  fs.writeFileSync(input, JSON.stringify(profile));
+  const result = spawnSync('python3', [script, input, output], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const html = fs.readFileSync(output, 'utf8');
+  assert.equal((html.match(/<rect /g) || []).length, count);
+  assert.match(html, /viewBox="0 0 1200 33000"/);
+  assert.match(html, /frame1499 :0: inclusive 1.000 ms; self 1.000 ms/);
+});

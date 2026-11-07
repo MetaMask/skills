@@ -47,21 +47,26 @@ def render(profile):
 
     def draw(key, x, level):
         nonlocal depth
-        depth = max(depth, level)
-        width = total[key] / weight * 1200
-        text = label(key)
-        title = escape(f'{text}: inclusive {total[key] / 1000:.3f} ms; self {own[key] / 1000:.3f} ms')
-        color = f'hsl({sum(map(ord, text)) % 55},80%,72%)'
-        boxes.append(f'<g><title>{title}</title><rect x="{x:.3f}" y="{level * 22}" '
-                     f'width="{width:.3f}" height="21" fill="{color}" stroke="white"/>')
-        if width > 12:
-            boxes.append(f'<text x="{x + 3:.3f}" y="{level * 22 + 15}">{escape(text[:max(0, int(width / 7) - 1)])}</text>')
-        boxes.append('</g>')
-        child_x = x
-        for child in sorted(nodes[key].get('children', []), key=lambda c: total[c], reverse=True):
-            if total[child]:
-                draw(child, child_x, level + 1)
-                child_x += total[child] / weight * 1200
+        pending = [(key, x, level)]
+        while pending:
+            key, x, level = pending.pop()
+            depth = max(depth, level)
+            width = total[key] / weight * 1200
+            text = label(key)
+            title = escape(f'{text}: inclusive {total[key] / 1000:.3f} ms; self {own[key] / 1000:.3f} ms')
+            color = f'hsl({sum(map(ord, text)) % 55},80%,72%)'
+            boxes.append(f'<g><title>{title}</title><rect x="{x:.3f}" y="{level * 22}" '
+                         f'width="{width:.3f}" height="21" fill="{color}" stroke="white"/>')
+            if width > 12:
+                boxes.append(f'<text x="{x + 3:.3f}" y="{level * 22 + 15}">{escape(text[:max(0, int(width / 7) - 1)])}</text>')
+            boxes.append('</g>')
+            child_x = x
+            children = []
+            for child in sorted(nodes[key].get('children', []), key=lambda c: total[c], reverse=True):
+                if total[child]:
+                    children.append((child, child_x, level + 1))
+                    child_x += total[child] / weight * 1200
+            pending.extend(reversed(children))
 
     x = 0
     for root in roots:
