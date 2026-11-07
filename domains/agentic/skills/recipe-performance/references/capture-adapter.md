@@ -38,7 +38,7 @@ adb -s "$ANDROID_SERIAL" shell input tap "$TAP_X" "$TAP_Y"
 adb -s "$ANDROID_SERIAL" shell input keyevent KEYCODE_BACK
 ```
 
-Bind the device and harness target explicitly. Do not assume the active device,
+Bind the physical device, Android emulator serial or iOS simulator UDID and the harness target explicitly. For iOS, use the resolved harness/simulator UI actions instead of adb. Do not assume the active device,
 coordinates or a recipe parameter exists. The last two commands illustrate UI
 actions inside the prepared flow; they are not an extra tap after the recipe.
 

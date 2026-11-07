@@ -5,7 +5,7 @@ elimination opens are separate from these unprofiled measurement blocks.
 
 ## Workflow
 
-1. Freeze the device, scenario, source refs, installed dependencies, build mode,
+1. Freeze the device/simulator/emulator, scenario, source refs, installed dependencies, build mode,
    production tracing configuration, warm-up, settle time and timed-open count.
    Use the same dev client and Metro settings in both states. Dev-bundle times
    are relative comparisons, not release-build timings. If lockfiles differ,

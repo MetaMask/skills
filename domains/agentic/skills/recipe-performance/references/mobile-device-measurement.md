@@ -1,10 +1,22 @@
 # Mobile bottleneck diagnosis
 
-Use the task-locked harness and an owned physical-device session. Resolve the
+Use the task-locked harness and an owned device, iOS simulator or Android
+emulator session. The same recipe, timing boundaries, CPU capture and elimination
+method apply to each. Resolve the iOS simulator UDID through the runtime contract
+and use the harness's simulator lifecycle/UI actions; bind Android to its exact
+adb serial, including an emulator serial. Resolve the
 current app, Metro endpoint, device serial and recipe commands from its runtime
 contract/help. Preparation stays outside the measured window. A dev client with
 Metro can compare JS changes without a native build; record its native revision,
 served bundle SHA and dev mode. Do not call dev-bundle numbers release timings.
+
+A lower-end physical device is preferred for validating a win. A simulator on a
+fast Mac can hide JS-thread cost; emulator CPU allocation, host load, debug mode
+and virtual rendering can also distort frame rates. Record device/simulator
+model, OS/runtime, host and build mode. Keep that target and host allocation fixed
+within each comparison. Simulator results diagnose and compare that environment;
+they do not establish physical-device latency or native GPU performance. Confirm
+a claimed user-facing improvement on a representative real device when available.
 
 ## Verify the requested source first
 
