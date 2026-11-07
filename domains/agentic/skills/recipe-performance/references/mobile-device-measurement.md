@@ -122,20 +122,29 @@ a supported file/stream path before repeating the user interaction.
 
 ## Eliminate causes
 
-Baseline diagnosis includes reversible probes and elimination experiments.
-Retain each diagnostic patch and restore it after the experiment; approval for a
-shipping fix is a separate step. Once the trace identifies an expensive subtree
-or synchronous path, make a local diagnostic variant that renders a blank shell while keeping the route,
-gesture and transition intact. Measure it, then add children back progressively
-or halve the expensive subtree. Alternatively disable one candidate at a time.
-Keep hooks unconditional and preserve the comparison's state/fixture.
+Use reversible probes and retain each diagnostic patch. Before choosing a fix,
+measure how much of the delay comes from mounting the content: compare the normal
+flow with a temporary blank shell that preserves the route, gesture, transition
+and ready observations. Put the switch above the tested subtree so its hooks do
+not run while omitted. Returning null after those hooks ran does not remove their
+mount cost; keep the surrounding component's hook order stable.
+
+Add sections back progressively, or halve the expensive subtree. If omitting
+content barely helps, investigate work before navigation, surrounding providers
+or native rendering instead. Runtime/library frames still count when this
+screen causes them; attribute them to the app's mounted work. If a candidate
+explains only a small part of a large JS gap, continue this coarse elimination
+before settling on that micro-optimization. Choose the largest proven removable
+cost, not the first small positive result. Keep fixture and state unchanged.
 
 Read runtime switches at mount so one session can rotate conditions between
 opens. Record each condition, first JS frame, readiness, long gaps and relevant
 CPU/React evidence. Confirm with an on/off/on reversal. A missing view that moves
 work elsewhere is an attribution experiment, not a shippable fix. Do not hide
 errors, remove required functionality, or claim several switches prove each
-one's contribution. Trace the causal chain from gesture through scheduled work
+one's contribution. A valid fix may reduce work or defer it past first response;
+retain all controls and measure full readiness and deferred work separately.
+Trace the causal chain from gesture through scheduled work
 and layout/transition, including hidden mounted children and pre-existing screen
 work when the evidence points there.
 
