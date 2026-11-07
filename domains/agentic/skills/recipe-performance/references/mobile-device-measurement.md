@@ -18,6 +18,11 @@ after reload and retain its source receipt. If dependencies or native
 compatibility prevent that state from running, report BLOCKED instead of
 measuring an older release and calling it main.
 
+Use the product's production trace sampler during diagnosis as well as paired
+proof, including custom sampler overrides. Record the effective rate and its
+source. Dev builds that sample every span can add synchronous CPU work and send
+the investigation toward a development-only cost.
+
 ## Classify the delay
 
 Measure the UI gesture, JS handler entry, first following JS rAF callback, first
