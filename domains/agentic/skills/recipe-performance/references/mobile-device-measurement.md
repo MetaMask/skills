@@ -6,6 +6,18 @@ contract/help. Preparation stays outside the measured window. A dev client with
 Metro can compare JS changes without a native build; record its native revision,
 served bundle SHA and dev mode. Do not call dev-bundle numbers release timings.
 
+## Verify the requested source first
+
+Before source attribution or a timed open, resolve the requested baseline to an
+exact commit. For "main", fetch and resolve `origin/main`; a branch name or an
+idle checkout is not evidence of that state. Compare it with the task checkout's
+HEAD before creating the task branch. If preparation was skipped or the slot is
+warm, this check is still required. Preserve unrelated work and use the approved
+workspace/prepare path to select the requested commit. Verify the served bundle
+after reload and retain its source receipt. If dependencies or native
+compatibility prevent that state from running, report BLOCKED instead of
+measuring an older release and calling it main.
+
 ## Classify the delay
 
 Measure the UI gesture, JS handler entry, first following JS rAF callback, first
@@ -93,8 +105,10 @@ a supported file/stream path before repeating the user interaction.
 
 ## Eliminate causes
 
-Once the trace identifies an expensive subtree or synchronous path, make a
-local diagnostic variant that renders a blank shell while keeping the route,
+Baseline diagnosis includes reversible probes and elimination experiments.
+Retain each diagnostic patch and restore it after the experiment; approval for a
+shipping fix is a separate step. Once the trace identifies an expensive subtree
+or synchronous path, make a local diagnostic variant that renders a blank shell while keeping the route,
 gesture and transition intact. Measure it, then add children back progressively
 or halve the expensive subtree. Alternatively disable one candidate at a time.
 Keep hooks unconditional and preserve the comparison's state/fixture.

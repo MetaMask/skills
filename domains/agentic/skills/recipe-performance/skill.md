@@ -21,7 +21,7 @@ Let Cook initialize and prepare the task before product discovery. Then present 
 
 Choose the path the request needs. A diagnosis asks for bottleneck evidence and a proposed fix; an existing-PR or null comparison goes directly to paired measurement, without requiring a new fix.
 
-After the baseline, present the verdict and evidence. Do not edit product code until the human approves one proven fix or improvement. After approval, apply the smallest change and rerun the identical recipe and evidence collection to prove the result.
+After the baseline, present the verdict and evidence. Diagnosis may use reversible task-local timing probes and elimination variants, with their patches retained and restored. Keep those experiments separate from a product fix. Apply a shipping fix only after the human approves the proven change. After approval, apply the smallest change and rerun the identical recipe and evidence collection to prove the result.
 
 ## Contract first
 
