@@ -1,25 +1,7 @@
----
-name: mobile-perf-measure
-description: >-
-  Measure before/after latency and JS-frame metrics for any MetaMask Mobile
-  screen, sheet, or interaction on a physical Android device, with alternating
-  capture blocks and production trace sampling. Use to verify a performance
-  fix, compare exact commits, or expose a pooled gain that fails per-block or
-  tail-latency checks. Not a CPU-profile analyzer or an E2E test authoring guide.
-maturity: experimental
----
+# Paired device proof
 
-# Paired Mobile performance measurement
-
-Use a real device and the exact source states under comparison. Report measured
-latency, frame gaps and spread; source inspection or unit tests do not prove a win.
-
-## When to use
-
-Compare an interaction before/after a change, including its cost on the screen
-before or after it. Use `performance` for attribution and `performance-testing`
-for permanent E2E tests. This kit coordinates blocks and analyzes captures; it
-does not build an app or provide screen navigation and instrumentation.
+Read this for a requested comparison or after an approved fix. Profiling and
+elimination opens are separate from these unprofiled measurement blocks.
 
 ## Workflow
 
@@ -33,9 +15,9 @@ does not build an app or provide screen navigation and instrumentation.
    It checks out the requested source, applies identical diagnostic marks,
    restarts the app, verifies the served source and effective trace sampling,
    settles, performs one unrecorded warm-up, then captures the planned opens.
-   The reference method used a physical Pixel 6, a dev bundle, 20 seconds of
-   settling and production `tracesSampleRate=0.03`; match the application's
-   actual production sampler, including custom sampler overrides. Keep device,
+   Use a fixed settle interval and the application's actual production trace
+   sampler, including custom sampler overrides. Read back the effective rate;
+   dev sampling can add synchronous work that disappears in production. Keep device,
    fixture/account state, network, recorder and HUD settings equal across states.
 3. Verify one capture before repeating: correct route/control, unobscured target,
    sampling readback, usable marks and a single chronological rAF sample chain.
@@ -50,19 +32,19 @@ does not build an app or provide screen navigation and instrumentation.
    directory. Never discard a block because its numbers are unwelcome.
 
 ```bash
-SKILL_DIR=.agents/skills/mms-mobile-perf-measure
+PERF_SKILL_DIR=<directory-containing-the-loaded-recipe-performance-skill>
 BASE_SHA=$(git rev-parse 'origin/main^{commit}')
 HEAD_SHA=$(git rev-parse 'HEAD^{commit}')
 OUT=temp/mobile-perf/paired-01
 
 # The executable adapter is prepared for this screen, not supplied by the kit.
-python3 "$SKILL_DIR/scripts/paired-blocks.py" "$OUT" 5 2 \
+python3 "$PERF_SKILL_DIR/scripts/paired-blocks.py" "$OUT" 5 2 \
   "baseline:$BASE_SHA" "candidate:$HEAD_SHA" ./capture-block.sh
-python3 "$SKILL_DIR/scripts/report.py" "$OUT" baseline candidate \
+python3 "$PERF_SKILL_DIR/scripts/report.py" "$OUT" baseline candidate \
   --scenario 'open=data/timed-*.json' --json "$OUT/metrics.json" > "$OUT/report.md"
 ```
 
-Resolve `SKILL_DIR` to this skill's installed directory if the operator uses a
+Resolve `PERF_SKILL_DIR` to this skill's installed directory if the operator uses a
 different skill root. The driver only invokes the adapter; it never resets a
 checkout. Its manifest records **requested** refs, not proof of delivered code.
 

@@ -50,7 +50,6 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 
 | Symptom / task | Start with |
 |---|---|
-| Need a paired physical-device before/after latency comparison with production trace sampling | Invoke `mobile-perf-measure`; use its block runner and raw-frame reporter. |
 | Authoring a new or changed Redux selector (file, naming, tests) | `yarn skills --include coding/selector-patterns --save`. Memoization audits stay on this skill ([mm-selector-memoization.md](references/mm-selector-memoization.md)). |
 | Component re-renders too much; account/network switch is laggy | [mm-selector-memoization.md](references/mm-selector-memoization.md) → [js-profile-react.md](references/js-profile-react.md) |
 | `useSelector` returns new refs; `useSelector(x, isEqual)` band-aids | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |

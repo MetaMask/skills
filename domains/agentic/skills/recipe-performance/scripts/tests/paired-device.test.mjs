@@ -6,8 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
-const scripts = path.join(root, 'domains/performance/skills/mobile-perf-measure/scripts');
+const scripts = fileURLToPath(new URL('..', import.meta.url));
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mobile-perf-'));
   t.after(() => fs.rmSync(dir, { recursive: true }));
