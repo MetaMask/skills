@@ -312,6 +312,7 @@ Use these directly when steering/debugging:
 - `/mms-recipe-doctor` — check tool, skill, harness, runtime-context, and fixture/profile readiness before a run.
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-performance` — diagnose real-app bottlenecks and prove paired device performance.
 - `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
