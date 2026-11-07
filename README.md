@@ -147,7 +147,7 @@ tools/
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
-| `performance`  | MM product eng    | React rendering, hooks, state perf          |
+| `performance`  | MM product eng    | `mobile-perf-measure`, React/state perf      |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
 | `pr-workflow`  | MM product eng    | PR title, description, changelog            |
 | `swaps`        | MM product eng    | EVM and non-EVM network integration         |
