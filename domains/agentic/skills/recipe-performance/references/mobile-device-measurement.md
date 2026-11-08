@@ -10,13 +10,12 @@ contract/help. Preparation stays outside the measured window. A dev client with
 Metro can compare JS changes without a native build; record its native revision,
 served bundle SHA and dev mode. Do not call dev-bundle numbers release timings.
 
-A lower-end physical device is preferred for validating a win. A simulator on a
-fast Mac can hide JS-thread cost; emulator CPU allocation, host load, debug mode
-and virtual rendering can also distort frame rates. Record device/simulator
-model, OS/runtime, host and build mode. Keep that target and host allocation fixed
-within each comparison. Simulator results diagnose and compare that environment;
-they do not establish physical-device latency or native GPU performance. Confirm
-a claimed user-facing improvement on a representative real device when available.
+Follow the real-device diagnosis and final-confirmation rule in the skill's
+How to use section. Emulator CPU allocation, host load,
+debug mode and virtual rendering can distort frame rates. Record the target,
+OS/runtime, host and build mode; keep target and host allocation fixed within
+each comparison. Simulator results apply to that environment and do not establish
+physical-device latency or native GPU performance.
 
 ## Verify the requested source first
 

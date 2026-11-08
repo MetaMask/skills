@@ -20,9 +20,10 @@ The result must be reproducible: retain the rerunnable root recipe and run-scope
 Start with a running Mobile app on an explicit simulator/emulator or device, a
 repeatable fixture and the task-locked `mm-harness`. Record the build mode; a
 compatible dev client with Metro supports JS diagnosis without a native rebuild.
-Use Recipe Harness to discover and prepare missing prerequisites. A lower-end
-physical device is preferred for confirming a user-facing win, since a fast
-simulator host can hide JS cost.
+Use Recipe Harness to discover and prepare missing prerequisites.
+Find bottlenecks and report final numbers on a real mid- or low-range device.
+Simulators and flagship phones hide JS-thread/layout cost: an iPhone simulator found an 18% win; a Pixel 6 exposed a 60% one in the same sheet.
+Iterate on a simulator or emulator, then confirm the bottleneck and final gain on the device.
 
 Example prompt:
 
