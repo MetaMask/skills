@@ -8,7 +8,7 @@ set -uo pipefail
 REQUIRED_SKILLS="mms-recipe-harness mms-recipe-cook mms-recipe-dev mms-recipe-fix-bug mms-recipe-qa mms-recipe-pretty-pr mms-recipe-setup"
 RETIRED_SKILLS="mms-recipe-pr-qa-review mms-recipe-evidence mms-recipe-fixbug mms-recipe-quality"
 # Reviewed exact release; must match recipe-cook's harness-package-policy.
-RECOMMENDED_HARNESS="0.96.4"
+RECOMMENDED_HARNESS="0.96.6"
 
 first_fail=""
 ok()  { printf '%s %s\n' "✓" "$1"; }

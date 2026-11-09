@@ -26,7 +26,7 @@ minimum="$(sed -n 's/^HARNESS_RECOMMENDED_VERSION="\(.*\)"$/\1/p' "$policy")"
 [ -n "$minimum" ] || { echo "harness-package-policy has no resolvable recommended version" >&2; exit 1; }
 # shellcheck source=../scripts/harness-package-policy
 source "$policy"
-test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.96.4'
+test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.96.6'
 if grep -Eq 'u\.latest|mm-harness update' "$skill_dir/../recipe-setup/scripts/setup-check"; then
   echo 'Setup must not recommend unreviewed registry releases' >&2
   exit 1

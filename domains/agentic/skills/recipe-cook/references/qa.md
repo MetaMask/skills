@@ -162,7 +162,7 @@ For each proposed action or reusable recipe, narrow to the exact current contrac
 "$HARNESS" run "<closest recipe>" --describe --json
 ```
 
-Reuse in this order and stop at the first fit: run a library recipe with parameters, after checking its preconditions and cleanup fit the request; compose library recipes and actions; copy and adjust only task-specific nodes, and say why; propose a library edit when the gap is reusable.
+Reuse in this order and stop at the first fit: run a library recipe with parameters, after checking its preconditions and cleanup fit the request; compose library recipes and actions; copy the closest recipe and change only the nodes the task or recipe drift requires, and say why. When the gap is reusable, also propose a library edit. Add shared vocabulary only after repeated need is proven.
 
 The discovered list is law, including team/custom actions. Never recall names, fields, selectors, recipe refs, assertion operators, or platform support from memory. When no declared action can observe an AC, write a task action under a new name, modeled on a library action (`"$HARNESS" actions --action <name> --json` shows its `sourceManifest`) but self-contained (node built-ins, plus any helper copied next to it): keep its manifest in `<task>/artifacts/task-actions/manifests/` and its script in the sibling `<task>/artifacts/task-actions/actions/`, pass `--action-manifest <manifest>` to every `"$HARNESS"` `actions`, `run --plan`, `run` and `call`, and flag it in the report as a library candidate. A missing declared action is never a reason for `UNTESTABLE`.
 

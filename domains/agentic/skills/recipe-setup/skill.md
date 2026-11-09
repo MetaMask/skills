@@ -13,7 +13,7 @@ Run `mm-harness doctor` through `scripts/setup-check`, from the MetaMask checkou
 
 ## harness
 
-This skill installs before the harness, so a missing `mm-harness` is step one: `npm i -g '@deeeed/metamask-harness@0.96.4'` (recommended version 0.96.4), then `mm-harness --version`. A newer harness already installed is used without warning or replacement. An explicit `MM_HARNESS_BIN` is always used, with a warning only when older than the recommended version. Task-local installs use exactly `0.96.4`; never install `latest` or a version range from this personal scope. Everything below runs inside a MetaMask checkout (metamask-extension, metamask-mobile, core). If the user did not start you in one, run `mm-harness setup-base --dry-run`, show what it would create, and ask before running it for real.
+This skill installs before the harness, so a missing `mm-harness` is step one: `npm i -g '@deeeed/metamask-harness@0.96.6'` (recommended version 0.96.6), then `mm-harness --version`. A newer harness already installed is used without warning or replacement. An explicit `MM_HARNESS_BIN` is always used, with a warning only when older than the recommended version. Task-local installs use exactly `0.96.6`; never install `latest` or a version range from this personal scope. Everything below runs inside a MetaMask checkout (metamask-extension, metamask-mobile, core). If the user did not start you in one, run `mm-harness setup-base --dry-run`, show what it would create, and ask before running it for real.
 
 ## doctor
 
