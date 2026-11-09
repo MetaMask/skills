@@ -19,7 +19,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md` before
 - [ ] 5. AC matrix.
 - [ ] 6. Target and rationale. Open sidepanels through the harness helper; mark dependent ACs UNTESTABLE only if still unreachable.
 - [ ] 7. Buggy-evidence baseline plan and Mainnet policy.
-- [ ] 8. Draft buggy-behavior baseline recipe. Pair ordering, portal or z-index screenshots with a bounding-box read.
+- [ ] 8. Draft buggy-behavior baseline recipe in reuse order. Pair ordering, portal or z-index screenshots with a bounding-box read.
 - [ ] 9. Recorded baseline run and visual inspection.
 - [ ] 10. Early no-change exit if already fixed/not reproduced.
 - [ ] 11. Root cause in TASK.md `## Root Cause`: file:line traced from symptom to source.

@@ -19,7 +19,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md` before
 - [ ] 5. AC matrix.
 - [ ] 6. Package/controller target and fixtures.
 - [ ] 7. Discover actions/recipes; record proof decision and Mainnet policy.
-- [ ] 8. Draft fixed-behavior baseline recipe when required.
+- [ ] 8. Draft fixed-behavior baseline recipe in reuse order when required.
 - [ ] 9. Probe setup and retain failing baseline run.
 - [ ] 10. Root cause: file:line, affected files and fix plan in `artifacts/approach.md`.
 - [ ] 11. Early no-change exit if already fixed/not reproduced.

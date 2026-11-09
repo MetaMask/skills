@@ -7,10 +7,10 @@ trap 'rm -rf "$root"' EXIT
 skill="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 resolver="$skill/scripts/resolve-harness"
 init="$skill/scripts/init-template"
-# shellcheck source=../scripts/harness-package-policy
-source "$skill/scripts/harness-package-policy"
-test "$HARNESS_RECOMMENDED_VERSION" = "0.94.14"
-test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.94.14'
+# shellcheck source=../../../recipe-setup/scripts/harness-package-policy
+source "$skill/../recipe-setup/scripts/harness-package-policy"
+[[ "$HARNESS_RECOMMENDED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+test "$HARNESS_PACKAGE_SPEC" = "@deeeed/metamask-harness@$HARNESS_RECOMMENDED_VERSION"
 real_node="$(command -v node)"
 mkdir -p "$root/clean-bin"
 ln -s "$real_node" "$root/clean-bin/node"

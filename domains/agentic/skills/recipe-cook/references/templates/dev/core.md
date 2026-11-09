@@ -21,7 +21,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md` before
 - [ ] 7. Target and rationale.
 - [ ] 8. Proof plan: the recipe drives the controller through its public API as Mobile or Extension do (real messenger, mocked only at the network boundary) and asserts the observable state or event; a Jest or unit-test probe is never the proof. Apply the shared Mainnet policy.
   - Sign real testnet orders only with a testnet-wallet fixture; otherwise use read paths and record why.
-- [ ] 9. Recipe drafted and pre-implementation proof.
+- [ ] 9. Recipe drafted in reuse order, and pre-implementation proof.
 
 ## Implement
 

@@ -21,7 +21,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md` before
 - [ ] 7. Target and rationale.
 - [ ] 8. Proof plan and Mainnet policy.
 - [ ] 9. Comparable UI baseline or additive N/A.
-- [ ] 10. Recipe drafted and pre-implementation proof.
+- [ ] 10. Recipe drafted in reuse order, and pre-implementation proof.
 
 ## Implement
 
