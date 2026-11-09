@@ -117,16 +117,10 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
 
 ## Typography
 
-- `FontFamily.Default` is the default for all UI text.
-- Set type with the design-system text component and its variant enum. Look
-  them up by name in the installed exports. Never hand-set font sizes, line
-  heights, or arbitrary text classes.
-- Use `FontFamily.Hero` only for approved hero cases: the single primary
-  display amount of a view, and marketing-moment headlines. Search the
-  manifest for an existing pattern before building a custom headline. Never
-  pair Hero with a font weight, and never use it for body text, labels,
-  buttons, titles, or small numbers.
-- Do not use `FontFamily.Accent`; it has been removed from MMDS.
+- Set type with the design-system text component. Use the font family and
+  variant options the installed types expose, and follow the hosted manifest
+  and the component README at the installed tag for when each applies. Never
+  hand-set font sizes, line heights, or arbitrary text classes.
 - Amount inputs are not settled. See the Proposed Typography rule in the
   [Design Brain](https://www.notion.so/b71f86d67d68827395a001f7ee7a8a86) and the
   [MMDS reference](https://www.notion.so/40ef86d67d68811c9b31cf9992a076cd)
@@ -207,7 +201,7 @@ installed types win.
 - [ ] No invented components, props, or variants, and no cross-platform ports.
 - [ ] No new usage of anything tagged `@deprecated`.
 - [ ] Only preset-generated classes and semantic tokens; no arbitrary values.
-- [ ] Typography uses the design-system text component and its variant enum;
-      Hero only for approved cases.
+- [ ] Typography uses the design-system text component and the font family
+      and variant options from the installed types.
 - [ ] Clashing legacy imports are aliased `Legacy*`; MMDS keeps plain names.
 - [ ] The accessibility and trust rules above hold for the changed UI.

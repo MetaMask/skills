@@ -34,10 +34,9 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   (Tailwind CSS v3) and removes the default palette and font sizes. Use only
   classes that configuration generates. If a class is in doubt, check the
   preset source or the built CSS; do not invent one or add a safelist entry.
-- Prefer the installed design-system layout primitive's typed props
-  (`flexDirection`, `alignItems`, `gap`, `padding*`, `margin*`) for layout,
-  and Tailwind class names (`className`) for everything else. Look the
-  primitive up by name in the installed exports.
+- Prefer the installed design-system layout primitive's typed props for
+  layout, and Tailwind class names (`className`) for everything else. Look
+  the primitive and its props up in the installed exports.
 - Do not add SASS or SCSS. Deleting SCSS rules, files, and `@import` lines
   that your change makes unused is expected.
 - Set type with the design-system text component's variants. Look it up by
@@ -67,21 +66,20 @@ The legacy barrel is `ui/components/component-library`. Apply the base
 `Legacy*` rule to any export from that barrel whose name MMDS also exports.
 
 Most legacy enums come from `ui/helpers/constants/design-system`, not the
-barrel. Alias the ones the same file also imports from MMDS (`TextVariant`,
-`TextColor`, `TextAlign`, `FontWeight`, `IconColor`, and others the installed
-package exports). Legacy-only enums such as `Display`, `FlexDirection`,
-`AlignItems`, `JustifyContent`, `BackgroundColor`, and `BorderColor` have no
-MMDS export of the same name, so they keep their names. Adjust the `../`
-depth to the file.
+barrel. Alias a legacy enum to `Legacy*` when MMDS exports an enum with the
+same name and the file imports both. Check the installed MMDS exports to
+decide. Enums MMDS does not export keep their names. Adjust the `../` depth
+to the file.
 
 ```tsx
 // Do: MMDS keeps the plain names. Legacy gets the prefix.
-// `Component` stands for whatever export the file imports from both places.
-import { Component, TextVariant } from '@metamask/design-system-react';
+// `Component` and `EnumName` stand for names the file imports from both places.
+// `LegacyOnlyEnum` stands for an enum MMDS does not export.
+import { Component, EnumName } from '@metamask/design-system-react';
 import { Component as LegacyComponent } from '../../component-library';
 import {
-  Display,
-  TextVariant as LegacyTextVariant,
+  LegacyOnlyEnum,
+  EnumName as LegacyEnumName,
 } from '../../../helpers/constants/design-system';
 
 // Don't: prefix the MMDS import, or leave both on the plain name.
