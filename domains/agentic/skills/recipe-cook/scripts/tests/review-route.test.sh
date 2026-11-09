@@ -2,7 +2,7 @@
 set -euo pipefail
 skill_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 runner="$skill_dir/scripts/create-harness-runner"
-policy="$skill_dir/scripts/harness-package-policy"
+policy="$skill_dir/../recipe-setup/scripts/harness-package-policy"
 init="$skill_dir/scripts/init-template"
 # Removed runtime-review IDs cannot silently start a static review or launch an app.
 for platform in mobile extension; do
@@ -24,16 +24,18 @@ test -x "$produced"
 
 minimum="$(sed -n 's/^HARNESS_RECOMMENDED_VERSION="\(.*\)"$/\1/p' "$policy")"
 [ -n "$minimum" ] || { echo "harness-package-policy has no resolvable recommended version" >&2; exit 1; }
-# shellcheck source=../scripts/harness-package-policy
+# shellcheck source=../../../recipe-setup/scripts/harness-package-policy
 source "$policy"
-test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.96.6'
+test "$HARNESS_PACKAGE_SPEC" = "@deeeed/metamask-harness@$minimum"
+# One pin: no recipe skill writes a harness version anywhere but the policy file.
+if grep -rIlE "metamask-harness@[0-9]|recommended version [0-9]" "$skill_dir/.." --exclude=harness-package-policy --exclude-dir=tests >/dev/null; then
+  echo 'A recipe skill hard-codes a harness version outside recipe-setup/scripts/harness-package-policy' >&2; exit 1
+fi
 if grep -Eq 'u\.latest|mm-harness update' "$skill_dir/../recipe-setup/scripts/setup-check"; then
   echo 'Setup must not recommend unreviewed registry releases' >&2
   exit 1
 fi
-setup_spec="$(sed -n "s/.*npm i -g '\(@deeeed\/metamask-harness@[^']*\)'.*/\1/p" "$skill_dir/../recipe-setup/skill.md")"
-[ "$setup_spec" = "$HARNESS_PACKAGE_SPEC" ] || { echo 'Setup and Cook harness requirements differ' >&2; exit 1; }
-grep -Fq "recommended version $minimum" "$skill_dir/../recipe-setup/skill.md" || { echo 'Setup does not state the recommended harness' >&2; exit 1; }
+grep -Fq 'scripts/harness-package-policy' "$skill_dir/../recipe-setup/skill.md" || { echo 'Setup does not point at the harness pin' >&2; exit 1; }
 
 # Setup uses the explicit binary and never suggests a newer registry release.
 cat > "$work/setup-harness" <<'SH'
@@ -48,8 +50,6 @@ if grep -Eq '100\.0\.0|mm-harness update' <<< "$setup_output"; then
   echo 'Setup recommended an unreviewed release' >&2
   exit 1
 fi
-setup_pin="$(sed -n 's/^RECOMMENDED_HARNESS="\(.*\)"$/\1/p' "$skill_dir/../recipe-setup/scripts/setup-check")"
-[ "$setup_pin" = "$minimum" ] || { echo 'Setup check and Cook harness pins differ' >&2; exit 1; }
 grep -Fq "✓ harness 99.0.0 (recommended $minimum or newer)" <<< "$setup_output"
 
 # An installed harness older than the reviewed release is flagged with the exact install.

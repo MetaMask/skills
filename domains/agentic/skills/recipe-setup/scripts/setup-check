@@ -7,8 +7,9 @@ set -uo pipefail
 
 REQUIRED_SKILLS="mms-recipe-harness mms-recipe-cook mms-recipe-dev mms-recipe-fix-bug mms-recipe-qa mms-recipe-pretty-pr mms-recipe-setup"
 RETIRED_SKILLS="mms-recipe-pr-qa-review mms-recipe-evidence mms-recipe-fixbug mms-recipe-quality"
-# Reviewed exact release; must match recipe-cook's harness-package-policy.
-RECOMMENDED_HARNESS="0.96.6"
+# shellcheck source=harness-package-policy
+source "$(dirname "${BASH_SOURCE[0]}")/harness-package-policy"
+RECOMMENDED_HARNESS="$HARNESS_RECOMMENDED_VERSION"
 
 first_fail=""
 ok()  { printf '%s %s\n' "✓" "$1"; }
@@ -65,7 +66,7 @@ fi
 # Install policy is the reviewed exact release, never the registry's latest tag.
 # A newer installed harness is kept; an older or unknown one gets the reviewed install.
 harness_version=$(printf '%s' "$doctor" | jvalue 'j.runner && j.runner.version')
-harness_install="npm i -g '@deeeed/metamask-harness@$RECOMMENDED_HARNESS'"
+harness_install="npm i -g '$HARNESS_PACKAGE_SPEC'"
 if [[ -z "$harness_version" ]]; then
   warn "harness version unknown; recommended $RECOMMENDED_HARNESS ($harness_install)" harness
 elif node -e 'const p = v => v.split("-")[0].split(".").map(Number);
