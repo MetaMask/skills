@@ -162,7 +162,7 @@ Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing a
 
 ### Periods
 
-Do not use a period unless the string is more than one sentence. When it is, end every sentence with a period. Never double-space after a period.
+When a string has more than one sentence, end every sentence with a period. Never double-space after a period.
 
 Do not use a period on a header, menu item, subheader, label, button, tag, tab, or "Learn more".
 
@@ -380,7 +380,6 @@ Prefer animation. If you need words, use a present participle and no ellipsis. T
 ### Success
 
 - Title: past participle. "Order placed", "Password changed", "Card added to Apple Wallet".
-- Description, if there is one sentence: no period. "Your deposit will arrive in about 5 minutes"
 - No "successfully", "has been", or "was successful".
 - An exclamation point only from the allowlist above.
 
@@ -716,7 +715,7 @@ Before you finish a user-facing string:
 
 - Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. "Hyperliquid" uses that spelling. First mention in a page or flow is "MetaMask Snaps".
 - Curly apostrophes and quotes. An ellipsis only in a shortened address. Loading uses animation, not `...` or `…`.
-- A single sentence has no period. A description with more than one sentence periods every sentence. An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
+- A description with more than one sentence periods every sentence. An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
