@@ -48,6 +48,16 @@ if grep -Eq '100\.0\.0|mm-harness update' <<< "$setup_output"; then
   echo 'Setup recommended an unreviewed release' >&2
   exit 1
 fi
+setup_pin="$(sed -n 's/^RECOMMENDED_HARNESS="\(.*\)"$/\1/p' "$skill_dir/../recipe-setup/scripts/setup-check")"
+[ "$setup_pin" = "$minimum" ] || { echo 'Setup check and Cook harness pins differ' >&2; exit 1; }
+grep -Fq "✓ harness 99.0.0 (recommended $minimum or newer)" <<< "$setup_output"
+
+# An installed harness older than the reviewed release is flagged with the exact install.
+sed 's/"version":"99.0.0"/"version":"0.1.0"/' "$work/setup-harness" > "$work/old-harness"
+chmod +x "$work/old-harness"
+old_output="$(MM_HARNESS_BIN="$work/old-harness" "$skill_dir/../recipe-setup/scripts/setup-check")"
+grep -Fq "! harness 0.1.0 is older than the recommended $minimum (npm i -g '$HARNESS_PACKAGE_SPEC')" <<< "$old_output"
+grep -Fq 'SETUP OK (warnings:' <<< "$old_output"
 
 # Execution requires an existing receipt and cannot resolve a new PATH binary.
 set +e

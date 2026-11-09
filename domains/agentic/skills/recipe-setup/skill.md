@@ -36,7 +36,7 @@ temp/recipe/runtime/wallet-fixture.json
       "names": ["Account 1"]
     }
   ],
-  "settings": { "skipPerpsTutorial": true, "autoLockNever": true }
+  "settings": { "skipGtmModals": true, "skipPerpsTutorial": true, "autoLockNever": true }
 }
 ```
 

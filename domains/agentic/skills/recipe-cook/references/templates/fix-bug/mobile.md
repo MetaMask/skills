@@ -20,7 +20,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md` before
 - [ ] 6. Target and rationale. Mark ACs reachable only on an unavailable platform `UNTESTABLE: wrong platform`; never claim them later.
 - [ ] 7. Buggy-evidence baseline plan and Mainnet policy.
 - [ ] 8. Add `DevLogger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition; observe it in `metro.log` and commit it alone as `debug(<ticket>): add reproduction marker`. Retain SHA/log excerpt.
-- [ ] 9. Draft buggy-behavior baseline recipe.
+- [ ] 9. Draft buggy-behavior baseline recipe in reuse order.
 - [ ] 10. Recorded baseline run and visual inspection.
 - [ ] 11. Early no-change exit if already fixed/not reproduced.
 - [ ] 12. Root cause in TASK.md `## Root Cause`: file:line confirmed from marker, `metro.log` and code path.
