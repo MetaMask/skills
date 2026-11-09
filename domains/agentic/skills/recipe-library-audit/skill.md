@@ -24,6 +24,7 @@ List with `mm-harness run --list --json` and keep the recipes of the named libra
 - Mainnet only when the user named it; otherwise a recipe that needs it is `needs-mainnet`.
 - No retries to get a pass. One retry for a clear infrastructure flake, with both attempts recorded.
 - A modal or prompt that blocks a recipe is dismissed once outside the recipe and the row says so; never add dismiss steps to a recipe during an audit.
+- A child recipe that assumes a page or form is already open (a `select-*` or `set-*` step) runs through its parent journey, or is `not-runnable: child`; run alone it fails on a missing selector that isn't drift.
 
 ## 3. Classify from the run's own evidence
 
@@ -32,7 +33,7 @@ Read the failing node and the exact error from the run's `trace.json` and `summa
 | Result | When |
 |---|---|
 | `pass` | Trace passed |
-| `stale` | Recipe drift: a selector, testID, route, action or parameter contract that the current product or harness no longer matches, or a plan that doesn't validate |
+| `stale` | Recipe drift: a selector, testID, route, action or parameter contract that the current product or harness no longer matches (search the product source, including template-literal testIDs, before calling one gone), or a plan that doesn't validate |
 | `fail-product` | The error shows the product disagrees with the recipe's claim, checked against the product source |
 | `blocked-env` | Fixture, funds, device, runtime or a hidden precondition the recipe doesn't establish |
 | `not-runnable` / `needs-mainnet` | Not run, with the reason |
