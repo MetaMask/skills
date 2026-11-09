@@ -9,8 +9,8 @@ resolver="$skill/scripts/resolve-harness"
 init="$skill/scripts/init-template"
 # shellcheck source=../scripts/harness-package-policy
 source "$skill/scripts/harness-package-policy"
-test "$HARNESS_RECOMMENDED_VERSION" = "0.94.14"
-test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.94.14'
+test "$HARNESS_RECOMMENDED_VERSION" = "0.96.4"
+test "$HARNESS_PACKAGE_SPEC" = '@deeeed/metamask-harness@0.96.4'
 real_node="$(command -v node)"
 mkdir -p "$root/clean-bin"
 ln -s "$real_node" "$root/clean-bin/node"

@@ -3,5 +3,5 @@
 
 HARNESS_PACKAGE_NAME="@deeeed/metamask-harness"
 # Reviewed personal-scope release. Install only this exact version.
-HARNESS_RECOMMENDED_VERSION="0.94.14"
+HARNESS_RECOMMENDED_VERSION="0.96.4"
 HARNESS_PACKAGE_SPEC="$HARNESS_PACKAGE_NAME@$HARNESS_RECOMMENDED_VERSION"
