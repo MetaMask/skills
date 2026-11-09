@@ -241,7 +241,7 @@ Use curly apostrophes and quotes in UI strings: ’ and “ ”.
 
 Use an em dash (—) with no spaces to offset an aside. Use a real em dash, not two hyphens.
 
-A bullet `•` is a data separator only ("Get USDC • Hyperliquid"). Do not use it in a sentence or as a list marker.
+A bullet (•) can separate data, like "Get USDC • Hyperliquid". Use bulleted lists for lists, with one item per string, and don't type the bullet into the string.
 
 ### Plurals and line breaks
 
