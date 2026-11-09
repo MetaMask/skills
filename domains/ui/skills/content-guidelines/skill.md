@@ -537,7 +537,7 @@ Authentication:
 - Never "your biometric" as a noun.
 - "Passcode" is the device passcode. "PIN" is an in-app code. They are not interchangeable.
 
-When you mean an NFT, say "NFT", not "collectible". `wallet.collectibles` is "NFTs". This is not a blanket replacement. The Collectibles feature keeps its name.
+Say "NFT" for an NFT.
 
 "Disconnect" is for a site. "Revoke" is for a spending cap ("Revoking spending cap"). Do not swap them.
 
@@ -651,7 +651,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
 | Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
-| NFT | NFT | collectible, when you mean an NFT | The Collectibles feature name stays. Not a blanket replacement |
+| NFT | NFT | | |
 | Reset wallet | Reset wallet | delete wallet, erase | |
 | Add funds | Add funds | Deposit, except an activity-list type | |
 | Smart account | smart account | smart contract account, Smart Account | |
@@ -725,7 +725,7 @@ Before you finish a user-facing string:
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
 - No "please", "sorry", or "unfortunately" in a routine error. No "successfully". An exclamation point only for a really exciting moment, never in an error or an alert.
 - "Turn on" and "Turn off" are the default, not a universal replacement. Do not replace Enable or Disable until the edge-case pass is done.
-- "NFT" for an NFT. Do not rename the Collectibles feature.
+- "NFT" for an NFT.
 - First-time empty states have character and a next step. Search and filter empty states stay plain.
 - No hardcoded EST or EDT. Written clock times use `6:30 am`.
 - Do not drop "your" from a shipped onboarding title until the layout checks are done. Do not leave "Phrase" alone on a line. Do not drop "your" from a field label or inline instruction unless content design signs off.
