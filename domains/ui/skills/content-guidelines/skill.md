@@ -349,21 +349,23 @@ The user-facing action is "Add funds". Use "Deposit" only when it is the transac
 
 ### Empty states
 
-| Phrase | Situation |
-| --- | --- |
-| No [thing] found | A search or filter returned nothing |
-| No [thing] yet | The user has not done this yet. Add a button for the action |
-| No [thing] available | The system has none right now |
+An empty state is a moment, not a dead end. When someone hasn't started yet, give it character: say why the feature is worth trying, and add a button for the first step. Character comes from voice, not puns, wordplay, or emoji.
 
-Retire "You don't have any…" and "Nothing to see yet…".
+1. **First-time empty (nothing yet).** Write it with warmth and a bit of optimism, tied to the feature. Add a button with a verb.
+2. **Search or filter with no results.** Keep it plain and helpful. Say what didn't match and what to try next.
+3. **Couldn't load.** That's an error, not an empty state, so follow the error rules.
+4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe.
+5. **Don't** sound sad or apologetic ("Nothing to see yet"), blame the person ("You don't have any…"), use emoji, or copy the same line across features.
 
 ```
-❌ "Your first perps trade could be your best." (`activity_view.empty_state.perps.description`)
+✅ "Your first perps trade could be your best." + "Browse markets" (`activity_view.empty_state.perps`)
+✅ "Your first prediction could be your best." + "Make a prediction" (`activity_view.empty_state.predictions`)
+✅ "There's a world of NFTs out there. Start your collection today." (`nft_empty_description`)
+✅ "Lend, borrow, and trade, right in your wallet." + "Explore DeFi" (`defi_positions.empty_state`)
+✅ Search: "No markets match "{{searchQuery}}" in this category. Try a different search or clear the filter."
 ❌ "Nothing to see yet. Add funds to your wallet to get started."
-❌ "No tokens. No problem. Explore and buy tokens to batch sell." (`batchSellEmptyStateDescription`)
-✅ "No perps trades yet"
-✅ "No tokens to sell"
-✅ "No quotes found"
+❌ "You don't have any open positions yet.\nStart trading to see your positions here."
+❌ "No tokens. No problem. Explore and buy tokens to batch sell." (repeats the title, `batchSellEmptyStateDescription`)
 ```
 
 ### Loading
@@ -724,7 +726,7 @@ Before you finish a user-facing string:
 - No "please", "sorry", or "unfortunately" in a routine error. No "successfully". An exclamation point only for a really exciting moment, never in an error or an alert.
 - "Turn on" and "Turn off" are the default, not a universal replacement. Do not replace Enable or Disable until the edge-case pass is done.
 - "NFT" for an NFT. Do not rename the Collectibles feature.
-- Empty state is "No [thing] found", "No [thing] yet", or "No [thing] available".
+- First-time empty states have character and a next step. Search and filter empty states stay plain.
 - No hardcoded EST or EDT. Written clock times use `6:30 am`.
 - Do not drop "your" from a shipped onboarding title until the layout checks are done. Do not leave "Phrase" alone on a line. Do not drop "your" from a field label or inline instruction unless content design signs off.
 - Do not claim the wallet or funds are safe unless the product has verified it. Do not use above, below, left, or right to point to something on screen. Name the control.
