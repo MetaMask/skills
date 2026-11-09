@@ -63,11 +63,6 @@ None of these needs an MCP server. Work from them in this order:
 5. **Figma MCP and Code Connect, when connected.** Use them to read the design
    and its component mapping. If they are not connected, carry on without them.
 
-Storybook MCP or Context Forge may add pattern docs when one is already
-configured and responds. It is optional: never block on it, do not install,
-configure, or authenticate it, and do not mention its absence unless a
-question can only be answered there.
-
 ## Workflow
 
 **Create:** read the installed types (and README when behavior is unclear)
