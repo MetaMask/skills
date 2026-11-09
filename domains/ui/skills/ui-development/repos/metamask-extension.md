@@ -22,11 +22,11 @@ accessibility rules.
 - Legacy component library: `ui/components/component-library` (being
   deprecated in favor of MMDS). Do not add new usage where MMDS covers the need.
 - Existing feature UI that is intentionally outside MMDS lives under
-  `ui/components/` (for example `ui/components/ui/marketing-moment`). Reuse it
-  before building new feature UI.
+  `ui/components/`. Reuse it before building new feature UI. Search the
+  manifest for an existing pattern before building custom UI.
 
 Do not apply React Native guidance or APIs (`twClassName`, twrnc,
-`accessibilityRole`, `BottomSheet`) to Extension.
+`accessibilityRole`, or React Native-only components) to Extension.
 
 ## Styling surface
 
@@ -34,19 +34,21 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   (Tailwind CSS v3) and removes the default palette and font sizes. Use only
   classes that configuration generates. If a class is in doubt, check the
   preset source or the built CSS; do not invent one or add a safelist entry.
-- Prefer MMDS `Box` typed props (`flexDirection`, `alignItems`, `gap`,
-  `padding*`, `margin*`) for layout, and Tailwind class names (`className`) for
-  everything else.
+- Prefer the installed design-system layout primitive's typed props
+  (`flexDirection`, `alignItems`, `gap`, `padding*`, `margin*`) for layout,
+  and Tailwind class names (`className`) for everything else. Look the
+  primitive up by name in the installed exports.
 - Do not add SASS or SCSS. Deleting SCSS rules, files, and `@import` lines
   that your change makes unused is expected.
-- Set type with `Text` variants. Font-size utilities do not exist in this
+- Set type with the design-system text component's variants. Look it up by
+  name in the installed exports. Font-size utilities do not exist in this
   config, so `text-[14px]` and similar are always wrong.
 
 ## Extension accessibility mechanics
 
-- Icon-only controls need an accessible name: `ButtonIcon` takes `ariaLabel`.
-  Search fields need an input label; check the installed `TextFieldSearch`
-  types for the prop name.
+- Icon-only controls need an accessible name. Search fields need an input
+  label. Look each control up by name in the installed exports and use the
+  accessible-name or label prop declared on its types.
 - Announce async errors and status with `role="alert"` or
   `aria-live="polite"` on a container that is already mounted before its text
   changes.
@@ -54,17 +56,15 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   selected or pressed state.
 - Follow accessible web practices for anything clickable: a native
   `<button type="button">` for actions and `<a>` for navigation (for example
-  through `Box asChild`), with preset state classes such as
+  through the layout primitive's `asChild`), with preset state classes such as
   `hover:bg-hover active:bg-pressed`. Never put `onClick` on a `div` or `span`.
 - Preserve the keyboard behavior documented in the component README and
   stories, including focus order and how popovers and modals close.
 
 ## Incremental migration paths
 
-The legacy barrel is `ui/components/component-library` (`Box`, `Text`,
-`Button`, `Icon`, and the rest). Apply the base `Legacy*` rule to any export
-from that barrel whose name MMDS also exports, including enums such as
-`IconName`.
+The legacy barrel is `ui/components/component-library`. Apply the base
+`Legacy*` rule to any export from that barrel whose name MMDS also exports.
 
 Most legacy enums come from `ui/helpers/constants/design-system`, not the
 barrel. Alias the ones the same file also imports from MMDS (`TextVariant`,
@@ -76,16 +76,17 @@ depth to the file.
 
 ```tsx
 // Do: MMDS keeps the plain names. Legacy gets the prefix.
-import { Box, Text, TextVariant } from '@metamask/design-system-react';
-import { Box as LegacyBox, Text as LegacyText } from '../../component-library';
+// `Component` stands for whatever export the file imports from both places.
+import { Component, TextVariant } from '@metamask/design-system-react';
+import { Component as LegacyComponent } from '../../component-library';
 import {
   Display,
   TextVariant as LegacyTextVariant,
 } from '../../../helpers/constants/design-system';
 
 // Don't: prefix the MMDS import, or leave both on the plain name.
-import { Box as LegacyBox, Text as LegacyText } from '@metamask/design-system-react';
-import { Box, Text } from '../../component-library';
+import { Component as LegacyComponent } from '@metamask/design-system-react';
+import { Component } from '../../component-library';
 ```
 
 Prop mapping from legacy to MMDS components:

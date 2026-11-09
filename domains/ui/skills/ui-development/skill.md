@@ -76,9 +76,10 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
 
 ## Choosing a component
 
-- Before building anything, check the manifest and the installed exports for
-  an existing component. Never invent a component, a prop, or a variant, and
-  never port an API from the other platform or another UI library.
+- Before building anything, look up the component by name in the manifest
+  and the installed exports. Search the manifest for an existing pattern
+  before building custom UI. Never invent a component, a prop, or a variant,
+  and never port an API from the other platform or another UI library.
 - Choose in this order, and record the reason whenever you go past step 1:
   1. An MMDS component exported by the installed platform package.
   2. A non-deprecated legacy component-library component, only when MMDS does
@@ -117,12 +118,14 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
 ## Typography
 
 - `FontFamily.Default` is the default for all UI text.
-- Set type with `Text` and a `TextVariant`. Never hand-set font sizes, line
+- Set type with the design-system text component and its variant enum. Look
+  them up by name in the installed exports. Never hand-set font sizes, line
   heights, or arbitrary text classes.
 - Use `FontFamily.Hero` only for approved hero cases: the single primary
-  display amount of a view and marketing-moment headlines through the
-  platform's `MarketingMomentTitle`. Never pair Hero with a font weight, and
-  never use it for body text, labels, buttons, titles, or small numbers.
+  display amount of a view, and marketing-moment headlines. Search the
+  manifest for an existing pattern before building a custom headline. Never
+  pair Hero with a font weight, and never use it for body text, labels,
+  buttons, titles, or small numbers.
 - Do not use `FontFamily.Accent`; it has been removed from MMDS.
 - Amount inputs are not settled. See the Proposed Typography rule in the
   [Design Brain](https://www.notion.so/b71f86d67d68827395a001f7ee7a8a86) and the
@@ -204,6 +207,7 @@ installed types win.
 - [ ] No invented components, props, or variants, and no cross-platform ports.
 - [ ] No new usage of anything tagged `@deprecated`.
 - [ ] Only preset-generated classes and semantic tokens; no arbitrary values.
-- [ ] Typography uses `Text` + `TextVariant`; Hero only for approved cases.
+- [ ] Typography uses the design-system text component and its variant enum;
+      Hero only for approved cases.
 - [ ] Clashing legacy imports are aliased `Legacy*`; MMDS keeps plain names.
 - [ ] The accessibility and trust rules above hold for the changed UI.
