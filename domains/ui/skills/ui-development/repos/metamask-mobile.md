@@ -18,11 +18,24 @@ Always prioritize @metamask/design-system-react-native components and Tailwind C
 1. **FIRST**: Use `@metamask/design-system-react-native` components
    - **Availability is dynamic**: read the installed package export index before deciding a component is unavailable.
    - **Rule**: If the installed package exports the component, you MUST use it.
-   - **Common examples**: Box/BoxRow/BoxColumn, Text, Button/ButtonBase/ButtonIcon/TextButton, Icon, Checkbox, Avatar variants, Badge variants, BottomSheet components, HeaderBase/HeaderRoot/HeaderSearch/HeaderStandard, Input/TextField/TextFieldSearch/Label, ListItem, Skeleton, Tag, Toast.
+   - **Layout & typography**: Box/BoxRow/BoxColumn, Text, SensitiveText, TextButton.
+   - **Buttons**: Button/ButtonBase/ButtonIcon/ButtonSemantic/ButtonFilter/ButtonHero, MainActionButton, FilterButton/FilterButtonGroup.
+   - **Bottom sheets**: BottomSheet, BottomSheetDialog, BottomSheetHeader, BottomSheetFooter, BottomSheetOverlay.
+   - **Headers & titles**: HeaderBase, HeaderRoot, HeaderSearch, HeaderStandard, HeaderStandardAnimated, HeaderSubpage, TitleAlert, TitleHub, TitleStandard, TitleSubpage, SectionHeader, SectionDivider.
+   - **Form & controls**: Input, TextField, TextFieldSearch, TextArea, Label, HelpText, Checkbox, RadioButton, Switch, Slider, SegmentedControl, SelectButton.
+   - **Lists & selection**: ListItem, ListItemSelect, ListItemMultiSelect, ActionListItem, KeyValueRow, KeyValueColumn, KeyValueSelect.
+   - **Data display**: Card, Content, Tag, Avatar variants, Badge variants, AvatarGroup, BadgeWrapper. (`Skeleton` is exported too, but see the Skeleton exception under tier 2.)
+   - **Feedback**: BannerAlert/BannerBase, Toast/Toaster/toast, IconAlert, TabEmptyState, Icon.
 
 2. **SECOND**: Use `app/component-library` ONLY if design system lacks it
-   - **Use for**: MetaMask-specific or not-yet-migrated components such as Tabs and feature-owned modal wrappers
+   - **Navigation & tabs**: `components-temp/Tabs/*`, `components-temp/TabBar`, `components/Navigation/TabBar`, `TabBarItem`, `TradeTabBarItem`
+   - **Modal & sheet wrappers**: `components/Modals/ModalConfirmation`, `ModalMandatory`, `components/Sheet/SheetHeader`, `components/Overlay`
+   - **Pickers & cells**: `PickerAccount`, `PickerBase`, `PickerNetwork`, `components/Cells/Cell`, `components-temp/CellSelectWithMenu`, `components-temp/ListItemMultiSelectButton`, `components/List/ListItemColumn`
+   - **Account & multichain UI**: `components-temp/Accounts/*`, `components-temp/MultichainAccounts/*`
+   - **Other MetaMask-specific components**: `components/Accordions/Accordion`, `components/Select/SelectValue`, `components/Tags/TagUrl`, `components-temp/TagColored`, `components-temp/Price/*`, `components-temp/StepperCard`, `components-temp/Loader`, `components-temp/Pressable`, `components-temp/ConditionalScrollView`, `components-temp/HeaderCompactStandard`, `components-temp/Buttons/ButtonPill`, `ButtonToggle`
    - **Rule**: These are MetaMask-specific implementations not (yet) in the design system
+   - **Do NOT reach here for a component the design system already exports.** Most `app/component-library` duplicates are marked `@deprecated` and point straight back at `@metamask/design-system-react-native`: Text, Tag, Label, HelpText, TextField, TextFieldSearch, Input, Card, Checkbox, RadioButton, SelectButton, Toast, Icon, HeaderBase/HeaderRoot/HeaderSearch, the Button family (including ButtonLink/ButtonPrimary/ButtonSecondary), Avatar\*, Badge\*, BadgeWrapper, the Banner family, the BottomSheet family, ListItem/ListItemSelect/ListItemMultiSelect, SensitiveText, ActionListItem, KeyValueRow, SectionHeader, TitleStandard/TitleSubpage, MainActionButton, TabEmptyState, ButtonFilter, ButtonHero, and ButtonSemantic.
+   - **Exception — Skeleton.** Import `Skeleton` from `app/component-library/components-temp/Skeleton`, not from the package. That wrapper renders the design system `Skeleton` with `autoPlay` disabled whenever Jest or test overrides are active; importing the package version directly leaves the animation running in tests. (The deprecated `components/Skeleton` points at this wrapper, not at the package.)
    - **Important**: component-library components should themselves use design system primitives internally
 
 3. **THIRD**: Feature-specific components
@@ -41,8 +54,15 @@ Need a component?
   ├─ Does the installed @metamask/design-system-react-native package export it?
   │  └─ YES → Use @metamask/design-system-react-native [STOP]
   │
-  ├─ Is it Tabs or a MetaMask-specific component that is not exported by @metamask/design-system-react-native?
+  ├─ Is it Tabs, a Modal/Sheet wrapper, Picker*, Cell*, Accordion, TagUrl, an
+  │  Account/Multichain component, or another component genuinely not exported by
+  │  @metamask/design-system-react-native?
   │  └─ YES → Use app/component-library [STOP]
+  │     (NOT Text, Tag, Label, TextField, Card, Toast, Banner*, BottomSheet*, or the
+  │      Button/Avatar/Badge families — the design system exports all of them and the
+  │      component-library copies are @deprecated)
+  │     (Skeleton is the one inversion: import it from
+  │      app/component-library/components-temp/Skeleton, which disables autoPlay in tests)
   │
   ├─ Is it feature-specific UI (e.g., BridgeInputSelector, StakeInputView)?
   │  ├─ Does it already exist? (search codebase for similar components)
@@ -97,6 +117,7 @@ import {
   HeaderRoot,
   HeaderSearch,
   HeaderStandard,
+  HeaderSubpage,
   Icon,
   IconAlert,
   MainActionButton,
@@ -110,8 +131,52 @@ import {
   BoxFlexDirection,
   BoxAlignItems,
   BoxJustifyContent,
+  // Form & controls
+  Input,
+  TextField,
+  TextFieldSearch,
+  TextArea,
+  Label,
+  HelpText,
+  HelpTextSeverity,
+  Checkbox,
+  RadioButton,
+  Switch,
+  Slider,
+  SegmentedControl,
+  SelectButton,
+  // Lists & selection
+  ListItem,
+  ListItemSelect,
+  ListItemMultiSelect,
+  ActionListItem,
+  KeyValueRow,
+  KeyValueColumn,
+  KeyValueSelect,
+  // Data display
+  Card,
+  Content,
+  Tag,
+  TagSeverity,
+  SensitiveText,
+  // Feedback
+  BannerAlert,
+  BannerAlertSeverity,
+  BannerBase,
+  Toast,
+  Toaster,
+  toast,
+  // Structure
+  SectionHeader,
+  SectionDivider,
+  FilterButton,
+  FilterButtonGroup,
   // ... other design system components
 } from '@metamask/design-system-react-native';
+
+// Exception: Skeleton comes from the repo wrapper, not the package —
+// the wrapper disables `autoPlay` when running under Jest.
+import Skeleton from 'app/component-library/components-temp/Skeleton';
 ```
 
 ## Component Documentation Access
@@ -129,6 +194,17 @@ All @metamask/design-system-react-native components have comprehensive TypeScrip
 - **HeaderBase**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderBase/HeaderBase.types.d.cts`
 - **HeaderSearch**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderSearch/HeaderSearch.types.d.cts`
 - **HeaderStandard**: `/node_modules/@metamask/design-system-react-native/dist/components/HeaderStandard/HeaderStandard.types.d.cts`
+- **Form components**: `/node_modules/@metamask/design-system-react-native/dist/components/{TextField,TextFieldSearch,TextArea,Label,HelpText,Input}/*.types.d.cts`
+- **Lists**: `/node_modules/@metamask/design-system-react-native/dist/components/{ListItem,ListItemSelect,ListItemMultiSelect,ActionListItem,KeyValueRow}/*.types.d.cts`
+- **Feedback**: `/node_modules/@metamask/design-system-react-native/dist/components/{BannerAlert,BannerBase,Toast,Tag}/*.types.d.cts`
+
+**Cross-platform props live in a shared package.** Many React Native components
+declare only `twClassName` locally and inherit the rest from
+`@metamask/design-system-shared`. If a `.types.d.cts` file looks suspiciously
+short (`Text.types.d.cts` is 12 lines), read the shared type instead:
+`/node_modules/@metamask/design-system-shared/dist/types/<Component>/<Component>.types.d.cts`.
+That is where `TextVariant`, `TextColor`, `BannerAlertSeverity`, `TagSeverity`,
+and the other shared enums are actually defined.
 
 When unsure about component APIs:
 1. Read the `.types.d.cts` files for complete prop documentation
@@ -229,7 +305,15 @@ import {
 } from '@metamask/design-system-react-native';
 
 <BottomSheet ref={sheetRef} goBack={navigation.goBack}>
-  <BottomSheetHeader onClose={handleClose}>Title</BottomSheetHeader>
+  {/* Start/end accessories are managed internally, so the back and close
+      buttons can only be reached through `backButtonProps`/`closeButtonProps` —
+      that is where `accessibilityLabel` and `testID` have to go. */}
+  <BottomSheetHeader
+    onClose={handleClose}
+    closeButtonProps={{ accessibilityLabel: strings('navigation.close') }}
+  >
+    Title
+  </BottomSheetHeader>
   <Box twClassName="px-4 py-3">
     <Text variant={TextVariant.BodyMd}>Content</Text>
   </Box>
@@ -294,6 +378,14 @@ Always use semantic color tokens:
 | `<View>`                             | `<Box>`                                |
 | `<Text style={...}>`                 | `<Text variant={TextVariant.BodyMd}>`  |
 | `app/component-library` BottomSheets | `@metamask/design-system-react-native` BottomSheet components |
+| `app/component-library` Text / SensitiveText | `@metamask/design-system-react-native` equivalents (note the `TextVariant`/`TextColor` renames) |
+| `app/component-library` Banner / BannerAlert / BannerBase | `@metamask/design-system-react-native` BannerAlert / BannerBase (`Error` severity → `Danger`) |
+| `app/component-library` Tag          | `@metamask/design-system-react-native` Tag (`label` prop → `children`) |
+| `app/component-library` Form components (TextField, TextFieldSearch, Input, Label, HelpText) | `@metamask/design-system-react-native` equivalents |
+| `app/component-library` Card / Checkbox / RadioButton / SelectButton / Toast | `@metamask/design-system-react-native` equivalents |
+| `app/component-library` Button, Avatar, Badge, Icon, HeaderBase families | `@metamask/design-system-react-native` equivalents |
+| `app/component-library` ListItem / ListItemSelect / ListItemMultiSelect | `@metamask/design-system-react-native` equivalents |
+| `app/component-library/components/Skeleton` | `app/component-library/components-temp/Skeleton` (the Jest-safe wrapper, **not** the package) |
 | `StyleSheet.create()`                | `twClassName="..."`                    |
 | `style={{ backgroundColor: 'red' }}` | `twClassName="bg-error-default"`       |
 | `flexDirection: 'row'`               | `flexDirection={BoxFlexDirection.Row}` |
@@ -335,6 +427,41 @@ import { ScrollView } from 'react-native';
 5. Convert arbitrary colors → design system color tokens
 6. Delete `.styles.ts` files after migration
 7. Test thoroughly - layout can shift during migration
+
+### A Matching Name Is Not a Drop-In Swap
+
+The same identifier exported from both places usually has a different API — the
+deprecation notices themselves say "The API may have changed — compare props
+before migrating." Read the shared types before rewriting call sites, and expect
+snapshot churn. Known differences:
+
+- **`TextVariant` members and values both differ.** Legacy is
+  `TextVariant.BodyMD` resolving to `'sBodyMD'`; the design system is
+  `TextVariant.BodyMd` resolving to `'body-md'`. A find-and-replace that only
+  fixes the import will type-check in some cases and still render the wrong style.
+- **`TextColor` members are renamed, not just recased.** Legacy
+  `TextColor.Default`/`Muted`/`Error` become `TextColor.TextDefault`/`TextMuted`/
+  `ErrorDefault`.
+- **`BannerAlertSeverity.Error` no longer exists.** Legacy severities are
+  `Info`/`Success`/`Warning`/`Error` (values `'Info'`…); the design system uses
+  `Neutral`/`Info`/`Success`/`Warning`/`Danger` (values `'neutral'`…). Migrating an
+  error banner means `Error` → `Danger`, so this swap is **not** a pure rename.
+- **`Tag` swaps `label` for `children`.** Legacy `Tag` takes a `label` string;
+  the design system `Tag` renders `children` and adds `severity`,
+  `startAccessory`, and `endAccessory`.
+- **`BannerAlert` prefers props over nested children.** `BannerBase` exposes
+  `title`, `description`, `actionButtonLabel`, `actionButtonLayout`, and
+  `startAccessory`; reach for those before nesting a `Text` child.
+- **Header accessories are internal.** `BottomSheetHeader` omits
+  `startAccessory`/`endAccessory` entirely — pass `accessibilityLabel` and
+  `testID` through `backButtonProps`/`closeButtonProps` instead.
+- **Enums are const objects, not TS enums.** Design system variants, severities,
+  and Box props are all declared as `const` objects with a derived union type
+  (`export type TextVariant = (typeof TextVariant)[keyof typeof TextVariant]`),
+  whereas the legacy equivalents are real TypeScript `enum`s. They cannot be used
+  in positions that require an `enum` — a mapped type such as
+  `{ [key in BannerAlertSeverity]: IconName }` still works, but `enum`-only
+  reflection does not.
 
 ### Example Migration
 
@@ -386,6 +513,9 @@ const tw = useTailwind();
 - [ ] No raw `View` components (use `Box`)
 - [ ] No raw `Text` without variants (use `Text` with `TextVariant`)
 - [ ] No component-library BottomSheet imports when design system exports cover the use case
+- [ ] No imports of `@deprecated` component-library duplicates (Text, Tag, Label, Form components, Card, Checkbox, RadioButton, SelectButton, Toast, Banner\*, Button\*, Avatar\*, Badge\*, ListItem\*, Icon, HeaderBase\*)
+- [ ] `Skeleton` imported from `app/component-library/components-temp/Skeleton`, not from the package
+- [ ] Enum members updated, not just import paths (`TextVariant.BodyMD` → `BodyMd`, `TextColor.Default` → `TextDefault`, `BannerAlertSeverity.Error` → `Danger`)
 - [ ] No `StyleSheet.create()` (use `twClassName` or `tw.style()`)
 - [ ] No arbitrary color values (use design system tokens)
 - [ ] No separate `.styles.ts` files for new components
@@ -397,6 +527,8 @@ const tw = useTailwind();
 - Any `import tw from 'twrnc'` → `import { useTailwind } from '@metamask/design-system-twrnc-preset'`
 - Any `View` component → `Box` from design system
 - Any `app/component-library/components/BottomSheets/*` import → equivalent `@metamask/design-system-react-native` BottomSheet export
+- Any import of a component-library path carrying an `@deprecated` marker (`Texts/Text`, `Tags/Tag`, `Form/*`, `Cards/Card`, `Checkbox`, `RadioButton`, `Select/SelectButton`, `Toast`, `Banners/*`, `Buttons/*`, `Avatars/*`, `Badges/*`, `List/ListItem*`, `Icons/Icon`, `HeaderBase`, `components-temp/{ActionListItem,KeyValueRow,SectionHeader,Title*,MainActionButton,TabEmptyState,ButtonFilter,ButtonHero,ButtonSemantic,HeaderRoot,HeaderSearch}`) → equivalent `@metamask/design-system-react-native` export, adjusting enum members and props per "A Matching Name Is Not a Drop-In Swap"
+- Any `app/component-library/components/Skeleton` import → `app/component-library/components-temp/Skeleton`
 - Any `StyleSheet` usage → Tailwind classes
 - Any arbitrary color values → Design system tokens
 - Any manual flex properties → Box component props + twClassName
