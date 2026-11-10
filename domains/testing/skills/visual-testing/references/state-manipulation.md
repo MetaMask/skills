@@ -43,7 +43,8 @@ LavaMoat - property "chrome" of globalThis is inaccessible under scuttling mode.
 ```
 
 - LavaMoat scuttles every configurable `window` global that is not on the exception list. The list is `getScuttleGlobalThisExceptions` in `development/webpack/utils/plugins/LavamoatPlugin/index.ts`. Check it before you use a global.
-- Scuttled examples: `chrome`, `setInterval`, `clearInterval`, `requestAnimationFrame`, `MutationObserver`, `IntersectionObserver`, `localStorage`, `queueMicrotask`. `chrome.storage.local` calls fail (operation 4). `setInterval` and `MutationObserver` errors were seen live on a production build.
+- Scuttled examples: `chrome`, `setInterval`, `clearInterval`, `requestAnimationFrame`, `MutationObserver`, `IntersectionObserver`, `localStorage`, `queueMicrotask`. `chrome.storage.local` calls fail (operation 4). `setInterval`, `MutationObserver`, `localStorage` and `requestAnimationFrame` errors were seen live on a production build.
+- `typeof` does not show whether a global is scuttled. On a production build, `typeof window.chrome` returned `"object"` on `home.html`, and `chrome.tabs.query` threw on `sidepanel.html` (both seen live). Both pages get the same exception list. A possible cause: `scuttle.js` replaces a global that is writable but not configurable with a `Proxy`. The proxy throws only when you read one of its properties, and `typeof` does not. (Inferred from `lavamoat-core/src/scuttle.js`.) To test a global, read one of its properties, as the check below does.
 - Test builds (`--test`) also allow `chrome`, `browser` and `indexedDB`. Everything else stays scuttled.
 - Builds without LavaMoat (`yarn start`, `yarn build:dev`, `yarn start:test`, `yarn build:test:dev`) scuttle nothing.
 - `document`, `location` and `window` stay usable. LavaMoat skips properties that are not configurable and not writable.
@@ -55,10 +56,10 @@ To poll from an expression, use a recursive `setTimeout` instead of `setInterval
 Run this check first. It shows whether `chrome` is usable and which `stateHooks` exist on this build:
 
 ```bash
-mm cdp Runtime.evaluate '{"expression":"(function(){var c;try{chrome;c=true}catch(e){c=false}return JSON.stringify({chrome:c,hooks:Object.keys(stateHooks)})})()","returnByValue":true}'
+mm cdp Runtime.evaluate '{"expression":"(function(){var c;try{c=typeof chrome.runtime===\"object\"}catch(e){c=false}return JSON.stringify({chrome:c,hooks:Object.keys(stateHooks)})})()","returnByValue":true}'
 ```
 
-On a production build, `chrome` is `false` and the hooks are `getPersistedState`, `getBackupState`, `getSentryState`, `reloadExtension`, `getCleanAppState`, `getSentryAppState`, `getLogs`, `getSentryRemoteRates` (seen live).
+On a production build, the hooks are `getPersistedState`, `getBackupState`, `getSentryState`, `getSentryRemoteRates`, `reloadExtension`, `getCleanAppState`, `getSentryAppState`, `getLogs` (seen live). `chrome` should be `false` there, because `chrome.tabs.query` threw. This check itself has not run on a production build.
 
 ## Production Builds
 
@@ -68,13 +69,13 @@ What works:
 - Reads with `stateHooks.getCleanAppState()` and `stateHooks.getPersistedState()` (operations 1 and 2).
 - Redux writes through the fiber store lookup, and the `store.subscribe` re-apply listener (operation 3 and [Troubleshooting](#troubleshooting)). Seen live.
 - UI actions with `mm click`, for example a settings toggle. These change background state and persist it.
-- Background calls through the UI messenger (operation 4). Inferred from source and checked offline. Not yet run live.
+- Background calls through the UI messenger (operation 4). They reach background controllers and persist. Seen live.
 
 What does not work:
-- `chrome.storage.local` writes (operation 4). `chrome` is scuttled.
-- A direct line to the background service worker. `mm cdp` sends each command on a new CDP session for the active page. It has no service-worker target, and the background exposes only read hooks. This would need an mm feature and a background write hook.
+- `chrome.storage.local` writes (operation 4). Reading a property of `chrome` throws.
+- A direct line to the background service worker. `mm cdp` sends each command on a new CDP session for the active page. It has no service-worker target, and the background exposes only read hooks. Use the UI messenger instead.
 
-If you need more access, use a different build:
+If you need the debug hooks, use a different build:
 - `yarn build:test:dev` (or `yarn start:test` to watch). No LavaMoat. `METAMASK_DEBUG` and `IN_TEST` are set, so `stateHooks.store` and `stateHooks.submitRequestToBackground` exist.
 - `METAMASK_DEBUG=true yarn build:test`. Keeps LavaMoat but exposes the same hooks. Inferred: a variable in the environment overrides `builds.yml` (`development/webpack/utils/config.ts`). Not built and run.
 
@@ -147,7 +148,7 @@ Notes:
 Write directly to `chrome.storage.local`. The extension uses a split format where each controller is a separate key tracked by a `manifest` array.
 
 Limits:
-- On production builds, `chrome` is scuttled and these snippets throw (see [LavaMoat Scuttling](#lavamoat-scuttling)). They work on test builds and builds without LavaMoat.
+- On production builds, `chrome` is scuttled and these snippets throw (see [LavaMoat Scuttling](#lavamoat-scuttling)). Test builds and builds without LavaMoat allow `chrome`.
 - The background reads storage only at startup. The running background keeps its own state, and its next persist of that controller can overwrite your write.
 - Do not reload the extension to make the write show. `stateHooks.reloadExtension()` calls `browser.runtime.reload()`, which closes every extension page. The mm session keeps the closed page and cannot recover without `mm cleanup`. Cleanup deletes the temporary profile and your write. In an mm session, a restarted background also loads the fixture from the fixture server again and overwrites the write. (Inferred from source, not run.)
 
@@ -178,7 +179,7 @@ Rules:
 
 Prefer a background call. The background changes the state, persists it, and sends the new state to the UI:
 - Use the UI that already does it, for example a settings toggle with `mm click`. This works on every build.
-- Call a background action through the UI messenger (below). Inferred to work on every build, including production.
+- Call a background action through the UI messenger (below). This works on production builds and test builds.
 - On builds with `METAMASK_DEBUG` (`yarn start`, `yarn build:dev`, `yarn start:test`, `yarn build:test:dev`), call `stateHooks.submitRequestToBackground`. It takes a messenger action name and an argument array, the same as in `ui/store/actions.ts`:
 
   ```bash
@@ -193,10 +194,51 @@ Prefer a background call. The background changes the state, persists it, and sen
 mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var ui=null;while(f){var v=f.memoizedProps&&f.memoizedProps.value;if(v&&typeof v.delegate===\"function\"&&typeof v.revoke===\"function\"){ui=v;break}f=f.return}if(!ui)return \"ui messenger not found\";var h=null;var m={_internalRegisterDelegatedActionHandler:function(t,fn){h=fn},_internalUnregisterDelegatedActionHandler:function(){},_internalPublishDelegated:function(){},captureException:function(){}};var a={actions:[\"PreferencesController:setPreference\"],messenger:m};return ui.delegate(a).then(function(){return h(\"privacyMode\",true)}).then(function(){return ui.revoke(a)}).then(function(){return \"ok\"})})()","awaitPromise":true,"returnByValue":true}'
 ```
 
-- Change the action name and the arguments to `h(...)`. Use the same names and arguments as `submitRequestToBackground` calls in `ui/store/actions.ts`.
-- Some actions are not exposed to the UI. They throw `has not been exposed to the UI` (`ui/messengers/configs/`, for example `KeyringController` and `PasskeyController`).
+To change the action or the arguments, do not edit the escaped one-liner. A shell substitution on it can fail to match because of the `\"` escaping, and then `mm cdp` silently runs the original call again. Write the expression as plain JavaScript and let `node` build the JSON parameters, as in [Troubleshooting](#keep-injected-redux-data-across-background-updates). Set `ACTION` and `ARGS` at the top:
+
+```bash
+EXPR=$(cat <<'EOF'
+(function () {
+  var ACTION = "PreferencesController:setPreference";
+  var ARGS = ["privacyMode", true];
+  var r = document.getElementById("app-content");
+  r = r && r.firstElementChild;
+  if (!r) return "app root not rendered";
+  var k = Object.keys(r).find(function (k) { return k.startsWith("__reactFiber$"); });
+  var f = r[k];
+  var ui = null;
+  while (f) {
+    var v = f.memoizedProps && f.memoizedProps.value;
+    if (v && typeof v.delegate === "function" && typeof v.revoke === "function") { ui = v; break; }
+    f = f.return;
+  }
+  if (!ui) return "ui messenger not found";
+  var h = null;
+  var m = {
+    _internalRegisterDelegatedActionHandler: function (t, fn) { h = fn; },
+    _internalUnregisterDelegatedActionHandler: function () {},
+    _internalPublishDelegated: function () {},
+    captureException: function () {}
+  };
+  var a = { actions: [ACTION], messenger: m };
+  return ui.delegate(a)
+    .then(function () { return h.apply(null, ARGS); })
+    .then(function () { return ui.revoke(a); })
+    .then(function () { return "ok"; });
+})()
+EOF
+)
+PARAMS=$(node -e 'process.stdout.write(JSON.stringify({expression:process.argv[1],awaitPromise:true,returnByValue:true}))' "$EXPR")
+mm cdp Runtime.evaluate "$PARAMS"
+```
+
+- Use the same action names and arguments as `submitRequestToBackground` calls in `ui/store/actions.ts`.
+- The snippet returns `"ok"` and does not return the action's result. Read the state afterwards (see [Verify State After Mutation](#verify-state-after-mutation)). If the action throws, the error is in `result.exceptionDetails`.
 - Each call uses a new stand-in messenger and revokes it at the end, so you can run it more than once.
-- Status: inferred from source. The snippet ran offline against the real `ui-messenger.ts` and `background-connection.ts` modules with a fake connection, and sent `messengerCall` with the right arguments. It has not run live in a browser yet. If it returns `"ui messenger not found"`, use `mm click` instead.
+- If it returns `"ui messenger not found"`, use `mm click` instead.
+- Status: seen live on the CI production build of MetaMask Extension 13.57 and on an e2e test build. The preference changed in Redux and in persisted state, and the Home screen masked balances. An excluded action threw.
+
+This route can call almost any action on the background messenger, including sensitive ones. The UI blocks only the actions listed in `EXCLUDED_CAPABILITIES` in `ui/messengers/configs/*.ts`. Today these are 8 `KeyringController` actions (such as `KeyringController:withKeyring`) and 7 `PasskeyController` actions. They throw `The action "<name>" has not been exposed to the UI.` (seen live for `KeyringController:withKeyring`). The background passes every other action to `controllerMessenger.call` (`messengerCall` in `app/scripts/metamask-controller.js`). For example, `KeyringController:exportAccount` is not excluded. It passed the UI check and reached the background (seen live). `ApprovalController:acceptRequest`, `TransactionController:addTransaction` and `NetworkController:setActiveNetwork` are registered on the messenger and not excluded, so they are probably reachable too (inferred from source). Use only the actions that your test needs.
 
 Other routes that do not help:
 - `store.dispatch(fn)` runs a thunk with `dispatch` and `getState` only. It does not get the background connection.
