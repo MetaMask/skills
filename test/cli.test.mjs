@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -260,5 +260,87 @@ describe('managed skill pruning', () => {
 
     assert.notEqual(result.status, 0);
     assert.equal(existsSync(stale), true);
+  });
+});
+
+describe('postinstall failure reporting', () => {
+  // A failed sync used to be indistinguishable from a clean one: postinstall
+  // returns 0 by design so it cannot fail `yarn install`, but it returned 0
+  // silently, so the caller's `|| echo` guard could never fire and anything
+  // counting skill directories on disk read the previous install as current.
+  test('warns but still exits 0 when the delegated sync fails', () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), 'skills-postinstall-fail-'));
+    const src = path.join(root, 'src');
+    mkdirSync(path.join(src, 'domains'), { recursive: true });
+    mkdirSync(path.join(src, 'tools'), { recursive: true });
+
+    // A saved domain that does not exist is the realistic trigger: tools/sync
+    // rejects it and exits non-zero.
+    const result = runCli(['postinstall', '--target', root], {
+      METAMASK_SKILLS_DIR: src,
+      SKILLS_DOMAINS: 'no-such-domain',
+      // postinstall no-ops under CI, which is exactly where this test runs.
+      SKILLS_FORCE_POSTINSTALL: '1',
+    });
+
+    assert.equal(result.status, 0, 'must never fail yarn install');
+    assert.match(`${result.stdout}${result.stderr}`, /auto-update failed/u);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe('tools/sync installer resolution', () => {
+  // Regression: npm and Yarn drop the executable bit when unpacking a tarball, so
+  // every tools/* file arrives 0644 in a consumer install. sync used to gate on
+  // `-x "$SCRIPT_DIR/install"`, which is true in a git checkout and false from the
+  // published package — so the pinned installer was skipped and the fallback loop
+  // ran instead. That loop keeps the LAST matching source, and SOURCES appends
+  // CONSENSYS_SKILLS_DIR after METAMASK_SKILLS_DIR, so every install silently ran
+  // the private overlay's copy. An overlay predating `base:` installs zero base
+  // skills and still exits 0.
+  //
+  // The fixture mirrors that exactly: package installer non-executable (as npm
+  // ships it), overlay installer executable (as git checks it out).
+  const root = mkdtempSync(path.join(os.tmpdir(), 'skills-install-bin-'));
+  const SYNC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'sync');
+
+  function makeSource(name, marker, mode) {
+    const dir = path.join(root, name);
+    mkdirSync(path.join(dir, 'domains'), { recursive: true });
+    mkdirSync(path.join(dir, 'tools'), { recursive: true });
+    writeFileSync(path.join(dir, 'tools', 'install'), `#!/usr/bin/env bash\necho "${marker}"\n`, { mode });
+    return dir;
+  }
+
+  after(() => rmSync(root, { recursive: true, force: true }));
+
+  test('runs the installer shipped beside sync even when the exec bit is stripped', () => {
+    const pkg = path.join(root, 'pkg');
+    mkdirSync(path.join(pkg, 'tools'), { recursive: true });
+    copyFileSync(SYNC, path.join(pkg, 'tools', 'sync'));
+    // 0644 — how npm and Yarn unpack it.
+    writeFileSync(path.join(pkg, 'tools', 'install'), '#!/usr/bin/env bash\necho "PINNED"\n', { mode: 0o644 });
+
+    const publicSrc = makeSource('public-src', 'PUBLIC-SOURCE', 0o755);
+    const overlaySrc = makeSource('overlay-src', 'STALE-OVERLAY', 0o755);
+    const target = path.join(root, 'target');
+    mkdirSync(target, { recursive: true });
+
+    const result = spawnSync(
+      '/bin/bash',
+      [path.join(pkg, 'tools', 'sync'), '--repo', 'core', '--target', target, '--domain', 'none'],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          METAMASK_SKILLS_DIR: publicSrc,
+          CONSENSYS_SKILLS_DIR: overlaySrc,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.match(result.stdout, /PINNED/u, 'must run the installer beside sync');
+    assert.doesNotMatch(result.stdout, /STALE-OVERLAY/u, 'must not fall through to the overlay');
   });
 });

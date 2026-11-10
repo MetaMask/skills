@@ -12,7 +12,7 @@ name: example-skill
 description: >-
   One or two sentences: what the skill does, plus when_to_use cues
   (e.g. "Use when asked to …, or for …"). Keep the full description
-  within 1,536 characters.
+  within 1,024 characters.
 maturity: stable
 ---
 
