@@ -60,6 +60,16 @@ During onboarding the background treats basic functionality as off until complet
 on an onboarding path that does not consult a basic-functionality check is ungated in exactly
 the window the check would close.
 
+Two calls run in that window on `main`. `NetworkEnablementController.init()` runs at background
+initialization and, for each EVM network without a stored native-asset identifier, calls
+`Slip44Service.getEvmSlip44`, which fetches `https://chainid.network/chains.json`
+(`@metamask/network-enablement-controller` 6.0.5). It consults no check, so a fresh install sends
+it before onboarding. The notification startup effect in
+`ui/contexts/metamask-notifications/metamask-notifications.tsx` reads the preference through
+`getUseExternalServices`, with sign-in, notifications enabled and unlock, but not onboarding
+completion, so nothing stops it during onboarding once those hold. A controller's own
+initialization and a UI effect gated on the preference are the two shapes to look for.
+
 ## Five gates, and they are not one switch
 
 | gate | reads | what it controls | the check that is easy to get wrong |
