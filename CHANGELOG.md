@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `platform/consent-gate-diligence`, which has an agent check whether a network call, analytics event, trace or breadcrumb may be sent at all before checking what it carries. Installs for MetaMask Extension only.
 - Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
 - Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
