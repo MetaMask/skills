@@ -7,6 +7,10 @@ MMDS publishes a Storybook components manifest for each platform:
 | React (Extension) | <https://metamask.github.io/metamask-design-system/manifests/components.json> |
 | React Native (Mobile) | <https://metamask.github.io/metamask-design-system/react-native/manifests/components.json> |
 
+The React Storybook also publishes intro docs at
+<https://metamask.github.io/metamask-design-system/manifests/docs.json>.
+React Native does not publish a `docs.json`.
+
 This file explains the format. It deliberately lists no components, versions,
 or props: read those from the manifest and the installed package.
 
@@ -15,9 +19,10 @@ or props: read those from the manifest and the installed package.
 - It is generated from the Storybook build of MMDS `main`. It can be ahead of
   the version a consumer repo installs, so a component or prop in the manifest
   may not exist in `node_modules` yet. The installed types decide.
-- It is large (around 1 MB). Fetch it once and search it, for example with
+- It is large (1–2 MB). Fetch it once and search it, for example with
   `curl -s <url> | jq` or a script, rather than reading it whole.
-- It is a discovery and deprecation index, not the API contract.
+- It is a discovery and deprecation index for a component's own API. Prop
+  data is extracted with react-docgen-typescript (`meta.docgen`).
 
 ## Shape
 
@@ -31,44 +36,68 @@ or props: read those from the manifest and the installed package.
       "path":        "<story file in the MMDS repo>",
       "import":      "<import line(s) used by the stories>",
       "jsDocTags":   { "deprecated": ["<reason and replacement>"] },
-      "reactDocgen": { "description": "...", "props": { "<prop>": { "required": ..., "tsType": ..., "description": "..." } } },
-      "stories":     [ { "id": "...", "name": "...", "snippet": "<example JSX>" } ],
-      "description": "<optional>",
-      "error":       "<present instead of reactDocgen when docgen failed>"
+      "reactDocgenTypescript": {
+        "description": "...",
+        "props": {
+          "<prop>": {
+            "required": ...,
+            "description": "...",
+            "declarations": [ { "fileName": "...", "name": "..." } ],
+            "type": {
+              "name": "<type name>",
+              "raw": "<source text, enums>",
+              "value": [ { "value": "<enum member>" } ]
+            }
+          }
+        }
+      },
+      "stories": [ { "id": "...", "name": "...", "snippet": "<example JSX>" } ]
     }
   },
-  "meta": { ... }
+  "meta": { "docgen": "react-docgen-typescript" }
 }
 ```
 
-Entries are keyed by Storybook story id, not by component name, and not every
-entry is a component:
-
-- Design-token and foundation pages (ids starting `design-tokens-` or `docs-`,
-  with story paths in `packages/design-tokens`).
-- Pattern stories (ids starting `patterns-`). These are composition examples.
-  Their `name` can look like a component, or be a code fragment
-  (`() => null`), and nothing with that name is exported. Search the manifest
-  for an existing pattern before building custom UI.
-- Story wrappers whose `name` is a cast expression rather than an identifier.
+Prop data lives under `reactDocgenTypescript.props`. Read `type.name`. Enums
+also set `type.raw` and `type.value`, and `type.value` lists the members.
+`declarations` records where the prop is declared. Entries are keyed by
+Storybook story id, not by component name.
 
 Treat an entry as a component only when its `path` is a story under the
 platform package's `src/components/` (including `temp-components/`) and the
 component name appears in the installed export index.
 
+## Which props appear
+
+- Props declared on the component, including props defined in the shared types
+  package, appear in the manifest.
+- `className`, `style`, `children`, and `testID` are always kept. A component
+  that does not accept one of them does not list it.
+- Other host or native element props (DOM attributes, `ViewProps`) are
+  filtered out.
+- The manifest is reliable for a component's own API. Check the component's
+  installed types for anything it inherits from the host element.
+
+Not every story entry is in the manifest. Design-token, foundation, and
+pattern stories are left out, so a missing entry is not proof that no story
+exists.
+
 ## Common queries
 
 - **Is there a component for X?** Look up the component by name in the
-  manifest: search `name` and `reactDocgen.description`, then confirm the
-  name is exported by the installed package index.
-- **Is there already a pattern?** Search entries whose ids start with
-  `patterns-` before building custom UI.
+  manifest: search `name` and `reactDocgenTypescript.description`, then
+  confirm the name is exported by the installed package index.
+- **Is there already a pattern?** Pattern stories are not in this manifest.
+  Read the component README at the installed tag, and search existing
+  repository usage, before building custom UI.
 - **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated;
   the message names the replacement. Also check for `@deprecated` in the
   installed `.types` file, because the installed version may differ.
-- **Which props does it take?** `reactDocgen.props` gives names, types,
-  `required`, and descriptions for `main`. Confirm each prop in the installed
-  types before using it.
+- **Which props does it take?** `reactDocgenTypescript.props` gives the name,
+  `required`, description, `declarations`, and `type` for `main`. Read
+  `type.name`. For an enum, `type.value` lists the members. Confirm each prop
+  in the installed types before using it, including host props the manifest
+  filters out.
 - **How is it used?** `stories[].snippet` shows example JSX.
 
 ## Caveats
@@ -80,6 +109,5 @@ component name appears in the installed export index.
 - `jsDocTags` is `{}` when a component has no tags. An entry without a
   `deprecated` key is not deprecated in `main`; the installed version can
   still differ.
-- An entry with `error` and no `reactDocgen` has no prop data. Read the
-  installed types instead.
+- Not every story entry is in the manifest.
 - Do not copy manifest content into a skill. It changes with every MMDS merge.
