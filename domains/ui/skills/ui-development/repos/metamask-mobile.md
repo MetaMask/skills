@@ -20,13 +20,12 @@ accessibility rules.
   confirmed against `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts`.
 - README: `packages/design-system-react-native/src/components/<Component>/README.md`
   at the tag `@metamask/design-system-react-native@<installed version>`.
-- Legacy component library: `app/component-library/` (being migrated to
-  MMDS). Do not add new usage where MMDS covers the need.
-  `app/component-library/components-temp/` holds MetaMask-specific components
-  that MMDS does not cover yet.
-- Product UI: `app/components/`. Real MMDS usage:
-  `app/component-library/components/design-system.stories.tsx`. Search the
-  manifest for an existing pattern before building custom UI.
+- Existing app-level components: use one only when
+  `@metamask/design-system-react-native` has no equivalent. Search the repo
+  for a component that already covers the need. Never use anything marked
+  `@deprecated`; those have MMDS equivalents. Prefer MMDS first.
+- Product UI: `app/components/`. Search the repo for existing MMDS usage, and
+  search the manifest for an existing pattern before building custom UI.
 
 Do not apply React web guidance (`className`, HTML tags, `aria-*` props) to
 Mobile.
@@ -109,12 +108,12 @@ twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
 
 ## Incremental migration paths
 
-Mobile's legacy library has no single barrel. Each component is a default
-export from its own folder under `app/component-library/components/`
-(`<Group>/<Component>`). Apply the base `Legacy*` rule to a default export
-whose name MMDS also exports, and to named enums whose names are identical in
-both. Similar but different names do not clash, so do not alias them. Check
-the installed MMDS exports to decide. Adjust the `../` depth to the file.
+Legacy app-level components have no single barrel. Each is a default export
+from its own folder. Search the repo for the existing import. Apply the base
+`Legacy*` rule to a default export whose name MMDS also exports, and to named
+enums whose names are identical in both. Similar but different names do not
+clash, so do not alias them. Check the installed MMDS exports to decide.
+Adjust the `../` depth to the file.
 
 ```tsx
 // Do: MMDS keeps the plain names. Legacy gets the prefix.
@@ -122,7 +121,7 @@ the installed MMDS exports to decide. Adjust the `../` depth to the file.
 import { Component, EnumName } from '@metamask/design-system-react-native';
 import LegacyComponent, {
   EnumName as LegacyEnumName,
-} from '../../../component-library/components/<Group>/<Component>';
+} from '../../../<existing-app-component>';
 ```
 
 Prop mapping from legacy to MMDS components:

@@ -76,11 +76,9 @@ Do not add new usage of anything marked `@deprecated` in the installed types or 
 
 For local visual testing of a component in isolation, see `docs/readme/storybook.md`.
 
-### Layer 2 — `app/component-library/components/`
+### Layer 2 — Existing app-level components
 
-Valid second choice **only** when `@metamask/design-system-react-native` does not export an equivalent (for example MetaMask-specific components in `app/component-library/components-temp/`, or modal wrappers not yet migrated to MMDS).
-
-Do not use any component in this library that carries a `@deprecated` JSDoc annotation — those have MMDS equivalents and must be replaced. For everything else in this library, prefer MMDS first; use `app/component-library` only when no MMDS primitive covers the need.
+Use an existing app-level component only when `@metamask/design-system-react-native` has no equivalent. Search the repo for one that already covers the need. Never use anything marked `@deprecated`; those have MMDS equivalents. Prefer MMDS first.
 
 ### Layer 3 — Feature-specific composites
 
@@ -353,7 +351,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
 - [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop (`children?`, `twClassName?`, `testID?`); inline interface acceptable only for trivial components with 1–2 props
 - [ ] `Foo.testIds.ts` — recommended; `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name; skip only when the component has no testable elements
-- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native` (or `app/component-library` for MetaMask-specific components with no MMDS equivalent and no `@deprecated` annotation); no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
+- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native`, or an existing app-level component when MMDS has no equivalent and it is not marked `@deprecated`; no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
