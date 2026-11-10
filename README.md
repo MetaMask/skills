@@ -83,7 +83,7 @@ From inside an integrated consumer repo:
 ```bash
 yarn skills
 
-# To opt into experimental ADR-58 recipe skills (needs the Consensys/skills overlay):
+# To opt into experimental ADR-58 recipe skills:
 yarn skills --domain agentic --maturity experimental
 ```
 
@@ -109,7 +109,9 @@ curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstra
 curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
   bash -s -- --repo core
 
-# Experimental recipe skills need the Consensys/skills overlay, which bootstrap does not use.
+# To opt into experimental ADR-58 recipe skills:
+curl -fsSL https://raw.githubusercontent.com/MetaMask/skills/main/tools/bootstrap | \
+  bash -s -- --repo metamask-extension --domain agentic --maturity experimental
 ```
 
 The bootstrap script clones this repo into a cache dir under
@@ -142,7 +144,7 @@ tools/
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
 | `platform`     | MM product eng    | Product analytics and other platform skills  |
-| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools (Consensys/skills overlay) |
+| `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
@@ -285,9 +287,8 @@ than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/
 inside an installed skill, while prune-stale removes whole generated skill
 directories that no longer exist in the resolved source/filter set.
 
-Recipe skills live in the experimental `agentic` domain of the private
-`Consensys/skills` overlay, so every `agentic` example here needs
-`CONSENSYS_SKILLS_DIR`. Install all lower-level recipe tools in this rollout with
+Recipe skills install from this repository's experimental `agentic` domain.
+No private overlay is required. Install the recipe tools with
 `--domain agentic --maturity experimental`, or cherry-pick only the ones you want
 with `--include agentic/<skill>`.
 
@@ -311,6 +312,7 @@ Use these directly when steering/debugging:
 - `/mms-recipe-doctor` — check tool, skill, harness, runtime-context, and fixture/profile readiness before a run.
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-performance` — diagnose real-app bottlenecks and prove paired device performance.
 - `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
@@ -356,7 +358,7 @@ yarn skills
 ```
 
 Engineers without access to the private repo simply don't set
-`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own, without the
+`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own, including the
 `agentic` recipe skills.
 
 ## Authoring a skill

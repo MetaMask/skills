@@ -3,11 +3,9 @@
 
 Companion to `parity.md`. Tracks what's shared, what should be, and what can't be.
 
-## Already Shared via @metamask/perps-controller
+## Perps math that must come from the controller
 
-**Utils** (`src/utils/`) and **Services** (`src/services/`) of `@metamask/perps-controller`: check them on core `main` before adding a client-side copy.
-
-## Priority 1 -- Move to Controller (pure TS, no React deps)
+Reference data for *Perps Math Comes From the Controller* and *Copy or port of existing logic* in `antipatterns.md`, not separate review checks. Use the resolved-version equivalence check there for these Mobile utility paths.
 
 | Utility | Mobile Path | What It Does |
 |---|---|---|
@@ -20,9 +18,9 @@ Companion to `parity.md`. Tracks what's shared, what should be, and what can't b
 | `tpslValidation.ts` | `UI/Perps/utils/` | TP/SL validation |
 | `amountConversion.ts` | `UI/Perps/utils/` | USD <-> size conversions |
 
-Once in controller, extension imports directly instead of reimplementing.
-
 ## Priority 2 -- Exact Duplicates to Consolidate
+
+Reference candidates for the same shared reuse checks; compare semantics before consolidation.
 
 | Function | Mobile | Extension | Identical? |
 |---|---|---|---|
@@ -30,7 +28,7 @@ Once in controller, extension imports directly instead of reimplementing.
 | `getPositionDirection` | `UI/Perps/utils/` | `ui/components/app/perps/utils.ts` | YES |
 | `formatOrderType`/`formatStatus` | `UI/Perps/utils/` | `ui/components/app/perps/utils.ts` | YES |
 | `filterMarketsByQuery` | `UI/Perps/utils/filterAndSortMarkets.ts` | `ui/components/app/perps/utils.ts` | YES |
-| `isHip3Market`/`isCryptoMarket` | `UI/Perps/utils/` | `ui/components/app/perps/utils.ts` | YES |
+| `isHip3Market`/`isCryptoMarket` | `UI/Perps/utils/` | `ui/components/app/perps/utils.ts` | YES for `isCryptoMarket`; Extension's allowlist `isHip3Market` is a different operation, so rename it (`isAllowedHip3Market`) instead of consolidating. |
 | `groupTransactionsByDate` | `UI/Perps/utils/transactionTransforms.ts` | `ui/components/app/perps/utils/transactionTransforms.ts` | Near-identical |
 
 ## Can't Share (platform-bound)
@@ -45,10 +43,12 @@ Once in controller, extension imports directly instead of reimplementing.
 
 ## Sync Mechanism
 
-The controller lives in Core (`packages/perps-controller`) and both clients consume the published `@metamask/perps-controller`; there is no in-repo copy or sync script any more.
+Reference steps for the same shared public-package requirement, not a separate check.
 
-**Steps for each Priority 1 item:**
+The controller lives in Core (`packages/perps-controller`) and Mobile, Extension and Terminal consume the published `@metamask/perps-controller`; there is no in-repo copy or sync script any more.
+
+**Steps for each utility in *Perps math that must come from the controller*:**
 1. Move the utility from `app/components/UI/Perps/utils/X.ts` into `core/packages/perps-controller/src/utils/X.ts` and export it
 2. Publish the controller package
-3. Bump `@metamask/perps-controller` in mobile and extension and import from the package
-4. Delete both clients' duplicates
+3. Bump `@metamask/perps-controller` in Mobile, Extension and Terminal and import from the package
+4. Delete the clients' duplicates
