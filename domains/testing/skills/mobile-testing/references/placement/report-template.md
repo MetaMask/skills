@@ -37,6 +37,8 @@ Also create a Cursor canvas with the same numbers when useful.
 | --- | --- | --- | --- |
 | … | KEEP / ADD / MIGRATE / DELETE / EXTRACT+UNIT / GAP | … | … |
 
+For any **ADD E2E** row, Note (or extra columns) **must** include: why CV insufficient / why integration insufficient / required device-native boundary. If those cannot be filled, do not ADD E2E.
+
 ### Residual risks
 | Risk | Status |
 | --- | --- |

@@ -17,7 +17,7 @@ If the case is pure logic / helpers, or CV cannot cover it yet, open [`unit.md`]
 
 ## Testing layers (read first)
 
-Follow [`layers.md`](layers.md) or installed `knowledge/testing-layers.md` for the full decision tree. Choose by layer inside **mobile-testing**.
+Follow installed `knowledge/testing-layers.md` for the full decision tree. Choose by layer inside **mobile-testing**. Prefer **CV → integration → unit fallback → E2E**; multi-screen journeys are CV-first when routes can be registered — do not jump to Appium for “journey” alone.
 
 Your job is to figure out whether the user needs to **write a new test**, **fix a failing test**, or **update tests after a component/preset change**, then follow the corresponding path and open the relevant reference when that path indicates.
 
@@ -34,6 +34,8 @@ Task → What do you need?
 ├─ Fix failing test
 │  → Run: yarn jest -c jest.config.view.js <path> --runInBand --silent --coverage=false
 │  → Identify error type → Open component-view/reference.md (Diagnosing Failures)
+│     including sibling-skeleton, empty-state load, list hydration, mockReset,
+│     call-count leaks, remounts, and Fixing a Flake
 │
 └─ Run tests or self-review after tests pass
    → Open component-view/reference.md (Run the Tests, Self-Review Checklist)
@@ -105,7 +107,7 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 3. **Reuse presets and renderers** — never rebuild the full state manually from scratch.
 
-4. **No fake timers** — never use `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`.
+4. **No fake timers** — never use `jest.useFakeTimers()`, `jest.advanceTimersByTime()`, or `jest.useRealTimers()`. For time-dependent UI, see *Keep time-dependent behaviour out of view tests*.
 
 5. **Test behavior, not snapshots** — use `toBeOnTheScreen()`, `not.toBeOnTheScreen()`, interaction assertions.
 
@@ -113,7 +115,7 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 
 7. **No render scenarios** — every test must have at least one of: `fireEvent`, `waitFor`/`findBy`, `store.dispatch`/`act`, or an Engine spy. Static visibility checks are not tests. See [`component-view/writing-tests.md`](component-view/writing-tests.md) for examples.
 
-8. **Use selector ID constants, never raw strings** — every `getByTestId` / `findByTestId` / `queryByTestId` must reference a constant from `ComponentName.testIds.ts`. Create the file if it does not exist.
+8. **Use constants and i18n helpers, never raw strings** — every `getByTestId` / `findByTestId` / `queryByTestId` must reference a constant from `ComponentName.testIds.ts`. Every `getByText` / `findByText` / `getAllByText` that targets a localised label must use `strings('key')` from `locales/i18n`, not a hardcoded string literal. Dynamic testIds (e.g. `trader-row-${trader.id}`) must be derived from fixture data, not embedded as `'trader-row-trader-1'`. Create the testIds file if it does not exist.
 
 9. **Every view with async data needs one data-completeness test** — wait for the load and validate all significant fields of all items in the base mock using `within()` per row. One per independent async data flow.
 
@@ -124,6 +126,28 @@ For run-by-name, watch mode, or other options, see `component-view/reference.md`
 12. **Pull-to-refresh via `refreshControl.props.onRefresh`** — prefer the prop handler inside `act`; `fireEvent(scrollView, 'refresh')` often never hits the handler.
 
 13. **Await the content, not just its container** — a container arriving on screen says nothing about values inside it that have their own async source (a child query, a debounce, a skeleton). Await the gated value with `findBy*`, then re-query the container and scope the remaining synchronous assertions with `within()`.
+
+14. **Do not nest `find*` inside `waitFor`** — `findBy*` already *is* `waitFor` + `getBy` (default timeout 1000 ms). Nesting them shares that budget, so CI can fail with a bare `Timed out in waitFor.` and no assertion detail. Use `await findBy*` **or** `waitFor(() => { getBy*; expect(...) })`. Pass `{ timeout }` only with a comment that names the async boundary needing it (a debounce, a chained query); a raised budget alone is not a fix. Never `waitFor(async () => { await findBy*(...) })`.
+
+15. **Reset mock implementations between tests** — `jest.clearAllMocks()` clears call history but keeps the last `mockResolvedValue` / `mockImplementation`. If a case changes an Engine or `controllerMessenger.call` implementation, `mockReset()` (or restore/recreate) in `beforeEach`. Otherwise later cases in the same file or shard can flake.
+
+16. **Do not wait on a sibling loading proxy** — header, list, and action rows can load independently. Await the control or value under test, or the loading UI that *owns* it. A details skeleton clearing is not proof that a share button or buy CTA is mounted.
+
+17. **Empty-state and list completeness** — wait until list loading is gone, then assert copy unique to the selected filter (shared empty `testID`s can detach). For lists, wait until every expected row test ID is present before asserting per-row fields. The first row is not hydration complete.
+
+18. **Negative assertions after the positive path could have rendered** — wait for the owning load phase or skeleton to finish, then assert absence. Immediate `queryBy*` after render is a false green.
+
+19. **Clear call history before asserting call counts** — `toHaveBeenCalledTimes` on a shared Engine or `controllerMessenger.call` mock also counts calls made by earlier tests. Call `mockClear()` on that mock in `beforeEach` (`mockReset()` when a test changes implementations, see *Reset mock implementations between tests*). Signature: `Expected number of calls: N, Received: M`; passes alone, fails after another test. When background work (prefetches, cache refreshes) calls the same mock during the test, also `mockClear()` immediately before the action and assert the exact call with `toHaveBeenCalledWith(...)`.
+
+20. **A `findBy*` result is valid only until the next state change** — if the component can remount between the `await` and the assertion (a query resolving, a loading branch swapping for the loaded one), the held node detaches. Await a marker that only the loaded tree renders, then re-query with `getBy*`. Signatures: `Unable to find node on an unmounted component` or `element could not be found in the element tree` right after an `await`.
+
+21. **Keep time-dependent behaviour out of view tests** — *No fake timers* applies here. Test countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state (an expired quote, an ended game). Never widen a budget to cover a timer.
+
+22. **Fix a flake at its cause** — name the cause, reproduce it locally first (a `--randomize --seed` or CPU load), and show the fix passes under the same condition. A PR whose only change is a longer timeout is not a fix. See [`component-view/reference.md`](component-view/reference.md) (Fixing a Flake).
+
+23. **Run the tests before declaring done** — run `yarn jest -c jest.config.view.js <file> --runInBand --silent --coverage=false` and confirm all tests are green. A test file that has never been run is not done.
+
+24. **Run format:check before declaring done** — run `npx prettier --check <file>` (or `yarn format:check`) on the new test file and every new supporting file (renderer, preset, api-mock). Auto-fix with `npx prettier --write <file>` if needed, then re-check.
 
 
 ## Reference files (when to use)

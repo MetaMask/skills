@@ -1,14 +1,17 @@
 ---
 name: unit-testing
 description: >
-  MetaMask Extension unit-testing guidance. Deprecated for MetaMask Mobile —
-  use testing/mobile-testing (references/unit.md) instead.
+  Deprecated. Use testing/extension-testing (references/unit.md) for MetaMask
+  Extension, or testing/mobile-testing (references/unit.md) for MetaMask Mobile.
+  Kept as a redirect stub for older installs and --include paths.
 maturity: deprecated
 ---
 
-# Unit testing
+# Deprecated — use `extension-testing` or `mobile-testing`
 
-**MetaMask Mobile:** Deprecated. Install **`mobile-testing`** and open
-`references/unit.md`.
+| Product | Install | Open |
+| --- | --- | --- |
+| MetaMask Extension | **`extension-testing`** | `references/unit.md` |
+| MetaMask Mobile | **`mobile-testing`** | `references/unit.md` |
 
-**MetaMask Extension:** Follow the Extension overlay below.
+Do not treat this skill as the primary testing guide.

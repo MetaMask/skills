@@ -73,7 +73,34 @@ expect(within(positionsTab).getByText('$50 on Yes to win $50')).toBeOnTheScreen(
 expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
 ```
 
-When a test like this fails, the render dump shows the container present with empty `pointerEvents="none"` views where the value belongs — those are the skeleton placeholders.
+**Independent loading phases** — header, list, and action rows often have separate loading flags. Waiting for a details-content skeleton to leave does not mean the share control or buy buttons are mounted. Await the assertion subject (or the skeleton that owns that subject). The first list row mounting is not proof that every row has hydrated.
+
+**Empty-state filters** — wait for the list loading indicator to clear, then assert description/CTA copy for the selected filter. A shared empty-state `testID` can unmount across filter re-renders.
+
+**`clearAllMocks` vs `mockClear` vs `mockReset`** — `clearAllMocks()` drops call history and keeps implementations. Shared Engine and `controllerMessenger.call` mocks leak between tests in two ways. A call-count assertion counts calls from earlier tests unless that mock gets `mockClear()` in `beforeEach` (*Clear call history before asserting call counts*). A `mockResolvedValue` / `mockImplementation` set by one test stays for the next unless `mockReset()` runs in `beforeEach` (*Reset mock implementations between tests*). Both pass alone and fail after another test (`Expected number of calls: N, Received: M`); run the file with `--randomize` to surface them.
+
+**Remounts invalidate held nodes** — a `findBy*` result is valid only until the next state change. When a query resolving swaps the loading branch for the loaded one, the node you awaited detaches (`Unable to find node on an unmounted component`). Await a marker only the loaded tree renders, then re-query with `getBy*` (*A `findBy*` result is valid only until the next state change*).
+
+**Time-dependent UI** — fake timers are banned in view tests (*No fake timers*). Cover countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state. Never widen a `waitFor` budget to cover a timer (*Keep time-dependent behaviour out of view tests*).
+
+**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`, default 1000 ms). An outer `waitFor` uses the same budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Pick one waiter:
+
+```typescript
+// ✅ findBy* already waits
+expect(await findByText('Token A')).toBeOnTheScreen();
+
+// ✅ waitFor + synchronous getBy* for a count. Add { timeout } only with a
+// comment naming the async boundary that needs it ("Do not nest find* inside waitFor").
+await waitFor(() => {
+  const rows = getAllByTestId(MyViewSelectorsIDs.ROW);
+  expect(rows).toHaveLength(3);
+});
+
+// ❌ double polling — both timers are 1s; the outer one wins in CI
+await waitFor(async () => {
+  expect(await findByText('Token A')).toBeOnTheScreen();
+});
+```
 
 **RefreshControl** — Prefer calling the prop handler; `fireEvent(scrollView, 'refresh')` often never hits `onRefresh` in RNTL:
 
@@ -175,10 +202,8 @@ it('calls quote API with custom slippage when user has set 5% and quote is reque
 it('user sees all items with complete data after async load', async () => {
   const { findByText, findByTestId } = renderMyFeatureWithRoutes();
 
-  // Wait for the first item to confirm data has loaded
-  await waitFor(async () => {
-    expect(await findByText('Token A')).toBeOnTheScreen();
-  });
+  // Wait for the first item to confirm data has loaded (findBy* already polls)
+  expect(await findByText('Token A')).toBeOnTheScreen();
 
   // Validate all fields of each item in the base mock dataset
   const tokenARow = await findByTestId('token-row-item-eip155:1/erc20:0xAAA');

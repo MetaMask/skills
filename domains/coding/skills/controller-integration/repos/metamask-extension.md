@@ -137,3 +137,18 @@ yarn test:unit app/scripts/messenger-client-init/<name>-controller-init.test.ts
 yarn lint:tsc
 yarn test:e2e:single test/e2e/tests/metrics/errors.spec.ts --update-snapshot  # refreshes enforced Sentry state snapshots
 ```
+
+## 8. Writing the controller itself
+
+This skill covers *integration* — wiring an existing controller into the background.
+For the internals of authoring one (BaseController patterns, state metadata,
+messenger action/event typing), read the sibling `controller-guidelines` skill:
+
+```
+domains/coding/skills/controller-guidelines/skill.md
+```
+
+Both are base skills, and the split is deliberate: `controller-guidelines` answers
+"how do I write this controller", this one answers "how do I wire it in". Reach for
+that one when the question is about state metadata, the options bag, or whether
+BaseController is the right base class at all.
