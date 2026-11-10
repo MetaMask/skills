@@ -27,9 +27,9 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 
 | Fact | Value | Consequence |
 |---|---|---|
-| React Native | 0.81.5, **New Architecture ON**, Hermes on **both** platforms | React Native DevTools works on iOS too; Concurrent React available |
-| Expo SDK | 54 (`babel-preset-expo`) | Bundle analysis via Expo Atlas; tree-shaking prereq already set in Metro |
-| Reanimated | **v3** (`runOnJS`/`runOnUI`) | Do NOT use v4 `scheduleOnRN`/`react-native-worklets` APIs |
+| React Native | 0.86.x, **New Architecture ON**, Hermes on **both** platforms | React Native DevTools works on iOS too; Concurrent React available |
+| Expo SDK | 57 (`babel-preset-expo`) | Bundle analysis via Expo Atlas. Static-ESM tree-shaking stays off: Metro sets `experimentalImportSupport`, and `babel.config.js` pins `disableImportExportTransform: false` |
+| Reanimated | **4.x** (`react-native-worklets`) | From a worklet, call `scheduleOnRN(fn, ...args)` (`react-native-worklets`). `runOnJS(fn)(...args)` still runs and is a deprecated alias. Same for `scheduleOnUI` / `runOnUI` |
 | FlashList | **v2** | `estimatedItemSize` is deprecated — never flag it as missing; use `getItemType` |
 | Instrumentation | `app/util/trace.ts` `trace()` + `TraceName` (~230) | This is THE way to instrument flows — already wired to Sentry |
 | Reassure | installed (`yarn test:reassure:baseline` / `:branch`) | Write `*.perf-test.tsx`; do not "install" it |
@@ -50,10 +50,14 @@ Always pair measurement with the **power-user scenario on Android** — see [ref
 
 | Symptom / task | Start with |
 |---|---|
+| Authoring a new or changed Redux selector (file, naming, tests) | `yarn skills --include coding/selector-patterns --save`. Memoization audits stay on this skill ([mm-selector-memoization.md](references/mm-selector-memoization.md)). |
 | Component re-renders too much; account/network switch is laggy | [mm-selector-memoization.md](references/mm-selector-memoization.md) → [js-profile-react.md](references/js-profile-react.md) |
 | `useSelector` returns new refs; `useSelector(x, isEqual)` band-aids | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Whole subtree re-renders under a Context provider | [mm-context-performance.md](references/mm-context-performance.md) |
 | `useEffect`/`useMemo` re-runs constantly; `JSON.stringify` in deps | [mm-hook-dependency-arrays.md](references/mm-hook-dependency-arrays.md) |
+| Effect chains (`setState` in effect triggers next effect); setState after unmount; missing timer/listener cleanup | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
+| **One selector change re-renders half the app**; `isEqual`/`createDeepEqualSelector` band-aids accumulating downstream | [mm-selector-cascade.md](references/mm-selector-cascade.md) |
+| O(n) `.find()` scans per render; parameterized selector recomputes for every list row; component with 5+ `useSelector` calls | [mm-state-normalization.md](references/mm-state-normalization.md) |
 | Animation janky; `useNativeDriver: false` on width/height | [mm-layout-animations.md](references/mm-layout-animations.md) → [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | List scroll jank / unbounded list | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | Search/filter input blocks typing | [js-concurrent-react.md](references/js-concurrent-react.md) |
@@ -88,6 +92,8 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 | High | lodash main-package imports (98 files, no tree-shaking) | 98 files | [bundle-library-size.md](references/bundle-library-size.md) |
 | High | FlatList missing perf props on growing lists | 65 FlatList JSX | [js-lists-flatlist-flashlist.md](references/js-lists-flatlist-flashlist.md) |
 | High | AppState listener without cleanup | `app/core/SDKConnectV2/services/connection-registry.ts:487` | [js-memory-leaks.md](references/js-memory-leaks.md) |
+| High | Parameterized selector doing an O(n) `Object.values().flat().find()` scan per call | `selectSingleTokenByAddressAndChainId` `app/selectors/tokensController.ts:183`; also `app/selectors/assets/assets-list.ts`, `app/selectors/moneyAccountController/index.ts` | [mm-state-normalization.md](references/mm-state-normalization.md) |
+| Medium | Async effect without cancellation; setState-chain effects; derived state via useEffect+setState | feature-specific — run the guide's greps | [mm-useeffect-antipatterns.md](references/mm-useeffect-antipatterns.md) |
 | Medium | Inline `useSelector(state => state.x)` bypassing named selectors | 3 files | [mm-redux-antipatterns.md](references/mm-redux-antipatterns.md) |
 | Medium | Lottie where Rive fits (Rive already installed) | 5 files | [js-animations-reanimated.md](references/js-animations-reanimated.md) |
 | Low | dayjs + luxon both present (dedup) | 4 + 6 files | [bundle-library-size.md](references/bundle-library-size.md) |
@@ -103,4 +109,4 @@ Ordered by impact. Each links to the guide with the fix. **The `Where` column li
 
 ## Attribution
 
-Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits.
+Generic React Native references (`js-*`, `native-*`, `bundle-*`) adapted from "The Ultimate Guide to React Native Optimization" by Callstack. MetaMask-specific guidance (`mm-*`) from the internal Performance Guide for Engineers and verified codebase audits. Cross-platform React/Redux guidance (`mm-selector-cascade`, `mm-useeffect-antipatterns`, `mm-state-normalization`) adapted from MetaMask contributor-docs [`frontend-performance.md`](https://github.com/MetaMask/contributor-docs/blob/main/docs/frontend-performance.md) and the extension performance audit (extension PRs metamask-extension#38007, metamask-extension#37147).
