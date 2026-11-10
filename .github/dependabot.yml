@@ -1,0 +1,20 @@
+version: 2
+
+updates:
+  # Actions are pinned to commit hashes, which means they never move on their own —
+  # a pinned action is frozen at whatever it was when someone typed it, security
+  # fixes included. Dependabot is what makes pinning safe rather than merely static:
+  # it opens a PR when the tag a pin tracks moves, keeping the trailing version
+  # comment and the hash in step.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: 'ci'
+    # A pin is only as good as the moment it is bumped. Without a cooldown Dependabot
+    # opens the bump PR as soon as a tag moves, which is exactly when a compromised
+    # release is freshest and least likely to have been caught. Waiting lets the
+    # ecosystem find it first; the pin holds the old hash in the meantime.
+    cooldown:
+      default-days: 7
