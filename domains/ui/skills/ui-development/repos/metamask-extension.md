@@ -36,14 +36,15 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   (Tailwind CSS v3) and removes the default palette and font sizes. Use only
   classes that configuration generates. If a class is in doubt, check the
   preset source or the built CSS; do not invent one or add a safelist entry.
-- Prefer the installed design-system layout primitive's typed props for
-  layout, and Tailwind class names (`className`) for everything else. Look
-  the primitive and its props up in the installed exports.
+- `Box` is the default for layout. Using it makes code easier to move between
+  Mobile and Extension. Either `Box` utility props or `className` is fine.
+  The utility props exist only on `Box`, they only apply Tailwind class names,
+  and they are easier to share across platforms. Read `Box`'s props from the
+  installed types.
 - Do not add SASS or SCSS. Deleting SCSS rules, files, and `@import` lines
   that your change makes unused is expected.
-- Set type with the design-system text component's variants. Look it up by
-  name in the installed exports. Font-size utilities do not exist in this
-  config, so `text-[14px]` and similar are always wrong.
+- Set type with the MMDS `Text` component's variants. Font-size utilities do
+  not exist in this config, so `text-[14px]` and similar are always wrong.
 
 ## Extension accessibility mechanics
 
@@ -57,7 +58,7 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   selected or pressed state.
 - Follow accessible web practices for anything clickable: a native
   `<button type="button">` for actions and `<a>` for navigation (for example
-  through the layout primitive's `asChild`), with preset state classes such as
+  through `Box`'s `asChild`), with preset state classes such as
   `hover:bg-hover active:bg-pressed`. Never put `onClick` on a `div` or `span`.
 - Preserve the keyboard behavior documented in the component README and
   stories, including focus order and how popovers and modals close.
