@@ -6,6 +6,7 @@ Use `mm cdp` to read and write wallet state mid-session when fixtures and preset
 
 - [CDP Basics](#cdp-basics)
 - [LavaMoat Scuttling](#lavamoat-scuttling)
+- [Production Builds](#production-builds)
 - [Five Operations](#five-operations)
 - [Verify State After Mutation](#verify-state-after-mutation)
 - [Troubleshooting](#troubleshooting)
@@ -29,6 +30,8 @@ mm cdp DOM.getDocument '{"depth":2}' --timeout 60000
 
 **Blocked methods** (returns `MM_CDP_BLOCKED`): `Browser.close`, `Target.closeTarget`, `Target.disposeBrowserContext`, `Browser.crashGpuProcess`.
 
+An expression that throws does not make `mm cdp` fail. The command returns normally, and the error is in `result.exceptionDetails`. Check for it before you read `result.result.value`.
+
 CDP calls are **mutating** — run `mm describe-screen` afterward to re-sync the a11y ref map.
 
 ## LavaMoat Scuttling
@@ -39,14 +42,41 @@ LavaMoat builds (`yarn build`, `yarn dist`, `yarn build:test`) scuttle `globalTh
 LavaMoat - property "chrome" of globalThis is inaccessible under scuttling mode.
 ```
 
-- On a production build, `chrome`, `setInterval` and `MutationObserver` are scuttled. So `chrome.storage.local` calls fail (operation 4).
-- Test builds (`--test`) keep `chrome` and `browser`. `setInterval` and `MutationObserver` stay scuttled.
-- Builds without LavaMoat (`yarn start`, `yarn build:dev`) scuttle nothing.
-- `stateHooks`, `setTimeout`, `JSON` and `Object` stay available. The store lookup in operation 3 works on every build.
+- LavaMoat scuttles every configurable `window` global that is not on the exception list. The list is `getScuttleGlobalThisExceptions` in `development/webpack/utils/plugins/LavamoatPlugin/index.ts`. Check it before you use a global.
+- Scuttled examples: `chrome`, `setInterval`, `clearInterval`, `requestAnimationFrame`, `MutationObserver`, `IntersectionObserver`, `localStorage`, `queueMicrotask`. `chrome.storage.local` calls fail (operation 4). `setInterval` and `MutationObserver` errors were seen live on a production build.
+- Test builds (`--test`) also allow `chrome`, `browser` and `indexedDB`. Everything else stays scuttled.
+- Builds without LavaMoat (`yarn start`, `yarn build:dev`, `yarn start:test`, `yarn build:test:dev`) scuttle nothing.
+- `document`, `location` and `window` stay usable. LavaMoat skips properties that are not configurable and not writable.
+- `stateHooks`, `setTimeout`, `clearTimeout`, `Promise`, `JSON` and `Object` are on the exception list. The store lookup in operation 3 works on every build.
 - Patching `window.setTimeout` from an expression did not change app timers on a production build.
-- The full list of allowed globals is `getScuttleGlobalThisExceptions` in `development/webpack/utils/plugins/LavamoatPlugin/index.ts`.
 
 To poll from an expression, use a recursive `setTimeout` instead of `setInterval`.
+
+Run this check first. It shows whether `chrome` is usable and which `stateHooks` exist on this build:
+
+```bash
+mm cdp Runtime.evaluate '{"expression":"(function(){var c;try{chrome;c=true}catch(e){c=false}return JSON.stringify({chrome:c,hooks:Object.keys(stateHooks)})})()","returnByValue":true}'
+```
+
+On a production build, `chrome` is `false` and the hooks are `getPersistedState`, `getBackupState`, `getSentryState`, `reloadExtension`, `getCleanAppState`, `getSentryAppState`, `getLogs`, `getSentryRemoteRates` (seen live).
+
+## Production Builds
+
+A production build has LavaMoat and no `METAMASK_DEBUG`. It has no `stateHooks.store` and no `stateHooks.submitRequestToBackground` (seen live).
+
+What works:
+- Reads with `stateHooks.getCleanAppState()` and `stateHooks.getPersistedState()` (operations 1 and 2).
+- Redux writes through the fiber store lookup, and the `store.subscribe` re-apply listener (operation 3 and [Troubleshooting](#troubleshooting)). Seen live.
+- UI actions with `mm click`, for example a settings toggle. These change background state and persist it.
+- Background calls through the UI messenger (operation 4). Inferred from source and checked offline. Not yet run live.
+
+What does not work:
+- `chrome.storage.local` writes (operation 4). `chrome` is scuttled.
+- A direct line to the background service worker. `mm cdp` sends each command on a new CDP session for the active page. It has no service-worker target, and the background exposes only read hooks. This would need an mm feature and a background write hook.
+
+If you need more access, use a different build:
+- `yarn build:test:dev` (or `yarn start:test` to watch). No LavaMoat. `METAMASK_DEBUG` and `IN_TEST` are set, so `stateHooks.store` and `stateHooks.submitRequestToBackground` exist.
+- `METAMASK_DEBUG=true yarn build:test`. Keeps LavaMoat but exposes the same hooks. Inferred: a variable in the environment overrides `builds.yml` (`development/webpack/utils/config.ts`). Not built and run.
 
 ## Five Operations
 
@@ -55,11 +85,11 @@ To poll from an expression, use a recursive `setTimeout` instead of `setInterval
 | Read Redux state     | `stateHooks.getCleanAppState()`      | In-memory UI state (what the user sees)                  |
 | Read persisted state | `stateHooks.getPersistedState()`     | On-disk controller state (`chrome.storage.local`)        |
 | Write Redux state    | Fiber dispatch via CDP               | Instant UI update, lost on reload                        |
-| Write persisted state| `chrome.storage.local.set()` via CDP | Shows only after an extension reload. Fails on production builds |
+| Write persisted state| `chrome.storage.local.set()` via CDP | Read only when the background starts. Fails on production builds |
 | Inject in-memory data| Fiber walk + `pushData()` via CDP    | Reaches components that bypass Redux (streams, channels) |
 
 To change what the user sees: write Redux state.
-To make changes survive a reload: write persisted state too, or change the state in the background (see operation 4).
+To make changes persist: change the state in the background (see operation 4).
 For most visual testing: writing Redux state alone is sufficient.
 If a component doesn't respond to Redux changes: it reads from an in-memory source — use operation 5.
 
@@ -89,7 +119,7 @@ Locate the Redux store via the React fiber tree and dispatch `UPDATE_METAMASK_ST
 The UI renders with React 18 `createRoot`. `#app-content` is the root container. It carries a `__reactContainer$<hash>` key, not `__reactFiber$<hash>`. Start from its first child, which carries the `__reactFiber$` key. Walk up `.return` to the react-redux `<Provider>` and take `memoizedProps.store`:
 
 ```bash
-mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\").firstElementChild;var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var store=null;while(f){var st=f.memoizedProps&&f.memoizedProps.store;if(st&&typeof st.dispatch===\"function\"){store=st;break}f=f.return}if(!store)return\"store not found\";var next=JSON.parse(JSON.stringify(store.getState().metamask));next.preferences=Object.assign({},next.preferences,{privacyMode:true});store.dispatch({type:\"UPDATE_METAMASK_STATE\",value:next});return\"ok\"})()","returnByValue":true}'
+mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var store=null;while(f){var st=f.memoizedProps&&f.memoizedProps.store;if(st&&typeof st.dispatch===\"function\"){store=st;break}f=f.return}if(!store)return\"store not found\";var next=JSON.parse(JSON.stringify(store.getState().metamask));next.preferences=Object.assign({},next.preferences,{privacyMode:true});store.dispatch({type:\"UPDATE_METAMASK_STATE\",value:next});return\"ok\"})()","returnByValue":true}'
 ```
 
 **To modify for other state changes**, change the line that modifies `next`:
@@ -98,13 +128,11 @@ mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementByI
 // Toggle privacy mode
 next.preferences = Object.assign({}, next.preferences, {privacyMode: true});
 
-// Change a nested controller value
-next.PreferencesController = Object.assign({}, next.PreferencesController, {
-  preferences: Object.assign({}, next.PreferencesController.preferences, {
-    showTestNetworks: true
-  })
-});
+// Show test networks
+next.preferences = Object.assign({}, next.preferences, {showTestNetworks: true});
 ```
+
+`state.metamask` is flat. The background merges all controller states into one object (`getFlatState()` in `ComposableObservableStore.js`). There is no `next.PreferencesController` key. Persisted state is different: it is keyed by controller (operation 2).
 
 Notes:
 - The `__reactFiber$` key suffix is a random hash per build. The traversal pattern is stable.
@@ -112,6 +140,7 @@ Notes:
 - `UPDATE_METAMASK_STATE` does not persist. Change is lost on reload.
 - The next background state update can overwrite the change. See [Troubleshooting](#troubleshooting).
 - If the walk returns `"store not found"`, check that you started from `#app-content.firstElementChild` and that the UI has rendered.
+- On builds with `METAMASK_DEBUG`, `stateHooks.store` is the same store. You can skip the walk there.
 
 ### 4. Write Persisted State
 
@@ -119,18 +148,8 @@ Write directly to `chrome.storage.local`. The extension uses a split format wher
 
 Limits:
 - On production builds, `chrome` is scuttled and these snippets throw (see [LavaMoat Scuttling](#lavamoat-scuttling)). They work on test builds and builds without LavaMoat.
-- The background reads storage only at startup. A write shows in the UI only after an extension reload (`stateHooks.reloadExtension()`).
-- The running background keeps its own state. Its next persist of that controller can overwrite your write.
-
-To change background state without a reload, call the controller in the background:
-- Use the UI that already does it, for example a settings toggle. UI actions in `ui/store/actions.ts` send the call through `submitRequestToBackground`. This works on every build.
-- On builds with `METAMASK_DEBUG` (`yarn start`, `yarn build:dev`), `stateHooks.submitRequestToBackground` is exposed. It takes a messenger action name and an argument array, the same as in `ui/store/actions.ts`:
-
-  ```bash
-  mm cdp Runtime.evaluate '{"expression":"stateHooks.submitRequestToBackground(\"PreferencesController:setPreference\",[\"privacyMode\",true]).then(function(){return \"ok\"})","awaitPromise":true,"returnByValue":true}'
-  ```
-
-  The background persists the change and sends the new state to the UI. `yarn build` and `yarn build:test` do not set `METAMASK_DEBUG`, so they do not expose this hook.
+- The background reads storage only at startup. The running background keeps its own state, and its next persist of that controller can overwrite your write.
+- Do not reload the extension to make the write show. `stateHooks.reloadExtension()` calls `browser.runtime.reload()`, which closes every extension page. The mm session keeps the closed page and cannot recover without `mm cleanup`. Cleanup deletes the temporary profile and your write. In an mm session, a restarted background also loads the fixture from the fixture server again and overwrites the write. (Inferred from source, not run.)
 
 ```bash
 # Modify an existing controller
@@ -155,6 +174,34 @@ Rules:
 - Update `manifest` when adding new keys. Keys not in the manifest are invisible on next load.
 - Do not delete or corrupt `manifest` or `meta`.
 
+#### Change background state instead
+
+Prefer a background call. The background changes the state, persists it, and sends the new state to the UI:
+- Use the UI that already does it, for example a settings toggle with `mm click`. This works on every build.
+- Call a background action through the UI messenger (below). Inferred to work on every build, including production.
+- On builds with `METAMASK_DEBUG` (`yarn start`, `yarn build:dev`, `yarn start:test`, `yarn build:test:dev`), call `stateHooks.submitRequestToBackground`. It takes a messenger action name and an argument array, the same as in `ui/store/actions.ts`:
+
+  ```bash
+  mm cdp Runtime.evaluate '{"expression":"stateHooks.submitRequestToBackground(\"PreferencesController:setPreference\",[\"privacyMode\",true]).then(function(){return \"ok\"})","awaitPromise":true,"returnByValue":true}'
+  ```
+
+  `yarn build` and `yarn build:test` do not set `METAMASK_DEBUG`, so they do not expose this hook.
+
+**Background call through the UI messenger.** The `UIMessengerProvider` above the app (`ui/pages/index.js`) holds a `UIMessenger`. Its `delegate()` registers a handler on the messenger you pass. The handler sends `messengerCall` to the background (`ui/messengers/ui-messenger.ts`). Walk up from the start fiber to the provider (its `memoizedProps.value`), delegate one action to a small stand-in messenger, and call the handler:
+
+```bash
+mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var ui=null;while(f){var v=f.memoizedProps&&f.memoizedProps.value;if(v&&typeof v.delegate===\"function\"&&typeof v.revoke===\"function\"){ui=v;break}f=f.return}if(!ui)return \"ui messenger not found\";var h=null;var m={_internalRegisterDelegatedActionHandler:function(t,fn){h=fn},_internalUnregisterDelegatedActionHandler:function(){},_internalPublishDelegated:function(){},captureException:function(){}};var a={actions:[\"PreferencesController:setPreference\"],messenger:m};return ui.delegate(a).then(function(){return h(\"privacyMode\",true)}).then(function(){return ui.revoke(a)}).then(function(){return \"ok\"})})()","awaitPromise":true,"returnByValue":true}'
+```
+
+- Change the action name and the arguments to `h(...)`. Use the same names and arguments as `submitRequestToBackground` calls in `ui/store/actions.ts`.
+- Some actions are not exposed to the UI. They throw `has not been exposed to the UI` (`ui/messengers/configs/`, for example `KeyringController` and `PasskeyController`).
+- Each call uses a new stand-in messenger and revokes it at the end, so you can run it more than once.
+- Status: inferred from source. The snippet ran offline against the real `ui-messenger.ts` and `background-connection.ts` modules with a fake connection, and sent `messengerCall` with the right arguments. It has not run live in a browser yet. If it returns `"ui messenger not found"`, use `mm click` instead.
+
+Other routes that do not help:
+- `store.dispatch(fn)` runs a thunk with `dispatch` and `getState` only. It does not get the background connection.
+- Component callbacks such as `onToggle` on a settings toggle do reach the background, through the action they dispatch. Calling one is the same as `mm click` on that toggle, so click instead.
+
 ### 5. Inject Into In-Memory Data Sources (React Fiber Walk)
 
 Some components read from in-memory caches, stream managers, or data channels that are **not in Redux state**. Dispatching `UPDATE_METAMASK_STATE` updates Redux but these components won't re-render because they subscribe to a different data source.
@@ -173,7 +220,7 @@ Read the component source to find what hook it uses:
 Walk the React fiber tree looking for the target object by its **shape** (the methods and properties it exposes). Shape-matching is more robust than looking for named exports because it works regardless of bundling, minification, or scoping. Start from `#app-content.firstElementChild`, as in operation 3.
 
 ```bash
-mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\").firstElementChild;var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var visited=0;function walk(node){if(!node||visited>500)return null;visited++;var s=node.memoizedState;while(s){if(s.queue&&s.queue.lastRenderedState){var obj=s.queue.lastRenderedState;if(obj&&typeof obj.pushData===\"function\"&&typeof obj.getCachedData===\"function\"){return obj}}s=s.next}if(node.memoizedProps){for(var pk in node.memoizedProps){var pv=node.memoizedProps[pk];if(pv&&typeof pv===\"object\"&&typeof pv.pushData===\"function\"){return pv}}}return walk(node.child)||walk(node.sibling)}var result=walk(f);return result?\"found at fiber \"+visited:\"not found after \"+visited+\" fibers\"})()","returnByValue":true}'
+mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var visited=0;function walk(node){if(!node||visited>500)return null;visited++;var s=node.memoizedState;while(s){if(s.queue&&s.queue.lastRenderedState){var obj=s.queue.lastRenderedState;if(obj&&typeof obj.pushData===\"function\"&&typeof obj.getCachedData===\"function\"){return obj}}s=s.next}if(node.memoizedProps){for(var pk in node.memoizedProps){var pv=node.memoizedProps[pk];if(pv&&typeof pv===\"object\"&&typeof pv.pushData===\"function\"){return pv}}}return walk(node.child)||walk(node.sibling)}var result=walk(f);return result?\"found at fiber \"+visited:\"not found after \"+visited+\" fibers\"})()","returnByValue":true}'
 ```
 
 **Adapt the detection predicate** to match your target object's shape. Common predicates:
@@ -185,7 +232,9 @@ mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementByI
 | Stream manager | Check for named channel properties, e.g. `obj.account && typeof obj.account.pushData === "function"` |
 | React context value | Match on the unique combination of properties the context provides |
 
-The walk goes down through `.child` and `.sibling`. Context providers rendered above the first DOM element are ancestors of the start fiber, so the walk does not reach them. To find a provider value, walk up `.return` and check `memoizedProps`, as in operation 3.
+The walk goes down through `.child` and `.sibling`. Context providers rendered above the first DOM element are ancestors of the start fiber, so the walk does not reach them. To find a provider value, walk up `.return` and check `memoizedProps.value`, as in the UI messenger snippet in operation 4.
+
+On builds with `METAMASK_DEBUG`, `stateHooks.getPerpsStreamManager()` returns the Perps stream manager directly.
 
 #### Step 3 — Disconnect the live source
 
@@ -217,7 +266,7 @@ channel.pushData({
 Find a data channel by shape, disconnect its live source, and inject test data:
 
 ```bash
-mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\").firstElementChild;var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var visited=0;function walk(n){if(!n||visited>500)return null;visited++;var s=n.memoizedState;while(s){if(s.queue&&s.queue.lastRenderedState){var obj=s.queue.lastRenderedState;if(obj&&typeof obj.pushData===\"function\"&&typeof obj.getCachedData===\"function\"){return obj}}s=s.next}var p=n.memoizedProps;if(p){for(var pk in p){var pv=p[pk];if(pv&&typeof pv===\"object\"){if(typeof pv.pushData===\"function\")return pv;for(var ck in pv){if(pv[ck]&&typeof pv[ck].pushData===\"function\")return pv[ck]}}}}return walk(n.child)||walk(n.sibling)}var ch=walk(f);if(!ch)return\"channel not found after \"+visited+\" fibers\";if(ch.unsubscribeFromSource){ch.unsubscribeFromSource();ch.unsubscribeFromSource=null}ch.isConnected=false;ch.pushData({totalBalance:\"10000.00\",unrealizedPnl:\"500.00\",marginUsed:\"2000.00\",spendableBalance:\"8000.00\",withdrawableBalance:\"8000.00\",returnOnEquity:\"0.05\"});return\"data pushed at fiber \"+visited})()","returnByValue":true}'
+mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var visited=0;function walk(n){if(!n||visited>500)return null;visited++;var s=n.memoizedState;while(s){if(s.queue&&s.queue.lastRenderedState){var obj=s.queue.lastRenderedState;if(obj&&typeof obj.pushData===\"function\"&&typeof obj.getCachedData===\"function\"){return obj}}s=s.next}var p=n.memoizedProps;if(p){for(var pk in p){var pv=p[pk];if(pv&&typeof pv===\"object\"){if(typeof pv.pushData===\"function\")return pv;for(var ck in pv){if(pv[ck]&&typeof pv[ck].pushData===\"function\")return pv[ck]}}}}return walk(n.child)||walk(n.sibling)}var ch=walk(f);if(!ch)return\"channel not found after \"+visited+\" fibers\";if(ch.unsubscribeFromSource){ch.unsubscribeFromSource();ch.unsubscribeFromSource=null}ch.isConnected=false;ch.pushData({totalBalance:\"10000.00\",unrealizedPnl:\"500.00\",marginUsed:\"2000.00\",spendableBalance:\"8000.00\",withdrawableBalance:\"8000.00\",returnOnEquity:\"0.05\"});return\"data pushed at fiber \"+visited})()","returnByValue":true}'
 ```
 
 Then `mm describe-screen` and `mm screenshot` to verify the component updated.
@@ -245,45 +294,75 @@ mm cdp Runtime.evaluate '{"expression":"stateHooks.getPersistedState().then(func
 | Symptom | Cause | Fix |
 | ------- | ----- | --- |
 | Operation 3 returns `"store not found"` | The walk started at `#app-content`. With React 18 it has only `__reactContainer$`, no `__reactFiber$` | Start at `#app-content.firstElementChild` and read `memoizedProps.store` |
-| `LavaMoat - property "X" of globalThis is inaccessible under scuttling mode` | The expression reads a scuttled global (`chrome`, `setInterval`, `MutationObserver`) | Use the replacements in [LavaMoat Scuttling](#lavamoat-scuttling) |
-| Injected Redux data disappears after a few seconds or after navigation | A background state update replaced the value you changed | Re-apply the data from a `store.subscribe` listener (below) |
+| `LavaMoat - property "X" of globalThis is inaccessible under scuttling mode` | The expression reads a scuttled global (for example `chrome`, `setInterval`, `MutationObserver`, `requestAnimationFrame`) | Use the replacements in [LavaMoat Scuttling](#lavamoat-scuttling) |
+| Operation 3 returns `"app root not rendered"` | The page has no `#app-content` child yet | Wait for the UI to render, then run it again |
+| Injected Redux data disappears after a few seconds or after an action | A background state update replaced the value you changed | Re-apply the data from a `store.subscribe` listener (below) |
+| Injected data and listeners are gone after `mm navigate-home` or `mm navigate-settings`, or on another extension page | Each extension page (home, sidepanel, popup) has its own Redux store. `mm navigate-*` calls `page.goto`, a full page load that drops injected data and listeners | Route inside the page with `window.location.hash = "#/..."` from `Runtime.evaluate`. Or inject again after the navigation, on the page you will screenshot |
 
 ### Keep injected Redux data across background updates
 
 The background sends state patches to the UI after each change. The UI applies them to its current Redux state. A patch that replaces a value you changed drops your data. Example: opening a notification calls `markMetamaskNotificationsAsRead`. The background replaces `metamaskNotificationsList`, and the injected notification is gone.
 
-Re-apply the data from a `store.subscribe` listener. This example keeps one injected notification in `metamaskNotificationsList` (find `store` as in operation 3; `n` is your notification object with an `id`):
+Re-apply the data from a `store.subscribe` listener. This example keeps one injected notification in `metamaskNotificationsList`. Long expressions are hard to escape by hand, so write the expression as plain JavaScript and let `node` build the JSON parameters:
 
-```javascript
-// Inside the Runtime.evaluate expression, after the store lookup:
-var busy = false;
-function ensure() {
-  if (busy) return;
-  var list = store.getState().metamask.metamaskNotificationsList || [];
-  if (list.some(function (x) { return x.id === n.id; })) return;
-  busy = true;
-  try {
-    var next = JSON.parse(JSON.stringify(store.getState().metamask));
-    next.metamaskNotificationsList = [n].concat(list);
-    store.dispatch({ type: "UPDATE_METAMASK_STATE", value: next });
-  } finally {
-    busy = false;
+```bash
+EXPR=$(cat <<'EOF'
+(function () {
+  var r = document.getElementById("app-content");
+  r = r && r.firstElementChild;
+  if (!r) return "app root not rendered";
+  var k = Object.keys(r).find(function (k) { return k.startsWith("__reactFiber$"); });
+  var f = r[k];
+  var store = null;
+  while (f) {
+    var st = f.memoizedProps && f.memoizedProps.store;
+    if (st && typeof st.dispatch === "function") { store = st; break; }
+    f = f.return;
   }
-}
-ensure();
-window.__mmPinUnsub = store.subscribe(ensure);
+  if (!store) return "store not found";
+  var n = {
+    type: "features_announcement", id: "mm-test-feature", createdAt: new Date().toISOString(), isRead: true,
+    data: {
+      id: "mm-test-feature", category: "ANNOUNCEMENT", title: "Test announcement",
+      shortDescription: "Short description", longDescription: "<p>Long description</p>",
+      image: { title: "img", description: "", url: "" },
+      extensionLink: { extensionLinkText: "Try now", extensionLinkRoute: "home.html" },
+      externalLink: { externalLinkText: "Learn more", externalLinkUrl: "https://metamask.io" }
+    }
+  };
+  if (window.__mmPinUnsub) { window.__mmPinUnsub(); window.__mmPinUnsub = null; }
+  var busy = false;
+  function ensure() {
+    if (busy) return;
+    var list = store.getState().metamask.metamaskNotificationsList || [];
+    if (list.some(function (x) { return x.id === n.id; })) return;
+    busy = true;
+    try {
+      var next = JSON.parse(JSON.stringify(store.getState().metamask));
+      next.metamaskNotificationsList = list.concat([n]);
+      store.dispatch({ type: "UPDATE_METAMASK_STATE", value: next });
+    } finally {
+      busy = false;
+    }
+  }
+  ensure();
+  window.__mmPinUnsub = store.subscribe(ensure);
+  return "pinned";
+})()
+EOF
+)
+PARAMS=$(node -e 'process.stdout.write(JSON.stringify({expression:process.argv[1],returnByValue:true}))' "$EXPR")
+mm cdp Runtime.evaluate "$PARAMS"
 ```
 
-The `busy` flag stops the listener from reacting to its own dispatch.
+- The `busy` flag stops the listener from reacting to its own dispatch.
+- Append injected items to arrays. Background patches can target array indexes (`app/scripts/lib/PatchStore.ts`), and prepending shifts them.
+- Replace `n` with your own object. Keep a unique `id`, and use the same `id` in the cleanup command.
 
 Clean up when the test is done. Unsubscribe, then remove the injected data:
 
-```javascript
-// Inside the Runtime.evaluate expression, after the store lookup:
-if (window.__mmPinUnsub) { window.__mmPinUnsub(); window.__mmPinUnsub = null; }
-var next = JSON.parse(JSON.stringify(store.getState().metamask));
-next.metamaskNotificationsList = (next.metamaskNotificationsList || []).filter(function (x) { return x.id !== n.id; });
-store.dispatch({ type: "UPDATE_METAMASK_STATE", value: next });
+```bash
+mm cdp Runtime.evaluate '{"expression":"(function(){var r=document.getElementById(\"app-content\");r=r&&r.firstElementChild;if(!r)return \"app root not rendered\";var k=Object.keys(r).find(function(k){return k.startsWith(\"__reactFiber$\")});var f=r[k];var store=null;while(f){var st=f.memoizedProps&&f.memoizedProps.store;if(st&&typeof st.dispatch===\"function\"){store=st;break}f=f.return}if(!store)return \"store not found\";if(window.__mmPinUnsub){window.__mmPinUnsub();window.__mmPinUnsub=null}var next=JSON.parse(JSON.stringify(store.getState().metamask));next.metamaskNotificationsList=(next.metamaskNotificationsList||[]).filter(function(x){return x.id!==\"mm-test-feature\"});store.dispatch({type:\"UPDATE_METAMASK_STATE\",value:next});return \"unpinned\"})()","returnByValue":true}'
 ```
 
 Then read the state again to confirm that no injected items remain.
