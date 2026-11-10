@@ -84,10 +84,10 @@ Use an existing app-level component only when `@metamask/design-system-react-nat
 
 Build from MMDS primitives when no primitive covers the use case.
 
-### Never use
-- Raw `View` from `react-native` — use the design-system layout primitive
-- Raw `Text` from `react-native` — use the design-system text component with a variant from its installed types
-- `StyleSheet.create()` — use `twClassName` or the layout primitive's typed props
+### Defaults
+- `Box` is the default for layout. Using it makes code easier to move between Mobile and Extension.
+- Use the MMDS `Text` component for text, with a variant from its installed types.
+- Do not add `StyleSheet.create()`. Use `twClassName` or `Box` utility props.
 
 ---
 
@@ -96,14 +96,14 @@ Build from MMDS primitives when no primitive covers the use case.
 ### `twClassName` string prop — for utility classes
 
 ```tsx
-twClassName="px-4 pb-6 w-full rounded-xl bg-muted"
+<Box twClassName="px-4 pb-6 w-full rounded-xl bg-muted" />
 ```
 
 Use for: width/height, borders, rounded corners, shadows, opacity, overflow, z-index, absolute positioning, background colours via semantic tokens (`bg-default`, `bg-muted`, `bg-pressed`).
 
-### Typed layout props — preferred for flexbox
+### `Box` utility props
 
-Prefer the layout primitive's typed flex, alignment, gap, padding, and margin props over class strings for layout. They are type-safe and prevent class-string typos. Read the prop names and the enums they take from the primitive's installed `.types` file. Numeric spacing props use the 4px scale (`4` = 16px).
+Either `Box` utility props or `twClassName` is fine. The utility props exist only on `Box`, they only apply Tailwind class names, and they are easier to share between Mobile and Extension. Read the prop names from `Box`'s installed types. Numeric spacing props use the 4px scale (`4` = 16px).
 
 ### Enum constants for props
 
@@ -238,7 +238,7 @@ testID={`${FooSelectorsIDs.ITEM}-${item.id}`}
 
 ### `Foo.tsx`
 
-A minimal container, in the shape of the [MMDS create-component template](https://github.com/MetaMask/metamask-design-system/blob/main/packages/design-system-react-native/scripts/create-component/ComponentName/ComponentName.tsx): it renders `children` and passes `twClassName` and `testID` through. Use the design-system layout primitive, not React Native `View`. Confirm the primitive's export name in the installed package index before copying the import; the template below calls it `Box`.
+A minimal container, in the shape of the [MMDS create-component template](https://github.com/MetaMask/metamask-design-system/blob/main/packages/design-system-react-native/scripts/create-component/ComponentName/ComponentName.tsx): it renders `children` and passes `twClassName` and `testID` through `Box`.
 
 ```tsx
 import React from 'react';
@@ -259,8 +259,6 @@ const Foo: React.FC<FooProps> = ({
 export default Foo;
 ```
 
-> For a bottom sheet, use the design-system bottom sheet parts — see Section 5.
-
 ### `index.ts`
 
 ```ts
@@ -273,7 +271,7 @@ export { FooSelectorsIDs } from './Foo.testIds';
 
 ```tsx
 import React from 'react';
-import { Text } from 'react-native';
+import { Text } from '@metamask/design-system-react-native';
 import { render, renderHook } from '@testing-library/react-native';
 import { useTailwind } from '@metamask/design-system-twrnc-preset';
 import Foo from './Foo';
@@ -351,7 +349,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
 - [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop (`children?`, `twClassName?`, `testID?`); inline interface acceptable only for trivial components with 1–2 props
 - [ ] `Foo.testIds.ts` — recommended; `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name; skip only when the component has no testable elements
-- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native`, or an existing app-level component when MMDS has no equivalent and it is not marked `@deprecated`; no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
+- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native`, or an existing app-level component when MMDS has no equivalent and it is not marked `@deprecated`; `Box` for layout and the MMDS `Text` component for text; no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations

@@ -35,19 +35,18 @@ Mobile.
 ## Styling surface
 
 - Use `const tw = useTailwind();`. Never `import tw from 'twrnc'`.
-- Use the design-system layout primitive instead of React Native `View`, and
-  the design-system text component instead of React Native `Text`. Look both
-  up in the installed exports or the manifest.
-- Prefer the layout primitive's typed layout props over `twClassName` for
-  layout, and use `twClassName` for everything else: size, position, radius,
-  opacity, `flex-1`. Read which props exist from the installed types; when a
-  style has no typed prop (radius, for example), use a class such as
+- `Box` is the default for layout. Using it makes code easier to move between
+  Mobile and Extension. Use the MMDS `Text` component for text.
+- Either `Box` utility props or `twClassName` is fine. The utility props exist
+  only on `Box`, they only apply Tailwind class names, and they are easier to
+  share across platforms. Read which props exist from `Box`'s installed types.
+  When a style has no utility prop (radius, for example), use a class such as
   `twClassName="rounded-xl"`.
 - No `StyleSheet.create()` and no new `.styles.ts` files. Inline style objects
   only for truly dynamic values.
 - When you change a component that uses `useStyles` with a `*.styles.ts`
-  file, move its styles to the layout primitive's typed props or
-  `twClassName`, then delete the styles file and the `useStyles` call.
+  file, move its styles to `Box` utility props or `twClassName`, then delete
+  the styles file and the `useStyles` call.
 - Pressed state: the design-system base button takes a function in
   `twClassName` that receives the pressed flag. Its `style` prop is a plain
   style, so a `style={({ pressed }) => ...}` function does not type-check.
@@ -94,7 +93,7 @@ twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
   `accessibilityHint` when visible text is not enough. Prefer design-system
   controls over a `View` with `onPress`.
 - Headings pass `accessibilityRole="header"`. Check the default role on the
-  design-system text component's installed types instead of assuming one. A
+  MMDS `Text` component's installed types instead of assuming one. A
   tappable heading is a button.
 - Tabs use `accessibilityRole="tab"` with `accessibilityState={{ selected }}`.
 - Announce async errors and status with
@@ -133,8 +132,7 @@ Prop mapping from legacy to MMDS components:
 
 - [ ] `useTailwind()`; no `twrnc` import, `StyleSheet.create()`, or new
       `.styles.ts`.
-- [ ] The design-system layout primitive and text component instead of `View`
-      and React Native `Text`.
+- [ ] `Box` for layout and the MMDS `Text` component for text.
 - [ ] Pressed styles via the base button's `twClassName={(pressed) => ...}` or
       `Pressable` + `tw.style()`.
 - [ ] `ScrollView` inside a design-system bottom sheet comes from
