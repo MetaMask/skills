@@ -191,6 +191,35 @@ EOF
   exit 1
 fi
 
+pull_source() (
+  local src="$1" git_dir lock_dir deadline status
+  git_dir="$(git -C "$src" rev-parse --absolute-git-dir)" || exit 1
+  lock_dir="$git_dir/skills-sync.lock.d"
+  deadline=$((SECONDS + 300))
+  # Every caller of this checkout must share the lock, including automatic
+  # postinstall syncs that do not run through a farm's prepare wrapper.
+  until mkdir -m 700 "$lock_dir" 2>/dev/null; do
+    if [[ "$SECONDS" -ge "$deadline" ]]; then
+      echo "Error: timed out waiting for skill source update lock: $lock_dir" >&2
+      exit 1
+    fi
+    sleep 0.1
+  done
+  release_source_lock() {
+    status=$?
+    trap - EXIT
+    if ! rmdir "$lock_dir"; then
+      [[ "$status" -ne 0 ]] || status=1
+    fi
+    exit "$status"
+  }
+  trap release_source_lock EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap 'exit 129' HUP
+  git -C "$src" pull --ff-only
+)
+
 for src in "${SOURCES[@]}"; do
   if [[ ! -d "$src/.git" ]]; then
     echo "Using packaged skills source: $src"
@@ -198,7 +227,7 @@ for src in "${SOURCES[@]}"; do
   fi
 
   echo "Updating $src"
-  if ! pull_output=$(git -C "$src" pull --ff-only 2>&1); then
+  if ! pull_output=$(pull_source "$src" 2>&1); then
     printf '%s\n' "$pull_output" | sed 's/^/  /' >&2
     cat >&2 <<EOF
 Error: failed to update configured skill source: $src
