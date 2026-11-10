@@ -1,8 +1,9 @@
 ---
 name: analytics
 description: >-
-  Product analytics and event tracking. Use when adding, migrating, or
-  reviewing tracked events, or when writing tests for analytics call sites.
+  Product analytics and event tracking (MetaMetrics / Segment events). Use when
+  adding, migrating, or reviewing tracked events, or when writing tests for
+  analytics call sites.
 maturity: stable
 base: true
 ---
@@ -19,7 +20,7 @@ Use this skill for product event tracking.
 
 ## Workflow
 
-1. Register this interaction in the catalog (`EVENT_NAME` + `generateOpt` in catalog modules). Reuse an existing catalog name only when this control is another instance of that same interaction (same dashboard event, same owners).
+1. Register this interaction in the repo's event catalog. Reuse an existing catalog name only when this control is another instance of that same interaction (same dashboard event, same owners).
 2. Attach properties on the event builder.
 3. Send the built event through the tracking entry point.
-4. In UI tests, wrap `useAnalytics` with the test factory (including files that already mock the hook). In non-React tests, assert the builder and the helper or Engine tracking util.
+4. In UI tests, mock `useAnalytics` as the repo overlay specifies (including files that already mock the hook). In non-React tests, assert the builder and the tracking helper.

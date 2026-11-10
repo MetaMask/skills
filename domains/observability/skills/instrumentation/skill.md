@@ -1,22 +1,22 @@
 ---
 maturity: experimental
 name: instrumentation
-description: Create and update Sentry spans, MetaMetrics events, and Segment events — methodology, policies, common pitfalls
+description: Create and update Sentry performance spans, and estimate span or event volume from Sentry span data — methodology, policies, common pitfalls
 ---
 
-# Analytics Instrumentation
+# Sentry Span Instrumentation
 
 ## When To Use
 
-- Adding or modifying a MetaMetrics (Segment) event
 - Adding or modifying a Sentry performance span
 - Estimating event or span volume from production data
-- Auditing existing instrumentation for correctness
+- Auditing existing span instrumentation for correctness
 
 ---
 
 ## Do Not Use When
 
+- Adding or modifying a MetaMetrics / Segment event (use the `analytics` skill, `platform/analytics`)
 - Adding local debug logging with no telemetry destination
 - Investigating an existing Sentry error report (use `sentry-mcp-queries`)
 - Internal feature flag evaluation not surfaced as an analytics event
@@ -40,25 +40,6 @@ description: Create and update Sentry spans, MetaMetrics events, and Segment eve
 
 ---
 
-## MetaMetrics / Segment Events
-
-### Creating an Event
-
-1. **Check the event name enum** — event may already exist under a different phrasing.
-2. **Check the segment tracking plan** — event may be registered under a different name than the enum key.
-3. **Add to the enum**, then implement the `trackEvent` call.
-4. **Pass `excludeMetaMetricsId: true` only for an event that must not carry the user's identity.** It sends the event under the shared anonymous id and drops the profile ids, for every user, not only those who have not opted in. Event names matching `/^send|^confirm/iu` get it by default unless the caller passes `excludeMetaMetricsId: false` (see data domain `knowledge/metrametrics-identity.md`).
-5. **Open a data governance review** before merging. There is usually no CI enforcement on schema registration — this step is easy to skip (see data domain `knowledge/segment-governance.md`).
-6. **Register in the team's segment tracking plan** before shipping.
-
-### Updating an Event
-
-- Adding a property: requires governance review and schema update
-- Renaming an event: deprecate old + add new in tracking plan; coordinate on migration window
-- Removing an event: confirm no active dashboards depend on it before removing
-
----
-
 ## Volume Estimation via Sentry
 
 When direct Segment access is unavailable, estimate from Sentry production span data:
@@ -79,8 +60,6 @@ Caveats: sample population is MetaMetrics opted-in users only. The extension's S
 
 | Mistake | Correct Approach |
 |---------|-----------------|
-| `excludeMetaMetricsId: true` on an event that needs user identity | It sends the event under the shared anonymous id for every user. Reserve it for events that must be anonymous |
-| Ship event without tracking-plan registration | No CI gate — add governance review explicitly to PR checklist |
 | Raw `Sentry.startSpan()` instead of the repo's `trace()` wrapper | Use the wrapper — handles cross-process context and active-span inheritance |
 | New span with no trace name enum entry | Register enum entry first; unnamed spans are invisible in Sentry filters |
 | Multiply a span `count()` by `1 / tracesSampleRate` | `count()` is already extrapolated, so read it as the estimate |
