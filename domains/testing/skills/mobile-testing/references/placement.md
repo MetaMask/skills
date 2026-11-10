@@ -9,10 +9,10 @@ tests land in the right layer: unit, component-view (CV), integration, or e2e.
 
 ## Modes
 
-| Mode | When | What you do |
-| --- | --- | --- |
-| **ANALYZE** (default) | User did not say implement / go / apply | Inventory, classify, disposition plan, metrics estimate, report + Jira + PR checklist as **proposed** |
-| **IMPLEMENT** | User explicitly asks to implement / apply / go | Execute disposition: write/migrate/delete tests, allow minimal pure extracts, re-run, then final report + Jira + PR |
+| Mode                  | When                                           | What you do                                                                                                         |
+| --------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **ANALYZE** (default) | User did not say implement / go / apply        | Inventory, classify, disposition plan, metrics estimate, report + Jira + PR checklist as **proposed**               |
+| **IMPLEMENT**         | User explicitly asks to implement / apply / go | Execute disposition: write/migrate/delete tests, allow minimal pure extracts, re-run, then final report + Jira + PR |
 
 Do **not** implement in ANALYZE mode. Present the plan and wait.
 
@@ -31,15 +31,14 @@ Record: ticket key (if any), PR number (if any), scoped paths.
 
 Before classifying or writing tests, load as needed (do not reinvent layer rules):
 
-| Concern | Open |
-| --- | --- |
-| Layer decision tree | [`layers.md`](layers.md) / installed `knowledge/testing-layers.md` |
-| Screen UI via Redux | [`component-view.md`](component-view.md) |
-| Pure helpers / CV fallback | [`unit.md`](unit.md) |
-| App↔controller seam | [`integration.md`](integration.md) |
-| Device journeys (default) | [`appium-e2e.md`](appium-e2e.md) |
-| Detox migration / remaining Detox | [`detox-to-appium.md`](detox-to-appium.md) |
-| Unit↔CV overlap migrate/delete | [`placement/unit-cv-overlap.md`](placement/unit-cv-overlap.md) — if personal Cursor skill `test-layer-overlap-audit` is available, load it too and prefer its process for that sub-pass |
+| Concern                                                   | Open                                                                                                                                                                                    |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Layer decision tree                                       | installed `knowledge/testing-layers.md` (source [`../../../knowledge/testing-layers.md`](../../../knowledge/testing-layers.md); stub [`layers.md`](layers.md))                          |
+| Screen UI via Redux                                       | [`component-view.md`](component-view.md)                                                                                                                                                |
+| Pure helpers / CV fallback                                | [`unit.md`](unit.md)                                                                                                                                                                    |
+| App↔controller seam                                       | [`integration.md`](integration.md)                                                                                                                                                      |
+| Device/native E2E (only after CV + integration ruled out) | [`appium-e2e.md`](appium-e2e.md)                                                                                                                                                        |
+| Unit↔CV overlap migrate/delete                            | [`placement/unit-cv-overlap.md`](placement/unit-cv-overlap.md) — if personal Cursor skill `test-layer-overlap-audit` is available, load it too and prefer its process for that sub-pass |
 
 ## Workflow checklist
 
@@ -67,31 +66,38 @@ For the scoped paths, find what exists. See [`placement/inventory.md`](placement
 
 Summarize per component/module:
 
-| Module | Unit | CV | Integration | E2E | Notes |
-| --- | --- | --- | --- | --- | --- |
-| … | `Foo.test.tsx` (N its) | `Foo.view.test.tsx` (M) | none / path | none / spec | … |
+| Module | Unit                   | CV                      | Integration | E2E         | Notes |
+| ------ | ---------------------- | ----------------------- | ----------- | ----------- | ----- |
+| …      | `Foo.test.tsx` (N its) | `Foo.view.test.tsx` (M) | none / path | none / spec | …     |
 
 ### 3. Classify (reason first)
 
 For each meaningful scenario (especially each `it(...)` in shallow screen units, and each gap in production behavior):
 
-1. **What does this protect?** (UI visibility, nav destination, pure math, controller seam, multi-screen device journey, …)
-2. **Best layer?** Use `knowledge/testing-layers.md`.
-3. **Decision:**
+1. **Worth covering?** Distinct realistic regression — not duplicate of existing coverage. If no → **GAP / ACCEPT**.
+2. **What does this protect?** (UI visibility, nav destination, pure math, controller seam, device/native boundary, …)
+3. **Best layer?** Use installed `knowledge/testing-layers.md`. Order: **CV → integration → unit fallback → E2E**.
+4. **Decision:**
 
-| Decision | Meaning |
-| --- | --- |
-| **KEEP** | Already in the correct layer |
-| **ADD** | Missing coverage → add at best layer |
-| **MIGRATE** | Wrong layer (usually shallow unit UI → CV); add target first, then remove source |
-| **DELETE** | Duplicate of coverage already owned by a better layer |
+| Decision         | Meaning                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| **KEEP**         | Already in the correct layer                                                                      |
+| **ADD**          | Missing coverage → add at best layer                                                              |
+| **MIGRATE**      | Wrong layer (usually shallow unit UI → CV); add target first, then remove source                  |
+| **DELETE**       | Duplicate of coverage already owned by a better layer                                             |
 | **EXTRACT+UNIT** | Toast/wiring matrix (etc.) needs a **minimal pure helper** + unit tests; do not invent product UX |
-| **GAP / ACCEPT** | Intentionally uncovered or blocked (document why) |
+| **GAP / ACCEPT** | Intentionally uncovered or blocked (document why)                                                 |
 
 **Hard rules**
 
 - Screen UI / Redux-driven visibility / press→nav belonging in unit files with mocked hooks → **MIGRATE** to CV, do not “fix” mocks in place.
-- E2E is not a substitute for single-view CV.
+- Multi-screen / navigation journeys are **CV-first** when routes can be registered and state/API driven in CV.
+- E2E is **not** a substitute for any scenario CV or integration can cover with equivalent confidence.
+- **ADD E2E** is forbidden unless the disposition row includes all three:
+  1. Why CV is insufficient
+  2. Why integration is insufficient
+  3. Required device/native boundary
+- If those three cannot be filled, disposition must be **ADD CV**, **ADD integration**, or **GAP / ACCEPT** — never E2E by default.
 - Integration owns app↔controller seams, not full-screen RTL with mocked Engine internals unless the integration skill says otherwise.
 - Production changes: **tests + minimal pure extracts only**. No intentional product UX change. Call out any app LOC in the report.
 
@@ -106,7 +112,7 @@ Present a concise plan:
 
 - Scope + ticket/PR
 - Inventory table
-- Disposition table (scenario → decision → target layer/file)
+- Disposition table (scenario → decision → target layer/file). For any **ADD E2E** row, include columns or notes for: why CV insufficient / why integration insufficient / required device boundary
 - Estimated volume deltas (unit/CV/integration/e2e `it`s)
 - Residual risks / open questions
 - Proposed PR task checklist (unchecked)
@@ -142,7 +148,7 @@ Use [`placement/pr-description-template.md`](placement/pr-description-template.m
 
 - Broad production refactors unrelated to making a scenario unit-testable via a pure extract
 - Committing spike-only dumps (`mmqa-*-classification.md`, inventory snapshots) into the mobile repo — keep those on Jira/canvas/skill
-- This path **orchestrates**; writing tests still follows `component-view.md` / `unit.md` / `integration.md` / `appium-e2e.md` (or `detox-to-appium.md`)
+- This path **orchestrates**; writing tests still follows `component-view.md` / `unit.md` / `integration.md` / `appium-e2e.md`
 
 ## Examples
 

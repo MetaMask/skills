@@ -58,4 +58,7 @@ else
   git -C "$CACHE" reset --hard "origin/$REF" 2>&1 | sed 's/^/  /'
 fi
 
-exec "$CACHE/tools/install" --repo "$REPO" --target "$TARGET" --source "$CACHE" "${EXTRA[@]}"
+# Via `bash`, not the exec bit — see the note in tools/sync. This particular call
+# happens to target the cache clone, where git preserves the bit, but relying on
+# that is how sync broke.
+exec bash "$CACHE/tools/install" --repo "$REPO" --target "$TARGET" --source "$CACHE" "${EXTRA[@]}"
