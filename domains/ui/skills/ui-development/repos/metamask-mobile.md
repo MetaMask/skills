@@ -20,11 +20,13 @@ accessibility rules.
   confirmed against `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts`.
 - README: `packages/design-system-react-native/src/components/<Component>/README.md`
   at the tag `@metamask/design-system-react-native@<installed version>`.
-- Legacy component library: `app/component-library/` (being migrated to MMDS).
-  `components-temp/` holds MetaMask-specific components such as `Tabs`.
+- Legacy component library: `app/component-library/` (being migrated to
+  MMDS). Do not add new usage where MMDS covers the need.
+  `app/component-library/components-temp/` holds MetaMask-specific components
+  that MMDS does not cover yet.
 - Product UI: `app/components/`. Real MMDS usage:
-  `app/component-library/components/design-system.stories.tsx`.
-- Marketing-moment headlines: `app/components/UI/MarketingMomentTitle`.
+  `app/component-library/components/design-system.stories.tsx`. Search the
+  manifest for an existing pattern before building custom UI.
 
 Do not apply React web guidance (`className`, HTML tags, `aria-*` props) to
 Mobile.
@@ -32,63 +34,67 @@ Mobile.
 ## Styling surface
 
 - Use `const tw = useTailwind();`. Never `import tw from 'twrnc'`.
-- Use MMDS `Box` instead of `View` and MMDS `Text` instead of React Native
-  `Text`.
-- Prefer typed props (`flexDirection`, `alignItems`, `gap`, `padding*`,
-  `margin*`, `backgroundColor`) over `twClassName` for layout. Use
-  `twClassName` for everything else: size, position, radius, opacity,
-  `flex-1`. `Box` has no `borderRadius` prop; use `twClassName="rounded-xl"`.
+- Use the design-system layout primitive instead of React Native `View`, and
+  the design-system text component instead of React Native `Text`. Look both
+  up in the installed exports or the manifest.
+- Prefer the layout primitive's typed layout props over `twClassName` for
+  layout, and use `twClassName` for everything else: size, position, radius,
+  opacity, `flex-1`. Read which props exist from the installed types; when a
+  style has no typed prop (radius, for example), use a class such as
+  `twClassName="rounded-xl"`.
 - No `StyleSheet.create()` and no new `.styles.ts` files. Inline style objects
   only for truly dynamic values.
 - When you change a component that uses `useStyles` with a `*.styles.ts`
-  file, move its styles to typed `Box` props or `twClassName`, then delete the
-  styles file and the `useStyles` call.
-- Pressed state: `ButtonBase` takes a function in `twClassName`; its `style`
-  prop is a plain style, so a `style={({ pressed }) => ...}` function does not
-  type-check. For a custom `Pressable`, use `tw.style()` in its style function.
+  file, move its styles to the layout primitive's typed props or
+  `twClassName`, then delete the styles file and the `useStyles` call.
+- Pressed state: the design-system base button takes a function in
+  `twClassName` that receives the pressed flag. Its `style` prop is a plain
+  style, so a `style={({ pressed }) => ...}` function does not type-check.
+  Look the base button up in the installed exports. For a custom `Pressable`,
+  use `tw.style()` in its style function.
 
 ```tsx
-<ButtonBase
-  onPress={onPress}
-  twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
->
-  {label}
-</ButtonBase>
+// On the design-system base button:
+twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
 
+// On a custom Pressable:
 <Pressable
   style={({ pressed }) => tw.style('w-full flex-row', pressed && 'bg-pressed')}
 />
 ```
 
-- Interactive list rows use MMDS `ListItem` with `isInteractive`, which
-  applies the pressed background itself; do not add `bg-pressed` again. Keep
-  the row's own horizontal padding; do not add an outer pad that
-  double-indents it.
+- Interactive list rows: when the design-system list item component exposes
+  an interactive mode, it applies the pressed background itself, so do not add
+  `bg-pressed` again. Read the mode from its installed types. Keep the row's
+  own horizontal padding; do not add an outer pad that double-indents it.
 
 ## Sheets
 
-- Use the MMDS `BottomSheet`, `BottomSheetHeader`, and `BottomSheetFooter`. The
-  sheet already sets its surface token; override it only when the design puts
-  the sheet on another surface.
-- A `ScrollView` inside a `BottomSheet` must come from
+- Use the design-system bottom sheet and its header and footer parts. Look
+  them up in the installed exports or the manifest. The sheet already sets its
+  surface token; override it only when the design puts the sheet on another
+  surface.
+- A `ScrollView` inside a design-system bottom sheet must come from
   `react-native-gesture-handler`. The React Native `ScrollView` does not scroll
   inside the sheet on Android.
 - Use the full sheet composition (overlay, container, header, footer, safe
   areas, drag, keyboard, accessibility). In nested sheet flows, keep the
   container stable, move content directionally, use back for the child and
   close for the whole flow, and avoid two systems fighting over height or drag.
-- Mobile mounts one `<Toaster />` in `app/components/Nav/App/ToasterOverlay`.
-  Call `toast()`; do not render another `Toaster`.
+- Mobile mounts a single design-system toaster in
+  `app/components/Nav/App/ToasterOverlay`. Show toasts through the API that
+  toaster exposes (look it up in the installed exports); do not mount another
+  toaster.
 
 ## Mobile accessibility mechanics
 
 - Custom pressables set `accessibilityRole`, `accessibilityState` (`disabled`,
   `selected`, `checked`, `busy`, `expanded`), and an `accessibilityLabel` or
-  `accessibilityHint` when visible text is not enough. Prefer MMDS controls over
-  a `View` with `onPress`.
-- Headings (`HeadingLg/Md/Sm`, `PageHeading`, `SectionHeading`, `Display*`) pass
-  `accessibilityRole="header"`; MMDS `Text` defaults to `"text"`. A tappable
-  heading is a button.
+  `accessibilityHint` when visible text is not enough. Prefer design-system
+  controls over a `View` with `onPress`.
+- Headings pass `accessibilityRole="header"`. Check the default role on the
+  design-system text component's installed types instead of assuming one. A
+  tappable heading is a button.
 - Tabs use `accessibilityRole="tab"` with `accessibilityState={{ selected }}`.
 - Announce async errors and status with
   `AccessibilityInfo.announceForAccessibility` (iOS VoiceOver ignores
@@ -104,17 +110,19 @@ Mobile.
 ## Incremental migration paths
 
 Mobile's legacy library has no single barrel. Each component is a default
-export from its own folder under `app/component-library/components/` (for
-example `Texts/Text`, `Buttons/Button`, `Icons/Icon`), and there is no legacy
-`Box`. Apply the base `Legacy*` rule to the default export and to clashing
-named enums. `ButtonVariants` (legacy) and `ButtonVariant` (MMDS) do not clash,
-so do not alias them. Adjust the `../` depth to the file.
+export from its own folder under `app/component-library/components/`
+(`<Group>/<Component>`). Apply the base `Legacy*` rule to a default export
+whose name MMDS also exports, and to named enums whose names are identical in
+both. Similar but different names do not clash, so do not alias them. Check
+the installed MMDS exports to decide. Adjust the `../` depth to the file.
 
 ```tsx
-import { Text, TextVariant } from '@metamask/design-system-react-native';
-import LegacyText, {
-  TextVariant as LegacyTextVariant,
-} from '../../../component-library/components/Texts/Text';
+// Do: MMDS keeps the plain names. Legacy gets the prefix.
+// `Component` and `EnumName` stand for names the file imports from both places.
+import { Component, EnumName } from '@metamask/design-system-react-native';
+import LegacyComponent, {
+  EnumName as LegacyEnumName,
+} from '../../../component-library/components/<Group>/<Component>';
 ```
 
 Prop mapping from legacy to MMDS components:
@@ -124,10 +132,11 @@ Prop mapping from legacy to MMDS components:
 
 - [ ] `useTailwind()`; no `twrnc` import, `StyleSheet.create()`, or new
       `.styles.ts`.
-- [ ] MMDS `Box` and `Text` instead of `View` and React Native `Text`.
-- [ ] Pressed styles via `ButtonBase twClassName={(pressed) => ...}` or
+- [ ] The design-system layout primitive and text component instead of `View`
+      and React Native `Text`.
+- [ ] Pressed styles via the base button's `twClassName={(pressed) => ...}` or
       `Pressable` + `tw.style()`.
-- [ ] `ScrollView` inside a `BottomSheet` comes from
+- [ ] `ScrollView` inside a design-system bottom sheet comes from
       `react-native-gesture-handler`.
 - [ ] Controls, headings, and tabs expose roles and state; errors are
       announced; touch targets are large enough.
