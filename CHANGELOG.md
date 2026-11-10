@@ -9,44 +9,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `swaps-cpu-profile-audit` skill for MetaMask Mobile: parse a recorded Hermes / React Native Release Profiler `.cpuprofile` and audit slow frames in swaps/bridge. ([#123](https://github.com/MetaMask/skills/pull/123))
-- Add opt-in stale project skill pruning via `--prune-stale` and `SKILLS_PRUNE_STALE=1`.
-- docs(testing): document CV stale-press flakiness plus high-leverage assert patterns (migration parity, filter both-sides example, loading/skeleton honesty, RefreshControl + flag overrides) in `mobile-testing` component-view and placement refs.
+- Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
+- Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
+- Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
+- Distribute Perps static review as a shared execution checklist with repository overlays, source-tracked client rules and per-rule evidence outcomes, without a duplicate template catalog.
+- Add `navigation` skill with a repo-agnostic base and a MetaMask Mobile overlay for `Routes` and `NavigationService`. Marked `base: true` so it installs even when its domain is filtered out.
+- Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
+- Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
 ### Changed
 
+- Update the `testing/mobile-visual-testing` skill for `@metamask/client-mcp-core` 0.13.1 and `@metamask/device-mcp` 0.7.0: remove the knowledge store commands, the knowledge-reuse step and the `--goal` / `--flow-tags` launch flags, and document the global `--observe` and `--pretty` flags, one-line JSON output, observations without app state, the partial mobile `get-state`, `run-steps` `observe` (replaces `includeObservations`) and the 30 s `batchTimeoutMs` cap, timed-out calls being cancelled, calling `node_modules/.bin/mm` directly, and the Android `helper-first` snapshot default.
+- Update the `testing/visual-testing` skill for `@metamask/client-mcp-core` 0.13.1: remove the knowledge store commands and the mandatory knowledge-reuse step, and document the global `--observe` and `--pretty` flags, one-line JSON output, observations without app state, `run-steps` `observe` (replaces `includeObservations`), timed-out calls being cancelled, and one element per ref. Replace the removed `yarn build:test:webpack` script with `yarn build:test`.
+- Narrow `planning` (`mms-planning`) to run only when scope is ambiguous, the change is large, the work is security-sensitive or performance-sensitive, a contract or API is being changed, or the engineer asks. A contract or API change stops for a brief even when fully specified. Security and performance stop for agreement before the edit, even when fully specified, and get a spec only when also large. Reading an existing selector to show a value already in the store is not performance-sensitive, even on a screen. A new or changed selector is. `large` means only a new product area or a cross-system design whose scope is not decided. Cheap uncertainty proceeds with one confirmation line; risk uncertainty stops for a one-line short brief. Uncertainty about whether the work is performance-sensitive is risk uncertainty. On MetaMask Mobile, read `mms-performance` when the work is performance-sensitive. Once the skill applies, the catalog is read on every path before the edit, brief, or yes/no. Drop the `A Jira ticket would improve this context.` line; `jira-brief` still reads a ticket when one is identified. Mark `planning`, `planning-spec`, and `jira-brief` `maturity: experimental` and remove `base: true`, so a default stable sync installs none of them. An installed copy keeps the old always-on trigger until a sync with `--maturity experimental` or a prune. Drop the `-pt.md` sibling instruction from `planning-spec`. ([#219](https://github.com/MetaMask/skills/pull/219))
+- Install `planning`, `planning-spec`, and `jira-brief` for MetaMask Extension as well as MetaMask Mobile, with the same rules in both repos. Core stays out of scope. Assess every installed `mms-*` skill by its description, follow an `mms-*` skill over a non-`mms-*` one when both fit, and drop the fixed `mms-performance` read, which does not install for MetaMask Extension. ([#219](https://github.com/MetaMask/skills/pull/219))
+- Update the MetaMask Mobile performance overlay and animation references for React Native 0.86.x, Expo SDK 57, and Reanimated 4.x with `react-native-worklets`. From a worklet, call `scheduleOnRN` (`runOnJS` is a deprecated alias). Static-ESM tree-shaking stays off. ([#203](https://github.com/MetaMask/skills/pull/203))
+- Require every revert yes/no to be one line that names the pull request or commit, the files, and exactly one yes/no question, whether or not security or privacy is involved. A shorter message is not that step.
+- Keep a new public method or other contract change on the brief path, not the yes/no, when the objection is that another package should own the edit. Put that objection in the brief.
+- Skip a brief for an unkept spike or POC and for routine CI-only work, including a workflow edit that changes how jobs or E2E launch. A CI change that is large or a contract or API change still stops for a brief, and gets a spec recommendation only when it is large. For a revert of a merged pull request or commit, name the target and files, then ask one yes/no, and name the risk when security or privacy is involved. A fully specified ask that is not large, is not a contract or API change, and does not touch auth, secrets, logs or exports of state, permissions, keyring or vault, migrations, or persisted state gets one line of scope and one yes/no instead of a brief. Always read the installed skill catalog, including for reverts and fully specified asks.
+- Add component-view rules to `testing/mobile-testing` from the Predict flake investigation: clear call history before call-count assertions, re-query after a remount instead of holding a `findBy*` result, keep time-dependent behaviour in unit tests or target-state fixtures, require a named async boundary for any explicit `{ timeout }`, and a Fixing a Flake section (name the cause, reproduce it, prove the fix; a longer timeout alone is not a fix).
+- Document confirmed Appium interaction-stability patterns in `testing/mobile-testing` (`references/appium-e2e.md`): child readiness, fresh interactive queries, shared open retries, virtualized-list proof, native control state, action postconditions, and single assertions for short-lived alerts.
+
+### Fixed
+
+- Serialize updates of each shared skill source so concurrent syncs and farm prepares cannot race on Git's fetch state.
+- Keep the `typescript/tsc-blindspots` description within the skill catalog's size limit.
+
+## [0.3.1]
+
+### Fixed
+
+- Report a failed automatic sync instead of exiting 0 in silence. `postinstall` still never fails `yarn install`, but a non-zero sync (unknown saved domain, unreachable source, no Bash) now warns, so the caller's guard can react and a stale skill set is no longer mistaken for a fresh one. ([#154](https://github.com/MetaMask/skills/pull/154))
+- Install base skills again when a private overlay is configured. `tools/sync` picked its installer with an `-x` test, which npm and Yarn make false by dropping the executable bit when unpacking, so it fell through to the overlay's copy of `tools/install` — and an overlay predating `base:` installed no base skills while still exiting 0. ([#154](https://github.com/MetaMask/skills/pull/154))
+
+## [0.3.0]
+
+### Added
+
+- Add a `mobile-visual-testing` skill for MetaMask Mobile. ([#79](https://github.com/MetaMask/skills/pull/79))
+- Add skill for Flashlight, a lighthouse tool for Android vitals ([#146](https://github.com/MetaMask/skills/pull/146))
+- Add content-guidelines skill (MetaMask mobile) ([#137](https://github.com/MetaMask/skills/pull/137))
+- Add assets domain skills ([#131](https://github.com/MetaMask/skills/pull/131))
+- Add unified extension-testing skill (MMQA-2274) ([#130](https://github.com/MetaMask/skills/pull/130))
+- Improve swaps cpu audit skill to include info for wider context ([#128](https://github.com/MetaMask/skills/pull/128))
+- Update ui-development extension skill to include newly added DS components ([#124](https://github.com/MetaMask/skills/pull/124))
+- Implement skill to add evm networks on extension repo ([#114](https://github.com/MetaMask/skills/pull/114))
+- Unify Mobile testing skills (MMQA-2142) ([#86](https://github.com/MetaMask/skills/pull/86))
+- Add Mobile test-layer-placement skill ([#80](https://github.com/MetaMask/skills/pull/80))
+- Add mobile integration test skill ([#78](https://github.com/MetaMask/skills/pull/78))
+- Install a **base skill set by default**. Skills marked `base: true` in frontmatter install on every automatic `postinstall` regardless of domain selection, so a fresh clone lands a useful set with no configuration. `yarn skills` is unchanged and still installs every domain. Opt out with `SKILLS_AUTO_UPDATE=0`. ([#135](https://github.com/MetaMask/skills/pull/135))
+- Lint rules for base skills: a `base: true` skill cannot also be `experimental`, and its `description` must be long enough to self-trigger (`BASE_DESCRIPTION_MIN`). Both are errors, so CI fails rather than warning invisibly. ([#135](https://github.com/MetaMask/skills/pull/135))
+- Validate `--domain` / `SKILLS_DOMAINS` against the domains that actually exist. A typo previously installed the base set and exited 0, which reads as success. ([#135](https://github.com/MetaMask/skills/pull/135))
+- Add `swaps-cpu-profile-audit` skill for MetaMask Mobile: parse a recorded Hermes / React Native Release Profiler `.cpuprofile` and audit slow frames in swaps/bridge. ([#123](https://github.com/MetaMask/skills/pull/123))
+- Add opt-in stale project skill pruning via `--prune-stale` and `SKILLS_PRUNE_STALE=1`.
+
+### Changed
+
+- Mobile testing guidance now defaults to the component-view layer, and the Appium local-run playbook moved into `mobile-testing`. ([#70](https://github.com/MetaMask/skills/pull/70), [#54](https://github.com/MetaMask/skills/pull/54))
+- Component-view testing guidance gained flakiness and assertion patterns, now requires awaiting async-gated content, and bans nested `findBy` inside `waitFor`. ([#109](https://github.com/MetaMask/skills/pull/109), [#115](https://github.com/MetaMask/skills/pull/115), [#132](https://github.com/MetaMask/skills/pull/132))
+- Extension testing guidance clarifies where integration tests belong. ([#134](https://github.com/MetaMask/skills/pull/134))
+- The Extension UI skill is now an MMDS gateway. ([#138](https://github.com/MetaMask/skills/pull/138))
+- **Breaking:** frontmatter key `mandatory` renamed to `base`. Update any skill still using `mandatory:`. ([#135](https://github.com/MetaMask/skills/pull/135))
+- **Breaking:** `postinstall` now syncs by default. It previously required `SKILLS_AUTO_UPDATE=1`; the opt-out is now `SKILLS_AUTO_UPDATE=0`. An explicitly empty `SKILLS_AUTO_UPDATE=` keeps its old meaning (off) rather than being read as unset. ([#135](https://github.com/MetaMask/skills/pull/135))
+- `base:` truthiness is consistent across all four implementations. The linter alone accepted `on`/`off`, so `base: on` linted clean while the installer skipped the skill. ([#135](https://github.com/MetaMask/skills/pull/135))
 - Rewrite `CONTRIBUTING.md` and skill template for MetaMask/skills layout.
 - `swaps-cpu-profile-audit` now audits the whole capture instead of swaps-owned files only: non-swaps frames that ran while the user was on a swaps screen are classified by their relation to the swaps call stacks (called by swaps, hosts the swaps screen, or concurrent with it), bucketed into named context areas, and reported alongside swaps rows. Every reported row carries an `Owned by swaps` column, and fix depth is gated on it. New `--context-min-pct` and `--swaps-only` analyzer flags.
 - `swaps-cpu-profile-audit` reports swaps-owned areas, non-swaps areas on the swaps path, and non-swaps areas running concurrently as separate tables, so the per-area swaps detail is no longer diluted by context rows. The swaps table gained an inclusive-time column, and the report explains that self time on a leaf means a screen can trigger heavy work while showing ~0 ms of its own. Non-swaps rows in the fix table are now capped to the few that matter.
 
 ### Fixed
 
+- Preserve configured skill sources ([#121](https://github.com/MetaMask/skills/pull/121))
+- Harden validate script and review-pr skill security ([#64](https://github.com/MetaMask/skills/pull/64))
+- `tools/sync` now execs the `tools/install` that shipped beside it in the pinned package, instead of preferring `$METAMASK_SKILLS_DIR/tools/install`. That path defaults to the `.skills-cache` clone tracking `origin/main` with no tag or commit pin, so an automatic `postinstall` could execute unreviewed shell from whatever was on `main` at that moment — bypassing lockfile pinning and release gating. The cache still supplies `domains/` content; it no longer supplies executable code. ([#135](https://github.com/MetaMask/skills/pull/135))
+- Cap the delegated sync subprocess so a stalled child cannot hang `yarn install` indefinitely, and report an `ETIMEDOUT` explicitly rather than returning a bare exit 1. ([#135](https://github.com/MetaMask/skills/pull/135))
+- Append `-oBatchMode=yes` to any existing `GIT_SSH_COMMAND` instead of replacing it. `GIT_TERMINAL_PROMPT`/`GIT_ASKPASS` cover HTTPS only — `ssh` reads `/dev/tty` directly — but overwriting the variable would break a custom key, an agent, or a `ProxyCommand` on the private overlay clone these guards exist to protect. ([#135](https://github.com/MetaMask/skills/pull/135))
+- A saved `SKILLS_DOMAINS=` (written by the old picker for the "all" choice) is no longer read as "no saved selection". Those engineers were silently dropped to base-only, and because pruning is off by default their other skills stayed on disk and went stale rather than visibly disappearing. ([#135](https://github.com/MetaMask/skills/pull/135))
+- `.skills.local` readers strip inline comments consistently. The Bash side kept the ` # comment` tail while the JS side stripped it, so a documented `SKILLS_DOMAINS=perps # my choice` resolved to the domain `perps#mychoice`. ([#135](https://github.com/MetaMask/skills/pull/135))
+- `--select` with no valid entries now installs the base set instead of every domain. An empty result resolved to `all`, so mistyping the numbers did the opposite of narrowing the selection. ([#135](https://github.com/MetaMask/skills/pull/135))
 - Preserve `METAMASK_SKILLS_DIR` and `CONSENSYS_SKILLS_DIR` entries when `sync --save` rewrites `.skills.local`.
 
 ## [0.2.0]
 
 ### Added
 
-- feat(skills): add controller-integration skill for mobile and extension ([#62](https://github.com/MetaMask/skills/pull/62))
-- feat(perps): add multiproject validation skill ([#48](https://github.com/MetaMask/skills/pull/48))
-- feat(perps): add write-perps-ticket product-authoring skill ([#58](https://github.com/MetaMask/skills/pull/58))
-- feat(perps): add breakdown-perps-tickets skill ([#57](https://github.com/MetaMask/skills/pull/57))
-- feat(ui): add component-scaffold skill for MetaMask Mobile ([#52](https://github.com/MetaMask/skills/pull/52))
+- Add controller-integration skill for mobile and extension ([#62](https://github.com/MetaMask/skills/pull/62))
+- Add multiproject validation skill ([#48](https://github.com/MetaMask/skills/pull/48))
+- Add write-perps-ticket product-authoring skill ([#58](https://github.com/MetaMask/skills/pull/58))
+- Add breakdown-perps-tickets skill ([#57](https://github.com/MetaMask/skills/pull/57))
+- Add component-scaffold skill for MetaMask Mobile ([#52](https://github.com/MetaMask/skills/pull/52))
 
 ### Changed
 
-- chore: Update docs for React Dev Tools Performance and Network tabs ([#71](https://github.com/MetaMask/skills/pull/71))
-- chore(perps): prefix all perps skill names with perps- ([#60](https://github.com/MetaMask/skills/pull/60))
-- chore(pr-workflow): add social-ai team to MetaMask Mobile codeowners overlay ([#53](https://github.com/MetaMask/skills/pull/53))
-- chore: Update design system UI skills ([#45](https://github.com/MetaMask/skills/pull/45))
-- docs(performance): recommend the Release Profiler → AI-agent .cpuprofile workflow ([#40](https://github.com/MetaMask/skills/pull/40))
+- Update docs for React Dev Tools Performance and Network tabs ([#71](https://github.com/MetaMask/skills/pull/71))
+- Prefix all perps skill names with perps- ([#60](https://github.com/MetaMask/skills/pull/60))
+- Add social-ai team to MetaMask Mobile codeowners overlay ([#53](https://github.com/MetaMask/skills/pull/53))
+- Update design system UI skills ([#45](https://github.com/MetaMask/skills/pull/45))
+- Recommend the Release Profiler → AI-agent .cpuprofile workflow ([#40](https://github.com/MetaMask/skills/pull/40))
 - add: anti-pattern helper functions in spec files ([#67](https://github.com/MetaMask/skills/pull/67))
-- docs(swaps): add EVM network integration skills ([#66](https://github.com/MetaMask/skills/pull/66))
+- Add EVM network integration skills ([#66](https://github.com/MetaMask/skills/pull/66))
 - Add flaky-test-detection skill ([#61](https://github.com/MetaMask/skills/pull/61))
 
 ### Fixed
 
-- fix: broken links in the PR template ([#68](https://github.com/MetaMask/skills/pull/68))
+- Broken links in the PR template ([#68](https://github.com/MetaMask/skills/pull/68))
 
 ## [0.1.0]
 
@@ -56,6 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `metamask-skills` CLI with `sync`, `postinstall`, and `install` commands
 - Add repo inference, repo-local skills cache support, bundled package fallback, and `SKILLS_AUTO_UPDATE=1` handling for consumer repos
 
-[Unreleased]: https://github.com/MetaMask/skills/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MetaMask/skills/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/MetaMask/skills/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/MetaMask/skills/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MetaMask/skills/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MetaMask/skills/releases/tag/v0.1.0

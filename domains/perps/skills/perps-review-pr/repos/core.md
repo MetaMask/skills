@@ -2,39 +2,22 @@
 repo: core
 parent: perps-review-pr
 ---
+## Core criteria
 
-## File Paths
+Required for changes to the controller package or its public contract, in addition to the Perps families above.
 
-| Area | Path |
-|---|---|
-| Package | `packages/perps-controller/` |
-| Controller | `packages/perps-controller/src/PerpsController.ts` |
-| Providers | `packages/perps-controller/src/providers/` |
-| Services | `packages/perps-controller/src/services/` |
-| Types | `packages/perps-controller/src/types/` |
-| Utils | `packages/perps-controller/src/utils/` |
-| Selectors | `packages/perps-controller/src/selectors.ts` |
-| Tests | `packages/perps-controller/tests/` |
-| Package metadata | `packages/perps-controller/package.json`, `packages/perps-controller/CHANGELOG.md` |
+- [ ] Public Controller Contracts Must Be Versioned and Migration-Aware: A change to controller state shape, method signatures, event names or payloads, or package exports ships with a client migration plan and package-level consumer-style tests. See references/core.md#public-controller-contracts-must-be-versioned-and-migration-aware
+- [ ] Package Release Metadata Must Match Contract Impact: The changelog entry and the semver bump match the contract impact, and a bump PR names the package version and the consumers it was checked against. See references/core.md#package-release-metadata-must-match-contract-impact
+- [ ] HyperLiquid Multi-Sig Account Handling in HyperLiquidProvider: Every user-scoped exchange write in `HyperLiquidProvider` needs both a proactive info probe placed right before the write and a message classifier in its `catch`; HyperLiquid rejects every… See references/core.md#hyperliquid-multi-sig-account-handling-in-hyperliquidprovider
+- [ ] `#ensureUnifiedAccountEnabled` — Retry vs Permanent-Failure Cache Semantics: An attempted unified-account setup that fails either sets the retry flag (`#unifiedAccountSetupNeedsRetry`, transient) or caches `{ attempted: true, enabled: false }` in `TradingReadinessCache`… See references/core.md#ensureunifiedaccountenabled-retry-vs-permanent-failure-cache-semantics
+- [ ] Metered Benefits Need a Strict Improvement: A winning fee source and an actual reduction in the charged fee are separate conditions. See references/core.md#metered-benefits-need-a-strict-improvement
+- [ ] Read-only Account Guards Cover Every Write: Inventory exchange calls, transfers, cancellation, withdrawals and registered venue-key paths before claiming an account is read-only. See references/core.md#read-only-account-guards-cover-every-write
+- [ ] One Formatter Surface in the Controller: Display formatting lives in `src/utils/perpsFormatters.ts` as a few reusable formatters configured by an options object, not one exported function per screen or value. See references/core.md#one-formatter-surface-in-the-controller
+- [ ] Evidence Expected Before Core Perps Review: The PR carries a contract impact matrix (state, methods, events, exports, constants), a Mobile, Extension and Terminal compatibility note or paired PR links, provider abstraction and fallback tests,… See references/core.md#evidence-expected-before-core-perps-review
 
-## Review Focus Areas
+## Verdict and handoff
 
-**Shared package source of truth** — Core hosts `@metamask/perps-controller`, which is consumed by Mobile and Extension. Review API, type, state-shape, selector, event-name, and export changes as cross-client contract changes, not Core-only implementation details.
-
-**Platform-agnostic controller boundary** — controller code must not depend on Mobile or Extension UI/runtime concepts. Flag direct UI assumptions, browser/React Native APIs, test-only fixtures leaking into production, and client-specific behavior that belongs in consuming repos.
-
-**Provider/service correctness** — changes in providers, services, routing, subscriptions, or caches must preserve provider isolation, cleanup/unsubscribe behavior, error handling, and deterministic state updates. Watch for stale subscriptions, duplicated polling, shared mutable provider state, and unbounded caches.
-
-**Formatting and numeric contracts** — Core utilities such as `perpsFormatters`, `significantFigures`, order calculations, and market transforms feed both clients. Enforce the shared formatting rules; flag `.toFixed` display shortcuts, lossy number conversions, and inconsistent fallback display vs. true zero.
-
-**Generated artifacts and exports** — when controller messenger actions, exports, constants, or package surfaces change, verify generated action types, package exports, and changelog requirements are handled. A PR that changes public package behavior should include tests and release notes/changelog where Core requires them.
-
-**Client sync impact** — if a Core change requires Mobile or Extension adapter/UI changes, call that out explicitly. Do not approve a Core PR that silently changes contracts without naming the downstream migration or compatibility plan.
-
-## Validation
-
-1. `yarn workspace @metamask/perps-controller test` — package tests pass.
-2. `yarn workspace @metamask/perps-controller build` — package builds and types emit.
-3. `yarn workspace @metamask/perps-controller messenger-action-types:check` — when controller messenger actions/types changed.
-4. Focused root lint/misc checks for touched files when practical, e.g. `yarn lint:eslint --quiet packages/perps-controller` if supported by the checkout.
-5. If public API/package metadata changed, run the relevant changelog validation for `@metamask/perps-controller`.
+- [ ] Write artifacts/review.md from references/report-template.md; full ledger to artifacts/review-ledger.md. Copy this template, replace its content and keep its order and marks. Follow the host's verdict/header fields. Keep findings concise, with only one collapsed Details for agents section; preserve full evidence and prior-round history in the ledger.
+- [ ] Choose APPROVE, COMMENT or REQUEST_CHANGES using the policy in references/report-template.md. A confirmed Perps anti-pattern remains blocking. Keep the exact recommendation in the host JSON. For a binary pass/issues host, only APPROVE maps to pass; COMMENT and REQUEST_CHANGES map to issues. On pass, keep issues empty and retain non-blocking nits in line-comments.json. Never report an unchecked claim as passed.
+- [ ] Write artifacts/line-comments.json using the host contract, or {"pr_number": <number>, "recommendation": "APPROVE|REQUEST_CHANGES|COMMENT", "summary": "...", "comments": [{"path": "...", "line": 1, "body": "...", "severity": "must_fix|suggestion|nitpick"}]} for a PR task. Every actionable in-diff finding belongs in a line comment with its full problem, evidence and concrete ask; the review body is only its short index. Keep unanchored findings in Details for agents rather than inventing a line. Write artifacts/learnings.md. For a branch-only review, use an empty comments array without inventing a PR number when the terminal contract requires that file.
+- [ ] Reconcile the changed-file/acceptance-criteria inventory with the rule outcomes before choosing a verdict. Every applicable rule needs evidence or an explicit gap: a gap the author owes is a finding, a reviewer-side gap is listed as not verified. In a hosted child checklist, return the report to the caller without completing the parent. For a standalone materialized task, satisfy inputs/worker-terminal-contract.json and its completion command. The caller owns publication, retained sessions and cleanup.
