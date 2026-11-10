@@ -15,7 +15,6 @@ Tracking:
 
 - [DSYS-1078 — MetaMask Agentic Design System Epic](https://consensyssoftware.atlassian.net/browse/DSYS-1078)
 - [MetaMask/skills#138](https://github.com/MetaMask/skills/pull/138) — Extension `ui-development` gateway
-- [MetaMask/metamask-design-system#1465](https://github.com/MetaMask/metamask-design-system/pull/1465) — Storybook MCP and MMDS broker work
 
 ## Goal
 
@@ -37,13 +36,12 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 
 - **Consumer skills** (`ui-development` repo overlays) route agents to current MMDS guidance for product UI create and review workflows.
 - **Provider skills** (future `design-system` domain) support MMDS authoring, release, and documentation maintenance.
-- **Baseline delivery** needs no MCP server: the installed package types in the consumer repo, the hosted Storybook components manifests ([React](https://metamask.github.io/metamask-design-system/manifests/components.json), [React Native](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json)), and the consumer Tailwind configuration. Installed types win when sources disagree, because the manifests track MMDS `main`.
-- **Storybook MCP** (`storybook-broker-mcp`, via Context Forge) is optional. Agents may use it when it is already configured and responds, but skills must never depend on it.
+- **Baseline delivery:** the installed package types in the consumer repo, the hosted Storybook components manifests ([React](https://metamask.github.io/metamask-design-system/manifests/components.json), [React Native](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json)), and the consumer Tailwind configuration. Installed types win when sources disagree, because the manifests track MMDS `main`.
 
 ## Foundation workstreams
 
 1. **Thin consumer gateway skills** — Refine `ui-development` overlays into stable routers (Create + Review) instead of static component inventories.
-2. **No-MCP baseline** — Keep the installed types, hosted components manifests, and consumer Tailwind configuration sufficient on their own. Storybook MCP is an optional extra, never a prerequisite, and skills carry no setup instructions for it.
+2. **No-MCP baseline** — Keep the installed types, hosted components manifests, and consumer Tailwind configuration sufficient on their own.
 3. **MMDS source readiness** — Keep type JSDoc (including `@deprecated`), READMEs, stories, and the published components manifests current for agent consumption.
 4. **Automated alignment checks** — Extend CI and review workflows to validate tokens, components, and patterns where feasible.
 5. **Provider-side skills** — Add a `design-system` domain and `metamask-design-system` maintainer overlay in the skills repo.

@@ -47,8 +47,9 @@ entry is a component:
 - Design-token and foundation pages (ids starting `design-tokens-` or `docs-`,
   with story paths in `packages/design-tokens`).
 - Pattern stories (ids starting `patterns-`). These are composition examples.
-  Their `name` can look like a component (for example `MarketingMoment`) or
-  be a code fragment (`() => null`), and nothing with that name is exported.
+  Their `name` can look like a component, or be a code fragment
+  (`() => null`), and nothing with that name is exported. Search the manifest
+  for an existing pattern before building custom UI.
 - Story wrappers whose `name` is a cast expression rather than an identifier.
 
 Treat an entry as a component only when its `path` is a story under the
@@ -57,8 +58,11 @@ component name appears in the installed export index.
 
 ## Common queries
 
-- **Is there a component for X?** Search `name` and `reactDocgen.description`, then confirm
-  the name is exported by the installed package index.
+- **Is there a component for X?** Look up the component by name in the
+  manifest: search `name` and `reactDocgen.description`, then confirm the
+  name is exported by the installed package index.
+- **Is there already a pattern?** Search entries whose ids start with
+  `patterns-` before building custom UI.
 - **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated;
   the message names the replacement. Also check for `@deprecated` in the
   installed `.types` file, because the installed version may differ.
