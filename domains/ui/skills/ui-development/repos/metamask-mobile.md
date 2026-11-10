@@ -18,8 +18,10 @@ accessibility rules.
 - Inventory and deprecations: the
   [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json),
   confirmed against `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts`.
-- README: `packages/design-system-react-native/src/components/<Component>/README.md`
-  at the tag `@metamask/design-system-react-native@<installed version>`.
+- README: read the component README on GitHub at the release tag (READMEs
+  are not in the npm package). Take `<installed version>` from
+  `node_modules/@metamask/design-system-react-native/package.json`:
+  `https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react-native@<installed version>/packages/design-system-react-native/src/components/<Component>/README.md`
 - Existing app-level components: use one only when
   `@metamask/design-system-react-native` has no equivalent. Search the repo
   for a component that already covers the need. Never use anything marked
