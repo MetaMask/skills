@@ -113,13 +113,15 @@ Import enums from `@metamask/design-system-react-native` — never pass raw stri
 
 ### Interactive / pressed state
 
-The design-system base button takes pressed styling through a `twClassName` function that receives the pressed flag. Its `style` prop is a plain style, so a `style={({ pressed }) => ...}` function does not type-check. Look the base button up in the installed exports:
+Use the design-system Button for actions. Confirm its export name and props in the installed package. Use the design-system base button, or a `Pressable`, only when Button cannot express the design.
+
+When you do use the base button, it takes pressed styling through a `twClassName` function that receives the pressed flag. Its `style` prop is a plain style, so a `style={({ pressed }) => ...}` function does not type-check:
 
 ```tsx
 twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
 ```
 
-For a custom pressable container, use `Pressable` with `tw.style()`:
+For a `Pressable`, use `tw.style()`:
 
 ```tsx
 import { useTailwind } from '@metamask/design-system-twrnc-preset';
@@ -196,15 +198,17 @@ Replace `Foo` with the `PascalCase` component name and `foo` with its `kebab-cas
 ### `Foo.types.ts`
 
 ```ts
+import type { ReactNode } from 'react';
+
 export interface FooProps {
   /**
-   * Whether the component is visible.
+   * Content rendered inside the component.
    */
-  isVisible: boolean;
+  children?: ReactNode;
   /**
-   * Callback fired when the user dismisses the component.
+   * Additional Tailwind classes applied to the component.
    */
-  onClose: () => void;
+  twClassName?: string;
   /**
    * Optional test ID for the root element.
    */
@@ -217,7 +221,6 @@ export interface FooProps {
 ```ts
 export const FooSelectorsIDs = {
   CONTAINER: 'foo',
-  TITLE: 'foo-title',
 } as const;
 ```
 
@@ -237,37 +240,23 @@ testID={`${FooSelectorsIDs.ITEM}-${item.id}`}
 
 ### `Foo.tsx`
 
-`DesignSystemBaseButton` and `DesignSystemText` below are placeholders, not real exports. Replace them with the design-system base button and text component from the installed exports, and set the text variant and color from the options in the installed types.
+A minimal container, in the shape of the [MMDS create-component template](https://github.com/MetaMask/metamask-design-system/blob/main/packages/design-system-react-native/scripts/create-component/ComponentName/ComponentName.tsx): it renders `children` and passes `twClassName` and `testID` through. Use the design-system layout primitive, not React Native `View`. Confirm the primitive's export name in the installed package index before copying the import; the template below calls it `Box`.
 
 ```tsx
 import React from 'react';
-import {
-  DesignSystemBaseButton,
-  DesignSystemText,
-} from '@metamask/design-system-react-native';
-import { strings } from '../../../../locales/i18n'; // adjust depth
-import { FooProps } from './Foo.types';
+import { Box } from '@metamask/design-system-react-native';
+import type { FooProps } from './Foo.types';
 import { FooSelectorsIDs } from './Foo.testIds';
 
 const Foo: React.FC<FooProps> = ({
-  isVisible,
-  onClose,
+  children,
+  twClassName,
   testID = FooSelectorsIDs.CONTAINER,
-}) => {
-  if (!isVisible) return null;
-
-  return (
-    <DesignSystemBaseButton
-      onPress={onClose}
-      testID={testID}
-      twClassName={(pressed) => `px-4 pb-6 ${pressed ? 'bg-pressed' : ''}`}
-    >
-      <DesignSystemText testID={FooSelectorsIDs.TITLE}>
-        {strings('foo.title')}
-      </DesignSystemText>
-    </DesignSystemBaseButton>
-  );
-};
+}) => (
+  <Box twClassName={twClassName} testID={testID}>
+    {children}
+  </Box>
+);
 
 export default Foo;
 ```
@@ -286,41 +275,50 @@ export { FooSelectorsIDs } from './Foo.testIds';
 
 ```tsx
 import React from 'react';
-import { fireEvent } from '@testing-library/react-native';
-import renderWithProvider from '../../../../util/test/renderWithProvider'; // adjust depth
+import { Text } from 'react-native';
+import { render, renderHook } from '@testing-library/react-native';
+import { useTailwind } from '@metamask/design-system-twrnc-preset';
 import Foo from './Foo';
 import { FooSelectorsIDs } from './Foo.testIds';
 
 describe('Foo', () => {
-  const defaultProps = {
-    isVisible: true,
-    onClose: jest.fn(),
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders nothing when isVisible is false', () => {
-    const { queryByTestId } = renderWithProvider(
-      <Foo {...defaultProps} isVisible={false} />,
+  it('renders children', () => {
+    const { getByText } = render(
+      <Foo>
+        <Text>Hello, World!</Text>
+      </Foo>,
     );
 
-    expect(queryByTestId(FooSelectorsIDs.CONTAINER)).toBeNull();
+    expect(getByText('Hello, World!')).toBeOnTheScreen();
   });
 
-  it('renders the title when visible', () => {
-    const { getByTestId } = renderWithProvider(<Foo {...defaultProps} />);
+  it('applies twClassName', () => {
+    const { result } = renderHook(() => useTailwind());
+    const tw = result.current;
 
-    expect(getByTestId(FooSelectorsIDs.TITLE)).toBeOnTheScreen();
+    const { getByTestId } = render(
+      <Foo twClassName="bg-default" testID={FooSelectorsIDs.CONTAINER}>
+        <Text>Styled Content</Text>
+      </Foo>,
+    );
+
+    expect(getByTestId(FooSelectorsIDs.CONTAINER)).toHaveStyle(
+      tw.style('bg-default'),
+    );
   });
 
-  it('calls onClose when dismissed', () => {
-    const { getByTestId } = renderWithProvider(<Foo {...defaultProps} />);
+  it('accepts testID', () => {
+    const { getByTestId } = render(
+      <Foo testID={FooSelectorsIDs.CONTAINER}>
+        <Text>Test Content</Text>
+      </Foo>,
+    );
 
-    fireEvent.press(getByTestId(FooSelectorsIDs.CONTAINER));
-
-    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(getByTestId(FooSelectorsIDs.CONTAINER)).toBeOnTheScreen();
   });
 });
 ```
@@ -353,7 +351,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 ## 11. Scaffold checklist
 
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
-- [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop, optional `testID?: string`; inline interface acceptable only for trivial components with 1–2 props
+- [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop (`children?`, `twClassName?`, `testID?`); inline interface acceptable only for trivial components with 1–2 props
 - [ ] `Foo.testIds.ts` — recommended; `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name; skip only when the component has no testable elements
 - [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native` (or `app/component-library` for MetaMask-specific components with no MMDS equivalent and no `@deprecated` annotation); no `View`, no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
@@ -361,6 +359,6 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
 - [ ] If consumed outside the folder: parent feature `index.ts` updated (Section 10)
 - [ ] If bottom sheet: the design-system bottom sheet parts, no extra surface class unless the design needs one; `ScrollView` from `react-native-gesture-handler`
-- [ ] No new usage of `@deprecated` MMDS APIs; pressed styles via the base button's `twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
+- [ ] No new usage of `@deprecated` MMDS APIs. Actions use the design-system Button; use the base button or `Pressable` only when Button cannot express the design, with pressed styles via `twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
 - [ ] All user-visible strings use `strings()` — no hardcoded copy
 
