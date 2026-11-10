@@ -1,6 +1,6 @@
 {
   "name": "@metamask/skills",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "Shared MetaMask agent skills installer and sync CLI.",
   "license": "MIT",
   "type": "module",
@@ -21,7 +21,8 @@
     "test": "node --test test/*.test.mjs",
     "pack:dry-run": "yarn pack --dry-run",
     "lint": "yarn lint:changelog",
-    "lint:changelog": "auto-changelog validate --formatter oxfmt"
+    "lint:changelog": "auto-changelog validate --formatter oxfmt",
+    "audit:skills": "node .github/scripts/lint-skill-entry.mjs"
   },
   "publishConfig": {
     "access": "public",

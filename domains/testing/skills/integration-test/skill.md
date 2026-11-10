@@ -1,8 +1,19 @@
 ---
 name: integration-test
 description: >
-  Controller-app integration testing for MetaMask Mobile using real controllers,
-  providers, and services with only the I/O boundary mocked
-  (*.integration.test.ts). Use when writing, fixing, or reviewing integration
-  tests or per-domain harnesses. See knowledge/testing-layers.md for layer choice.
+  Deprecated. Use testing/mobile-testing instead (references/integration.md).
+  Kept as a redirect stub for older installs and --include paths.
+maturity: deprecated
 ---
+
+# Deprecated — use `mobile-testing`
+
+This skill is superseded by **`mobile-testing`**.
+
+Install:
+
+```bash
+metamask-skills sync --include testing/mobile-testing --save
+```
+
+Then open `references/integration.md` inside that skill.
