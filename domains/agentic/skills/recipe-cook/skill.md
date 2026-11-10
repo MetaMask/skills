@@ -81,12 +81,12 @@ For `qa`, read `references/qa.md` after materialization; read `references/qa-exa
 
 ## Mainnet rule
 
-- Testnet is the default; use mainnet only when the dispatch requests it. Mainnet proof requires the dedicated fixture account, explicit platform opt-in and the harness's mainnet policy. QA also requires frozen `mainnetOptIn: true`.
-- For Perps, use `dev1` only, 1x isolated market orders, at most $15 notional at worst-case fill and `close_immediately: true`. Every order node sets `network: mainnet`.
+- Prefer testnet; use mainnet only when a criterion really needs it and the dispatch requests it. Mainnet proof requires the dedicated fixture account, explicit platform opt-in and the harness's mainnet policy. QA also requires frozen `mainnetOptIn: true`.
+- For Perps, use `dev1` only and the smallest proof: any whole leverage, cross or isolated, market or limit; several orders or positions are fine. Raise leverage to reach the venue minimum from a few USD instead of funding. Prove placement, edit or cancel with a limit order resting away from the market, then cancel it; prove a position flow at the venue minimum with `close_immediately: true`. About $25 notional is a testnet guide, not a cap. The harness caps margin at risk (notional / leverage) at $15. Every order node sets `network: mainnet`. Never fund accounts or create keys.
 - For Perps Mobile, select `metamask.perps.start_state account=dev1 network=mainnet`; reads follow the app's network. Restore with `metamask.perps.start_state network=testnet`.
 - For Perps Extension, select `metamask.wallet.select_account name=dev1`, switch the app to mainnet in its UI and set explicit `provider` on order nodes. The fixture-policy lane forbids `--funding-*` files. Confirming positions/orders reads set `network: mainnet`.
 - For Perps Core, opt in with `CORE_PERPS_ALLOW_MAINNET_WRITES=1`; confirming positions/orders reads set `network: mainnet`, since reads otherwise default to testnet.
-- Close or cancel task-created orders/positions, confirm with a read and retain every order ID and confirming read. Restore testnet before the next case, except on an Extension build without that toggle. Switch networks between cases, never mid-proof.
+- Close or cancel task-created orders/positions, confirm with a read and retain every order and position ID and confirming read. Restore testnet before the next case, except on an Extension build without that toggle. Switch networks between cases, never mid-proof.
 - If mainnet is unavailable, unfunded, not opted in or refused by the harness, prove what is possible on testnet. The AC verdict covers only the observed testnet proof; the mainnet claim stays UNTESTABLE with `mainnet gap: <reason>`, never PROVEN/PASS. A mainnet gap alone does not block completion on the testnet proof.
 - For Perps Extension without `perps-testnet-toggle`/`METAMASK_DEBUG`, source-dev runs try `mm-harness launch --verify`, then `mm-harness launch --build --verify` with `METAMASK_DEBUG=true`. Never rebuild an official artifact. If testnet stays unreachable, mark affected claims UNTESTABLE with `testnet gap: <reason>`, not `mark blocked` for network selection.
 

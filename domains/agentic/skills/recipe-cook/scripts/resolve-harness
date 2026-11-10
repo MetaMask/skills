@@ -2,8 +2,15 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=harness-package-policy
-source "$script_dir/harness-package-policy"
+# The harness pin lives in the setup skill installed beside this one.
+policy=""
+real_dir="$(cd "$script_dir" && pwd -P)"
+for candidate in "$script_dir"/../../{mms-,}recipe-setup/scripts/harness-package-policy "$real_dir"/../../{mms-,}recipe-setup/scripts/harness-package-policy; do
+  [ -f "$candidate" ] && { policy="$candidate"; break; }
+done
+[ -n "$policy" ] || { echo "resolve-harness: the harness pin lives in the mms-recipe-setup skill; install it (yarn skills)" >&2; exit 1; }
+# shellcheck source=../../recipe-setup/scripts/harness-package-policy
+source "$policy"
 
 task_dir="${1:-}"
 [ -n "$task_dir" ] || { echo "usage: resolve-harness <task-dir> [--choice 1|2] [--verify-only]" >&2; exit 2; }

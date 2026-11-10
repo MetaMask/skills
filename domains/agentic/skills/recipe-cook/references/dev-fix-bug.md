@@ -40,7 +40,7 @@ Apply the sections for this flow and platform at each step.
 - Mobile/Extension: until the minimal-fix step, write only TASK.md, checklist marks and `<task>/artifacts/`, apart from those locator/marker exceptions.
 - A premature UI behavior change requires `artifacts/ordering-violation.md`; restore baseline order before continuing.
 - Plan the expected buggy evidence and each AC's state. Missing state that setup actions can build is not UNTESTABLE; Extension reserves that verdict for infrastructure limits.
-- Probe reused recipe entry/setup boundaries with a short bound before baseline. For recipe, recipe-library or action-contract mismatches, copy the closest recipe into the task, adapt to current actions and continue; never block.
+- Probe reused recipe entry/setup boundaries with a short bound before baseline. Reuse in this order and stop at the first fit: run a library recipe with parameters, after checking its preconditions and cleanup fit the request; compose library recipes and actions; copy the closest recipe and change only the nodes the task or recipe drift requires, and say why. When the gap is reusable, also propose a library edit. Add shared vocabulary only after repeated need is proven. A recipe, recipe-library or action-contract mismatch never blocks.
 - Core: list `mm-harness actions --json` as well as recipes and write `artifacts/recipe-decision.json` with `version: 1`, boolean `required`, a non-empty `reason` string and non-empty `actionsChecked`/`claims` arrays.
 - When proof is required, the decision also sets `recipePath: "artifacts/recipe.json"`.
 - Core: `required: false` requires no listed action that can exercise the change. Missing setup state is not an exemption; diagnose and repair missing runtime prerequisites first.

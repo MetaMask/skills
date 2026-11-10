@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import path from 'node:path';
-import { retainedFixture, snapshot } from './resume-task-pin.fixture.mjs';
+import { recommendedHarness, retainedFixture, snapshot } from './resume-task-pin.fixture.mjs';
+
+const escaped = recommendedHarness.replaceAll('.', '\\.');
 
 test('two retained harness resolutions preserve the producer receipt and task files', async (t) => {
   const { task, provider, scripts, env, before } = await retainedFixture(t, 'accepted');
@@ -34,7 +36,7 @@ for (const scenario of ['existing-runner', 'rejected-pin', 'wrong-provider', 'ch
 });
 
 
-for (const scenario of ['pool-update', 'pool-no-registry']) test(`recorded 0.94.7 resolves selected 0.95.0 with no warning: ${scenario}`, async (t) => {
+for (const scenario of ['pool-update', 'pool-no-registry']) test(`an older recorded harness resolves the selected recommended one with no warning: ${scenario}`, async (t) => {
   const { task, poolProvider, retainedProvider, scripts, env, before } = await retainedFixture(t, scenario);
   const pinBefore = await snapshot(retainedProvider);
   const result = spawnSync(path.join(scripts, 'resolve-harness'), [task, '--verify-only'], { encoding: 'utf8', env });
@@ -43,7 +45,7 @@ for (const scenario of ['pool-update', 'pool-no-registry']) test(`recorded 0.94.
   assert.doesNotMatch(result.stderr, /below the recommended version|using configured|recommended/);
   const launch = spawnSync(result.stdout.trim(), ['help', '--json'], { encoding: 'utf8', env });
   assert.equal(launch.status, 0, launch.stderr);
-  assert.equal(JSON.parse(launch.stdout).version, '0.95.0');
+  assert.equal(JSON.parse(launch.stdout).version, recommendedHarness);
   assert.deepEqual(await snapshot(retainedProvider), pinBefore);
   assert.deepEqual(await snapshot(task), before);
 });
@@ -53,7 +55,7 @@ test('a selected harness below the recommended version still runs, with the upgr
   const result = spawnSync(path.join(scripts, 'resolve-harness'), [task, '--verify-only'], { encoding: 'utf8', env });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), path.join(poolProvider, 'bin/mm-harness'));
-  assert.match(result.stderr, /0\.94\.6 is below the recommended version 0\.94\.14; upgrade with: npm i -g '@deeeed\/metamask-harness@0\.94\.14'/);
+  assert.match(result.stderr, new RegExp(`0\\.1\\.6 is below the recommended version ${escaped}; upgrade with: npm i -g '@deeeed/metamask-harness@${escaped}'`));
   assert.deepEqual(await snapshot(task), before);
 });
 

@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { chmod, mkdtemp, mkdir, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const init = fileURLToPath(new URL('../init-template', import.meta.url));
+// The one harness pin (recipe-setup); fixture versions sit relative to it.
+export const recommendedHarness = /^HARNESS_RECOMMENDED_VERSION="([^"]+)"$/m.exec(
+  readFileSync(new URL('../../../recipe-setup/scripts/harness-package-policy', import.meta.url), 'utf8'),
+)[1];
 export async function snapshot(root) {
   const files = {};
   for (const name of await readdir(root, { recursive: true, withFileTypes: true })) {
@@ -30,8 +35,8 @@ export async function retainedFixture(t, scenario) {
   const retainedPack = path.join(root, 'pin/project-pack');
   const belowMinimum = scenario === 'pool-below-minimum';
   const upgraded = ['pool-update', 'pool-no-registry', 'direct-no-pool', 'pool-below-minimum'].includes(scenario);
-  const recordedVersion = belowMinimum ? '0.94.1' : upgraded ? '0.94.7' : '0.94.3';
-  const configuredVersion = belowMinimum ? '0.94.6' : '0.95.0';
+  const recordedVersion = belowMinimum ? '0.1.1' : upgraded ? '0.1.7' : '0.1.3';
+  const configuredVersion = belowMinimum ? '0.1.6' : recommendedHarness;
   const retainedProvider = path.join(root, 'pin/provider');
   const retainedCli = path.join(root, 'pin/farmslot');
   const sdk = path.join(provider, 'node_modules/@farmslot/recipe-cli');
