@@ -17,8 +17,10 @@ accessibility rules.
 - Inventory and deprecations: the
   [React components manifest](https://metamask.github.io/metamask-design-system/manifests/components.json),
   confirmed against `node_modules/@metamask/design-system-react/dist/components/index.d.cts`.
-- README: `packages/design-system-react/src/components/<Component>/README.mdx`
-  at the tag `@metamask/design-system-react@<installed version>`.
+- README: read the component README on GitHub at the release tag (READMEs
+  are not in the npm package). Take `<installed version>` from
+  `node_modules/@metamask/design-system-react/package.json`:
+  `https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react@<installed version>/packages/design-system-react/src/components/<Component>/README.mdx`
 - Legacy component library: `ui/components/component-library` (being
   deprecated in favor of MMDS). Do not add new usage where MMDS covers the need.
 - Existing feature UI that is intentionally outside MMDS lives under
