@@ -5,7 +5,7 @@
 // in tools/install (Bash) mirrors BUNDLE_DIRS; keep the two in sync.
 
 export const REQUIRED_FRONTMATTER = ['name', 'description'];
-export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata'];
+export const OPTIONAL_FRONTMATTER = ['maturity', 'base', 'scope', 'metadata', 'disable-model-invocation'];
 
 // Pre-rename spelling of `base`, still READ by tools/install so that content from a
 // source on a different release cadence (the origin/main cache, a private overlay)
@@ -37,10 +37,10 @@ export const BUNDLE_DIRS = ['references', 'scripts', 'assets', 'adapters', 'work
 
 // Directories allowed beside skill.md: the bundle dirs plus the repo-overlay
 // dir. Anything else is rejected, because the installer does not ship it and any
-// reference to it would dangle post-install. `knowledge/` is not listed here
+// reference to it would dangle post-install. Native agents/ policy is allowed for direct source consumers; the installer generates its own runner metadata. `knowledge/` is not listed here
 // because it is a per-DOMAIN directory, never a skill sibling; the installer
 // delivers it via copy_domain_knowledge.
-export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos'];
+export const ALLOWED_SIBLING_DIRS = [...BUNDLE_DIRS, 'repos', 'agents'];
 
 export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 
@@ -48,12 +48,14 @@ export const KNOWN_REPOS = ['metamask-extension', 'metamask-mobile', 'core'];
 // per-skill always-on cost, and the only part of a skill that carries its own trigger
 // cues — cutting it makes the skill less likely to be selected when it is relevant.
 //
-// This is a REPO BUDGET, not an operator limit. No operator observed here rejects or
-// truncates a longer one: `tools/install` emits the value verbatim, and descriptions
-// well over 1024 characters install and load in Claude Code today. Treat a lower number
-// as a deliberate budget decision, and cite the operator and version before claiming any
-// figure is externally imposed.
-export const DESCRIPTION_MAX = 1536;
+// This number tracks the strictest operator observed so far, not a judgement about the
+// ideal length: `tools/install` emits the value verbatim, and descriptions well over
+// 1024 characters install and load in Claude Code today. The pi coding agent (v0.85.1,
+// docs/skills.md) also loads longer descriptions but flags any over 1024 characters
+// with a "[Skill conflicts]" warning at startup — so 1024 is the largest value that
+// trips no operator's validation. Raise it only with evidence that no operator warns
+// below it.
+export const DESCRIPTION_MAX = 1024;
 
 // A base skill installs for every engineer, so its description is always-on
 // context — and a description too thin to match anything is the failure mode

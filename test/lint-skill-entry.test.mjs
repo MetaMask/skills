@@ -179,10 +179,11 @@ describe('schema tracks the installer', () => {
 // The workflow invokes the linter WITH changed-file arguments. Every test above runs the
 // no-argument full-audit branch, so the branch CI actually depends on had no coverage —
 // which is how malformed paths reached main. These mirror the CI invocation.
-// 1,536 is a repo budget, not an operator limit — no observed operator rejects or
-// truncates a longer description, and several over 1,024 install and load today. The
-// check exists to bound always-on context, so what matters is that the number the docs
-// state and the number enforced are the same one.
+// 1,024 tracks the strictest operator observed so far: descriptions well over 1,024
+// install and load in Claude Code, and the pi coding agent loads longer ones too but
+// warns about them at startup. The check exists to bound always-on context, so what
+// matters is that the
+// number the docs state and the number enforced are the same one.
 describe('description budget', () => {
   test('the enforced ceiling is the one the docs state', () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
