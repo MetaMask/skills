@@ -50,7 +50,7 @@ Two systems coexist in the repo:
 
 ### Layer 1 — `@metamask/design-system-react-native` (MMDS, npm package) ✅ Always use first
 
-The only correct choice for new component primitives (`Box`, `Text`, `Button`, `ButtonBase`, `Icon`, `ListItem`, `BottomSheet`, and more). For the current inventory and deprecations, use the [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json) as described in `ui-development`.
+The only correct choice for new component primitives: layout, text, buttons, icons, list items, sheets, and more. Look each one up by name in the [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json) as described in `ui-development`, then confirm it in the installed exports.
 
 Before writing any UI, verify what the installed version actually exports — the package changes frequently:
 
@@ -70,7 +70,7 @@ The installed package is the source of truth, not this skill's examples. Read pr
 https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react-native@<installed version>/packages/design-system-react-native/src/components/<Component>/README.md
 ```
 
-Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`. When a README and the types disagree, the types win. No MCP server is needed; if Storybook MCP happens to be configured it is optional, so never block scaffolding on it.
+Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`. When a README and the types disagree, the types win. No MCP server is needed.
 
 Do not add new usage of anything marked `@deprecated` in the installed types or in the manifest's `jsDocTags.deprecated`.
 
@@ -78,7 +78,7 @@ For local visual testing of a component in isolation, see `docs/readme/storybook
 
 ### Layer 2 — `app/component-library/components/`
 
-Valid second choice **only** when `@metamask/design-system-react-native` does not export an equivalent (e.g. Tabs, MetaMask-specific modal wrappers not yet migrated to MMDS).
+Valid second choice **only** when `@metamask/design-system-react-native` does not export an equivalent (for example MetaMask-specific components in `app/component-library/components-temp/`, or modal wrappers not yet migrated to MMDS).
 
 Do not use any component in this library that carries a `@deprecated` JSDoc annotation — those have MMDS equivalents and must be replaced. For everything else in this library, prefer MMDS first; use `app/component-library` only when no MMDS primitive covers the need.
 
@@ -87,9 +87,9 @@ Do not use any component in this library that carries a `@deprecated` JSDoc anno
 Build from MMDS primitives when no primitive covers the use case.
 
 ### Never use
-- Raw `View` from `react-native` — use `Box`
-- Raw `Text` from `react-native` without variants — use `Text` with `TextVariant`
-- `StyleSheet.create()` — use `twClassName` or Box layout props
+- Raw `View` from `react-native` — use the design-system layout primitive
+- Raw `Text` from `react-native` — use the design-system text component with a variant from its installed types
+- `StyleSheet.create()` — use `twClassName` or the layout primitive's typed props
 
 ---
 
@@ -98,53 +98,25 @@ Build from MMDS primitives when no primitive covers the use case.
 ### `twClassName` string prop — for utility classes
 
 ```tsx
-<Box twClassName="px-4 pb-6 w-full rounded-xl bg-muted" />
+twClassName="px-4 pb-6 w-full rounded-xl bg-muted"
 ```
 
 Use for: width/height, borders, rounded corners, shadows, opacity, overflow, z-index, absolute positioning, background colours via semantic tokens (`bg-default`, `bg-muted`, `bg-pressed`).
 
-### Box layout enum props — preferred for flexbox
+### Typed layout props — preferred for flexbox
 
-```tsx
-<Box
-  flexDirection={BoxFlexDirection.Row}
-  alignItems={BoxAlignItems.Center}
-  justifyContent={BoxJustifyContent.Between}
-  gap={2}
-  padding={4}
-/>
-```
-
-Type-safe, prevents class-string typos. Spacing units: each unit = 4px (`padding={4}` = 16px, max `12` = 48px).
+Prefer the layout primitive's typed flex, alignment, gap, padding, and margin props over class strings for layout. They are type-safe and prevent class-string typos. Read the prop names and the enums they take from the primitive's installed `.types` file. Numeric spacing props use the 4px scale (`4` = 16px).
 
 ### Enum constants for props
 
-Import from `@metamask/design-system-react-native` — never use raw strings:
-
-```tsx
-import {
-  TextVariant,
-  TextColor,
-  FontWeight,
-  ButtonBaseSize,
-  BoxFlexDirection,
-  BoxAlignItems,
-  BoxJustifyContent,
-  BoxBackgroundColor,
-} from '@metamask/design-system-react-native';
-```
+Import enums from `@metamask/design-system-react-native` — never pass raw strings where the type expects an enum. Read enum names and members from the installed types; do not copy them from this skill or from another platform.
 
 ### Interactive / pressed state
 
-`ButtonBase` takes pressed styling through a `twClassName` function. Its `style` prop is a plain style, so a `style={({ pressed }) => ...}` function does not type-check:
+The design-system base button takes pressed styling through a `twClassName` function that receives the pressed flag. Its `style` prop is a plain style, so a `style={({ pressed }) => ...}` function does not type-check. Look the base button up in the installed exports:
 
 ```tsx
-<ButtonBase
-  onPress={onPress}
-  twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
->
-  {strings('foo.action')}
-</ButtonBase>
+twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
 ```
 
 For a custom pressable container, use `Pressable` with `tw.style()`:
@@ -165,16 +137,9 @@ const tw = useTailwind();
 
 ## 5. Bottom sheet specifics
 
-1. Use the MMDS `BottomSheet`, `BottomSheetHeader`, and `BottomSheetFooter`. The sheet surface already uses the `bg-elevated1` token, so do not add a surface class unless the design puts the sheet on a different surface (then pass a token class such as `twClassName="bg-default"`):
+1. Use the design-system bottom sheet with its header and footer parts. Look them up in the installed exports or the manifest, and read their props from the installed types. The sheet already sets its surface token, so do not add a surface class unless the design puts the sheet on a different surface (then pass a semantic token class through `twClassName`).
 
-```tsx
-<BottomSheet ref={sheetRef} goBack={navigation.goBack}>
-  <BottomSheetHeader onClose={handleClose}>{strings('foo.title')}</BottomSheetHeader>
-  {/* content */}
-</BottomSheet>
-```
-
-2. `ScrollView` inside a `BottomSheet` must come from `react-native-gesture-handler` — the standard React Native `ScrollView` will not scroll on Android inside a gesture-managed bottom sheet:
+2. `ScrollView` inside a design-system bottom sheet must come from `react-native-gesture-handler` — the standard React Native `ScrollView` will not scroll on Android inside a gesture-managed bottom sheet:
 
 ```tsx
 // ✅ correct
@@ -272,13 +237,13 @@ testID={`${FooSelectorsIDs.ITEM}-${item.id}`}
 
 ### `Foo.tsx`
 
+`DesignSystemBaseButton` and `DesignSystemText` below are placeholders, not real exports. Replace them with the design-system base button and text component from the installed exports, and set the text variant and color from the options in the installed types.
+
 ```tsx
 import React from 'react';
 import {
-  ButtonBase,
-  Text,
-  TextColor,
-  TextVariant,
+  DesignSystemBaseButton,
+  DesignSystemText,
 } from '@metamask/design-system-react-native';
 import { strings } from '../../../../locales/i18n'; // adjust depth
 import { FooProps } from './Foo.types';
@@ -292,26 +257,22 @@ const Foo: React.FC<FooProps> = ({
   if (!isVisible) return null;
 
   return (
-    <ButtonBase
+    <DesignSystemBaseButton
       onPress={onClose}
       testID={testID}
       twClassName={(pressed) => `px-4 pb-6 ${pressed ? 'bg-pressed' : ''}`}
     >
-      <Text
-        variant={TextVariant.BodyMd}
-        color={TextColor.TextAlternative}
-        testID={FooSelectorsIDs.TITLE}
-      >
+      <DesignSystemText testID={FooSelectorsIDs.TITLE}>
         {strings('foo.title')}
-      </Text>
-    </ButtonBase>
+      </DesignSystemText>
+    </DesignSystemBaseButton>
   );
 };
 
 export default Foo;
 ```
 
-> For a bottom sheet, use the MMDS `BottomSheet` components — see Section 5.
+> For a bottom sheet, use the design-system bottom sheet parts — see Section 5.
 
 ### `index.ts`
 
@@ -399,7 +360,7 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
 - [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
 - [ ] If consumed outside the folder: parent feature `index.ts` updated (Section 10)
-- [ ] If bottom sheet: MMDS `BottomSheet` components, no extra surface class unless the design needs one; `ScrollView` from `react-native-gesture-handler`
-- [ ] No new usage of `@deprecated` MMDS APIs; pressed styles via `ButtonBase twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
+- [ ] If bottom sheet: the design-system bottom sheet parts, no extra surface class unless the design needs one; `ScrollView` from `react-native-gesture-handler`
+- [ ] No new usage of `@deprecated` MMDS APIs; pressed styles via the base button's `twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
 - [ ] All user-visible strings use `strings()` — no hardcoded copy
 
