@@ -77,4 +77,6 @@ Removing ~90% of volume before the sample multiplies headroom — a higher sub-r
 
 ## Kill Switch
 
-Ship every always-on span family with an env disable flag (PR #39891: `SENTRY_DISTRIBUTED_TRACING_DISABLED` returns the messenger un-wrapped). It turns a future emergency cut into a config flip instead of a cherry-pick.
+**For anything the sampler sees, the per-name rate is the kill switch** — a remote name-to-rate map pins a transaction to zero at the next Sentry init, on every build that reads the flag, with no release. Do not add a bespoke env flag to get that.
+
+An env flag still earns its place for what the rate cannot reach. A span handed an explicit parent is a child span, and no `tracesSampler` call is made for it. And a flag can remove the wrapping itself rather than sample its output: PR #39891's `SENTRY_DISTRIBUTED_TRACING_DISABLED` returns the messenger un-wrapped, so the hot path pays nothing at all — a different thing from emitting fewer spans.
