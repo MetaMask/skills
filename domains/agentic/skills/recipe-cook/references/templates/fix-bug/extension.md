@@ -71,7 +71,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Finish
 - [ ] 20. Record coverage and per-AC acceptance verdicts
   Write `artifacts/recipe-coverage.md`, checked against `recipe-run/trace.json`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
-  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `acceptance-cli <task> render`. Never write verdicts.
+  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
 - [ ] 21. Render the PR body, retain artifacts and complete
   Write `artifacts/pr-description.md` with the root cause, run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` and read that file.
   Write `artifacts/evidence-manifest.json` with `before_after_pairs`, and `artifacts/learnings.md` (rules: proof-rules.md, Coverage and finish).
