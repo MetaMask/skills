@@ -35,7 +35,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   For purely additive work, write `Baseline: N/A. additive` in TASK.md (rules: proof-rules.md, Development).
 - [ ] 10. Draft the recipe and run pre-implementation proof
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
-  Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup.
+  Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
 
 ## Implement
@@ -70,7 +70,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Finish
 - [ ] 19. Record coverage and per-AC acceptance verdicts
   Write `artifacts/recipe-coverage.md` and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
-  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `acceptance-cli <task> render`. Never write verdicts.
+  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
 - [ ] 20. Render the PR body, retain artifacts and complete
   Write `artifacts/pr-description.md`, run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` and read that file.
   Write `artifacts/evidence-manifest.json` with PROVEN visual evidence only, and `artifacts/learnings.md` (rules: proof-rules.md, Coverage and finish).
