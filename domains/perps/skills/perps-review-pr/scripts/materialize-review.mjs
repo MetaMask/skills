@@ -121,7 +121,7 @@ function baseBody(inline) {
     '## Base review', '',
     row('Trace each changed behavior', 'Trace each changed behavior from caller through state updates and observable result. Check normal, error, empty, boundary and cleanup paths where applicable. Name the concrete failure each changed guard prevents; inspect sibling paths and tests for that failure.'),
     row('Inspect test coverage', 'Inspect tests for meaningful coverage of changed behavior, failures and regressions. Record which tests were inspected versus executed; static inspection cannot establish runtime success.'),
-    row('Inspect permissions, data handling and product wiring', 'Inspect permissions, secrets/user-data handling, dependency changes and product wiring such as flags, localization and telemetry.'),
+    row('Inspect permissions, data, dependencies and wiring', 'Inspect permissions, secrets/user-data handling, dependency changes and product wiring such as flags, localization and telemetry.'),
     // Shared base-review rule, applied whatever the domain.
     row('Check signal over noise', 'Signal over noise: comments say why in a line or two and never restate the code; no ticket keys, PR numbers or tool mentions in source; no leftover TODOs, debug logs, commented-out code or unused helpers; no catch that swallows, no abstraction with one caller, no padded tests or PR text. Prefer deleting to rewording.'), '',
     '## Perps criteria', '',
