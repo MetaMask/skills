@@ -14,9 +14,13 @@ accessibility rules.
 - Components and enums: `@metamask/design-system-react`. Do not import enums
   from `@metamask/design-system-shared`; that package is listed in the Tailwind
   `content` globs only so its classes are generated.
-- Inventory and deprecations: the
+- Inventory: the
   [React components manifest](https://metamask.github.io/metamask-design-system/manifests/components.json),
   confirmed against `node_modules/@metamask/design-system-react/dist/components/index.d.cts`.
+  Deprecation is decided by `@deprecated` in
+  `dist/components/<Name>/` (often `<Name>.d.cts`) and by the README at the
+  installed tag. A non-empty manifest `jsDocTags.deprecated` is a positive
+  signal only. Prefer the non-deprecated replacement over existing repo usage.
 - README: read the component README on GitHub at the release tag (READMEs
   are not in the npm package). Take `<installed version>` from
   `node_modules/@metamask/design-system-react/package.json`:
