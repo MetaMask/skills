@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: instrumentation
-description: Create and update Sentry spans, MetaMetrics events, and Segment events — methodology, policies, common pitfalls
+description: >
+  Create and update Sentry spans, MetaMetrics events, and Segment events — methodology, policies,
+  common pitfalls. Use when adding or modifying a MetaMetrics (Segment) event or a Sentry
+  performance span, estimating event or span volume from production data, or auditing existing
+  instrumentation.
 ---
 
 # Analytics Instrumentation

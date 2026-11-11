@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: performance-attribution
-description: Attribute release-over-release p75/p95 performance movements to specific code changes via black-box diff analysis
+description: >
+  Attribute release-over-release p75/p95 performance movements to specific code changes via
+  black-box diff analysis. Use when explaining a confirmed p75/p95 change across releases,
+  building a per-release attribution catalogue, auditing whether a performance initiative moved a
+  metric, or attributing movement that spans the app and `@metamask/*` package bumps.
 ---
 
 # Performance Attribution

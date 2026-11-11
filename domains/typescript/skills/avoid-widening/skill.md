@@ -1,12 +1,13 @@
 ---
 name: avoid-widening
-description: >-
-  Keep a type as narrow as the value it describes. An annotation wider than
-  what inference already knows throws information away, so annotate only to
-  add information. Keep immutable lookup tables literal with `as const
-  satisfies`, type built keys with template literal types and build them
-  `as const`, and widen on purpose only at a boundary where inference is
-  unsound.
+description: >
+  Keep a type as narrow as the value it describes. An annotation wider than what inference already
+  knows throws information away, so annotate only to add information. Keep immutable lookup tables
+  literal with `as const satisfies`, type built keys with template literal types and build them
+  `as const`, and widen on purpose only at a boundary where inference is unsound. Use when writing
+  or reviewing a type annotation, a `satisfies` clause or an `as const`, a lookup table that maps
+  one set of names to another, string keys built from known parts, or a type change proposed in
+  review.
 maturity: experimental
 ---
 
