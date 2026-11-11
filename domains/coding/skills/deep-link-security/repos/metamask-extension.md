@@ -7,6 +7,16 @@ parent: deep-link-security
 
 `docs/deep-links.md` is the single source of truth for how a deep link is processed and what to check.
 
+## When To Use
+
+- Exposing a new deeplink for a feature
+- Pointing an existing deeplink at a different destination
+- Review has raised the security interstitial, signature verification, or param handling
+- A deeplink reaches a destination that changes state or grants a permission
+
+Changing how links are parsed, verified, or gated is a security-boundary change with a different
+owner, the extension security team. Reviewing such a change still uses this skill.
+
 ## How to use
 
 1. Read `docs/deep-links.md` in full before writing or reviewing the change.
@@ -19,6 +29,18 @@ Adding or changing a route is documented at `docs/deeplink-route-authoring.md`: 
 with the extension security team, the interstitial rule, the extension's trusted origins and
 canonicalization, and the four steps of adding a route.
 
+1. Confirm which files the change touches, and whether any are security-owned.
+2. Write the route or handler, register it, and add the E2E test.
+3. If the destination changes state or grants a permission, raise it with the extension
+   security team before the PR lands.
+
+`decisions/core/0020-shared-deeplink-registry.md` (proposed,
+MetaMask/decisions#149) is an open draft. Its own Status section reads `Proposed`, it is not
+on `main`, and it lists implementing the package among its non-goals, so nothing in it
+describes how either client works today. It proposes moving the public route contract into a
+shared package and dispatching to client-owned handlers keyed by a shared `RouteId`, which
+would replace per-client route registration in both clients.
+
 ## Checks at a glance (details in the doc)
 
 - The signature binds the `sig_params` list.
@@ -28,6 +50,16 @@ canonicalization, and the four steps of adding a route.
 - What consumes a value after the handoff refuses what it cannot match.
 - Empty `sig_params`, repeated parameters, and path binding.
 - The destination is a feature that does not depend on the link.
+
+## Defects that recur in review
+
+**An allowlist must not be a plain object literal.** A lookup against `{}` resolves inherited
+keys, so `?param=constructor` returns `function Object() { [native code] }` and the
+`?? DEFAULT` fallback never fires. Use a `Set`, a `Map`, or `Object.create(null)`.
+
+*And the negative test must use an inherited key.* `'not-a-setting'` is `undefined` on the
+prototype chain too, so it passes against a broken implementation and a correct one alike. It
+cannot tell them apart. Test `'constructor'` or `'__proto__'`.
 
 ## CI coverage is neither re-verified nor narrated
 
