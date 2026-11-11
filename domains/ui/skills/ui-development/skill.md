@@ -30,7 +30,8 @@ setup live in `component-scaffold`, where the repository has them.
 
 ## Sources, in order
 
-None of these needs an MCP server. Work from them in this order:
+Work from them in this order. None of these needs an MCP server. The Design
+Brain step uses a Notion connector when one can reach the MetaMask workspace.
 
 1. **Installed package types (`node_modules`).** The installed version is the
    contract for the code you are changing. Read the export index and the
@@ -53,16 +54,23 @@ None of these needs an MCP server. Work from them in this order:
    platform package (`@metamask/design-system-react` or
    `@metamask/design-system-react-native`). How to read a manifest:
    [references/reading-mmds-manifests.md](references/reading-mmds-manifests.md).
-3. **Component README at the installed version's tag.** READMEs are not in the
+3. **Design Brain, when Notion is available.** Query
+   [Design Brain — Lessons & Rules](https://www.notion.so/b71f86d67d68827395a001f7ee7a8a86)
+   for the area you are changing. Apply Active rules (P0 must, P1 should).
+   Treat Proposed rules as guidance only. Cite the rule you applied in the PR
+   or review, and check the Brain for patterns too. Installed types still win
+   on what exists in code. If you have no Notion access, write "Design Brain
+   not checked" in the PR or review. Do not skip it silently.
+4. **Component README at the installed version's tag.** READMEs are not in the
    npm tarball. Read the installed version from
    `node_modules/@metamask/<package>/package.json` (or the lockfile), then open
    the README on GitHub at the per-package tag
    `@metamask/<package>@<version>`. The package `CHANGELOG.md` compare links
    use the same tag names. Never hard-code a release in code comments or
    skills.
-4. **Existing repository usage and stories.** Search the consumer repo for the
+5. **Existing repository usage and stories.** Search the consumer repo for the
    component or token. Treat examples as usage evidence, not as the contract.
-5. **Figma MCP and Code Connect, when connected.** Use them to read the design
+6. **Figma MCP and Code Connect, when connected.** Use them to read the design
    and its component mapping. If they are not connected, carry on without them.
 
 ## Workflow
@@ -74,17 +82,18 @@ classes and tokens, then run the review checklist on your own diff.
 **Review:** list the changed UI, check each MMDS usage for deprecation (see
 [Deprecated APIs](#deprecated-apis)), then report component choice, deprecated
 usage, tokens, typography, and accessibility findings with file, line,
-evidence, and a recommended fix.
+evidence, and a recommended fix. Say whether Design Brain was checked, or
+write "Design Brain not checked".
 Custom UI without a recorded reason is a finding, not an automatic failure.
 
 ## Choosing a component
 
 - Before building anything, look up the component by name in the manifest
-  and the installed exports. Pattern, foundation, and design-token stories
-  are not in the manifest. Read the component README at the installed tag,
-  and search existing repository usage, before building custom UI. Never
-  invent a component, a prop, or a variant, and never port an API from the
-  other platform or another UI library.
+  and the installed exports. For a pattern, use the first place that has it:
+  Storybook or the manifest docs, then the Design Brain when Notion is
+  available, then the component README at the installed tag, then existing
+  repository usage. Never invent a component, a prop, or a variant, and never
+  port an API from the other platform or another UI library.
 - Choose in this order, and record the reason whenever you go past step 1:
   1. An MMDS component exported by the installed platform package.
   2. A non-deprecated legacy component-library component, only when MMDS does
@@ -116,19 +125,23 @@ it.
 
 ## Foundations
 
-- Color, typography, shadows, and motion come from MMDS design tokens. Use
-  semantic tokens (`background-*`, `text-*`, `border-*`, `icon-*`, status
-  tokens), never hex values or raw palette names.
-- Tailwind comes from the MMDS presets configured in the consumer repo. Use
-  only class names those presets generate. Do not use default Tailwind colors
-  or arbitrary values (`bg-[#...]`, `p-[15px]`, `rounded-[16px]`,
-  `text-[14px]`).
-- Spacing and radius use the Tailwind scale through the presets: the 4px
-  spacing scale (`p-4`, `gap-2`) and the default radii (`rounded-lg`,
-  `rounded-xl`, `rounded-2xl`, `rounded-full`). MMDS has no separate spacing
-  or radius tokens. Never hard-code numbers such as `borderRadius: 16`.
-- Meet WCAG AA contrast with semantic tokens (normal text 4.5:1, large text and
-  UI graphics 3:1) and check dark mode.
+- Use preset Tailwind classes first for color, type, shadows, motion, spacing,
+  and radius. Tailwind comes from the MMDS presets configured in the consumer
+  repo. Use only class names those presets generate, including the 4px spacing
+  scale (`p-4`, `gap-2`) and the default radii (`rounded-lg`, `rounded-xl`,
+  `rounded-2xl`, `rounded-full`). Do not use default Tailwind colors.
+- When Tailwind does not make sense or is not possible (a prop or style
+  object, a third-party component, a chart, an animation, or a place that
+  needs a CSS variable or theme value), use a semantic token from the
+  installed `@metamask/design-tokens` package, in JS or CSS. No recorded
+  reason is needed. The overlay says how this platform reads one. Read the
+  package README at the installed tag
+  `@metamask/design-tokens@<version>`.
+- Never use a raw palette value, a hex value, or an arbitrary value
+  (`bg-[#...]`, `p-[15px]`, `rounded-[16px]`, `text-[14px]`,
+  `borderRadius: 16`).
+- Meet WCAG AA contrast (normal text 4.5:1, large text and UI graphics 3:1)
+  and check dark mode.
 - Layouts must survive longer translated strings and future RTL without
   clipping or overlap. Avoid fixed-width text boxes.
 
@@ -153,47 +166,19 @@ prefix on the MMDS import. Finishing the migration is deleting the `Legacy*`
 import and its usages. The overlay gives the platform's import paths and an
 example.
 
-## Accessibility, trust, and sheets
+## Accessibility
 
-These are Active rules from the Design Brain, inlined because agents in code
-repositories cannot read Notion. Proposed rules are guidance only: link to
-them, do not enforce them.
+A short floor of plain WCAG basics. Design Brain rules are not copied here;
+read them from the Design Brain source above.
 
-- Every text field has a persistent accessible label tied to the input. A
-  placeholder alone is not a label.
-- Meaningful icons have an accessible name. Decorative icons next to visible
-  text are hidden from assistive tech, so the control is not read twice.
-- Icon-only buttons need an accessible name and a real action. Do not ship an
-  info button whose press does nothing.
-- Keep the visible text in a control's accessible name (WCAG 2.5.3). Put extra
-  context in a hint instead of replacing visible words.
-- When visible text is abbreviated, put the full term in the accessible name.
-- Do not show selected, active, or unread state through color alone. Add a
-  non-color cue and expose the state (selected, checked, expanded) to
-  assistive tech. Tabs expose the tab role and the selected state.
-- Do not nest interactive controls inside another link or button. Make one
-  primary target, or split the actions.
-- Announce async errors and status changes (save, load, retry, failures) to
-  screen readers. The overlay gives the platform mechanism.
-- Autocomplete and suggestion lists use combobox/listbox semantics and stay
-  reachable by keyboard.
-- Full-screen overlays on top of another flow use the MMDS modal or dialog
-  pattern: an accessible name, dialog semantics, and focus moved into the
-  overlay until it is confirmed or cancelled.
-- Sheets and modals must not trap keyboard or assistive-tech focus, keep
-  close or back available, and follow visual reading order.
-- Respect reduced motion. Never rely on animation alone to show state.
-- Protect trust in wallet UI: use semantic color only for real meaning;
-  reconcile displayed totals and units exactly; keep sensitive details off
-  overviews; give irreversible send, approve, and connect actions a clear
-  preview (asset, amount, network, recipient or permission) with proportionate
-  confirmation; keep back, cancel, and recovery available; never imply
-  certainty the system does not have. Keep available, pending, claimed, paid,
-  estimated, and lifetime values distinct. Never expose the Secret Recovery
-  Phrase or other secrets in labels.
-
-Full rule set, including Proposed rules:
-[Design Brain — Lessons & Rules](https://www.notion.so/b71f86d67d68827395a001f7ee7a8a86).
+- Every input has a persistent label. A placeholder is not a label.
+  Meaningful icons and icon-only buttons have an accessible name, and
+  decorative icons are hidden.
+- Never show state with color alone, and expose that state to assistive tech.
+  Do not nest interactive controls.
+- Announce async status and errors. Overlays and sheets manage focus and keep
+  close or back available.
+- Respect reduced motion, and meet WCAG AA contrast.
 
 ## MMDS agent docs
 
@@ -208,13 +193,18 @@ installed types win.
 
 ## Review checklist
 
+- [ ] Installed types were read.
 - [ ] Every MMDS building block was checked for deprecation, and the
       [Deprecated APIs](#deprecated-apis) rule holds.
 - [ ] MMDS was used wherever it covers the need; any step past MMDS has a
       recorded reason.
 - [ ] No invented components, props, or variants, and no cross-platform ports.
-- [ ] Only preset-generated classes and semantic tokens; no arbitrary values.
+- [ ] Preset Tailwind classes first. Where Tailwind does not apply, a semantic
+      token from the installed design-tokens package. No raw palette values,
+      hex, or arbitrary values.
 - [ ] Typography uses the design-system text component and the font family
       and variant options from the installed types.
 - [ ] Clashing legacy imports are aliased `Legacy*`; MMDS keeps plain names.
-- [ ] The accessibility and trust rules above hold for the changed UI.
+- [ ] The accessibility floor above holds for the changed UI.
+- [ ] Design Brain was checked for the area that changed, or the PR or review
+      says "Design Brain not checked".

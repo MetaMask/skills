@@ -61,4 +61,4 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 - Skills must work with no MCP server connected.
 - Do not put release-pinned inventories, version pins, prop lists, or MCP setup instructions in skills. Point at the installed package and the hosted manifests instead.
 - Read the installed types before choosing components, APIs, tokens, or patterns. When anything disagrees with them, the installed types win.
-- Inline only durable rules that agents need and cannot read elsewhere (for example Active Design Brain rules). Link to Proposed rules; do not enforce them.
+- Query Design Brain when a Notion connector can reach it. Do not copy its rules into skills. Active rules apply (P0 must, P1 should); Proposed rules are guidance only. The accessibility floor in `ui-development` is the baseline when Notion is unavailable.
