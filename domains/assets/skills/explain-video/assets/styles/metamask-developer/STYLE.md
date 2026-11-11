@@ -42,7 +42,7 @@ The developer-facing sibling of [the MetaMask style](../metamask/STYLE.md). Read
 - Code blocks: surface-2, mono 24-26px, max 10 lines, filename header in `--dev-blue-soft`. Diff lines get the lime/red left bar from the MetaMask code recipe.
 - Never recolour the developer fox. It is published in the older palette (`#FF5C16`, `#D075FF`, `#BAF24A`, `#89B0FF`); that small mismatch with the refreshed UI tokens is expected.
 - Use the developer wordmark only in white on `#0A0A0A`. Do not use the consumer stacked wordmark in the same frame.
-- Everything else (forbidden motions, finite WAAPI only, 4-6s pacing, bottom caption pill) is inherited from the MetaMask style.
+- Everything else (safe area, text/surface tokens, forbidden motions, finite WAAPI only, 4-6s pacing, bottom caption pill) is inherited from the MetaMask style. Run `scripts/render/vw.ts --check`; every finding is a bug.
 
 ## Pitfalls
 

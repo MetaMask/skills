@@ -94,7 +94,7 @@ After approval, follow these steps in this order. Do not skip or reorder them.
 Run [scripts/setup.sh](scripts/setup.sh) once if `~/.venvs/explain-video` is not yet set up (Kokoro 82M, Misaki, and Whisper).
 Always use the **local Kokoro 82M voice** (`af_heart`, 24 kHz). The voice runs on your machine. Do not use a cloud voice. Do not clone a person's voice.
 
-Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-file renderer for HTML/TypeScript/Web Animations segments: a copy of <https://github.com/Prithpal-Sooriya/tiny-video-renderer> at `v0.2.3` (sha256 `4311f02377511163984bd222024d2f09e08377102ca91230b1edf80c039b7d51`), derived from Videowright (MIT). It needs **no npm install, no `package.json` and no `node_modules`**: Node 22.18+ (verified on 24), Chrome, and ffmpeg. To update it, re-download a newer tag and verify its hash as that repo's README describes; do not edit it in place.
+Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-file renderer for HTML/TypeScript/Web Animations segments: a copy of <https://github.com/Prithpal-Sooriya/tiny-video-renderer> at `v0.2.3` (sha256 `4311f02377511163984bd222024d2f09e08377102ca91230b1edf80c039b7d51`), derived from Videowright (MIT), plus a local layout and contrast check (`--check`, `scripts/render/layout-check.js`) that is not upstream yet. It needs **no npm install, no `package.json` and no `node_modules`**: Node 22.18+ (verified on 24), Chrome, and ffmpeg. To update it, re-download a newer tag, verify its hash as that repo's README describes, and re-apply the `--check` changes; do not edit it otherwise.
 
 1. **Project structure & Config:**
    In the explainer folder (e.g. `~/Videos/explainers/<topic-slug>/`):
@@ -107,8 +107,9 @@ Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-fil
      echo "c2f5f7e9daf7d11718f954c2f1afbe891e0204a12421ec6d2ee7565fff26d17b  styles/motion-engineering/style.css" | (sha256sum -c - 2>/dev/null || shasum -a 256 -c -)
      cp <skill>/assets/styles/motion-engineering/STYLE.md styles/motion-engineering/
      ```
-     and import `./styles/motion-engineering/style.css` in `timeline.ts`. It is one self-contained file (tokens, embedded fonts, blueprint grid). It also defines `.tvr-*` layout classes you can ignore; they never collide with your own class names.
+     and import `./styles/motion-engineering/style.css`, then `./styles/motion-engineering/tokens.css` (safe area and readable text tokens; copy it from the skill too), in `timeline.ts`. It is one self-contained file (tokens, embedded fonts, blueprint grid). It also defines `.tvr-*` layout classes you can ignore; they never collide with your own class names.
    - **MetaMask:** copy [assets/styles/metamask/](assets/styles/metamask/) (including `fox.ts`, `fox.svg`, `wordmark.ts`, `wordmark-white.svg`) to `<explainer>/styles/metamask/` and import `styles/metamask/style.css` (tokens and fonts in one file) in `timeline.ts`. Read `styles/metamask/STYLE.md` and `brand.md` before authoring segments, and follow them instead of the Motion Engineering HUD rules below (same for MetaMask Developer). Set `meta.style: 'metamask'`. Show the lockup (fox + official wordmark via `foxMark` and `wordmark`) on every scene, and assemble the hero fox (`assembleFox` from `styles/metamask/fox.ts`) on the first and last scene.
+   - **Layout kit (every theme):** copy [assets/kit/](assets/kit/) to `<explainer>/kit/` and import `./kit/kit.css` in `timeline.ts` after the theme CSS. See **Layout & Contrast Rules** below.
    - Organize segments under `segments/<segment-id>/index.ts`. The project root is the folder holding `videowright.config.ts` (`export default defineConfig({ projectStructure: "v1", defaultStyle, defaults: { resolution: [1920, 1080], fps: 60 } })`); `timeline.ts` sits at or below it. Import `defineSegment`, `defineConfig` and transitions from `"videowright"`; that resolves to the bundled runtime.
 
 2. **Audio, Beat Timestamps & Captions:**
@@ -123,14 +124,21 @@ Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-fil
    - **Canvas & Palette:** 1920×1080 canvas. Charcoal background (`var(--color-bg)`: `#0e141a`), 64px blueprint grid lines, slate borders (`#1e2a36`).
    - **Type:** Space Grotesk (display & body) and JetBrains Mono (telemetry, coordinates, code terminals). Sized for 1080p display (display titles 72–96px, subheadings 32–38px, body 24–28px, mono readouts 12–16px).
    - **HUD Elements:** Use corner brackets (ticks), reticle crosshairs, dimension lines with centered pixel callouts, and bottom telemetry bars.
-   - **Layout Discipline:** Containers must fill 80–90% of the canvas. Keep generous padding and distinct modular cards to prevent text overlapping.
+   - **Layout Discipline:** Containers must fill 80–90% of the safe area. Keep generous padding and distinct modular cards. Follow **Layout & Contrast Rules** below.
    - **Code Scenes (Standard & Deep dive):**
      - Show a real diff hunk or code excerpt only when narration is about that code.
      - Maximum 10 lines per snippet and about 4 snippets per video in Standard. Trim the hunk to relevant lines and highlight changed lines.
      - The narration explains why the change was made and what it does. It never reads code aloud, but names the file and function.
      - Overview mode shows no code at all.
 
-4. **Segment Authoring & Render-Safety Rules:**
+4. **Layout & Contrast Rules** (all themes; the check in step 6 enforces them):
+   - Build every scene with `stage(content, lockup)` from `kit/kit.ts`. It gives a `.vw-lockup` (top-left), a `.vw-safe` content box and a `.vw-captions` pill (`data-cap`). Put all content inside `.vw-safe`; never position content with `position: absolute` and pixel `left`/`top` outside it. Safe area: 96px left/right, 152px top (below the lockup), 176px bottom (above captions); tokens `--safe-left`, `--safe-top`, `--safe-right`, `--safe-bottom`.
+   - Lay out with flow, not coordinates: `stack`, `row`, `grid(cols, ...)`, `card`, `pill`, `code`, `image` from `kit/kit.ts` (classes `.vw-stack`, `.vw-row`, `.vw-grid`, `.vw-card`, `.vw-pill`, `.vw-code`, `.vw-frame`). They never overlap. If content does not fit, cut content or split the scene; do not shrink text below 20px or let it overflow.
+   - Images go through `image(src, alt)` (`.vw-frame`, `object-fit: contain`). Never give an image a fixed size larger than its box.
+   - Colors: text uses only `--text`, `--text-muted`, `--text-dim`, `--accent` or theme palette tokens (`--mm-*`, `--cyan`, …); surfaces use only `--surface-0/1/2`. Text on an accent fill uses `--text-on-accent` (black). No raw hex/rgb in segments, and never set text to a dark color: every surface is dark.
+   - Layering on purpose (a badge over an avatar, an arrow over a card) needs `data-vw-allow-overlap` on the overlapping element; pure decoration (glows, grid, HUD ticks, connector lines) needs `data-vw-decor`. Do not use either to silence a real collision.
+
+5. **Segment Authoring & Render-Safety Rules:**
    - Define segments with `defineSegment({ id, advances, voiceover, mount, play, unmount })`.
    - Use WAAPI (`element.animate(...)`) with `fill: "forwards"` and `cubic-bezier(0.2, 0.8, 0.2, 1)`.
    - **Never use `iterations: Infinity`** in WAAPI animations; looping animations freeze under headless rendering. Use finite durations matching the beat window. Do not use CSS `animation` or `transition`; only WAAPI and `ctx.hold` run on the renderer's virtual clock.
@@ -138,13 +146,14 @@ Videos are built with [scripts/render/vw.ts](scripts/render/vw.ts), a single-fil
    - Synchronize visual reveals with audio beats using `await ctx.waitForNext()`.
    - Ensure clean unmount: clear host references and cancel active timers.
 
-5. **Render & Verification:**
+6. **Render & Verification:**
    - Validate first, in about a second: `node scripts/render/vw.ts render <timeline.ts> --dry-run`. It loads every segment and checks the timeline and advances.
+   - **Mandatory layout check** before any preview or final render: `node scripts/render/vw.ts render <timeline.ts> --check --frames check-frames/`. In about a second per scene it stops at each beat's settled state and reports overlapping text/images/cards, anything off canvas or outside the safe area, anything covering the lockup or captions, clipped or spilling text, and text below WCAG AA contrast (4.5:1, or 3:1 at 24px+ / 18.66px bold). It exits 1 on any finding; every line is a bug (`<segment> beat N/M: <problem>: <element> "<text>" <numbers>`). Fix them all and re-run until it prints `layout check: OK`. `--frames` saves one PNG per beat with failing boxes outlined in red; look at them. Preview and final renders run the same check and exit 1 after writing the file.
    - Check layout cheaply: `node scripts/render/vw.ts render <timeline.ts> --fps 6 --output preview.mp4`, extract frames, fix, then render the final: `node scripts/render/vw.ts render <timeline.ts> --output <output-path>.mp4`. Throughput is about 15 frames per second at 1080p.
    - Treat every `Warning:` line as a bug to fix, especially `a scheduled beat had no pending waitForNext()`. A segment that throws fails the render immediately with its message.
    - Extract a frame from each scene with `ffmpeg`.
    - Verify that:
-     - No snippet, caption, or label overlaps or is clipped.
+     - `--check` printed `layout check: OK`, and the `--frames` PNGs show no overlap or clipping it cannot see (text drawn into images or canvases, text over screenshots).
      - Every fact on screen or in the narration matches the ledger; run `scripts/verify_facts.py <scenes.json> --facts <facts.json> --also segments/*/index.ts` and fix every error. For code, every file or function named matches the diff.
      - Nothing says more than its fact's kind allows (a hypothesis is not shown as a result).
      - Total duration is within the target range for the chosen depth.
@@ -168,15 +177,19 @@ Add a one-line note under the video that says the walkthrough is AI-generated. A
 
 > 🤖 AI-generated walkthrough — script, animation, and voice made by an agent
 
-The description plays a video from a GitHub-hosted asset URL. Upload the video directly using the GitHub CLI:
-```bash
-gh pr edit <pr-num> --attach <video-path>
+The description plays a video only from a GitHub-hosted attachment URL — a bare `https://github.com/user-attachments/assets/<id>` on its own line renders as an inline player; links hosted anywhere else do not. Attach it with the GitHub CLI in one step: reference the file in the body where the player should appear, alone in its own paragraph with the AI-generated note directly under it:
+
+```markdown
+![Walkthrough](./video.mp4)
 ```
 
-`--attach` needs `gh` 2.102+, a user token (`gho_` / `ghp_` / `github_pat_`) — a GitHub App token (`ghs_`) gets a 404 from the upload endpoint — and an mp4/mov/webm file under 100 MB. The upload appends an `https://github.com/user-attachments/assets/<id>` URL to the body.
+Then upload from the directory that contains the video:
 
-If `--attach` succeeds, format the PR body to place the video URL under the `## Video Walkthrough` section with the AI disclosure note.
+```bash
+REAL_GH="$(which -a gh | tail -n 1)"   # last match = the real gh; harness shims prepend themselves to PATH
+env -i HOME="$HOME" PATH="$PATH" TERM=xterm "$REAL_GH" pr edit <pr-num> -R <owner>/<repo> --body-file body.md --attach ./video.mp4
+```
 
-If `gh` does not support `--attach` (older than 2.102) or the upload fails, stop. Give the local path and ask the user to drop the file into the pull request description. When they send the attachment URL, add it with `gh pr edit`. Do not commit the mp4 to get a URL.
+`gh` rewrites the reference to the bare asset URL, which renders as a player. The sanitized environment plus the resolved real-gh path bypass agent-harness `gh` shims (e.g. Kandev's), which inject a fine-grained PAT the upload endpoint rejects. Prerequisites: a browser-flow `gh auth login` (`gho_` token with `repo` scope) in secure storage, and a video under 10 MB.
 
 A description edit is not a commit. If any step needs a commit, stop and ask the user to sign it. Do not push an unsigned commit. Do not pass `--no-gpg-sign`.

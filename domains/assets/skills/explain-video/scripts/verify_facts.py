@@ -37,6 +37,8 @@ def placeholder_text(text: str) -> str:
 
     Segments pass displayed text as string arguments (`${row("Name", "266 frames")}`), so those literals
     are on-screen text and must be checked, while the surrounding code (font sizes, indexes) is not.
+    Brace matching skips string literals so snippet text containing `{`/`}` cannot swallow
+    the markup after the interpolation.
     """
     out: list[str] = []
     i = 0
@@ -44,7 +46,13 @@ def placeholder_text(text: str) -> str:
         if text.startswith("${", i):
             depth, j = 1, i + 2
             while j < len(text) and depth:
-                depth += {"{": 1, "}": -1}.get(text[j], 0)
+                c = text[j]
+                if c in ("'", '"', '`'):
+                    j += 1
+                    while j < len(text) and text[j] != c:
+                        j += 2 if text[j] == "\\" and c != "`" else 1
+                else:
+                    depth += {"{": 1, "}": -1}.get(c, 0)
                 j += 1
             inner = text[i + 2 : j - 1]
             out.append(" " + " ".join(m.group(0)[1:-1] for m in STRING_LITERAL.finditer(inner)) + " ")

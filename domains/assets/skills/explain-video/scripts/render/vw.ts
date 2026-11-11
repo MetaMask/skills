@@ -1,7 +1,7 @@
 /**
  * tiny-video-renderer: render a Videowright-style project to MP4. One file, zero npm dependencies.
  *
- *   node vw.ts render <timeline.ts> [--output out.mp4] [--fps N] [--chrome PATH] [--no-sandbox] [--dry-run] [--verbose]
+ *   node vw.ts render <timeline.ts> [--output out.mp4] [--fps N] [--chrome PATH] [--no-sandbox] [--dry-run] [--check] [--frames DIR] [--verbose]
  *
  * Needs: Node 22.18+ (built-in TypeScript type stripping), Chrome/Chromium, ffmpeg. See README.md.
  *
@@ -246,6 +246,7 @@ class Player {
 		const slot = this.slots[this.cur];
 		slot.runner = runner;
 		slot.index = index;
+		slot.el.dataset.vwSegment = entry.id;
 		const content = slotContent(slot.el);
 		content.innerHTML = "";
 		slot.el.style.visibility = "visible";
@@ -277,6 +278,7 @@ class Player {
 			const runner = new SegmentRunner(segment);
 			inc.runner = runner;
 			inc.index = target;
+			inc.el.dataset.vwSegment = entry.id;
 			clearAnimations(inc.el);
 			const content = slotContent(inc.el);
 			content.innerHTML = "";
@@ -390,7 +392,7 @@ export async function boot() {
 
 import { execFileSync, spawn } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { register, stripTypeScriptTypes } from "node:module";
 import { homedir, platform, tmpdir } from "node:os";
@@ -858,8 +860,38 @@ export interface RenderOptions {
 	chrome?: string;
 	noSandbox?: boolean;
 	dryRun?: boolean;
+	check?: boolean;
+	frames?: string;
 	verbose?: boolean;
 }
+
+export interface LayoutFinding {
+	kind: string;
+	key: string;
+	msg: string;
+	rects: Array<{ left: number; top: number; right: number; bottom: number }>;
+}
+
+export function formatLayoutReport(results: Array<{ segmentId: string; beat: number; beats: number; findings: LayoutFinding[] }>): { errors: number; lines: string[] } {
+	const lines: string[] = [];
+	const seen = new Set<string>();
+	let errors = 0;
+	for (const r of results) {
+		for (const f of r.findings) {
+			const key = `${r.segmentId}|${f.key}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			errors++;
+			lines.push(`  ${r.segmentId} beat ${r.beat}/${r.beats}: ${f.msg}`);
+		}
+	}
+	return { errors, lines };
+}
+
+const LAYOUT_CHECK = join(dirname(fileURLToPath(import.meta.url)), "layout-check.js");
+
+const OVERLAY = (rects: LayoutFinding["rects"]) =>
+	`(() => { const o = document.createElement("div"); o.id = "__vw_check_overlay"; o.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647"; for (const r of ${JSON.stringify(rects)}) { const d = document.createElement("div"); d.style.cssText = "position:absolute;box-sizing:border-box;border:3px solid #ff1744;background:rgba(255,23,68,0.12);left:" + r.left + "px;top:" + r.top + "px;width:" + (r.right - r.left) + "px;height:" + (r.bottom - r.top) + "px"; o.appendChild(d); } document.body.appendChild(o); })()`;
 
 export async function runRender(opts: RenderOptions) {
 	const log = (msg: string) => opts.verbose && console.log(msg);
@@ -873,7 +905,7 @@ export async function runRender(opts: RenderOptions) {
 		root = dirname(root);
 	}
 
-	const ffmpeg = opts.dryRun ? "" : findFfmpeg();
+	const ffmpeg = opts.dryRun || opts.check ? "" : findFfmpeg();
 	const chrome = findChrome(opts.chrome);
 	log(`chrome: ${chrome}`);
 
@@ -935,6 +967,65 @@ export async function runRender(opts: RenderOptions) {
 		console.log(`total frames: ${total} (${(total / fps).toFixed(1)}s) at ${width}x${height} ${fps}fps`);
 		if (opts.dryRun) return { frames: total, duration: total / fps };
 
+		if (!existsSync(LAYOUT_CHECK)) throw new UserError(`Missing ${LAYOUT_CHECK}`, "Keep layout-check.js next to vw.ts.");
+		const checkSource = readFileSync(LAYOUT_CHECK, "utf-8");
+		const framesDir = opts.frames ? resolve(opts.frames) : undefined;
+		if (framesDir) mkdirSync(framesDir, { recursive: true });
+		const beatCount = new Map<string, number>(timeline.segments.map((s: any) => [s.id, advances[s.id].length]));
+		const results: Array<{ segmentId: string; beat: number; beats: number; findings: LayoutFinding[] }> = [];
+		let unknownBg = 0;
+		const checkBeat = async (segmentId: string, advanceIndex: number) => {
+			await cdp.evaluate("(document.body.offsetHeight, Promise.all([document.fonts.ready, ...Array.from(document.images, (i) => (i.complete ? 0 : i.decode().catch(() => 0)))]).then(() => true))");
+			const r = await cdp.evaluate<{ findings: LayoutFinding[]; unknownBg: number }>(`(${checkSource})(${JSON.stringify(segmentId)})`);
+			unknownBg += r.unknownBg;
+			results.push({ segmentId, beat: advanceIndex + 1, beats: beatCount.get(segmentId)!, findings: r.findings });
+			if (framesDir) {
+				const rects = r.findings.flatMap((f) => f.rects);
+				if (rects.length) await cdp.evaluate(OVERLAY(rects));
+				writeFileSync(join(framesDir, `${String(results.length).padStart(2, "0")}-${segmentId}-beat${advanceIndex + 1}${r.findings.length ? "-FAIL" : ""}.png`), await cdp.screenshot());
+				if (rects.length) await cdp.evaluate(`document.getElementById("__vw_check_overlay")?.remove()`);
+			}
+		};
+		const report = () => {
+			const { errors, lines } = formatLayoutReport(results);
+			const checked = `${results.length} beat${results.length === 1 ? "" : "s"} in ${timeline.segments.length} segment${timeline.segments.length === 1 ? "" : "s"}`;
+			if (unknownBg) console.log(`layout check: contrast skipped for ${unknownBg} text run(s) over images or url() backgrounds; check those frames by eye`);
+			if (framesDir) console.log(`layout check: beat frames in ${framesDir}`);
+			if (!errors) return console.log(`layout check: OK (${checked})`);
+			console.error(`layout check: ${errors} error${errors === 1 ? "" : "s"} (${checked})\n${lines.join("\n")}`);
+			throw new UserError(`Layout check failed with ${errors} error${errors === 1 ? "" : "s"}`, "Fix every line above, then re-run. Exempt only true decoration with data-vw-decor, or intended layering with data-vw-allow-overlap.");
+		};
+		const fireBeat = async (beat: (typeof schedule)[number], more: () => boolean) => {
+			const going = await cdp.evaluate<boolean>(`window.__VW_RENDER_ADVANCE__(${beat.isLast})`);
+			const err = await cdp.evaluate<string | null>("window.__VW_RENDER_ERROR__");
+			if (err) throw new UserError(`Render error: ${err}`);
+			const current = await cdp.evaluate<string>("document.body.dataset.vwSegment");
+			if (!beat.isLast && current !== beat.segmentId) {
+				throw new UserError(`Segment "${beat.segmentId}" transitioned at advance index ${beat.advanceIndex} but advances array has more entries. Remove unused entries from the advances array.`);
+			}
+			if (beat.isLast && !going && more()) console.warn(`Warning: renderAdvance returned false at segment "${beat.segmentId}" advance ${beat.advanceIndex}`);
+		};
+
+		if (opts.check) {
+			let frame = 0;
+			for (let next = 0; next < schedule.length; ) {
+				if (pageErrors.length) throw new UserError(`Page error during rendering: ${pageErrors.at(-1)}`, "Check segment play() or mount() for runtime errors.");
+				const beat = schedule[next];
+				while (frame < beat.globalFrame) {
+					const step = Math.min(beat.globalFrame - frame, Math.max(1, Math.round(fps / 10)));
+					await cdp.evaluate(`window.__VW_ADVANCE_CLOCK__(${(step * 1000) / fps})`);
+					frame += step;
+				}
+				await checkBeat(beat.segmentId, beat.advanceIndex);
+				if (beat.globalFrame >= total) break;
+				next++;
+				await fireBeat(beat, () => next < schedule.length);
+			}
+			for (const w of new Set((await cdp.evaluate<string[] | undefined>("window.__VW_WARNINGS__")) ?? [])) console.warn(`Warning: ${w}`);
+			report();
+			return { frames: total, duration: total / fps, checked: results.length };
+		}
+
 		const output = resolve(opts.output ?? "output.mp4");
 		const ff = spawn(ffmpeg, buildFfmpegArgs(fps, output, audioFile), { stdio: ["pipe", "pipe", "pipe"] });
 		encoder = ff;
@@ -954,14 +1045,8 @@ export async function runRender(opts: RenderOptions) {
 
 				while (next < schedule.length && schedule[next].globalFrame <= frame) {
 					const beat = schedule[next++];
-					const more = await cdp.evaluate<boolean>(`window.__VW_RENDER_ADVANCE__(${beat.isLast})`);
-					const err = await cdp.evaluate<string | null>("window.__VW_RENDER_ERROR__");
-					if (err) throw new UserError(`Render error: ${err}`);
-					const current = await cdp.evaluate<string>("document.body.dataset.vwSegment");
-					if (!beat.isLast && current !== beat.segmentId) {
-						throw new UserError(`Segment "${beat.segmentId}" transitioned at advance index ${beat.advanceIndex} but advances array has more entries. Remove unused entries from the advances array.`);
-					}
-					if (beat.isLast && !more && next < schedule.length) console.warn(`Warning: renderAdvance returned false at segment "${beat.segmentId}" advance ${beat.advanceIndex}`);
+					if (frame > 0) await checkBeat(beat.segmentId, beat.advanceIndex);
+					await fireBeat(beat, () => next < schedule.length);
 				}
 
 				// One frame of virtual time: fires due timers and animation-frame callbacks, steps Web Animations.
@@ -974,6 +1059,8 @@ export async function runRender(opts: RenderOptions) {
 					lastReport = frame;
 				}
 			}
+			const last = schedule.at(-1);
+			if (last && frame >= total) await checkBeat(last.segmentId, last.advanceIndex);
 		} finally {
 			ff.stdin.end();
 		}
@@ -983,6 +1070,7 @@ export async function runRender(opts: RenderOptions) {
 			if (opts.verbose) console.error(`ffmpeg stderr:\n${ffErr}`);
 			throw new UserError("ffmpeg failed", "Run with --verbose to see ffmpeg's output.");
 		}
+		report();
 		return { outputPath: output, frames: frame, duration: frame / fps };
 	} finally {
 		process.removeListener("SIGINT", onSignal);
@@ -995,7 +1083,7 @@ export async function runRender(opts: RenderOptions) {
 // Command line
 // ---------------------------------------------------------------------------------------------------
 
-const USAGE = "Usage: node vw.ts render <timeline.ts> [--output out.mp4] [--fps N] [--chrome PATH] [--no-sandbox] [--dry-run] [--verbose]";
+const USAGE = "Usage: node vw.ts render <timeline.ts> [--output out.mp4] [--fps N] [--chrome PATH] [--no-sandbox] [--dry-run] [--check] [--frames DIR] [--verbose]";
 
 function parseArgs(argv: string[]): RenderOptions {
 	const [command, ...rest] = argv;
@@ -1011,6 +1099,8 @@ function parseArgs(argv: string[]): RenderOptions {
 		else if (arg === "--chrome") opts.chrome = value();
 		else if (arg === "--no-sandbox") opts.noSandbox = true;
 		else if (arg === "--dry-run") opts.dryRun = true;
+		else if (arg === "--check") opts.check = true;
+		else if (arg === "--frames") opts.frames = value();
 		else if (arg === "--verbose") opts.verbose = true;
 		else throw new UserError(`Unknown option ${arg}`, USAGE);
 	}

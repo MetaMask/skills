@@ -1,0 +1,24 @@
+:root {
+	--color-muted: #8296a8;
+	--color-surface-2: #182330;
+
+	--safe-left: 96px;
+	--safe-right: 96px;
+	--safe-top: 152px;
+	--safe-bottom: 176px;
+	--lockup-top: 64px;
+	--captions-bottom: 56px;
+	--gap: 32px;
+
+	--text: var(--color-fg);
+	--text-muted: var(--color-muted);
+	--text-dim: var(--color-muted);
+	--text-on-accent: #000000;
+	--surface-0: var(--color-bg);
+	--surface-1: var(--color-surface);
+	--surface-2: var(--color-surface-2);
+	--accent: var(--color-accent);
+	--line: var(--color-border);
+	--captions-bg: rgba(14, 20, 26, 0.94);
+	--captions-text: var(--color-fg);
+}

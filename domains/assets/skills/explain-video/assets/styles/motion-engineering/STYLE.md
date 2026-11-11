@@ -47,6 +47,7 @@ An engineering-document aesthetic — half aerospace HUD, half CAD blueprint. Ch
 - **Leader lines connect labels to things.** Never float a label — connect it with a 1px line to its referent.
 - **Tabular numerals everywhere.** All metrics in mono with `tnum`.
 - **Coordinate readouts.** Bottom strip shows `X 1240.00 Y 360.00` ticking subtly.
+- **Safe area.** Import `tokens.css` after `style.css`. All content sits in `.vw-safe` (from `kit/kit.ts` `stage()`): 96px sides, 152px top, 176px bottom. Grid, crosshairs, ticks, leader lines and readouts are decoration: mark them `data-vw-decor` so `scripts/render/vw.ts --check` ignores them. Everything else must pass the check.
 
 ## Color application
 
@@ -54,7 +55,8 @@ An engineering-document aesthetic — half aerospace HUD, half CAD blueprint. Ch
 - **Amber accent (`--color-accent`) is the HUD signal.** Used for primary highlights, callouts, target marks, the active reading.
 - Cyan (`--cyan`) for measurement lines and secondary highlights.
 - Warning amber (`--warn`) for transitions / in-progress.
-- Muted slate for grid labels, axes, secondary type.
+- Muted slate for grid labels, axes, secondary type. `tokens.css` lifts `--color-muted` to `#8296a8` so it passes WCAG AA on every surface.
+- Text uses `--text`, `--text-muted`, `--accent`, `--cyan`; surfaces use `--surface-0/1/2`. Text on an amber fill is black. No raw hex/rgb, no dark text.
 
 ## Type rules
 

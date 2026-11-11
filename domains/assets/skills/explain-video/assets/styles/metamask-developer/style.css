@@ -11,7 +11,7 @@
 	--color-accent: #fa4b00; /* brand orange400 */
 
 	--color-muted: #a3a4a7; /* grey300 */
-	--color-muted-dim: #66676a; /* grey500 */
+	--color-muted-dim: #8a8b8f;
 	--color-border: rgba(226, 226, 255, 0.14);
 	--color-surface: #151517;
 	--color-surface-2: #1d1d21;
@@ -58,10 +58,37 @@
 	--safe-x: 96px;
 	--safe-y: 80px;
 
+	--safe-left: 96px;
+	--safe-right: 96px;
+	--safe-top: 152px;
+	--safe-bottom: 176px;
+	--lockup-top: 64px;
+	--captions-bottom: 56px;
+	--gap: 32px;
+
+	--text: var(--color-fg);
+	--text-muted: var(--color-muted);
+	--text-dim: var(--color-muted-dim);
+	--text-on-accent: #000000;
+	--surface-0: var(--color-bg);
+	--surface-1: var(--color-surface);
+	--surface-2: var(--color-surface-2);
+	--accent: var(--color-accent);
+	--line: var(--color-border);
+	--captions-bg: rgba(24, 24, 27, 0.94);
+	--captions-text: #ffffff;
+
 	--dot-grid: rgba(255, 255, 255, 0.055); /* faint 48px dot grid behind everything */
 	--glow-orange: radial-gradient(60% 60% at 50% 50%, rgba(250, 75, 0, 0.22) 0%, rgba(250, 75, 0, 0) 70%);
 	--glow-blue: radial-gradient(60% 60% at 50% 50%, rgba(115, 166, 255, 0.18) 0%, rgba(115, 166, 255, 0) 70%);
 	--glow-purple: radial-gradient(60% 60% at 50% 50%, rgba(198, 110, 245, 0.18) 0%, rgba(198, 110, 245, 0) 70%);
+}
+
+html,
+body {
+	background-color: var(--color-bg);
+	color: var(--color-fg);
+	font-family: var(--font-body);
 }
 
 /* Fonts (embedded, same Inter + JetBrains Mono as the MetaMask style): */

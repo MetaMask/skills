@@ -32,10 +32,11 @@ Load [brand.md](brand.md) for the exact token sources. `style.css` (tokens plus 
 
 - **Black canvas, soft glow.** `--color-bg` everywhere. Put one large blurred radial glow (`--glow-orange` or `--glow-blue`) behind the hero element, at most one per scene, never full-frame.
 - **Cards fill 80–90% of the frame.** Rounded (`--radius-md`, 20px), `--color-surface` fill, 1px `--color-border`. Nested rows use `--color-surface-2`.
-- **Generous padding.** 32–40px inside cards, 24–32px gaps. Safe margin `--safe-x` / `--safe-y`.
+- **Generous padding.** 32–40px inside cards, 24–32px gaps.
+- **Safe area.** All content sits in `.vw-safe` (from `kit/kit.ts` `stage()`): 96px from the sides, 152px from the top (clear of the lockup), 176px from the bottom (clear of captions). Lay out with `.vw-stack` / `.vw-row` / `.vw-grid`, never absolute pixel positions. `scripts/render/vw.ts --check` fails on anything outside it or overlapping.
 - **Left-aligned headlines, big.** Title 88–112px / 700 / -0.03em. Subheads 36px. Body 28px. Mono 20px+.
 - **Chips and pills** (`--radius-pill`) for labels, file names, and statuses. A scene header is a small orange pill + a big title, not a CAD label.
-- **Bottom strip** is a captions pill, centered, `rgba(24,24,27,0.92)`, 30px Inter 500, 20px radius.
+- **Bottom strip** is a captions pill (`.vw-captions`), centered, `--captions-bg`, 30px Inter 500, 20px radius.
 - **Brand lockup, top-left of every scene:** the fox (48px, `foxMark(48)`) followed by the official stacked wordmark (44px tall, white, `wordmark(44)` from `wordmark.ts`).
 - **Hero fox** (~220px, top-right, beside the title) on the opening and closing scenes only. It assembles with `assembleFox` and sits in front of the orange glow.
 
@@ -45,8 +46,9 @@ Load [brand.md](brand.md) for the exact token sources. `style.css` (tokens plus 
 - Blue (`--mm-blue`) = flow, structure, links, arrows.
 - Lime (`--mm-lime`) = success, "after", added lines. Red (`--mm-red`) = removed lines or errors, sparingly.
 - Purple (`--mm-purple`) = a third category only when blue and orange are taken.
-- Orange on black passes contrast for large text. For small text use `--mm-orange-soft` or white.
-- Orange-filled buttons/pills take **black** text, not white.
+- Text colors: `--text` (white), `--text-muted`, `--text-dim`, `--accent`, `--mm-*`. Each passes WCAG AA on `--surface-0/1/2`. Orange text under 24px on `--surface-2` is borderline (4.58:1); prefer `--mm-orange-soft` there.
+- Orange-filled buttons/pills take **black** text (`--text-on-accent`), never white (3.46:1 fails).
+- Never set dark text (`#000`, `#111`, `--color-bg`, grey900…) on any surface, and no raw hex/rgb in segments.
 
 ## Type rules
 
