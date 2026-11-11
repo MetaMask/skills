@@ -5,8 +5,6 @@ parent: component-scaffold
 
 # Component Scaffold — MetaMask Mobile
 
----
-
 ## 1. Where to put the component
 
 | Scope | Location |
@@ -46,7 +44,7 @@ Optional situational files:
 
 ## 3. Design system: which layer to use
 
-Two systems coexist in the repo:
+Choose from three layers, in this order:
 
 ### Layer 1 — `@metamask/design-system-react-native` (MMDS, npm package) ✅ Always use first
 
@@ -58,12 +56,6 @@ Before writing any UI, verify what the installed version actually exports — th
 node_modules/@metamask/design-system-react-native/dist/components/index.d.cts
 ```
 
-If the file layout differs, also try:
-```
-node_modules/@metamask/design-system-react-native/dist/components/index.d.ts
-node_modules/@metamask/design-system-react-native/src/components/index.ts
-```
-
 The installed package is the source of truth, not this skill's examples. Read props from `dist/components/<Component>/<Component>.types.d.cts`. For behavior and examples, read the component README on GitHub at the release tag (READMEs are not in the npm package):
 
 ```
@@ -72,13 +64,11 @@ https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-
 
 Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`. When a README and the types disagree, the types win. No MCP server is needed.
 
-Do not add new usage of anything marked `@deprecated`. Search the component folder `dist/components/<Name>/` (the tag is often on `<Name>.d.cts`) and the README at the installed tag. An empty manifest `jsDocTags` is not evidence that it is current. Prefer the non-deprecated replacement when the installed package exports it.
-
-For local visual testing of a component in isolation, see `docs/readme/storybook.md`.
+For anything marked `@deprecated`, follow the Deprecated APIs rule in `ui-development`.
 
 ### Layer 2 — Existing app-level components
 
-Use an existing app-level component only when `@metamask/design-system-react-native` has no equivalent. Search the repo for one that already covers the need. Never use anything marked `@deprecated`; those have MMDS equivalents. Prefer MMDS first.
+Use an existing app-level component only when `@metamask/design-system-react-native` has no equivalent. Search the repo for one that already covers the need, and apply the same deprecation rule to it. Prefer MMDS first.
 
 ### Layer 3 — Feature-specific composites
 
@@ -185,7 +175,7 @@ import { AccessRestrictedModalProps } from './AccessRestrictedModal.types';
 | `app/util/number/index.js` | `app/util/number/bigint` |
 | Sibling feature directories (route-isolation zones) | Only import from your own feature or shared `app/components/UI/` |
 
-- One allowed `eslint-disable`: `// eslint-disable-next-line @typescript-eslint/no-require-imports` inside a `jest.mock` factory that uses `require('react-native')`
+- The only allowed `eslint-disable`: `// eslint-disable-next-line @typescript-eslint/no-require-imports` inside a `jest.mock` factory that uses `require('react-native')`. The templates below need none.
 
 ---
 
@@ -349,12 +339,12 @@ Re-exports point at the component's own `index.ts` (`./Foo`), not directly at th
 - [ ] Directory with `PascalCase` name in the correct location (Section 1)
 - [ ] `Foo.types.ts` — recommended; `FooProps` interface with JSDoc per prop (`children?`, `twClassName?`, `testID?`); inline interface acceptable only for trivial components with 1–2 props
 - [ ] `Foo.testIds.ts` — recommended; `FooSelectorsIDs as const`, `SCREAMING_SNAKE` keys, `dash-case` values prefixed with kebab component name; skip only when the component has no testable elements
-- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native`, or an existing app-level component when MMDS has no equivalent and it is not marked `@deprecated`; `Box` for layout and the MMDS `Text` component for text; no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
+- [ ] `Foo.tsx` — primitives from `@metamask/design-system-react-native`, or an existing app-level component when MMDS has no equivalent; `Box` for layout and the MMDS `Text` component for text; no `StyleSheet`; `strings()` for all user-visible copy; every asserted element has `testID` wired from the testIds constant
 - [ ] `index.ts` — exports `default`, `type FooProps`, and `FooSelectorsIDs`
 - [ ] `Foo.test.tsx` — colocated (not in `__tests__/`); testIds via constant (never raw strings); `toBeOnTheScreen()` for presence, `.toBeNull()` for absence; `beforeEach(jest.clearAllMocks)`
-- [ ] ESLint and TypeScript pass: no `any`, no `eslint-disable`, no import fence violations
+- [ ] ESLint and TypeScript pass: no `any`, no import fence violations, and no `eslint-disable` except the `jest.mock` one in Section 8
 - [ ] If consumed outside the folder: parent feature `index.ts` updated (Section 10)
 - [ ] If bottom sheet: the design-system bottom sheet parts, no extra surface class unless the design needs one; `ScrollView` from `react-native-gesture-handler`
-- [ ] No new usage of `@deprecated` MMDS APIs. Actions use the design-system Button; use the base button or `Pressable` only when Button cannot express the design, with pressed styles via `twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
+- [ ] The `ui-development` Deprecated APIs rule holds. Actions use the design-system Button; use the base button or `Pressable` only when Button cannot express the design, with pressed styles via `twClassName={(pressed) => ...}` or `Pressable` + `tw.style()`
 - [ ] All user-visible strings use `strings()` — no hardcoded copy
 
