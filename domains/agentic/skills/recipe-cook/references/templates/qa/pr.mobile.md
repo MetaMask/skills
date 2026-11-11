@@ -56,26 +56,45 @@ Hits: <pattern + file:line + pack | None.>
 ## Checklist
 
 ## Setup
-
-- [ ] **1. Harness bound and proof planned** — verify the task's retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <TASK_DIR>`, confirming its locked version and command surfaces; plan the proof from the frozen `artifacts/qa-scope.json` and `TASK.md` criteria: proof modes, device target, recipe decision and known limitations in `artifacts/recipe-coverage.md`.
-- [ ] **2. Exact PR head** — re-fetch all PR facts, block on head drift without overwriting the frozen scope, require a clean checkout, and detach at the exact frozen SHA.
+- [ ] 1. Bind the harness and plan the proof
+  Verify the task's retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <TASK_DIR>`, confirming its locked version and command surfaces (rules: qa.md, Phase 1).
+  Plan from the frozen `artifacts/qa-scope.json` and `TASK.md` criteria: proof modes, device target, recipe decision and known limitations in `artifacts/recipe-coverage.md`.
+- [ ] 2. Check out the exact PR head
+  Re-fetch all PR facts and block on head drift without overwriting the frozen scope (rules: qa.md, Phase 2).
+  Require a clean checkout and detach at the exact frozen SHA.
 
 ## Review
-
-- [ ] **3. Explicit static checks** — execute a team review checklist only when the task or selected QA profile explicitly names it. Read that installed checklist as a declared dependency; do not discover or activate skills from file paths, labels or metadata. Keep static findings separate from runtime AC verdicts.
+- [ ] 3. Run explicitly named static checks only
+  Execute a team review checklist only when the task or selected QA profile explicitly names it; read that installed checklist as a declared dependency.
+  Do not discover or activate skills from file paths, labels or metadata. Keep static findings separate from runtime AC verdicts.
 
 ## Validate
-
-- [ ] **4. PR app launched** — from the exact checked-out head run `<task>/mm-harness launch <ios|android> --device "<selected device>" --verify --json`; if the harness says the app build is missing or stale, follow that next action through `<task>/mm-harness`. Or BLOCKED.
-- [ ] **5. Capability boundary** — discover actions and reusable recipes from the exact checkout; require the recipe to establish and assert deterministic start state through discovered actions or mark the affected AC UNTESTABLE/BLOCKED; update the frozen contract if the recipe decision changes.
+- [ ] 4. Launch the PR app
+  From the exact checked-out head run `<task>/mm-harness launch <ios|android> --device "<selected device>" --verify --json`.
+  If the harness says the app build is missing or stale, follow that next action through `<task>/mm-harness`. Or BLOCKED.
+- [ ] 5. Map the capability boundary
+  Discover actions and reusable recipes from the exact checkout (rules: qa.md, Phase 3); update the frozen contract if the recipe decision changes.
+  The recipe must establish and assert deterministic start state through discovered actions, or mark the affected AC UNTESTABLE/BLOCKED.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
-- [ ] **6. AC recipe planned** — author `artifacts/recipe.json`; every review AC has assertion nodes or a named UNTESTABLE limitation; continuous-gesture claims (drag, pan, fling, pinch, slider scrub, smoothness/lag/flicker while the finger is down) are classified `needs-human` or `needs-new-action` and never proved by a discrete tap or a resting-state screenshot; `<task>/mm-harness run <task>/artifacts/recipe.json --plan --adapter mobile --platform <ios|android> --device "<selected device>" --json` passes and output is retained as `artifacts/recipe-plan.json`.
-- [ ] **7. Recipe run**. Start screen-stack-dependent cases with `app.lifecycle restart` and bounded `ensure_unlocked`. Include a runtime smoke assertion even with no changed behavior, then execute once on the selected device with `--artifacts-dir <task>/artifacts/recipe-run`; add `--record-video=full-run` for every visual review. The actual run proves Android support only when it produces the video artifact. Preserve the first failure and enforce mutation replay safety.
-- [ ] **8. Evidence and code-risk audit** — read trace, manifest, screenshots, state/log proof, and the full-run video when one was required; inspect the complete PR diff and changed production files; write `artifacts/recipe-coverage.md` with one verdict per review AC and a strict `artifacts/evidence-manifest.json`.
+- [ ] 6. Author and plan the AC recipe
+  Author `artifacts/recipe.json`; every review AC has assertion nodes or a named UNTESTABLE limitation (rules: qa.md, Phase 4).
+  Continuous-gesture claims (drag, pan, fling, pinch, slider scrub, smoothness/lag/flicker while the finger is down) are `needs-human` or `needs-new-action`, never proved by a discrete tap or a resting-state screenshot.
+  `<task>/mm-harness run <task>/artifacts/recipe.json --plan --adapter mobile --platform <ios|android> --device "<selected device>" --json` passes; retain its output as `artifacts/recipe-plan.json`.
+- [ ] 7. Run the live recipe
+  Start screen-stack-dependent cases with `app.lifecycle restart` and bounded `ensure_unlocked`; include a runtime smoke assertion even with no changed behavior (rules: qa.md, Phase 5).
+  Execute once on the selected device with `--artifacts-dir <task>/artifacts/recipe-run`; add `--record-video=full-run` for every visual review. The actual run proves Android support only when it produces the video artifact.
+  Preserve the first failure and enforce mutation replay safety.
+- [ ] 8. Audit the evidence and code risk
+  Read trace, manifest, screenshots, state/log proof and the full-run video when one was required; inspect the complete PR diff and changed production files (rules: qa.md, Phase 6).
+  Write `artifacts/recipe-coverage.md` with one verdict per review AC and a strict `artifacts/evidence-manifest.json`.
 
-## Report
-
-- [ ] **9. Quality, report, and proposed reply** — retain the QA suite and finalize portable `qa-proof.json`, as specified by `references/qa.md`; if `artifacts/recipe-quality.json` is absent, follow Cook's shared task and quality tools; render the single human `artifacts/report.html` using Recipe QA's HTML reference, and write the format-controlled `artifacts/review-reply.md` and `artifacts/review.md`, `artifacts/line-comments.json`, and `artifacts/learnings.md`. Never post the reply.
-- [ ] **10. Complete** — run `{{TASK_DIR}}/mark complete --mark-last`, substituting the actual materialized task path in direct Cook; return the detailed report, proposed reply, and evidence directory. Never post or approve the PR.
+## Finish
+- [ ] 9. Finalize quality, the report and the proposed reply
+  Retain the QA suite and finalize portable `qa-proof.json` (rules: qa.md, Phase 7); if `artifacts/recipe-quality.json` is absent, follow Cook's shared task and quality tools.
+  Render the single human `artifacts/report.html` using Recipe QA's HTML reference.
+  Write the format-controlled `artifacts/review-reply.md` and `artifacts/review.md`, `artifacts/line-comments.json` and `artifacts/learnings.md`. Never post the reply.
+- [ ] 10. Complete the task
+  Run `{{TASK_DIR}}/mark complete --mark-last`, substituting the actual materialized task path in direct Cook.
+  Return the detailed report, proposed reply and evidence directory. Never post or approve the PR.
 
 For an Android visual review, continue when the run produces the video artifact. If the adapter returns a structured unsupported or provider-unavailable result, mark the visual AC `UNTESTABLE`/`BLOCKED` with that exact reason; do not substitute another recorder or unrecorded visual proof. Never pre-block an Android-specific visual AC solely because it targets Android. Android state/log-only review may proceed without video when the evidence fully observes the claims.
