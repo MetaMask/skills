@@ -41,6 +41,7 @@ Do not apply React Native guidance or APIs (`twClassName`, twrnc,
   removes the default palette and font sizes. Use only
   classes that configuration generates. If a class is in doubt, check the
   preset source or the built CSS; do not invent one or add a safelist entry.
+- Outside Tailwind, read a semantic token as a CSS variable from the installed `@metamask/design-tokens` package. How Extension reads one is in the README at `https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-tokens@<installed version>/packages/design-tokens/README.md` (version from `node_modules/@metamask/design-tokens/package.json`).
 - `Box` is the default for layout. Using it makes code easier to move between
   Mobile and Extension. Either `Box` utility props or `className` is fine.
   The utility props exist only on `Box`, they only apply Tailwind class names,
@@ -92,8 +93,8 @@ import { Component as LegacyComponent } from '@metamask/design-system-react';
 import { Component } from '../../<legacy-component-module>';
 ```
 
-Prop mapping from legacy to MMDS components:
-[React `MIGRATION.md`](https://github.com/MetaMask/metamask-design-system/blob/main/packages/design-system-react/MIGRATION.md).
+Prop mapping from legacy to MMDS components is in `MIGRATION.md` at the installed tag. Take `<installed version>` from `node_modules/@metamask/design-system-react/package.json`:
+`https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react@<installed version>/packages/design-system-react/MIGRATION.md`
 
 ## Exceptions
 
