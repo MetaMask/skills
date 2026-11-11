@@ -1,6 +1,14 @@
 ---
 name: supply-chain-audit
-description: Assess whether a dependency change is safe to take, across the detectors that each answer part of it — Socket Security (malicious/anomalous package behavior, install scripts, new maintainers), `yarn npm audit` and advisories (known vulnerabilities), lockfile and manifest diffs (transitive and resolution swaps included), and LavaMoat policy grants (new capabilities, delegated to `lavamoat-policy`). Also covers what no upstream scanner sees, because your own repo or CI does it to dependencies afterwards: yarn patches that modify dependency source at install, `resolutions` that force or stub versions, `npmAuditIgnoreAdvisories` suppression lists, CI actions riding mutable tags instead of pinned SHAs, and yarn plugins that execute at install. Detection belongs to the tools; the job is disposition. Triggers on /mms-supply-chain-audit, or when asked whether a dependency bump is safe, to review a lockfile or package.json change, to triage a Socket or audit finding, or to assess supply-chain risk of a change.
+description: >
+  Decide whether a dependency change is safe to take, across the detectors that each answer part
+  of it (Socket Security, `yarn npm audit` advisories, lockfile and manifest diffs, LavaMoat
+  grants via `lavamoat-policy`) and what no upstream scanner sees: yarn patches, `resolutions`,
+  `npmAuditIgnoreAdvisories`, CI actions on mutable tags, and yarn plugins. Use on any change that
+  touches `package.json`, `yarn.lock`, `.yarnrc.yml`, `.yarn/patches/`, a `resolutions` entry or a
+  workflow's `uses:` ref, whatever the task is about, and not only when asked whether a bump is
+  safe. Also on /mms-supply-chain-audit, or a Socket or audit finding to triage. Detection belongs
+  to the tools; the job is disposition.
 maturity: experimental
 ---
 

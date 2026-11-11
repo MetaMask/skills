@@ -1,6 +1,14 @@
 ---
 name: lavamoat-policy
-description: Triage a LavaMoat policy change for least privilege — which newly granted capabilities can be dropped without breaking anything. Detection belongs to `@metamaskbot update-policies` and CI; every grant has a call site by construction, so reporting that one exists is not the deliverable. Read each grant's use at the installed version to find its gate (a config flag nobody sets, an API nobody calls, a branch our payloads never take, an error-only path) and its breadth (a bare global standing in for one property is a finding even when reached), with the removal or narrowing test proposed for the policy owners to run. Lead with removal candidates and anything bearing on security; never render an accept/reject verdict, that call is the reviewer's. Triggers on /mms-lavamoat-policy, or when asked about a LavaMoat policy grant, policy.json diff, capability containment, scuttling, allowScripts, or why a package needs a global/builtin. The specialized engine behind `supply-chain-audit`'s capability-containment lane.
+description: >
+  Triage a LavaMoat policy change for least privilege: which newly granted capabilities can be
+  dropped or narrowed without breaking anything, found by reading each grant's use at the
+  installed version for its gate and its breadth, with the removal test proposed for the policy
+  owners to run. Never an accept/reject verdict. Use on any change that edits a
+  `lavamoat/**/policy.json` or `allowScripts`, or adds, removes or bumps a dependency that ships
+  in the extension bundle, since the policy diff follows from that whatever the task is about.
+  Also on /mms-lavamoat-policy, or when asked about a grant, scuttling, or why a package needs a
+  global or builtin. The engine behind `supply-chain-audit`'s capability-containment lane.
 maturity: experimental
 ---
 
