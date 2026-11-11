@@ -14,6 +14,8 @@ Required for Terminal changes, in addition to the Perps families above.
   Controller and shared utilities, and Mobile's controller selectors, actions and state shape, are reused with no parallel state or copied logic. See references/terminal.md#reuse-and-types
 - [ ] Legacy Local Formatters
   Terminal's `formatFee`, `formatPercentage`, `formatSize`, `formatTablePrice` and `formatUsd` (`src/features/perpetuals/utils/`) are legacy copies: a PR that uses, extends or calls one migrates that… See references/terminal.md#legacy-local-formatters
+- [ ] Forced Testnet
+  `config.hyperliquid.forceTestnet` (`src/features/perpetuals/config/hyperliquid.config.ts`) is authoritative: code that reads network state respects it (for example `client-factory.ts`,… See references/terminal.md#forced-testnet
 
 ## Verdict and handoff
 

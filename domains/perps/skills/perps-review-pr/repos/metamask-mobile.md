@@ -8,8 +8,10 @@ Apply these Mobile-specific families in addition to the shared checks. Compare c
 
 - [ ] Agentic Testability (testIDs)
   PRs that touch UI components must include testIDs so agentic recipes and E2E tests can navigate and assert on the app without manual interaction. See references/mobile.md#agentic-testability-testids
-- [ ] Navigation Exit Parity
-  A navigation fix must cover every way the user can leave the screen. See references/mobile.md#navigation-exit-parity
+- [ ] Android Back Paths
+  The shared *Navigation Entry and Exit Parity* check applies; on Mobile it includes Android hardware back. See references/mobile.md#android-back-paths
+- [ ] Mobile UI Structure
+  Perps components render; their logic lives in hooks and shared helpers. See references/mobile.md#mobile-ui-structure
 - [ ] Native Modal Layout
   Modal wrapper omitted in width-constrained layouts — in the Pro layout, parent columns are width-constrained; bottom sheets must be wrapped in a Modal so they are not clipped. See references/mobile.md#native-modal-layout
 - [ ] Mobile Controller Integration Mocks

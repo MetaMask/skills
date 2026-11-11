@@ -7,7 +7,7 @@ maturity: stable
 
 # Perps static review
 
-Generated from the canonical Perps review rules @ fa5755de42c6ba8f4a0a3c30dfe498134d52c43e. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
+Generated from the canonical Perps review rules @ bd85e44264c5d9e0a5ef83ec9a46d072d2745417. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source, diff and recorded evidence only: no tests, builds, recipes, installs, probes, app launch, product change, publish or workspace cleanup. Delegated skills inherit this static, read-only boundary. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
@@ -67,6 +67,8 @@ Check applicability against the frozen diff and its affected callers. Open each 
   Delayed balance tracker loses its initiating context: Bind the initiating account, provider and network. See references/shared.md#data-flow-state
 - [ ] Trade Flow & Order Execution
   Numeric meaning changes in transit: Preserve each value's unit (coin vs USD, notional vs margin), price source (mark vs oracle vs mid) and sign/direction (long vs short, gain-side vs loss-side RoE)… See references/shared.md#trade-flow-order-execution
+- [ ] Navigation Entry and Exit Parity
+  A navigation or history fix covers every way the user enters and leaves the screen. See references/shared.md#navigation-entry-and-exit-parity
 - [ ] Run the test-i18n-usage skill
   Run `domains/testing/skills/test-i18n-usage` by name when locale strings, locale objects, translation call sites or locale-sensitive tests change. Use the applicable client guidance, recording NOT_CHECKED if it is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
 - [ ] Test Layer Coverage
