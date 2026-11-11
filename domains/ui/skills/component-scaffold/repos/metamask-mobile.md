@@ -159,10 +159,11 @@ Add new keys to `locales/languages/en.json` (repo root) only. Crowdin picks up n
 
 `tsconfig.json` defines no `@components` or `@app` path aliases. All imports are relative. Compute the correct `../` depth based on the file's actual location.
 
-Example from `app/components/UI/Compliance/AccessRestrictedModal/AccessRestrictedModal.tsx`:
+Example, adjusting `../` to the file:
+
 ```tsx
-import { strings } from '../../../../../locales/i18n';
-import { AccessRestrictedModalProps } from './AccessRestrictedModal.types';
+import { strings } from '../../../../locales/i18n';
+import type { FooProps } from './Foo.types';
 ```
 
 ---

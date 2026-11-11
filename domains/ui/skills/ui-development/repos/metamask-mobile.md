@@ -43,6 +43,7 @@ Mobile.
   share across platforms. Read which props exist from `Box`'s installed types.
   When a style has no utility prop (radius, for example), use a class such as
   `twClassName="rounded-xl"`.
+- Outside Tailwind, read a semantic token in JS from the installed `@metamask/design-tokens` package, through the app theme. How Mobile reads one is in the README at `https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-tokens@<installed version>/packages/design-tokens/README.md` (version from `node_modules/@metamask/design-tokens/package.json`).
 - No `StyleSheet.create()` and no new `.styles.ts` files. Inline style objects
   only for truly dynamic values.
 - When you change a component that uses `useStyles` with a `*.styles.ts`
@@ -125,8 +126,8 @@ import LegacyComponent, {
 } from '../../../<existing-app-component>';
 ```
 
-Prop mapping from legacy to MMDS components:
-[React Native `MIGRATION.md`](https://github.com/MetaMask/metamask-design-system/blob/main/packages/design-system-react-native/MIGRATION.md).
+Prop mapping from legacy to MMDS components is in `MIGRATION.md` at the installed tag. Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`:
+`https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react-native@<installed version>/packages/design-system-react-native/MIGRATION.md`
 
 ## Mobile checklist
 
