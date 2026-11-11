@@ -15,7 +15,6 @@ Tracking:
 
 - [DSYS-1078 — MetaMask Agentic Design System Epic](https://consensyssoftware.atlassian.net/browse/DSYS-1078)
 - [MetaMask/skills#138](https://github.com/MetaMask/skills/pull/138) — Extension `ui-development` gateway
-- [MetaMask/metamask-design-system#1465](https://github.com/MetaMask/metamask-design-system/pull/1465) — Storybook MCP and MMDS broker work
 
 ## Goal
 
@@ -29,7 +28,7 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 
 | Moment | What happens |
 | :---- | :---- |
-| **Create** | Agents read current MMDS guidance before building — through skills, Storybook MCP, Figma MCP, and Code Connect. |
+| **Create** | Agents read current MMDS guidance before building — through skills, installed package types, the hosted Storybook components manifests, and Figma MCP with Code Connect when connected. |
 | **Review** | Deterministic checks (ESLint, fitness functions) plus agentic review for judgment calls. |
 | **Audit** | Recurring queries across existing screens to find drift, custom UI, and documentation gaps. |
 
@@ -37,13 +36,13 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 
 - **Consumer skills** (`ui-development` repo overlays) route agents to current MMDS guidance for product UI create and review workflows.
 - **Provider skills** (future `design-system` domain) support MMDS authoring, release, and documentation maintenance.
-- **Storybook MCP** (`storybook-broker-mcp`) is the preferred delivery mechanism for current MMDS knowledge in coding agents. Package exports and consumer Tailwind configuration are the ordered fallback when the broker is unavailable.
+- **Baseline delivery:** the installed package types in the consumer repo, the hosted Storybook components manifests ([React](https://metamask.github.io/metamask-design-system/manifests/components.json), [React Native](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json)), and the consumer Tailwind configuration. Installed types win when sources disagree, because the manifests track MMDS `main`.
 
 ## Foundation workstreams
 
 1. **Thin consumer gateway skills** — Refine `ui-development` overlays into stable routers (Create + Review) instead of static component inventories.
-2. **Storybook MCP integration** — Treat Context Forge's preconfigured `storybook-broker-mcp` as the primary source; document explicit fallback behavior without embedding setup instructions in skills.
-3. **MMDS source and broker readiness** — Keep Storybook documentation, exports, and broker surfaces current for agent consumption.
+2. **No-MCP baseline** — Keep the installed types, hosted components manifests, and consumer Tailwind configuration sufficient on their own.
+3. **MMDS source readiness** — Keep type JSDoc (including `@deprecated`), READMEs, stories, and the published components manifests current for agent consumption.
 4. **Automated alignment checks** — Extend CI and review workflows to validate tokens, components, and patterns where feasible.
 5. **Provider-side skills** — Add a `design-system` domain and `metamask-design-system` maintainer overlay in the skills repo.
 
@@ -51,7 +50,7 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 
 | Horizon | Focus |
 | :---- | :---- |
-| **Now** | Build the shared knowledge path and establish quality baselines — point MetaMask Skills to Storybook MCP, begin Figma/React/React Native alignment, expand Code Connect, audit MMDS and product usage. |
+| **Now** | Build the shared knowledge path and establish quality baselines — point MetaMask Skills at installed types and the hosted components manifests, begin Figma/React/React Native alignment, expand Code Connect, audit MMDS and product usage. |
 | **Next** | Operationalize Create, Review, and Audit in normal delivery — enable the gateway by default in Extension and Mobile, run MMDS-focused review, load relevant skills per UI PR, run recurring audits. |
 | **Later** | Build a trusted feedback and remediation loop — agents create issues or PRs for alignment gaps, automate low-risk fixes, retain human approval for judgment calls. |
 
@@ -59,6 +58,7 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 
 - MMDS is the default; intentional documented custom UI is allowed.
 - Skills are gateways and durable constraints, not second copies of MMDS documentation.
-- Do not maintain static component inventories, deprecated-name lists, or MCP setup instructions in consumer skills.
-- Query current Storybook guidance before choosing components, APIs, tokens, or patterns.
-- When Storybook MCP is unavailable, follow the ordered fallback defined in the relevant repo overlay.
+- Skills must work with no MCP server connected.
+- Do not put release-pinned inventories, version pins, prop lists, or MCP setup instructions in skills. Point at the installed package and the hosted manifests instead.
+- Read the installed types before choosing components, APIs, tokens, or patterns. When anything disagrees with them, the installed types win.
+- Inline only durable rules that agents need and cannot read elsewhere (for example Active Design Brain rules). Link to Proposed rules; do not enforce them.
