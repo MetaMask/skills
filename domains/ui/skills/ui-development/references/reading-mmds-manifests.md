@@ -78,18 +78,18 @@ component name appears in the installed export index.
 - The manifest is reliable for a component's own API. Check the component's
   installed types for anything it inherits from the host element.
 
-Not every story entry is in the manifest. Design-token, foundation, and
-pattern stories are left out, so a missing entry is not proof that no story
-exists.
+Not every story is in the components manifest. A missing entry is not proof
+that no story or pattern exists. Follow the pattern lookup order in the
+`ui-development` skill.
 
 ## Common queries
 
 - **Is there a component for X?** Look up the component by name in the
   manifest: search `name` and `reactDocgenTypescript.description`, then
   confirm the name is exported by the installed package index.
-- **Is there already a pattern?** Pattern stories are not in this manifest.
-  Read the component README at the installed tag, and search existing
-  repository usage, before building custom UI.
+- **Is there already a pattern?** Look in this manifest and the docs manifest,
+  then follow the pattern lookup order in the `ui-development` skill. Use the
+  first place that has it.
 - **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated,
   and the message usually names the replacement. How to confirm it and what
   to do: the Deprecated APIs section of the `ui-development` skill.
