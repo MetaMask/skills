@@ -6,7 +6,7 @@
 
 A change to controller state shape, method signatures, event names or payloads, or package exports ships with a client migration plan and package-level consumer-style tests.
 
-- [ ] **State shape changes without client migration** — Mobile/Extension selectors and hooks may break.
+- [ ] **State shape changes without client migration** — Mobile, Extension and Terminal selectors and hooks may break.
 - [ ] **Method signature changes without compatibility plan** — exported controller methods need backward compatibility or coordinated client changes.
 - [ ] **Event name/payload drift** — clients and metrics rely on stable events.
 - [ ] **Package export changes without package-level tests** — changing exports must include consumer-style assertions.
@@ -25,7 +25,7 @@ The changelog entry and the semver bump match the contract impact, and a bump PR
 
 ## HyperLiquid Multi-Sig Account Handling in HyperLiquidProvider
 
-Every user-scoped exchange write in `HyperLiquidProvider` needs both a proactive info probe placed right before the write and a message classifier in its `catch`; HyperLiquid rejects every single-signer write for a multi-sig account, and neither guard alone is sufficient.
+Every user-scoped exchange write in `HyperLiquidProvider` needs both a proactive info probe placed right before the write and a message classifier in its `catch`; HyperLiquid rejects every single-signer write for a multi-sig account, and neither guard alone is sufficient. A cached positive probe counts as proactive only if it is invalidated on account change and on a classified multi-sig rejection. A write with no production caller is deleted or guarded, never exempt.
 
 - [ ] **Catch-path classifier without proactive probe** — burns a doomed write on every entry
   for a multi-sig account. The error is caught, but the round-trip and any side-effects
@@ -75,11 +75,30 @@ explicit equality and quantization-boundary cases.
 
 Inventory exchange calls, transfers, cancellation, withdrawals and registered
 venue-key paths before claiming an account is read-only. Guard the narrow shared
-write boundary before local side effects; preserve setup needed for authenticated
-reads. A missing public export is a contract defect even when internal tests pass.
+write boundary before local side effects and revalidate the captured account and
+lifecycle after asynchronous signing, immediately before transport dispatch;
+preserve setup needed for authenticated reads. A missing public export is a contract defect even when internal tests pass.
+
+<a id="one-formatter-surface-in-the-controller"></a>
+
+## One Formatter Surface in the Controller
+
+Display formatting lives in `src/utils/perpsFormatters.ts` as a few reusable formatters configured by an options object, not one exported function per screen or value. Options cover ranges, decimals, sign and fallback. New locale formatting uses client-utils `createFormatters` in the client, with no new controller `Intl` or client-utils import; existing `locale` options stay until migrated. Provider wire formatting (`formatHyperLiquidPrice`, `formatHyperLiquidSize`) stays in its adapter.
+
+- [ ] **Duplicate formatting logic** — new or changed controller code repeats rounding, significant-digit, range, sign or fallback logic that `perpsFormatters.ts` already has, instead of calling it.
+- [ ] **Variant function instead of an option** — a new export that differs from an existing formatter only in precision, sign or fallback; add an option instead, in an options object rather than positional arguments.
+
+<a id="provider-rejections-have-two-shapes"></a>
+
+## Provider Rejections Have Two Shapes
+
+A venue call fails either by throwing or by returning a non-`ok` status result that the caller wraps. A fix to API response handling handles and tests both shapes, and a fix in shared code covers every provider path (today `HyperLiquidProvider` and `LighterProvider`).
+
+- [ ] **One rejection shape handled** — the thrown exception is caught but the wrapped non-`ok` result is not, or the reverse. Test both paths.
+- [ ] **Shared fix proven on one provider** — a change in shared code checked against only one provider's path.
 
 <a id="evidence-expected-before-core-perps-review"></a>
 
 ## Evidence Expected Before Core Perps Review
 
-The PR carries a contract impact matrix (state, methods, events, exports, constants), a Mobile/Extension compatibility note or paired PR links, provider abstraction and fallback tests, and grep evidence that no client import or environment global entered the package.
+The PR carries a contract impact matrix (state, methods, events, exports, constants), a Mobile, Extension and Terminal compatibility note or paired PR links, provider abstraction and fallback tests, and grep evidence that no client import or environment global entered the package.
