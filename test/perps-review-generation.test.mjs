@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+// A delegation row is a short `- [ ]` title with the verbatim instruction indented under it.
+const hasRow = (text, instruction) => { const lines = text.split('\n'); const i = lines.indexOf('  ' + instruction); return i > 0 && lines[i - 1].startsWith('- [ ] '); };
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const generator = path.join(root, 'domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs');
@@ -88,7 +90,7 @@ test('direct delegations and the compact report template survive installation an
     execFileSync('bash', [path.join(root, 'tools/install'), '--source', source, '--target', target, '--repo', 'metamask-mobile', '--domain', 'none', '--include', 'perps-review-pr'], { stdio: 'pipe' });
     const installed = path.join(target, '.agents/skills/mms-perps-review-pr');
     const body = readFileSync(path.join(installed, 'SKILL.md'), 'utf8');
-    for (const delegation of [shared, mobile]) assert.ok(body.split('\n').includes('- [ ] ' + delegation), delegation);
+    for (const delegation of [shared, mobile]) assert.ok(hasRow(body, delegation), delegation);
     assert.equal(body.includes('> Delegate:'), false);
     assert.equal(readFileSync(path.join(installed, 'references/report-template.md'), 'utf8'), report);
     assert.ok(body.includes('Write artifacts/review.md from references/report-template.md; full ledger to artifacts/review-ledger.md'));
@@ -100,12 +102,12 @@ test('direct delegations and the compact report template survive installation an
     const inline = path.join(temp, 'inline.md');
     execFileSync(process.execPath, [generator, '--library', library, '--out', skill, '--analyzer-out', inline, '--client', 'mobile'], { stdio: 'pipe' });
     const analyzer = readFileSync(inline, 'utf8');
-    for (const delegation of [shared, mobile]) assert.ok(analyzer.split('\n').includes('- [ ] ' + delegation));
+    for (const delegation of [shared, mobile]) assert.ok(hasRow(analyzer, delegation), delegation);
     assert.ok(analyzer.includes(report));
     assert.ok(analyzer.includes('the posted review template below'));
     assert.ok(analyzer.includes('a separate full-ledger section of the analyzer response'));
     assert.equal(analyzer.includes('from references/report-template.md'), false);
     const extensionBody = readFileSync(path.join(skill, 'repos/metamask-extension.md'), 'utf8');
-    assert.ok(extensionBody.split('\n').includes('- [ ] ' + extension));
+    assert.ok(hasRow(extensionBody, extension), extension);
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
