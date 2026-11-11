@@ -75,7 +75,7 @@ Work directly in this checkout. Before materialization, limit work to reading th
 | Mid-run | Local artifacts only — **no** `gh pr create` / PR push |
 | Learning capture | Never put secrets in reports or learnings; reference them by name only. Successful terminal marks stage locally through mm-harness. Central sharing is opt-in: set `METAMASK_AGENTIC_LEARNINGS_DIR`, then separately approve `mm-harness checklist closeout <task> --share`. |
 
-For dev/fix-bug, read `references/dev-fix-bug.md` after materialization. Read `references/team-libraries.md` for library setup/customization or its domain-review section when the checklist requires it.
+For dev/fix-bug, read `references/proof-rules.md` after materialization. Read `references/team-libraries.md` for library setup/customization or its domain-review section when the checklist requires it.
 
 For `qa`, read `references/qa.md` after materialization; read `references/qa-example.md` only when an example is useful. Do not load either for dev/fix-bug.
 

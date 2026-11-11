@@ -29,7 +29,7 @@ Before packaging:
 
 - Lead with what changed and why it matters. Link each artifact to the claim and separate proved behavior from gaps.
 - Prefer a small ordered evidence set that tells the user journey over an exhaustive screenshot dump.
-- The local packager does not host `before_after_pairs` yet. If the manifest contains comparisons, retain their run-qualified paths and covered claims, report that packaging gap and stop before packaging; do not infer pairs from filenames or claim the comparison images were packaged. Follow the manifest schema in `.agents/skills/mms-recipe-cook/references/dev-fix-bug.md#coverage-and-finish`.
+- The local packager does not host `before_after_pairs` yet. If the manifest contains comparisons, retain their run-qualified paths and covered claims, report that packaging gap and stop before packaging; do not infer pairs from filenames or claim the comparison images were packaged. Follow the manifest schema in `.agents/skills/mms-recipe-cook/references/proof-rules.md#coverage-and-finish`.
 - Runtime claim needs the complete Recipe v1 provenance set (`recipe.json`, resolution graph, resolved dependencies, `summary.json`, `trace.json`, and manifest); visual claims need screenshot/video paths or an explicit unproven gap.
 - Blank/black PNG = missing visual proof unless alternate proof + gap called out. Label DOM-raster fallbacks.
 - No long logs. No secrets. Never claim pass if the run did not complete.
