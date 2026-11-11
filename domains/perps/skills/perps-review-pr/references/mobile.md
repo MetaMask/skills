@@ -11,19 +11,29 @@ PRs that touch UI components must include testIDs so agentic recipes and E2E tes
 - [ ] **testID missing from the element that holds the value** — adding testID to a wrapper View instead of the `TextInput` or Text that actually contains the value. CDP fiber-walk reads `value` from the React element with the matching testID — the testID must be on the element that owns the state.
 - [ ] **TP/SL price inputs without testID** — the trigger price `TextInput` components in `PerpsTPSLView` (and similar order-form screens) frequently lack testIDs, making stable value assertions harder. Any PR touching these screens must add `testID` to both the Take Profit and Stop Loss price inputs.
 
-<a id="navigation-exit-parity"></a>
+<a id="android-back-paths"></a>
 
-## Navigation Exit Parity
+## Android Back Paths
 
-A navigation fix must cover every way the user can leave the screen.
+The shared *Navigation Entry and Exit Parity* check applies; on Mobile it includes Android hardware back.
 
-- [ ] **Only the header back action is fixed**: Apply the same history/fallback policy to header back, Android hardware back and native gestures. Preserve entry/history provenance through push, replace and reset paths. Runtime QA must name any gesture path it cannot prove.
+- [ ] **Modal back handler missed**: Android hardware back includes every native `Modal` (`onRequestClose`) and `react-native-modal` (`onBackButtonPress`), in every layout.
+
+<a id="mobile-ui-structure"></a>
+
+## Mobile UI Structure
+
+Perps components render; their logic lives in hooks and shared helpers.
+
+- [ ] **Logic in the component body** — move it into the component's hook, one hook per component.
+- [ ] **Oversized component file** — split a file over ~600 lines into sub-components.
+- [ ] **Inline metrics or error handling** — emit events through `usePerpsEventTracking` and handle errors through `perpsErrorHandler.ts`, never inline in the component.
 
 <a id="native-modal-layout"></a>
 
 ## Native Modal Layout
 
-- [ ] **Modal wrapper omitted in width-constrained layouts** — in the Pro layout, parent columns are width-constrained; bottom sheets must be wrapped in a Modal so they are not clipped. Android additionally requires `onRequestClose` on the Modal and a plain `View` (not a styled container) as the immediate wrapper child.
+- [ ] **Modal wrapper omitted in width-constrained layouts** — in the Pro layout, parent columns are width-constrained; bottom sheets must be wrapped in a Modal so they are not clipped. The immediate wrapper child is a plain `View` (not a styled container).
 
 <a id="mobile-controller-integration-mocks"></a>
 
@@ -49,16 +59,10 @@ Use `docs/perps/perps-sentry-reference.md` for Mobile trace names and lifecycle.
 
 Mobile UI constants live in `app/components/UI/Perps/constants/perpsConfig.ts`.
 Use `docs/perps/perps-metametrics-reference.md` for Mobile event definitions; controller constants remain the shared contract.
+A change to a pattern documented in `docs/perps/` updates that document in the same PR.
 
 <a id="mobile-test-layers"></a>
 
 ## Mobile Test Layers
 
-Cover every test in its best-fit layer (view, integration, unit); broad mock-heavy unit tests are a review smell. **Same rule as the testing domain's `knowledge/testing-layers.md` (Mobile; installed beside the testing skills):** Screen/view behavior through rendered UI and app state defaults to `*.view.test.tsx`; app-to-controller flows (real `HyperLiquidProvider` / `TradingService` behavior with only the I/O boundary mocked) belong in `*.integration.test.ts` via the perps harnesses; unit tests only for pure logic, narrow contracts, or when the higher layers cannot cover (smallest focused test + reason). Broad unit tests that render a page and mock hooks/selectors, or that mock the controller to fake a flow, are a review smell.
-
-Perps-specific enforcement:
-
-- [ ] **Component-view behavior tested as a unit test** — files such as `app/components/UI/Perps/**/*.test.tsx` that render a whole page/view and assert UI behavior should be converted to `*.view.test.tsx` using the component-view test framework/skill.
-- [ ] **Controller/provider flow faked with mocks** — order/close/flip/validation flows that mock `HyperLiquidProvider` or `TradingService` to simulate behavior should be covered by `*.integration.test.ts` through the perps harnesses (`tests/integration/harnesses/perps*`), which run the real controller code with only the I/O boundary mocked. See `mobile-testing` → `references/integration.md`.
-- [ ] **Hook/selector mocking in a page behavior test** — mocking selectors, hooks, or service modules to force page state bypasses the real state wiring. Drive behavior through framework state presets/renderers instead. If the framework cannot cover the case yet, keep the unit test focused and link a follow-up for the missing framework support.
-- [ ] **Coverage drops during conversion** — converting to component-view or integration tests must preserve the same coverage intent. If a scenario cannot move layer, document why and retain the smallest focused unit test needed to keep coverage.
+- [ ] **Controller/provider flow faked with mocks** — order/close/flip/validation flows must exercise the real `HyperLiquidProvider` / `TradingService` chain through the Perps harnesses (`tests/integration/harnesses/perps*`), with only the I/O boundary mocked.
