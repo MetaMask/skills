@@ -33,6 +33,7 @@ Apply the sections for this flow and platform at each step.
 - Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate.
 - Place regression guards before the first new-behavior AC; guards must pass before and after implementation. If every AC is a guard, require the baseline run to pass end to end.
 - Record the recipe path and command, including for visual/mixed proof. Implement only after the recipe gate is marked PASS.
+- For a flag-gated UI change, capture flag-off then flag-on state before the first new-behavior node and declare two before/after pairs.
 
 ### Bug fixing
 
@@ -48,6 +49,7 @@ Apply the sections for this flow and platform at each step.
 - Mobile/Extension: draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior through live actions or run-scoped markers/logs; require plan PASS, then run it into `recipe-baseline-run/` with `--record-video=full-run --json` and read every visual PNG.
 - For already-fixed/not-reproduced cases, write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before marking no-change. UI flows add `--already-fixed` to the terminal mark when this branch already fixes it; setup/environment failures follow Cook's blocked rule.
 - After the minimal fix, UI `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes plan and fails with the fix reverted.
+- If the ticket cites an earlier fix as noise, list the call sites that fix covered before accepting it.
 
 ## Implementation and checks
 
@@ -104,6 +106,7 @@ Apply [review verdicts](team-libraries.md#review-verdicts).
 - Include committed, staged, unstaged and untracked changes; record base, head, working-tree state, findings and skipped/unchecked areas in `artifacts/review.md`.
 - Fix findings here; repeat the deterministic CI mark after source/test changes and rerun proof when proven behavior changed.
 - Core tests must fail when their guarded behavior is removed.
+- Restore any temporary revert in the same command (revert, run, restore).
 - Block on duplicated derivation, parsing or formulas introduced by this diff, including copies of existing logic.
 - A test that waits on a real timer (sleep, real poll, backoff or timeout) is a blocking finding; use fake timers.
 - At the domain step, follow `references/team-libraries.md#dev-and-fix-bug-domain-review` with the checklist's stated parent step number.
