@@ -77,9 +77,11 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
 ## Choosing a component
 
 - Before building anything, look up the component by name in the manifest
-  and the installed exports. Search the manifest for an existing pattern
-  before building custom UI. Never invent a component, a prop, or a variant,
-  and never port an API from the other platform or another UI library.
+  and the installed exports. Pattern, foundation, and design-token stories
+  are not in the manifest. Read the component README at the installed tag,
+  and search existing repository usage, before building custom UI. Never
+  invent a component, a prop, or a variant, and never port an API from the
+  other platform or another UI library.
 - Choose in this order, and record the reason whenever you go past step 1:
   1. An MMDS component exported by the installed platform package.
   2. A non-deprecated legacy component-library component, only when MMDS does

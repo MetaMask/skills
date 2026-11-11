@@ -26,8 +26,9 @@ accessibility rules.
   `@metamask/design-system-react-native` has no equivalent. Search the repo
   for a component that already covers the need. Never use anything marked
   `@deprecated`; those have MMDS equivalents. Prefer MMDS first.
-- Product UI: `app/components/`. Search the repo for existing MMDS usage, and
-  search the manifest for an existing pattern before building custom UI.
+- Product UI: `app/components/`. Search the repo for existing MMDS usage.
+  Pattern, foundation, and design-token stories are not in the manifest.
+  Read the component README at the installed tag before building custom UI.
 
 Do not apply React web guidance (`className`, HTML tags, `aria-*` props) to
 Mobile.
