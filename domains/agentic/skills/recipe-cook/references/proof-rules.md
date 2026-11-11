@@ -1,4 +1,4 @@
-# Dev and fix-bug rules
+# Proof rules (dev and fix-bug)
 
 Apply the sections for this flow and platform at each step.
 
