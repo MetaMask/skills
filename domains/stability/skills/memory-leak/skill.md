@@ -1,6 +1,13 @@
 ---
 name: memory-leak
-description: Find and investigate memory leaks / retention issues in JavaScript/TypeScript. Two phases. (1) Static identification from a diff — enumerate the retention primitives the change introduces (event listeners, timers, pending-request registries, subscriptions, module singletons, growing collections), pair every acquire with its release site, and scope findings to what the diff adds versus what pre-exists. (2) Runtime investigation, for a primitive that cannot be paired statically or a no-leak verdict to demonstrate beside a positive control — DevTools/CDP heap snapshots over N cycles, the retainer graph, detached-node count, and a falsifying lifecycle test. Leads with the cheap static read (the retention review a reviewer already performs), which sets the order of the work, not its extent. Triggers on /mms-memory-leak, or when asked to find or investigate a memory leak, check listener/subscription/timer cleanup, review a diff for retention, or take and read a heap snapshot.
+description: >
+  Find and investigate memory leaks and retention in JavaScript/TypeScript: statically from a
+  diff, by pairing every retention primitive the change introduces with its release site, then at
+  runtime, with heap snapshots over N cycles, the retainer graph and a falsifying lifecycle test,
+  where a primitive cannot be paired statically. Use on any change that adds an event listener,
+  timer, subscription, pending-request registry, module singleton or growing collection, whatever
+  the task is about, and not only when a leak is suspected. Also on /mms-memory-leak, or when
+  asked to check cleanup or read a heap snapshot.
 maturity: experimental
 ---
 

@@ -1,6 +1,14 @@
 ---
 name: race-condition-repro
-description: Prove an ordering guarantee under concurrency — that when B arrives during A's pending window, A is canceled, or completes first, or the two commit in a defined order. Covers race conditions, retries, cancellation, supersession, debounce/throttle, locks, queues, and async state machines, where correctness IS the interleaving. Builds a deterministic interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask stepping) and asserts each guarantee separately, including asymmetric ones where two paths deliberately differ. The falsifier is a test that never interleaved: operations run in sequence exercise no race and produce a vacuous green, so the obligation is to show the interleaving occurred. Triggers on /mms-race-condition-repro, or when asked to prove a race condition is fixed, test cancellation or supersession, validate retry or debounce ordering, write a deterministic interleaving test, or check whether a concurrency test actually exercises the race.
+description: >
+  Prove an ordering guarantee under concurrency: when B arrives during A's pending window, A is
+  canceled, completes first, or the two commit in a defined order. Builds a deterministic
+  interleaving harness (fake timers advanced into the pending window, concurrent launch, microtask
+  stepping) and shows the interleaving occurred, since operations run in sequence produce a
+  vacuous green. Use on any change that adds or alters a retry, cancellation, supersession,
+  debounce or throttle, lock, queue or async state machine, whatever the task is about, and not
+  only when a race is reported. Also on /mms-race-condition-repro, or when asked whether a
+  concurrency test exercises the race.
 maturity: experimental
 ---
 
