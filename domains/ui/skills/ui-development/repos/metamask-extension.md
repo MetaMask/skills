@@ -24,8 +24,10 @@ accessibility rules.
 - Legacy component library: `ui/components/component-library` (being
   deprecated in favor of MMDS). Do not add new usage where MMDS covers the need.
 - Existing feature UI that is intentionally outside MMDS lives under
-  `ui/components/`. Reuse it before building new feature UI. Search the
-  manifest for an existing pattern before building custom UI.
+  `ui/components/`. Reuse it before building new feature UI. Pattern,
+  foundation, and design-token stories are not in the manifest. Read the
+  component README at the installed tag, and search existing repository
+  usage, before building custom UI.
 
 Do not apply React Native guidance or APIs (`twClassName`, twrnc,
 `accessibilityRole`, or React Native-only components) to Extension.
