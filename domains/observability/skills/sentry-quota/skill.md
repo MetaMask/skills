@@ -1,7 +1,7 @@
 ---
 maturity: experimental
 name: sentry-quota
-description: Catch quota-risky Sentry span instrumentation in code and PRs — fan-out × ungated × no-kill-switch — before it blows the span budget
+description: Catch quota-risky Sentry span instrumentation in code and PRs — fan-out × ungated × no-kill-switch — before it blows the span budget. Use on any change that alters which spans are recorded, not only on PRs that add spans: span rooting or parentage (`root`, `parentContext`, the active-span fallback), sampling (`tracesSampleRate`, a `tracesSampler`, per-name rates, sampled flags), trace propagation (`traceparent`, `sentry-trace`, baggage, continued traces), and Sentry SDK bumps.
 ---
 
 # Sentry Span Quota Guard
@@ -11,6 +11,7 @@ Find and fix custom Sentry span instrumentation that blows the project span budg
 ## When To Use
 
 - A PR adds custom Sentry spans (`trace()` calls / `TraceName` entries) — review it before merge.
+- A PR changes rooting, parentage, sampling or propagation, or bumps the Sentry SDK, even when it adds no span. A fix that turns nested spans into roots, or lets a continued trace keep its parent's sampling decision, moves volume as much as a new span does.
 - A custom span/transaction dominates span volume in Sentry — locate where it's emitted and fix it.
 - Auditing controllers/UI for always-on, fan-out-prone instrumentation.
 - A custom span is the top span-count contributor and must be cut fast (release blocker).
