@@ -117,6 +117,8 @@ export const xControllerInit: MessengerClientInitFunction<
 
 ## 7. Verify
 
+Before bumping a `@metamask/*` version, confirm it resolves: `npm view <pkg>@<version> version`.
+
 ```bash
 yarn jest app/core/Engine/Engine.test.ts -t 'matches initial state fixture'
 yarn tsc --noEmit -p tsconfig.json
