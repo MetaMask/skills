@@ -72,7 +72,7 @@ https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-
 
 Take `<installed version>` from `node_modules/@metamask/design-system-react-native/package.json`. When a README and the types disagree, the types win. No MCP server is needed.
 
-Do not add new usage of anything marked `@deprecated` in the installed types or in the manifest's `jsDocTags.deprecated`.
+Do not add new usage of anything marked `@deprecated`. Search the component folder `dist/components/<Name>/` (the tag is often on `<Name>.d.cts`) and the README at the installed tag. An empty manifest `jsDocTags` is not evidence that it is current. Prefer the non-deprecated replacement when the installed package exports it.
 
 For local visual testing of a component in isolation, see `docs/readme/storybook.md`.
 

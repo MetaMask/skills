@@ -91,8 +91,13 @@ exists.
   Read the component README at the installed tag, and search existing
   repository usage, before building custom UI.
 - **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated;
-  the message names the replacement. Also check for `@deprecated` in the
-  installed `.types` file, because the installed version may differ.
+  the message names the replacement. `jsDocTags` can be empty even for a
+  deprecated component; its absence is not evidence. Search the installed
+  declarations:
+  `grep -rn @deprecated node_modules/@metamask/<platform package>/dist/components/<Name>/`.
+  The tag is often on `<Name>.d.cts`, and the `.types` file can omit it.
+  Also read the component README at the installed tag. The installed
+  declarations decide, because the installed version may differ from `main`.
 - **Which props does it take?** `reactDocgenTypescript.props` gives the name,
   `required`, description, `declarations`, and `type` for `main`. Read
   `type.name`. For an enum, `type.value` lists the members. Confirm each prop
@@ -106,8 +111,8 @@ exists.
   `@metamask/design-system-shared` or use relative paths. In product code,
   import components and enums from the platform package
   (`@metamask/design-system-react` or `@metamask/design-system-react-native`).
-- `jsDocTags` is `{}` when a component has no tags. An entry without a
-  `deprecated` key is not deprecated in `main`; the installed version can
-  still differ.
+- `jsDocTags` can be empty even for a deprecated component. Its absence is
+  not evidence. The installed declarations decide, and the installed version
+  can differ from `main`.
 - Not every story entry is in the manifest.
 - Do not copy manifest content into a skill. It changes with every MMDS merge.

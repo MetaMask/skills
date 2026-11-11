@@ -15,9 +15,13 @@ accessibility rules.
   enums from `@metamask/design-system-shared`, and never import MMDS through a
   repository-relative path.
 - Tailwind: `@metamask/design-system-twrnc-preset`, through `useTailwind()`.
-- Inventory and deprecations: the
+- Inventory: the
   [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json),
   confirmed against `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts`.
+  Deprecation is decided by `@deprecated` in
+  `dist/components/<Name>/` (often `<Name>.d.cts`) and by the README at the
+  installed tag. A non-empty manifest `jsDocTags.deprecated` is a positive
+  signal only. Prefer the non-deprecated replacement over existing repo usage.
 - README: read the component README on GitHub at the release tag (READMEs
   are not in the npm package). Take `<installed version>` from
   `node_modules/@metamask/design-system-react-native/package.json`:
