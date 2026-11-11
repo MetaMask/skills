@@ -20,6 +20,8 @@ Required for changes to the controller package or its public contract, in additi
   Inventory exchange calls, transfers, cancellation, withdrawals and registered venue-key paths before claiming an account is read-only. See references/core.md#read-only-account-guards-cover-every-write
 - [ ] One Formatter Surface in the Controller
   Display formatting lives in `src/utils/perpsFormatters.ts` as a few reusable formatters configured by an options object, not one exported function per screen or value. See references/core.md#one-formatter-surface-in-the-controller
+- [ ] Provider Rejections Have Two Shapes
+  A venue call fails either by throwing or by returning a non-`ok` status result that the caller wraps. See references/core.md#provider-rejections-have-two-shapes
 - [ ] Evidence Expected Before Core Perps Review
   The PR carries a contract impact matrix (state, methods, events, exports, constants), a Mobile, Extension and Terminal compatibility note or paired PR links, provider abstraction and fallback tests,… See references/core.md#evidence-expected-before-core-perps-review
 
