@@ -18,21 +18,17 @@ accessibility rules.
 - Inventory: the
   [React Native components manifest](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json),
   confirmed against `node_modules/@metamask/design-system-react-native/dist/components/index.d.cts`.
-  Deprecation is decided by `@deprecated` in
-  `dist/components/<Name>/` (often `<Name>.d.cts`) and by the README at the
-  installed tag. A non-empty manifest `jsDocTags.deprecated` is a positive
-  signal only. Prefer the non-deprecated replacement over existing repo usage.
+- Deprecation: follow the base Deprecated APIs rule, searching
+  `node_modules/@metamask/design-system-react-native/dist/components/<Name>/`.
 - README: read the component README on GitHub at the release tag (READMEs
   are not in the npm package). Take `<installed version>` from
   `node_modules/@metamask/design-system-react-native/package.json`:
   `https://github.com/MetaMask/metamask-design-system/blob/@metamask/design-system-react-native@<installed version>/packages/design-system-react-native/src/components/<Component>/README.md`
 - Existing app-level components: use one only when
   `@metamask/design-system-react-native` has no equivalent. Search the repo
-  for a component that already covers the need. Never use anything marked
-  `@deprecated`; those have MMDS equivalents. Prefer MMDS first.
-- Product UI: `app/components/`. Search the repo for existing MMDS usage.
-  Pattern, foundation, and design-token stories are not in the manifest.
-  Read the component README at the installed tag before building custom UI.
+  for a component that already covers the need, and apply the base
+  Deprecated APIs rule to it. Prefer MMDS first.
+- Search the repo for existing MMDS usage before building custom UI.
 
 Do not apply React web guidance (`className`, HTML tags, `aria-*` props) to
 Mobile.
@@ -86,10 +82,9 @@ twClassName={(pressed) => `w-full ${pressed ? 'bg-pressed' : 'bg-default'}`}
   areas, drag, keyboard, accessibility). In nested sheet flows, keep the
   container stable, move content directionally, use back for the child and
   close for the whole flow, and avoid two systems fighting over height or drag.
-- Mobile mounts a single design-system toaster in
-  `app/components/Nav/App/ToasterOverlay`. Show toasts through the API that
-  toaster exposes (look it up in the installed exports); do not mount another
-  toaster.
+- Mobile mounts a single design-system toaster at the app root; search the
+  repo for it. Show toasts through the API that toaster exposes (look it up
+  in the installed exports); do not mount another toaster.
 
 ## Mobile accessibility mechanics
 
