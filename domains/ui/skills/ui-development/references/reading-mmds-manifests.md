@@ -19,7 +19,7 @@ or props: read those from the manifest and the installed package.
 - It is generated from the Storybook build of MMDS `main`. It can be ahead of
   the version a consumer repo installs, so a component or prop in the manifest
   may not exist in `node_modules` yet. The installed types decide.
-- It is large (1–2 MB). Fetch it once and search it, for example with
+- It is large (a few MB). Fetch it once and search it, for example with
   `curl -s <url> | jq` or a script, rather than reading it whole.
 - It is a discovery and deprecation index for a component's own API. Prop
   data is extracted with react-docgen-typescript (`meta.docgen`).
@@ -90,14 +90,9 @@ exists.
 - **Is there already a pattern?** Pattern stories are not in this manifest.
   Read the component README at the installed tag, and search existing
   repository usage, before building custom UI.
-- **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated;
-  the message names the replacement. `jsDocTags` can be empty even for a
-  deprecated component; its absence is not evidence. Search the installed
-  declarations:
-  `grep -rn @deprecated node_modules/@metamask/<platform package>/dist/components/<Name>/`.
-  The tag is often on `<Name>.d.cts`, and the `.types` file can omit it.
-  Also read the component README at the installed tag. The installed
-  declarations decide, because the installed version may differ from `main`.
+- **Is it deprecated?** A non-empty `jsDocTags.deprecated` means deprecated,
+  and the message usually names the replacement. How to confirm it and what
+  to do: the Deprecated APIs section of the `ui-development` skill.
 - **Which props does it take?** `reactDocgenTypescript.props` gives the name,
   `required`, description, `declarations`, and `type` for `main`. Read
   `type.name`. For an enum, `type.value` lists the members. Confirm each prop
@@ -111,8 +106,4 @@ exists.
   `@metamask/design-system-shared` or use relative paths. In product code,
   import components and enums from the platform package
   (`@metamask/design-system-react` or `@metamask/design-system-react-native`).
-- `jsDocTags` can be empty even for a deprecated component. Its absence is
-  not evidence. The installed declarations decide, and the installed version
-  can differ from `main`.
-- Not every story entry is in the manifest.
 - Do not copy manifest content into a skill. It changes with every MMDS merge.

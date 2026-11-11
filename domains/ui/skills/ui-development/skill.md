@@ -35,26 +35,22 @@ None of these needs an MCP server. Work from them in this order:
 1. **Installed package types (`node_modules`).** The installed version is the
    contract for the code you are changing. Read the export index and the
    component's `.types` file (with its JSDoc) under
-   `node_modules/@metamask/<platform package>/dist/`. Search that component's
-   whole folder for `@deprecated`. The tag is often on the component
-   declaration (`<Name>.d.cts`), and the `.types` file can omit it:
-   `grep -rn @deprecated node_modules/@metamask/<platform package>/dist/components/<Name>/`.
-   Shared props and enums come from
-   `node_modules/@metamask/design-system-shared/dist/types/`. When the
-   types disagree with anything else on this list, the types win.
-2. **Hosted Storybook components manifest**, for discovery, a positive
-   deprecation signal, and story snippets:
+   `node_modules/@metamask/<platform package>/dist/`. Shared prop and enum
+   types are declared in
+   `node_modules/@metamask/design-system-shared/dist/types/`. Read them
+   there, but import components and enums from the platform package. When
+   the types disagree with anything else on this list, the types win.
+2. **Hosted Storybook components manifest**, for discovery and story
+   snippets:
    - React (Extension): <https://metamask.github.io/metamask-design-system/manifests/components.json>
    - React Native (Mobile): <https://metamask.github.io/metamask-design-system/react-native/manifests/components.json>
 
    The manifests are built from MMDS `main`, so they can list components or
    props that are newer than the version the consumer repo installs. Confirm
    anything you find there against the installed types before you use it.
-   A non-empty `jsDocTags.deprecated` means the entry is deprecated. An empty
-   `jsDocTags` is not evidence that it is current.
    Story `import` snippets sometimes pull enums from
-   `@metamask/design-system-shared`; in product code, import components and
-   enums from the platform package (`@metamask/design-system-react` or
+   `@metamask/design-system-shared`; in product code, import them from the
+   platform package (`@metamask/design-system-react` or
    `@metamask/design-system-react-native`). How to read a manifest:
    [references/reading-mmds-manifests.md](references/reading-mmds-manifests.md).
 3. **Component README at the installed version's tag.** READMEs are not in the
@@ -63,11 +59,9 @@ None of these needs an MCP server. Work from them in this order:
    the README on GitHub at the per-package tag
    `@metamask/<package>@<version>`. The package `CHANGELOG.md` compare links
    use the same tag names. Never hard-code a release in code comments or
-   skills. Read the README for `@deprecated` and for the replacement it names.
+   skills.
 4. **Existing repository usage and stories.** Search the consumer repo for the
    component or token. Treat examples as usage evidence, not as the contract.
-   Existing usage of a deprecated component is not a reason to add more of it.
-   Prefer the non-deprecated replacement when the installed package exports it.
 5. **Figma MCP and Code Connect, when connected.** Use them to read the design
    and its component mapping. If they are not connected, carry on without them.
 
@@ -77,8 +71,8 @@ None of these needs an MCP server. Work from them in this order:
 for each building block, choose the component as below, style with preset
 classes and tokens, then run the review checklist on your own diff.
 
-**Review:** list the changed UI, check each MMDS usage against the installed
-declarations for `@deprecated`, then report component choice, deprecated
+**Review:** list the changed UI, check each MMDS usage for deprecation (see
+[Deprecated APIs](#deprecated-apis)), then report component choice, deprecated
 usage, tokens, typography, and accessibility findings with file, line,
 evidence, and a recommended fix.
 Custom UI without a recorded reason is a finding, not an automatic failure.
@@ -98,20 +92,27 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
   3. An existing feature component that already solves it.
   4. Custom UI composed from MMDS primitives and tokens, with the reason
      recorded in the PR or the repository's exception format.
-- A component, prop, or enum value is deprecated when `@deprecated` appears
-  anywhere in its installed declarations. Search the component folder
-  (`node_modules/@metamask/<platform package>/dist/components/<Name>/`),
-  including `<Name>.d.cts`. A non-empty manifest `jsDocTags.deprecated`, or
-  `@deprecated` in the README at the installed tag, is the same signal. An
-  empty `jsDocTags` is not evidence that it is current. Do not add new usage.
-  Use the non-deprecated replacement the JSDoc or README names when the
-  installed platform package exports it, ahead of existing repository usage
-  of the deprecated one. If no replacement is named, or the named one is not
-  exported on this platform, keep existing usage and record the gap.
 - Do not invent button or control chrome that MMDS does not have. Keep
   single-select (checkmark) and multi-select (checkbox) patterns distinct.
 - If an MMDS layout makes a primary data point read as secondary, compose a
   stronger treatment instead of forcing the wrong primitive.
+
+## Deprecated APIs
+
+This rule applies to every client. Repository overlays and scaffolds defer to
+it.
+
+- Do not add new usage of anything marked `@deprecated` (a component, prop,
+  or enum value). Use the replacement its JSDoc or README names when the
+  installed platform package exports it, even if the repository still uses
+  the deprecated one. If no replacement is exported, keep existing usage and
+  record the gap.
+- To check, search the component's whole installed folder:
+  `grep -rn @deprecated node_modules/@metamask/<platform package>/dist/components/<Name>/`.
+  The tag is often on the component declaration (`<Name>.d.cts`), and the
+  `.types` file can omit it. A non-empty manifest `jsDocTags.deprecated`, or
+  `@deprecated` in the README at the installed tag, is the same signal. An
+  empty `jsDocTags` is not evidence that it is current.
 
 ## Foundations
 
@@ -137,10 +138,9 @@ Custom UI without a recorded reason is a finding, not an automatic failure.
   variant options the installed types expose, and follow the hosted manifest
   and the component README at the installed tag for when each applies. Never
   hand-set font sizes, line heights, or arbitrary text classes.
-- Amount inputs are not settled. See the Proposed Typography rule in the
-  [Design Brain](https://www.notion.so/b71f86d67d68827395a001f7ee7a8a86) and the
-  [MMDS reference](https://www.notion.so/40ef86d67d68811c9b31cf9992a076cd)
-  before choosing a face for one.
+- Amount inputs have no settled typography pattern yet. Use the font family
+  and variant options the installed types expose, and do not invent a
+  dedicated amount style.
 
 ## Incremental migration: `Legacy*` aliases
 
@@ -199,8 +199,6 @@ Full rule set, including Proposed rules:
 
 Read these in the MMDS repository instead of copying them into skills:
 
-- [`AGENTS.md`](https://github.com/MetaMask/metamask-design-system/blob/main/AGENTS.md)
-- [`docs/ai-agents.md`](https://github.com/MetaMask/metamask-design-system/blob/main/docs/ai-agents.md)
 - [`.cursor/rules/styling.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/styling.md)
 - [`.cursor/rules/figma-integration.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/figma-integration.md)
 - [`.cursor/rules/component-migration.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/component-migration.md)
@@ -210,15 +208,11 @@ installed types win.
 
 ## Review checklist
 
-- [ ] Installed declarations were searched for `@deprecated` on every MMDS
-      building block (the component folder, including `<Name>.d.cts`). The
-      manifest `jsDocTags` and the README at the installed tag were checked
-      too. Empty `jsDocTags` was not treated as "current".
+- [ ] Every MMDS building block was checked for deprecation, and the
+      [Deprecated APIs](#deprecated-apis) rule holds.
 - [ ] MMDS was used wherever it covers the need; any step past MMDS has a
       recorded reason.
 - [ ] No invented components, props, or variants, and no cross-platform ports.
-- [ ] No new usage of anything tagged `@deprecated`. The non-deprecated
-      replacement is used when the installed package exports it.
 - [ ] Only preset-generated classes and semantic tokens; no arbitrary values.
 - [ ] Typography uses the design-system text component and the font family
       and variant options from the installed types.
