@@ -33,7 +33,7 @@ Apply the sections for this flow and platform at each step.
 - Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate.
 - Place regression guards before the first new-behavior AC; guards must pass before and after implementation. If every AC is a guard, require the baseline run to pass end to end.
 - Record the recipe path and command, including for visual/mixed proof. Implement only after the recipe gate is marked PASS.
-- For a flag-gated change, capture flag-off then flag-on state before the first new-behavior node and declare two before/after pairs.
+- For a flag-gated UI change, capture flag-off then flag-on state before the first new-behavior node and declare two before/after pairs.
 
 ### Bug fixing
 
