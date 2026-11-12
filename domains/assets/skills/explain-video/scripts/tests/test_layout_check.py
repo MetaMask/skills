@@ -8,8 +8,8 @@ import subprocess
 import unittest
 from pathlib import Path
 
-SKILL = Path(__file__).resolve().parents[1]
-VW = SKILL / "render" / "vw.ts"
+SKILL = Path(__file__).resolve().parents[2]
+VW = SKILL / "scripts" / "render" / "vw.ts"
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "layout"
 ME_CSS = FIXTURE / "me" / "style.css"
 ME_URL = "https://raw.githubusercontent.com/Prithpal-Sooriya/tiny-video-renderer/v0.2.3/example/styles/motion-engineering/style.css"
@@ -60,7 +60,46 @@ class LayoutCheck(unittest.TestCase):
             with self.subTest(theme=theme):
                 r = check(f"clean-{theme}.timeline.ts")
                 self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-                self.assertIn("layout check: OK (4 beats in 3 segments)", r.stdout)
+                self.assertIn("layout check: OK (5 beats in 4 segments)", r.stdout)
+
+    def test_clean_fixtures_have_no_notes(self) -> None:
+        for timeline in ["clean-metamask", "clean-metamask-developer", "clean-tailwind", "clean-tailwind-developer"]:
+            with self.subTest(timeline=timeline):
+                r = check(f"{timeline}.timeline.ts")
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                self.assertNotIn("note ", r.stdout + r.stderr)
+
+    def test_late_image_is_measured_after_it_settles(self) -> None:
+        r = check("late-image.timeline.ts")
+        out = r.stdout + r.stderr
+        self.assertEqual(r.returncode, 0, out)
+        self.assertNotIn("low contrast", out)
+        self.assertIn("layout check: OK (1 beat in 1 segment)", out)
+
+    def test_notes_are_reported_and_do_not_fail(self) -> None:
+        r = check("notes.timeline.ts")
+        out = r.stdout + r.stderr
+        self.assertEqual(r.returncode, 0, out)
+        expected = [
+            r"note notes-tight beat 1/1: cards nearly touching \(8px gap\) -> use gap-6 or more",
+            r"note notes-tight beat 1/1: text too close to its card's edge \(\d+px\) -> use p-6 or more \(on div\.text-heading-sm\.text-default \"After\"",
+            r"note notes-sparse beat 1/1: large empty area \(content covers \d+% of the safe area\)",
+            r"note notes-sparse beat 1/1: content bunched on the left \(\d+% of the width empty on the right\)",
+            r"note notes-measure beat 1/1: lines too long to read \(~\d+ characters\)",
+        ]
+        for pattern in expected:
+            self.assertRegex(out, pattern)
+        self.assertNotRegex(out, r"note notes-tight .*\"Before\" in")
+        summary = out.index("layout check: OK (3 beats in 3 segments)")
+        self.assertLess(summary, out.index("note "))
+
+    def test_theme_decoration_is_painted_by_the_theme(self) -> None:
+        for css in ["metamask/style.css", "metamask-developer/style.css", "motion-engineering/tokens.css"]:
+            with self.subTest(css=css):
+                text = (SKILL / "assets" / "styles" / css).read_text()
+                self.assertRegex(text, r"\.vw-stage::before \{[^}]*z-index: -1;[^}]*pointer-events: none;")
+        for seg in (FIXTURE / "segments").glob("clean-*/index.ts"):
+            self.assertNotIn("data-vw-decor", seg.read_text(), seg)
 
     def test_clean_fixture_passes_motion_engineering(self) -> None:
         if not ME_CSS.exists():

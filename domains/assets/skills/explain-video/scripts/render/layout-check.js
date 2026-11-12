@@ -1,4 +1,69 @@
 (function vwLayoutCheck(segmentId) {
+	const lintClasses = (scope, describe, findings, plain) => {
+		const known = new Set();
+		const walk = (rules) => {
+			for (const r of rules) {
+				if (r.selectorText) for (const m of r.selectorText.matchAll(/\.((?:\\.|[\w-])+)/g)) known.add(m[1].replace(/\\(.)/g, "$1"));
+				if (r.cssRules) walk(r.cssRules);
+			}
+		};
+		for (const sheet of document.styleSheets) {
+			try {
+				walk(sheet.cssRules);
+			} catch {}
+		}
+		const steps = (prefix) => [...known].filter((k) => k.startsWith(prefix + "-") && /^[\d.]+$/.test(k.slice(prefix.length + 1))).map((k) => +k.slice(prefix.length + 1));
+		const nearest = (prefix, n) => {
+			const all = steps(prefix);
+			if (!all.length) return null;
+			const best = all.reduce((a, b) => (Math.abs(b - n) < Math.abs(a - n) ? b : a));
+			return `${prefix}-${best}`;
+		};
+		const SIZE = { xs: "text-body-xs", sm: "text-body-sm", base: "text-body-md", lg: "text-body-lg", xl: "text-heading-sm", "2xl": "text-heading-md", "3xl": "text-heading-lg", "4xl": "text-heading-lg", "5xl": "text-display-md", "6xl": "text-display-lg", "7xl": "text-display-xl", "8xl": "text-display-xl", "9xl": "text-display-xl" };
+		const HUE = { red: "error-default", rose: "error-default", pink: "error-default", green: "success-default", lime: "success-default", emerald: "success-default", blue: "primary-default", indigo: "primary-default", sky: "accent04-normal", cyan: "accent04-normal", orange: "accent01-normal", amber: "warning-default", yellow: "warning-default", purple: "accent02-normal", violet: "accent02-normal", fuchsia: "accent02-normal" };
+		const GREY = { text: "text-alternative", bg: "bg-section", border: "border-muted", fill: "fill-current", stroke: "stroke-current" };
+		const hint = (c) => {
+			const v = c.match(/^([a-z0-9-]+:)+(.+)$/);
+			if (v) return known.has(v[2]) ? `use ${v[2]} (no variants: one static frame, dark only)` : `no variants (${v[1]}); ${hint(v[2])}`;
+			let m;
+			if ((m = c.match(/^text-\[.*\]$/))) return "use a type role: text-body-md, text-heading-sm, text-display-md…";
+			if ((m = c.match(/^(bg|text|border|fill|stroke)-\[#.*\]$/))) return `use a design-system colour: ${GREY[m[1]]}, ${m[1]}-primary-default…`;
+			if ((m = c.match(/^([a-z-]+)-\[.*\]$/))) return `no arbitrary values; use the scale (${m[1]}-8, ${m[1]}-1/2…) or flex-1`;
+			if ((m = c.match(/^text-(xs|sm|base|lg|[2-9]?xl)$/))) return `use ${SIZE[m[1]]}`;
+			if ((m = c.match(/^(text|bg|border|fill|stroke)-(white|black)$/))) {
+				if (m[1] === "text") return m[2] === "white" ? "use text-default" : "dark text fails contrast; use text-default";
+				if (m[1] === "bg") return m[2] === "black" ? "use bg-default" : "no white surfaces; use bg-section or bg-subsection";
+				return `use ${GREY[m[1]]}`;
+			}
+			if ((m = c.match(/^(text|bg|border|fill|stroke)-(gray|grey|slate|zinc|neutral|stone)-\d+$/))) return `use ${GREY[m[1]]}`;
+			if ((m = c.match(/^(text|bg|border|fill|stroke)-([a-z]+)-\d+$/)) && HUE[m[2]]) return `use ${m[1]}-${HUE[m[2]]}`;
+			if (c === "text-muted") return "text-muted fails AA in the dark theme; use text-alternative";
+			if ((m = c.match(/^text-(.+)$/)) && known.has(`bg-${m[1]}`)) return `${m[1]} is a fill, not readable as text; use bg-${m[1]} with text-default on it`;
+			if ((m = c.match(/^text-text-(.+)$/))) return `use text-${m[1]}`;
+			if ((m = c.match(/^bg-background-(.+)$/))) return `use bg-${m[1]}`;
+			if ((m = c.match(/^border-border-(.+)$/))) return `use border-${m[1]}`;
+			if ((m = c.match(/^text-[sl]-(.+)$/)) && known.has(`text-${m[1]}`)) return `use text-${m[1]} (video-scaled)`;
+			if (c === "font-semibold") return "use font-bold (600 in the design system)";
+			if (/^font-(thin|extralight|light|normal|extrabold|black)$/.test(c)) return "use font-regular, font-medium or font-bold";
+			if ((m = c.match(/^space-([xy])-(.+)$/))) return `use gap-${m[2]} on a flex parent (flex ${m[1] === "x" ? "flex-row" : "flex-col"} gap-${m[2]})`;
+			if (/^(leading|tracking)-/.test(c)) return "the type role sets line height and tracking; drop it";
+			if (/^(animate|transition|duration|ease|delay)-?/.test(c)) return "animate with WAAPI element.animate() in play(); no CSS animation";
+			if (/^(shadow|drop-shadow|blur|backdrop)/.test(c)) return "no shadows or blurs; use a bg-subsection surface or border";
+			if ((m = c.match(/^(-?[a-z]+(?:-[a-z]+)?)-(\d+(?:\.\d+)?)$/))) {
+				const n = nearest(m[1], +m[2]);
+				if (n) return `not on the scale; use ${n}`;
+			}
+			return "not in kit/tailwind.css or kit.css; for a JS hook use a data- attribute";
+		};
+		const seen = new Set();
+		for (const el of scope.querySelectorAll("*")) {
+			for (const c of el.classList || []) {
+				if (known.has(c) || seen.has(c)) continue;
+				seen.add(c);
+				findings.push({ kind: "unknown-class", key: `unknown-class|${c}`, msg: `unknown-class: ${c} -> ${hint(c)} (on ${describe(el)})`, rects: [plain(el.getBoundingClientRect())] });
+			}
+		}
+	};
 	const W = window.innerWidth;
 	const H = window.innerHeight;
 	const rootStyle = getComputedStyle(document.documentElement);
@@ -322,6 +387,60 @@
 		if (got < need) add("low contrast", leaf.el, `${got.toFixed(2)}:1 < ${need}:1 (${hex(fgc)} on ${hex(bg)}, ${r0(size)}px${large ? " large" : ""})`, leaf.text, [leaf.box]);
 	}
 
+	const tw = !!rootStyle.getPropertyValue("--vw-tailwind").trim();
+	if (tw) lintClasses(scope, describe, findings, plain);
+
+	const notes = [];
+	const note = (key, msg) => notes.push({ key, msg });
+	const isCard = (b) => b.box.width >= 160 && b.box.height >= 80;
+	const cards = boxes.filter((b) => isCard(b) && !b.el.closest(ALLOW));
+	for (let i = 0; i < cards.length; i++) {
+		for (let j = i + 1; j < cards.length; j++) {
+			const [a, b] = [cards[i], cards[j]];
+			if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+			const x = inter(a.box, b.box);
+			const sideBySide = x.w <= 0 && x.h > 0.5 * Math.min(a.box.height, b.box.height);
+			const stacked = x.h <= 0 && x.w > 0.5 * Math.min(a.box.width, b.box.width);
+			if (!sideBySide && !stacked) continue;
+			const gap = -(sideBySide ? x.w : x.h);
+			if (gap < 16) note(`gap|${describe(a.el, "")}|${describe(b.el, "")}`, `cards nearly touching (${r0(gap)}px gap) -> use ${tw ? "gap-6" : "a 24px gap"} or more (on ${describe(a.el)} × ${describe(b.el)})`);
+		}
+	}
+	const textLeaves = leaves.filter((l) => l.kind === "text" && !l.chrome && !l.el.closest(ALLOW));
+	for (const leaf of textLeaves) {
+		const host = boxOf(leaf.el);
+		if (!host || !isCard(host) || clipped.has(host.el)) continue;
+		const a = leaf.box;
+		const h = host.box;
+		const inset = Math.min(a.left - h.left, a.top - h.top, h.right - a.right, h.bottom - a.bottom);
+		if (inset >= -2 && inset < 16) note(`edge|${describe(leaf.el, leaf.text)}`, `text too close to its card's edge (${r0(Math.max(0, inset))}px) -> use ${tw ? "p-6" : "24px of padding"} or more (on ${describe(leaf.el, leaf.text)} in ${describe(host.el, "")})`);
+	}
+	for (const leaf of textLeaves) {
+		if (/mono/i.test(leaf.cs.fontFamily) || /^pre/.test(leaf.cs.whiteSpace)) continue;
+		const chars = leaf.text.replace(/\s+/g, " ").trim().length;
+		const total = leaf.rects.reduce((s, r) => s + r.width, 0);
+		const longest = total ? Math.max(...leaf.rects.map((r) => (chars * r.width) / total)) : 0;
+		if (longest > 90) note(`measure|${describe(leaf.el, leaf.text)}`, `lines too long to read (~${r0(longest)} characters) -> keep lines under about 75 characters: ${tw ? "a narrower column (w-2/3, grid-cols-2)" : "a narrower column"} or a larger type role (on ${describe(leaf.el, leaf.text)})`);
+	}
+	const content = [...leaves, ...boxes].filter((i) => !i.chrome).map((i) => i.box);
+	if (content.length) {
+		const u = union(content);
+		const sw = safe.right - safe.left;
+		const sh = safe.bottom - safe.top;
+		const w = Math.max(0, Math.min(u.right, safe.right) - Math.max(u.left, safe.left));
+		const h = Math.max(0, Math.min(u.bottom, safe.bottom) - Math.max(u.top, safe.top));
+		const covered = (w * h) / (sw * sh);
+		if (covered < 0.25) note("empty", `large empty area (content covers ${r0(covered * 100)}% of the safe area) -> fill it: a larger type role, ${tw ? "flex-1" : ".vw-fill"} on the main block, or bigger cards`);
+		const sides = [
+			["left", "right", u.left - safe.left, safe.right - u.right, sw, "width"],
+			["top", "bottom", u.top - safe.top, safe.bottom - u.bottom, sh, "height"],
+		];
+		for (const [lo, hi, before, after, size, dim] of sides) {
+			const [near, far, empty] = before < after ? [lo, hi, after] : [hi, lo, before];
+			if (empty / size > 0.5 && Math.min(before, after) / size < 0.1) note(`bunched|${dim}`, `content bunched on the ${near} (${r0((100 * empty) / size)}% of the ${dim} empty on the ${far}) -> spread it: ${tw ? "flex-1, grid-cols-2 or justify-center" : ".vw-row, .vw-grid or centre it"}`);
+		}
+	}
+
 	hitStyle.remove();
-	return { segment: segmentId, findings, unknownBg, counted: { text: leaves.filter((l) => l.kind === "text").length, graphics: leaves.filter((l) => l.kind === "graphic").length, boxes: boxes.length } };
+	return { segment: segmentId, findings, notes, unknownBg, counted: { text: leaves.filter((l) => l.kind === "text").length, graphics: leaves.filter((l) => l.kind === "graphic").length, boxes: boxes.length } };
 })

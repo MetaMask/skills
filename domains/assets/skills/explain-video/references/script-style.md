@@ -28,3 +28,13 @@ Use only if requested, or if the audience is non-native or the content is safety
 - Prefer short sentences. Split a sentence that has "and" joining two facts.
 - Do not use a metaphor, a joke, or a question as the explanation.
 - If you are not sure a word is approved, ask the user. Do not replace it with a longer phrase to hide the doubt.
+
+## On-screen text (both options)
+
+These rules cover `display` text only, not narration. They follow the MetaMask design-system content guidelines.
+
+- Sentence case for titles, card text and buttons (an all-caps kicker pill is a style choice and is fine). Keep the real spelling of code identifiers and product names.
+- Labels and titles are short phrases, not sentences: no full stop at the end, and no "!".
+- Use "you" and "we", and the active voice.
+- Avoid "successfully" and "please".
+- Use the MetaMask terms: "network fee", not "gas fee"; "site", not "dapp" (except for a technical audience); "Secret Recovery Phrase" in full.

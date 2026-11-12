@@ -1,9 +1,22 @@
 # MetaMask — Brand
 
-Values come from the `@metamask/design-tokens` package in
+Values come from the `@metamask/design-tokens` package (pinned at 13.0.0) in
 [MetaMask/metamask-design-system](https://github.com/MetaMask/metamask-design-system)
 (`packages/design-tokens/src/css`), after the September 2026 brand-palette refresh
 (PR #1496 "update brand accent colors", PR #1489 "replace Geist with Inter").
+
+`assets/styles/design-tokens.json` is the pinned snapshot (brand colours, dark theme, type roles).
+`scripts/sync_design_tokens.py build` writes it into the `design-tokens:begin … end` block of
+both MetaMask `style.css` files; never edit that block by hand. To move to a new release:
+
+```bash
+python3 scripts/sync_design_tokens.py pull --npm 13.1.0        # or --from <clone>/packages/design-tokens
+python3 scripts/sync_design_tokens.py build
+(cd scripts && python3 -m unittest tests.test_design_tokens tests.test_layout_check)
+```
+
+`scripts/tests/test_design_tokens.py` needs no network: it fails if a `style.css` drifts from the
+snapshot, and if any text token drops below 4.5:1 on any surface.
 
 ## Color
 
@@ -14,6 +27,8 @@ Values come from the `@metamask/design-tokens` package in
 | `--color-surface-2` | `#222226` | `background-subsection` | Nested rows, code blocks. |
 | `--color-fg` | `#ffffff` | `text-default` | Headlines and body. |
 | `--color-muted` | `#a3a4a7` | `text-alternative` | Secondary copy. |
+| `--color-muted-dim` | `#949596` | `grey400` | Tertiary copy. Replaces `text-muted` (`#66676a`), which fails AA on dark surfaces. |
+| `--color-border` | `#e2e2ff26` | `border-muted` | Card hairlines. |
 | `--color-accent` / `--mm-orange` | `#fa4b00` | `orange400` (was `#ff5c16`) | The brand signal: key word, active item, glow. |
 | `--mm-blue` | `#8b99ff` | `primary-default` | Interactive/primary things, links, "the flow". |
 | `--mm-lime` | `#b9f302` | `success-default` | Success, "after", added lines. |
@@ -25,8 +40,8 @@ Rule of thumb: **one orange moment per scene**, blue for structure, lime for "go
 
 ## Typography
 
-- **Inter** for display and body (design-system default since PR #1489). **Display face is in flux:** the Brand Migration plan (Confluence, 2026-09-03) says display moves to **Oswald** with Inter for body, and open design-system PRs #1499 (Oswald) and #1581 (Grotzec Cond) are still deciding. Revisit `--font-display` when one merges. Display is 700 with
-  tight tracking (-0.03em); body is 400/500.
+- **Inter** for display and body: `--font-family-default` in `@metamask/design-tokens` 13.0.0. Sizes, weights, line heights and letter spacing are the design system's type roles (see STYLE.md), generated into `style.css` by `scripts/sync_design_tokens.py`.
+- The tokens also define `--font-family-hero: 'Grotzec Cond'`. It is a commercially licensed face, so it is **not** bundled, loaded or referenced by this skill, and the sync script does not copy it. Display stays on Inter.
 - MetaMask's `MMSans` (accent) and `MMPoly` (hero) are the proprietary brand faces. They are
   not licensed for this repo, so they are *not* embedded. Two open PRs
   (#1499, #1581) are still deciding their replacement — revisit when one merges.

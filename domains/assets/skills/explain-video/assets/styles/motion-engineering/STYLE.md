@@ -42,12 +42,12 @@ An engineering-document aesthetic — half aerospace HUD, half CAD blueprint. Ch
 
 ## Layout principles
 
-- **Faint grid is always visible.** 8% opacity, 32px or 64px cells. The scene sits on a drawing.
-- **Crosshairs and corner ticks frame the content area.** Top-left `+`, top-right `+`, bottom corners likewise. They sweep in on enter.
+- **Faint grid is always visible.** `style.css` paints the 64px grid on the page and `tokens.css` paints corner ticks behind every `stage()`. Do not build either in segments.
+- **Crosshairs frame the subject.** A crosshair or reticle on the thing being measured, sweeping in on enter.
 - **Leader lines connect labels to things.** Never float a label — connect it with a 1px line to its referent.
 - **Tabular numerals everywhere.** All metrics in mono with `tnum`.
 - **Coordinate readouts.** Bottom strip shows `X 1240.00 Y 360.00` ticking subtly.
-- **Safe area.** Import `tokens.css` after `style.css`. All content sits in `.vw-safe` (from `kit/kit.ts` `stage()`): 96px sides, 152px top, 176px bottom. Grid, crosshairs, ticks, leader lines and readouts are decoration: mark them `data-vw-decor` so `scripts/render/vw.ts --check` ignores them. Everything else must pass the check.
+- **Safe area.** Import `tokens.css` after `style.css`. All content sits in `.vw-safe` (from `kit/kit.ts` `stage()`): 96px sides, 152px top, 176px bottom. The theme's grid and ticks are behind all content and the check ignores them. Crosshairs, leader lines and readouts you add are content and must pass the check; mark one `data-vw-decor` only when it must cross other content on purpose, and rarely.
 
 ## Color application
 

@@ -11,8 +11,7 @@ export default defineSegment({
 	mount(el: HTMLElement) {
 		host = el;
 		el.innerHTML = stage(
-			`<div data-vw-decor style="position:absolute;left:-300px;top:-200px;width:1400px;height:1000px;background:var(--glow-orange)"></div>
-			${pill("PR WALKTHROUGH", { accent: true })}
+			`${pill("PR WALKTHROUGH", { accent: true })}
 			<div class="vw-title">Badge no longer covers the token icon</div>
 			${grid(3,
 				card("Before", "The badge sat on the avatar and hid the token.", { attr: "data-c1" }),

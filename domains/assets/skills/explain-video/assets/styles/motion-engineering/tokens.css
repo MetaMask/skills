@@ -22,3 +22,21 @@
 	--captions-bg: rgba(14, 20, 26, 0.94);
 	--captions-text: var(--color-fg);
 }
+
+.vw-stage {
+	isolation: isolate;
+}
+
+.vw-stage::before {
+	content: "";
+	position: absolute;
+	inset: 40px;
+	z-index: -1;
+	pointer-events: none;
+	--tick: color-mix(in srgb, var(--cyan) 75%, transparent);
+	background:
+		linear-gradient(var(--tick), var(--tick)) top left / 28px 1px no-repeat, linear-gradient(var(--tick), var(--tick)) top left / 1px 28px no-repeat,
+		linear-gradient(var(--tick), var(--tick)) top right / 28px 1px no-repeat, linear-gradient(var(--tick), var(--tick)) top right / 1px 28px no-repeat,
+		linear-gradient(var(--tick), var(--tick)) bottom left / 28px 1px no-repeat, linear-gradient(var(--tick), var(--tick)) bottom left / 1px 28px no-repeat,
+		linear-gradient(var(--tick), var(--tick)) bottom right / 28px 1px no-repeat, linear-gradient(var(--tick), var(--tick)) bottom right / 1px 28px no-repeat;
+}

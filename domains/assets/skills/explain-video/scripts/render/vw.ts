@@ -872,8 +872,16 @@ export interface LayoutFinding {
 	rects: Array<{ left: number; top: number; right: number; bottom: number }>;
 }
 
-export function formatLayoutReport(results: Array<{ segmentId: string; beat: number; beats: number; findings: LayoutFinding[] }>): { errors: number; lines: string[] } {
+export interface LayoutNote {
+	key: string;
+	msg: string;
+}
+
+type BeatResult = { segmentId: string; beat: number; beats: number; findings: LayoutFinding[]; notes?: LayoutNote[] };
+
+export function formatLayoutReport(results: BeatResult[]): { errors: number; lines: string[]; notes: string[] } {
 	const lines: string[] = [];
+	const notes: string[] = [];
 	const seen = new Set<string>();
 	let errors = 0;
 	for (const r of results) {
@@ -884,11 +892,40 @@ export function formatLayoutReport(results: Array<{ segmentId: string; beat: num
 			errors++;
 			lines.push(`  ${r.segmentId} beat ${r.beat}/${r.beats}: ${f.msg}`);
 		}
+		for (const n of r.notes ?? []) {
+			const key = `${r.segmentId}|note|${n.key}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			notes.push(`note ${r.segmentId} beat ${r.beat}/${r.beats}: ${n.msg}`);
+		}
 	}
-	return { errors, lines };
+	return { errors, lines, notes };
 }
 
 const LAYOUT_CHECK = join(dirname(fileURLToPath(import.meta.url)), "layout-check.js");
+
+const SETTLE = `(async () => {
+	const tick = () => new Promise((r) => { const c = new MessageChannel(); c.port1.onmessage = () => r(0); c.port2.postMessage(0); });
+	const saved = (window.__VW_SETTLED__ ??= []);
+	for (let round = 0; round < 8; round++) {
+		document.body.offsetHeight;
+		await document.fonts.ready;
+		await Promise.all(Array.from(document.images, (i) => i.decode().catch(() => 0)));
+		for (let k = 0; k < 4; k++) await tick();
+		let moved = 0;
+		for (const a of document.getAnimations()) {
+			const t = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null;
+			if (!t || !Number.isFinite(t.endTime) || a.playState === "idle" || (a.currentTime ?? 0) >= t.endTime) continue;
+			saved.push([a, a.currentTime]);
+			a.currentTime = t.endTime;
+			moved++;
+		}
+		if (!moved) return round;
+	}
+	return 8;
+})()`;
+const RESTORE = `(() => { for (const [a, t] of (window.__VW_SETTLED__ ?? []).reverse()) { try { a.currentTime = t; } catch {} } window.__VW_SETTLED__ = []; })()`;
+const SETTLE_TIMEOUT_MS = 5000;
 
 const OVERLAY = (rects: LayoutFinding["rects"]) =>
 	`(() => { const o = document.createElement("div"); o.id = "__vw_check_overlay"; o.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647"; for (const r of ${JSON.stringify(rects)}) { const d = document.createElement("div"); d.style.cssText = "position:absolute;box-sizing:border-box;border:3px solid #ff1744;background:rgba(255,23,68,0.12);left:" + r.left + "px;top:" + r.top + "px;width:" + (r.right - r.left) + "px;height:" + (r.bottom - r.top) + "px"; o.appendChild(d); } document.body.appendChild(o); })()`;
@@ -972,27 +1009,40 @@ export async function runRender(opts: RenderOptions) {
 		const framesDir = opts.frames ? resolve(opts.frames) : undefined;
 		if (framesDir) mkdirSync(framesDir, { recursive: true });
 		const beatCount = new Map<string, number>(timeline.segments.map((s: any) => [s.id, advances[s.id].length]));
-		const results: Array<{ segmentId: string; beat: number; beats: number; findings: LayoutFinding[] }> = [];
+		const results: BeatResult[] = [];
 		let unknownBg = 0;
 		const checkBeat = async (segmentId: string, advanceIndex: number) => {
-			await cdp.evaluate("(document.body.offsetHeight, Promise.all([document.fonts.ready, ...Array.from(document.images, (i) => (i.complete ? 0 : i.decode().catch(() => 0)))]).then(() => true))");
-			const r = await cdp.evaluate<{ findings: LayoutFinding[]; unknownBg: number }>(`(${checkSource})(${JSON.stringify(segmentId)})`);
-			unknownBg += r.unknownBg;
-			results.push({ segmentId, beat: advanceIndex + 1, beats: beatCount.get(segmentId)!, findings: r.findings });
-			if (framesDir) {
-				const rects = r.findings.flatMap((f) => f.rects);
-				if (rects.length) await cdp.evaluate(OVERLAY(rects));
-				writeFileSync(join(framesDir, `${String(results.length).padStart(2, "0")}-${segmentId}-beat${advanceIndex + 1}${r.findings.length ? "-FAIL" : ""}.png`), await cdp.screenshot());
-				if (rects.length) await cdp.evaluate(`document.getElementById("__vw_check_overlay")?.remove()`);
+			let timer: NodeJS.Timeout | undefined;
+			const timedOut = new Promise<string>((r) => (timer = setTimeout(() => r("timeout"), SETTLE_TIMEOUT_MS)));
+			const settled = await Promise.race([cdp.evaluate(SETTLE), timedOut]).finally(() => clearTimeout(timer));
+			if (settled === "timeout") console.warn(`Warning: ${segmentId} beat ${advanceIndex + 1}: images or animations did not settle within ${SETTLE_TIMEOUT_MS / 1000}s; measured as is`);
+			try {
+				const r = await cdp.evaluate<{ findings: LayoutFinding[]; notes: LayoutNote[]; unknownBg: number }>(`(${checkSource})(${JSON.stringify(segmentId)})`);
+				unknownBg += r.unknownBg;
+				results.push({ segmentId, beat: advanceIndex + 1, beats: beatCount.get(segmentId)!, findings: r.findings, notes: r.notes });
+				if (framesDir) {
+					const rects = r.findings.flatMap((f) => f.rects);
+					if (rects.length) await cdp.evaluate(OVERLAY(rects));
+					writeFileSync(join(framesDir, `${String(results.length).padStart(2, "0")}-${segmentId}-beat${advanceIndex + 1}${r.findings.length ? "-FAIL" : ""}.png`), await cdp.screenshot());
+					if (rects.length) await cdp.evaluate(`document.getElementById("__vw_check_overlay")?.remove()`);
+				}
+			} finally {
+				await cdp.evaluate(RESTORE);
 			}
 		};
 		const report = () => {
-			const { errors, lines } = formatLayoutReport(results);
+			const { errors, lines, notes } = formatLayoutReport(results);
 			const checked = `${results.length} beat${results.length === 1 ? "" : "s"} in ${timeline.segments.length} segment${timeline.segments.length === 1 ? "" : "s"}`;
 			if (unknownBg) console.log(`layout check: contrast skipped for ${unknownBg} text run(s) over images or url() backgrounds; check those frames by eye`);
 			if (framesDir) console.log(`layout check: beat frames in ${framesDir}`);
-			if (!errors) return console.log(`layout check: OK (${checked})`);
+			const printNotes = () => notes.length && console.log(`layout check: ${notes.length} note${notes.length === 1 ? "" : "s"} (do not fail the check)\n${notes.join("\n")}`);
+			if (!errors) {
+				console.log(`layout check: OK (${checked})`);
+				printNotes();
+				return;
+			}
 			console.error(`layout check: ${errors} error${errors === 1 ? "" : "s"} (${checked})\n${lines.join("\n")}`);
+			printNotes();
 			throw new UserError(`Layout check failed with ${errors} error${errors === 1 ? "" : "s"}`, "Fix every line above, then re-run. Exempt only true decoration with data-vw-decor, or intended layering with data-vw-allow-overlap.");
 		};
 		const fireBeat = async (beat: (typeof schedule)[number], more: () => boolean) => {
