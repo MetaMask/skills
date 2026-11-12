@@ -133,7 +133,7 @@ describe('managed skill pruning', () => {
   test('removes only stale installer-managed skills across project targets', () => {
     const targets = [
       ['.claude/skills', 'SKILL.md'],
-      ['.cursor/rules', 'RULE.md'],
+      ['.cursor/rules', 'RULE.mdc'],
       ['.agents/skills', 'SKILL.md'],
     ];
     const stale = [];

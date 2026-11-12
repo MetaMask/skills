@@ -324,7 +324,8 @@ Happy path for this lower-level rollout: clear task + acceptance criteria → `/
 Per consuming repo, the CLI writes:
 
 - `.claude/skills/mms-<name>/SKILL.md` — Claude Code, OpenCode
-- `.cursor/rules/mms-<name>/RULE.md` — Cursor
+- `.cursor/rules/mms-<name>/RULE.mdc` — Cursor, or `mms-<name>.mdc` for an
+  explicit-only skill. Cursor reads only `.mdc` under `.cursor/rules`.
 - `.agents/skills/mms-<name>/SKILL.md` + `agents/openai.yaml` — Codex, OpenCode
 
 When a source skill includes bundled resources, `references/`, `scripts/`,
