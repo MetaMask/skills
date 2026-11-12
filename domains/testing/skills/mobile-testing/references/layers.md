@@ -1,6 +1,6 @@
 # Mobile testing layers — see domain knowledge
 
-**Canonical policy:** [`../../../knowledge/testing-layers.md`](../../../knowledge/testing-layers.md)
+**Canonical policy:** `knowledge/testing-layers.md`
 
 When installed beside testing skills, open `knowledge/testing-layers.md`.
 

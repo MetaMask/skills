@@ -137,6 +137,30 @@ tools/
 .targets.local.example          # template for maintainer config
 ```
 
+### Referring to domain knowledge from a skill
+
+`knowledge/` is copied **beside every skill in the domain**, so the installed tree is
+flatter than this repo's:
+
+```
+repo        domains/<area>/knowledge/x.md          domains/<area>/skills/<s>/skill.md
+installed   .claude/skills/mms-<s>/knowledge/x.md  .claude/skills/mms-<s>/SKILL.md
+```
+
+A skill body therefore reaches its knowledge as **`knowledge/x.md`** once installed, but as
+`../../knowledge/x.md` in the repo — and from a `references/` file the two are `../knowledge/x.md`
+and `../../../knowledge/x.md`. **A repo-relative path is broken in the delivered output**, and
+nothing reports it. Cite by name, or by the installed-relative form:
+
+```markdown
+See the `selector-anti-patterns` knowledge file.        <!-- safe anywhere -->
+See [x](knowledge/selector-anti-patterns.md)            <!-- correct from an installed skill body -->
+See [x](../../knowledge/selector-anti-patterns.md)      <!-- repo-relative: 404 once installed -->
+```
+
+`test/cli.test.mjs` guards this: every `knowledge/…` reference in an emitted skill must
+resolve on disk after install.
+
 ## Domains today
 
 | Domain         | Audience          | Examples                                    |

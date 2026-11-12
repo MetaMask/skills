@@ -47,7 +47,7 @@ Mobile layers, and cross-layer placement audits (phase 2). Keep those separate.
 ### 1. Choose the layer
 
 Read installed `knowledge/extension-testing-layers.md` (source:
-[`../../knowledge/extension-testing-layers.md`](../../knowledge/extension-testing-layers.md))
+[`knowledge/extension-testing-layers.md`](knowledge/extension-testing-layers.md))
 before writing any test. `references/layers.md` is only a redirect stub.
 
 ### 2. Open only the matching reference
