@@ -15,6 +15,7 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 - Reuse existing helpers and controller logic; name them. Never plan a local copy of shared logic.
 - State what each proof must observe, not which recipe to use. Recipe choice and authoring belong to the run.
 - Say how each proof value is read: the harness action and field, the test ID, or the state path. If nothing exposes a value, say so under Risks instead of leaving the worker to discover it.
+- Every criterion is proven in the running app: a recipe assertion, a state read or a screenshot. Unit, integration and E2E tests never prove a criterion; list them under Tests. Rewrite or drop a criterion that only a test can show.
 
 ## Template
 
@@ -34,7 +35,7 @@ Approved by @<github login> · <YYYY-MM-DD> · planned against <origin branch>@<
 - Files: `<path>`, `<path>`
 
 ## Tests
-- `<test path>`: <case>
+- `<test path>`: <case> (regression coverage, not proof)
 
 ## Risks
 - <concrete risk and how the run checks it>
