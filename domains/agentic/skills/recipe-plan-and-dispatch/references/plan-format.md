@@ -1,11 +1,12 @@
 # Plan format
 
-A cheaper model follows this plan as written. Make it short and exact, so nothing is left to interpret.
+A cheaper model follows this plan as written. Make it exact and complete, so nothing is left to interpret or rediscover.
 
 ## Rules
 
 - No noise. Every line carries a fact the worker acts on. Cut background, history, restated ticket text and reasoning the worker does not need.
-- About 30 lines. If it needs more, the ticket needs splitting.
+- Length follows the change. Cut noise, never a fact the worker needs. A small fix fits in 20 to 30 lines; a larger change lists more steps. Past about 80 lines, the ticket needs splitting.
+- Write `Change` as ordered steps. Each step names the file and symbol, the exact change, the helper or controller logic to reuse, the edge cases to handle, and the criterion it serves.
 - Use the sections below, as bullets. No introduction, summary or closing.
 - Name files and symbols as `path:line` or `path` plus symbol.
 - Do not restate the ticket. Each criterion takes one line: the criterion, then its proof.
@@ -28,7 +29,7 @@ Approved by @<github login> · <YYYY-MM-DD> · planned against <origin branch>@<
 - `<path:line>` <what happens and why>
 
 ## Change
-- `<path>` <symbol>: <what changes>
+1. `<path>` <symbol>: <exact change>. Reuse `<helper>`. Edge cases: <cases>. Serves AC<n>.
 - Files: `<path>`, `<path>`
 
 ## Tests
