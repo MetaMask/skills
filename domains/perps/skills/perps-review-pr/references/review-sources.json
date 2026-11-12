@@ -1,12 +1,15 @@
 {
   "repository": "MetaMask/experimental-metamask-recipe-perps",
-  "revision": "cac185cb8083670a06f8f213c0b71c3b34c81724",
+  "revision": "bd85e44264c5d9e0a5ef83ec9a46d072d2745417",
   "files": {
-    "review/antipatterns.md": "e1b6161285c5bc26463e06b43aa133f8fd801ed7c00c223a422173dbfd457928",
-    "review/antipatterns.extension.md": "57f7edb43bcd234a2b7fa1344a8f291d4afcd6ffd545fefd081e0787ec0b8548",
-    "review/antipatterns.core.md": "0eeab09bbad7da1fa924cb0688bbcf40e94950e36f934dd2bc613552026a9743",
-    "review/parity.md": "8895a333d526d7819c3bbf526f09f6f216aca41ddd197581e454b0bbd4bc482c",
-    "review/shared-packages.md": "11268974eef5e69a3ca2c8b68202bc7789133c352855e3e758bd32069ee8255d",
-    "owned-paths.json": "e5a3994708c61c158dd2c4adbc321269bf11435d82ff18f900d9372e831e9eb3"
+    "review/antipatterns.md": "0c5249ada9bef2b5f7f23b884cc42d46ab72dd18c2c2a69e03e19235a817d36c",
+    "review/antipatterns.mobile.md": "b22d90ef7ca7a9f71dad2ec04ea063f8033e8e1c6686a20e3999e88736879451",
+    "review/antipatterns.extension.md": "bc4179be1d56ced4979573ecb246943b211a85dac382c61955d2c97ab8f6f652",
+    "review/antipatterns.core.md": "434ca8caad8d6ab492ce476a156b6153884c82896e2f462237967ed25cc1f7b4",
+    "review/antipatterns.terminal.md": "c9837c90e1fa86624369794d8bb856ed38ae064bf97b73f93b9129b02d29a4cb",
+    "review/parity.md": "2b47ea7ba628effb0add9b3a85fbbb154ddcbf2930aadd4309783ab3235098ba",
+    "review/shared-packages.md": "9e7bcba85dd29807d3660c5e22b7d263e4fa9933af02344da1efe5cb72b79693",
+    "review/report-template.md": "06d4de2a2268d4721ac4e968bff836276c5270d70a4e41681c7dd464e3b19bb7",
+    "owned-paths.json": "da97adc1bc225145dc729606804434901162f87eb5076ca9165b72f7e08ae010"
   }
 }
