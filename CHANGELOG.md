@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix the `testing/visual-testing` state manipulation reference for React 18 and LavaMoat builds: find the Redux store from `#app-content.firstElementChild` through `memoizedProps.store`, describe which globals LavaMoat scuttles and add a capability check, add a production build section, replace the `stateHooks.reloadExtension()` advice for persisted writes with background calls (including one through the UI messenger), fix the flat `state.metamask` example, and add troubleshooting for injected Redux data that a background update or a page load drops. ([#230](https://github.com/MetaMask/skills/pull/230))
 - Serialize updates of each shared skill source so concurrent syncs and farm prepares cannot race on Git's fetch state.
 - Keep the `typescript/tsc-blindspots` description within the skill catalog's size limit.
+- Add `feature-flags` skill with a repo-agnostic base and a MetaMask Mobile overlay for version-gated remote flags. Marked `base: true` so it installs even when its domain is filtered out. ([#147](https://github.com/MetaMask/skills/pull/147))
+- Add `analytics` skill (`platform/analytics`, moved from `coding`) with a repo-agnostic base and a MetaMask Mobile overlay for the canonical tracking API. Marked `base: true` so it installs even when its domain is filtered out. ([#140](https://github.com/MetaMask/skills/pull/140))
 
 ## [0.3.1]
 
