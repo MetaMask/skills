@@ -927,8 +927,27 @@ const SETTLE = `(async () => {
 const RESTORE = `(() => { for (const [a, t] of (window.__VW_SETTLED__ ?? []).reverse()) { try { a.currentTime = t; } catch {} } window.__VW_SETTLED__ = []; })()`;
 const SETTLE_TIMEOUT_MS = 5000;
 
+const UNSAFE_JS_CHAR_MAP: Record<string, string> = {
+	"<": "\\u003C",
+	">": "\\u003E",
+	"/": "\\u002F",
+	"\\": "\\\\",
+	"\b": "\\b",
+	"\f": "\\f",
+	"\n": "\\n",
+	"\r": "\\r",
+	"\t": "\\t",
+	"\0": "\\0",
+	"\u2028": "\\u2028",
+	"\u2029": "\\u2029"
+};
+
+function escapeUnsafeJsForCodeConstruction(str: string): string {
+	return str.replace(/[<>\/\\\b\f\n\r\t\0\u2028\u2029]/g, (ch) => UNSAFE_JS_CHAR_MAP[ch] ?? ch);
+}
+
 const OVERLAY = (rects: LayoutFinding["rects"]) =>
-	`(() => { const o = document.createElement("div"); o.id = "__vw_check_overlay"; o.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647"; for (const r of ${JSON.stringify(rects)}) { const d = document.createElement("div"); d.style.cssText = "position:absolute;box-sizing:border-box;border:3px solid #ff1744;background:rgba(255,23,68,0.12);left:" + r.left + "px;top:" + r.top + "px;width:" + (r.right - r.left) + "px;height:" + (r.bottom - r.top) + "px"; o.appendChild(d); } document.body.appendChild(o); })()`;
+	`(() => { const o = document.createElement("div"); o.id = "__vw_check_overlay"; o.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647"; for (const r of ${escapeUnsafeJsForCodeConstruction(JSON.stringify(rects))}) { const d = document.createElement("div"); d.style.cssText = "position:absolute;box-sizing:border-box;border:3px solid #ff1744;background:rgba(255,23,68,0.12);left:" + r.left + "px;top:" + r.top + "px;width:" + (r.right - r.left) + "px;height:" + (r.bottom - r.top) + "px"; o.appendChild(d); } document.body.appendChild(o); })()`;
 
 export async function runRender(opts: RenderOptions) {
 	const log = (msg: string) => opts.verbose && console.log(msg);
