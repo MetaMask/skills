@@ -271,6 +271,20 @@ if [ -n "$plan" ]; then
 fi
 
 
+# A task branch cut from a stale checkout proves behavior on old code. Warn, do not block:
+# the engineer decides whether to update before the task branch exists.
+if [ "$task_kind" = "dev" ] || [ "$task_kind" = "fix-bug" ]; then
+  default_ref="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)"
+  if GIT_TERMINAL_PROMPT=0 timeout 30 git fetch -q origin "${default_ref#origin/}" 2>/dev/null; then
+    behind="$(git rev-list --count "HEAD..$default_ref" 2>/dev/null || echo 0)"
+    if [ "${behind:-0}" -gt 0 ]; then
+      echo "BASE BEHIND: this checkout is $behind commits behind $default_ref. Update it before creating the task branch." >&2
+    fi
+  else
+    echo "BASE UNKNOWN: could not fetch $default_ref; confirm the checkout is current before creating the task branch." >&2
+  fi
+fi
+
 if [ "$prepare" = "true" ]; then
   "$script_dir/prepare-sandbox" "$task_dir" --platform "$platform"
 fi

@@ -4,6 +4,7 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 
 ## Rules
 
+- No noise. Every line carries a fact the worker acts on. Cut background, history, restated ticket text and reasoning the worker does not need.
 - About 30 lines. If it needs more, the ticket needs splitting.
 - Use the sections below, as bullets. No introduction, summary or closing.
 - Name files and symbols as `path:line` or `path` plus symbol.
@@ -12,15 +13,16 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 - No hedging: drop "consider", "might", "ensure", "robust", "as needed", "if appropriate".
 - Risks only when concrete and checkable.
 - Reuse existing helpers and controller logic; name them. Never plan a local copy of shared logic.
+- State what each proof must observe, not which recipe to use. Recipe choice and authoring belong to the run.
 
 ## Template
 
 ```markdown
 # <ticket> · <fix-bug|dev>
-Approved by <engineer> · planned with <model> · <date>
+Approved by @<github login> · <YYYY-MM-DD> · planned against <origin branch>@<short sha>
 
 ## Criteria and proof
-- AC1 <criterion> → <recipe assertion, state read or screenshot pair>
+- AC1 <criterion> → <what to observe: state read, UI assertion or screenshot pair>
 
 ## Root cause | Current behavior
 - `<path:line>` <what happens and why>
