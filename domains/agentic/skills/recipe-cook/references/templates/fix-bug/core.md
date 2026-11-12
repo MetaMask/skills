@@ -29,6 +29,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Draft the baseline recipe in reuse order
   When proof is required, draft `artifacts/recipe.json` asserting fixed behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 9. Probe setup and retain the failing baseline run
   Probe reused recipe entry/setup boundaries with a short bound, then run into `<task>/artifacts/recipe-baseline-run` with `--json`.
   Require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.

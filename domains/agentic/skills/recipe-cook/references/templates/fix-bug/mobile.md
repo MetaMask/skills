@@ -33,6 +33,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Commit it alone as `debug(<ticket>): add reproduction marker`. Retain the SHA and log excerpt.
 - [ ] 9. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 10. Run the recorded baseline and inspect visuals
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).

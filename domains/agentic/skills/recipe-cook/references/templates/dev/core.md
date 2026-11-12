@@ -36,6 +36,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 
 ## Implement
 - [ ] 10. Implement the gated, AC-mapped change

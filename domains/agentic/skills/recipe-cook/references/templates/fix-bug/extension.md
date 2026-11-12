@@ -31,6 +31,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 8. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   Pair ordering, portal or z-index screenshots with a bounding-box read.
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 9. Run the recorded baseline and inspect visuals
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).

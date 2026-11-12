@@ -18,6 +18,7 @@ Apply the sections for this flow and platform at each step.
 ## Plan and baseline
 
 - Discover the harness catalog before drafting: `mm-harness run --list --json`; use Recipe v1 `workflow.{entry,nodes}` and live runtime evidence. Tests corroborate only.
+- Reproduction and baseline happen only in the running app: a recipe through mm-harness with live actions, markers or logs. Before the Validate phase, do not write, run or embed unit, integration or E2E tests, and never put a test runner in a recipe node.
 - Core targets packages/controllers and fixtures, using headless `state`, `command` or `log` proof without PNGs. A `command` proof drives the controller through its public API as a client does (real messenger, mocked only at the network boundary); it never runs Jest or another unit-test probe.
 - Mobile targets iOS, Android or both; Extension targets popup, sidepanel, fullscreen or dapp. Record the rationale.
 - UI ACs use state/visual/mixed proof; visual proof requires a human-read PNG. Extension copy, labels, warnings, modals and toasts are visual or mixed.
