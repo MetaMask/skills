@@ -23,6 +23,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 5. Write the approach
   `artifacts/approach.md`: affected files, current behavior or insertion point, chosen approach and trade-offs (rules: proof-rules.md, Development).
   Include a real commit subject when the task title is empty or generic; use it for any requested product commit.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 6. Build the AC matrix
   Rules: proof-rules.md, Plan and baseline.
 - [ ] 7. Record the target and rationale

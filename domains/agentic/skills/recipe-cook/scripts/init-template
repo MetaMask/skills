@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: init-template --task-kind dev|fix-bug|review-pr|qa [--platform mobile|extension|core] [--slug slug] [--task-file path] [--task-text text] [--acceptance criterion]... [--task-dir path] [--template ID] [--domain name] [--ticket id] [--source-ref ref] [--title text] [--prepare] [--harness-choice 1]
+Usage: init-template --task-kind dev|fix-bug|review-pr|qa [--platform mobile|extension|core] [--slug slug] [--task-file path] [--task-text text] [--acceptance criterion]... [--task-dir path] [--template ID] [--domain name] [--ticket id] [--source-ref ref] [--title text] [--plan path --plan-sha256 hex] [--ci-command cmd] [--prepare] [--harness-choice 1]
        init-template --resume-task-dir path
 
 Creates a task directory with TASK.md (the task document: title, ticket, source,
@@ -14,6 +14,10 @@ validation, and the harness bootstrap only.
 Platform defaults to auto-detect from the current repo when omitted.
 Resume mode validates an existing materialized task without creating another
 directory or checklist.
+--ci-command sets the changed-file CI step; dev and fix-bug default to the
+task harness's `check diff --profile full`.
+--plan copies an engineer-approved plan into the task's inputs/plan.md after its
+sha256 matches --plan-sha256; a mismatch stops before anything is created.
 USAGE
 }
 
@@ -32,6 +36,9 @@ title=""
 prepare="false"
 resume_task_dir=""
 harness_choice=""
+plan=""
+plan_sha256=""
+ci_command=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --task-kind) task_kind="${2:-}"; shift 2 ;;
@@ -48,11 +55,37 @@ while [ "$#" -gt 0 ]; do
     --title) title="${2:-}"; shift 2 ;;
     --resume-task-dir) resume_task_dir="${2:-}"; shift 2 ;;
     --harness-choice) harness_choice="${2:-}"; shift 2 ;;
+    --plan) plan="${2:-}"; shift 2 ;;
+    --ci-command) ci_command="${2:-}"; shift 2 ;;
+    --plan-sha256) plan_sha256="${2:-}"; shift 2 ;;
     --prepare) prepare="true"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; usage; exit 2 ;;
   esac
 done
+
+# An approved plan is trusted only when it is the exact file the engineer
+# approved: check it before any task state exists.
+if [ -n "$plan" ] || [ -n "$plan_sha256" ]; then
+  if [ -z "$plan" ] || [ -z "$plan_sha256" ]; then
+    echo "--plan and --plan-sha256 must be given together" >&2
+    exit 2
+  fi
+  if [ -n "$resume_task_dir" ]; then
+    echo "--plan applies to a new task; a resumed task keeps its recorded inputs" >&2
+    exit 2
+  fi
+  if [ ! -f "$plan" ] || [ -L "$plan" ]; then
+    echo "Plan file is missing or not a regular file: $plan" >&2
+    exit 2
+  fi
+  plan_actual="$(node -e 'process.stdout.write(require("crypto").createHash("sha256").update(require("fs").readFileSync(process.argv[1])).digest("hex"))' "$plan")"
+  plan_expected="$(printf '%s' "$plan_sha256" | tr '[:upper:]' '[:lower:]')"
+  if [ "$plan_actual" != "$plan_expected" ]; then
+    echo "Plan hash mismatch for $plan: expected $plan_expected, got $plan_actual. Stop and ask the engineer to re-approve the plan." >&2
+    exit 2
+  fi
+fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 detect_platform="$script_dir/detect-platform"
@@ -165,6 +198,8 @@ if ! harness="$("$resolve_harness" "${resolve_args[@]}")"; then
   [ -z "$domain" ] || resume_args+=(--domain "$domain")
   [ -z "$ticket" ] || resume_args+=(--ticket "$ticket")
   [ -z "$source_ref" ] || resume_args+=(--source-ref "$source_ref")
+  [ -z "$plan" ] || resume_args+=(--plan "$plan" --plan-sha256 "$plan_sha256")
+  [ -z "$ci_command" ] || resume_args+=(--ci-command "$ci_command")
   [ "$prepare" != "true" ] || resume_args+=(--prepare)
   # Keep the human-choice flag last so the printed command ends with it.
   resume_args+=(--harness-choice 1)
@@ -202,6 +237,22 @@ if [ -n "$task_file" ]; then
 elif [ -n "$task_text" ]; then
   init_args+=(--task-text "$task_text")
 fi
+# The changed-file CI step needs a command. A hosting workflow supplies its own;
+# a direct run uses the task harness's bounded diff check.
+if [ "$task_kind" = "dev" ] || [ "$task_kind" = "fix-bug" ]; then
+  [ -n "$ci_command" ] || ci_command="\"$absolute_task_dir/mm-harness\" check diff --profile full"
+fi
+[ -z "$ci_command" ] || init_args+=(--var "ci.local_check=$ci_command")
+if [ -n "$plan" ]; then
+  plan_addendum="$(mktemp)"
+  trap 'rm -f "$plan_addendum"' EXIT
+  cat > "$plan_addendum" <<ADDENDUM
+## Approved plan
+
+The engineer approved \`inputs/plan.md\` (sha256 $plan_actual) for this task. Apply proof-rules.md, Supplied plan, at the approach or root-cause step.
+ADDENDUM
+  init_args+=(--addendum-file "$plan_addendum")
+fi
 # Stable task-local front door for every checklist command. It exists before
 # the harness writes the mark shim that routes through it.
 "$script_dir/create-harness-runner" "$task_dir" >/dev/null
@@ -212,6 +263,11 @@ else
   init_status=$?
   if [ "$created_task_dir" = "true" ]; then rm -rf "$task_dir"; fi
   exit "$init_status"
+fi
+if [ -n "$plan" ]; then
+  mkdir -p "$task_dir/inputs"
+  cp "$plan" "$task_dir/inputs/plan.md"
+  chmod a-w "$task_dir/inputs/plan.md"
 fi
 
 

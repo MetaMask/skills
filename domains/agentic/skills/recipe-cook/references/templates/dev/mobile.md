@@ -23,6 +23,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 5. Write the approach
   `artifacts/approach.md`: affected files, current behavior or insertion point, chosen approach and trade-offs (rules: proof-rules.md, Development).
   Choose the most defensible approach without pausing.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 6. Build the AC matrix
   Rules: proof-rules.md, Plan and baseline.
 - [ ] 7. Record the target and rationale

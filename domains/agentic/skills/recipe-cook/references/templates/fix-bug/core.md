@@ -34,6 +34,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 11. Exit early if already fixed or not reproduced
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
 

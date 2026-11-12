@@ -39,6 +39,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 11. Record the root cause
   In TASK.md `## Root Cause`, trace file:line from symptom to source.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 
 ## Fix
 - [ ] 12. Make the minimal AC-mapped fix
