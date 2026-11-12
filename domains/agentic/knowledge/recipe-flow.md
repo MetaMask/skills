@@ -1,3 +1,9 @@
+---
+name: recipe-flow
+domain: agentic
+description: How the recipe skills fit together, from ticket to reviewed change, and how to prepare the checkout first
+---
+
 # Recipe skills: how they fit together
 
 The recipe skills take a ticket to a reviewed change with proof from the running app. Each one is invoked by name, and the engineer picks the agent and model for each stage.
