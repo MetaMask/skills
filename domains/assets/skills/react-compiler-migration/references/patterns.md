@@ -265,6 +265,8 @@ The result should be a diff of substitutions: `throw new Error(x)` to `failReque
 
 The three diagnostics surface in sequence, so the value-block error usually appears only once the `finally` and `throw` errors are gone, and a stale dep array often follows. Not always, though — a file with one `finally` and no other rejected syntax is genuinely done after one edit. Let the marker decide when you are finished rather than digging for a cascade the skill led you to expect.
 
+Validated on `useOpenPositionForAsset.ts` (ASSETS-4331, PR 39600): the file bailed on `traderId ?? ''` written as an argument inside the `try`, while the same function's `catch` kept its ternary and `&&` test untouched — value blocks in the `catch` are not a bailout; leave them. The fix that cleared the file moved the `try` expressions into a module-level helper **called from inside the `try`** (calls are allowed, and the protected span is unchanged): CompileSuccess, memoBlocks 7, memoValues 7, pruned 0/0, directory failed files 2 → 1. Do not hoist the expression above the `try` instead — that moves the read outside the `catch`'s protection. And do not rewrite the `catch` into nested `if`s when the marker is already clean.
+
 ---
 
 ## `This value cannot be modified`
