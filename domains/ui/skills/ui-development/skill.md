@@ -180,15 +180,16 @@ read them from the Design Brain source above.
   close or back available.
 - Respect reduced motion, and meet WCAG AA contrast.
 
-## MMDS agent docs
+## MMDS maintainer skills
 
-Read these in the MMDS repository instead of copying them into skills:
-
-- [`.cursor/rules/styling.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/styling.md)
-- [`.cursor/rules/figma-integration.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/figma-integration.md)
-- [`.cursor/rules/component-migration.md`](https://github.com/MetaMask/metamask-design-system/blob/main/.cursor/rules/component-migration.md)
-
-These track MMDS `main`. Where they disagree with the installed types, the
+Guidance for building MMDS itself lives in the
+[`design-system` domain](https://github.com/MetaMask/skills/blob/main/domains/design-system/knowledge/mmds-sources.md)
+and installs only in the MMDS repository. Read it there instead of copying it
+into product skills, for example
+[component architecture](https://github.com/MetaMask/skills/blob/main/domains/design-system/skills/component-architecture/skill.md),
+[Figma Code Connect](https://github.com/MetaMask/skills/blob/main/domains/design-system/skills/figma-code-connect/skill.md),
+and [component migration](https://github.com/MetaMask/skills/blob/main/domains/design-system/skills/component-migration/skill.md).
+It describes MMDS `main`. Where it disagrees with the installed types, the
 installed types win.
 
 ## Review checklist

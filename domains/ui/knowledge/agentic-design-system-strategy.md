@@ -35,7 +35,7 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 ## Producer / consumer split
 
 - **Consumer skills** (`ui-development` repo overlays) route agents to current MMDS guidance for product UI create and review workflows.
-- **Provider skills** (future `design-system` domain) support MMDS authoring, release, and documentation maintenance.
+- **Provider skills** (the [`design-system` domain](https://github.com/MetaMask/skills/blob/main/domains/design-system/knowledge/mmds-sources.md)) support MMDS authoring, release, and documentation maintenance. They install only in `metamask-design-system`, and link to `ui-development` for the shared foundations instead of repeating them.
 - **Baseline delivery:** the installed package types in the consumer repo, the hosted Storybook components manifests ([React](https://metamask.github.io/metamask-design-system/manifests/components.json), [React Native](https://metamask.github.io/metamask-design-system/react-native/manifests/components.json)), and the consumer Tailwind configuration. Installed types win when sources disagree, because the manifests track MMDS `main`.
 
 ## Foundation workstreams
@@ -44,7 +44,7 @@ One knowledge layer, three deliveries. MMDS holds tokens, components, and patter
 2. **No-MCP baseline** — Keep the installed types, hosted components manifests, and consumer Tailwind configuration sufficient on their own.
 3. **MMDS source readiness** — Keep type JSDoc (including `@deprecated`), READMEs, stories, and the published components manifests current for agent consumption.
 4. **Automated alignment checks** — Extend CI and review workflows to validate tokens, components, and patterns where feasible.
-5. **Provider-side skills** — Add a `design-system` domain and `metamask-design-system` maintainer overlay in the skills repo.
+5. **Provider-side skills** — The `design-system` domain, with `metamask-design-system` overlays, holds the MMDS maintainer guidance. MMDS-specific styling, sample copy, and PR steps are `metamask-design-system` overlays on `ui-development`, `content-guidelines`, and `create-pr`.
 
 ## Horizon
 
