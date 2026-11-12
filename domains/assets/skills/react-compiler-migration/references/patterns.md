@@ -267,6 +267,26 @@ The three diagnostics surface in sequence, so the value-block error usually appe
 
 ---
 
+## `This value cannot be modified`
+
+Reanimated shared values are objects, and the compiler refuses to treat them as assignable. A `.value =` write inside a callback or a `'worklet'` bails; route those writes through the accessor API:
+
+```tsx
+// Before — bails inside useCallback / 'worklet'
+sharedValue.value = withTiming(target, { duration: 300 });
+
+// After
+sharedValue.set(withTiming(target, { duration: 300 }));
+```
+
+Reads pair with `sharedValue.get()` where a worklet needs the current value.
+
+An effect-scoped write is a different case. On compiler 1.0.0, `sharedValue.value = withTiming(...)` written directly in a `useEffect` body is **not** a bailout: `ResourceRing.tsx` reached CompileSuccess with the effect write in place, and the effect write in `TokenDetailsStickyFooter.tsx` is absent from that file's failure list while its callback and worklet writes (lines 323, 352, 359, 371) bail. Run the marker instead of assuming either way — do not rewrite an effect-only `.value =` when `react-compiler-marker@0.2.0` plus the workspace `babel-plugin-react-compiler` already reports zero failures.
+
+Verified on `ResourceRing.tsx` and `TokenDetailsStickyFooter.tsx` (ASSETS-4320): effect-scoped write left as `.value =`, callback/worklet writes converted to `set()`/`get()`, CompileSuccess.
+
+---
+
 ## `Cannot reassign variables declared outside of the component/hook`
 
 A module-scope `let` written from inside the hook — nearly always a hand-rolled cache that outlives the component. The reassignment is what the compiler rejects; the cache itself is fine.
