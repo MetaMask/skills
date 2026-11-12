@@ -11,7 +11,7 @@ Apply the sections for this flow and platform at each step.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
 - Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
-- Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout. Require `artifacts/sandbox.json` with `ready: true`.
+- Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout. Require `artifacts/sandbox.json` with `ready: true`. A ready record written by this task's preparation passes the gate; re-run the checks only when the app or dev server restarted since.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
 - Create or switch to the local task branch before product edits. Do not open a PR.
 
@@ -32,6 +32,7 @@ Apply the sections for this flow and platform at each step.
 - Check the plan against the code: files, symbols and insertion points exist and the root cause or approach holds.
 - Follow it. Where this step records the approach or root cause, write `Source: inputs/plan.md` and list only what differs from the plan, each with its reason. Do not copy the plan.
 - A file changed outside the plan needs a recorded reason; the self-review flags any without one.
+- When the plan says `Outcome: already fixed`, skip the reproduction marker: the baseline recipe proves the shipped behavior against the criteria, and the task takes the already-fixed exit.
 
 ### Development
 

@@ -14,6 +14,7 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 - Risks only when concrete and checkable.
 - Reuse existing helpers and controller logic; name them. Never plan a local copy of shared logic.
 - State what each proof must observe, not which recipe to use. Recipe choice and authoring belong to the run.
+- Say how each proof value is read: the harness action and field, the test ID, or the state path. If nothing exposes a value, say so under Risks instead of leaving the worker to discover it.
 
 ## Template
 
@@ -22,12 +23,13 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 Approved by @<github login> · <YYYY-MM-DD> · planned against <origin branch>@<short sha>
 
 ## Criteria and proof
-- AC1 <criterion> → <what to observe: state read, UI assertion or screenshot pair>
+- AC1 <criterion> → <what to observe> via <action and field, test ID or state path>
 
 ## Root cause | Current behavior
 - `<path:line>` <what happens and why>
 
 ## Change
+- Outcome: <change | already fixed>
 - `<path>` <symbol>: <what changes>
 - Files: `<path>`, `<path>`
 
