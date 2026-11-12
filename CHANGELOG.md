@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Stop testing skills from prompting unit tests for static styling. Mobile and Extension layer policies now treat spacing, color, typography, and fixed layout props as GAP / ACCEPT, the unit references ban style-value assertions and style-only test IDs, and coding guidelines no longer require tests for every component edit.
+
 - Update the `assets/react-compiler-migration` skill: run `react-compiler-marker` from outside an offline checkout (install to a temp prefix, `bin/cli.js` entry point, pinned 0.2.0), stop on stale scan findings instead of editing a file the marker already reports clean, document effect-scoped shared-value writes compiling on compiler 1.0.0 while callback/worklet writes still need `set()`/`get()`, and add a validated try/catch example (ASSETS-4331) showing value-block diagnostics cover the `try` block only — catch-side ternaries are fine and the fix keeps the protected span by calling a helper from inside the `try`.
 
 - Update the `testing/mobile-visual-testing` skill for `@metamask/client-mcp-core` 0.13.1 and `@metamask/device-mcp` 0.7.0: remove the knowledge store commands, the knowledge-reuse step and the `--goal` / `--flow-tags` launch flags, and document the global `--observe` and `--pretty` flags, one-line JSON output, observations without app state, the partial mobile `get-state`, `run-steps` `observe` (replaces `includeObservations`) and the 30 s `batchTimeoutMs` cap, timed-out calls being cancelled, calling `node_modules/.bin/mm` directly, and the Android `helper-first` snapshot default.
