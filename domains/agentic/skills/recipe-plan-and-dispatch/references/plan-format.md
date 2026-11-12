@@ -13,9 +13,7 @@ A cheaper model follows this plan as written. Make it short and exact, so nothin
 - No hedging: drop "consider", "might", "ensure", "robust", "as needed", "if appropriate".
 - Risks only when concrete and checkable.
 - Reuse existing helpers and controller logic; name them. Never plan a local copy of shared logic.
-- State what each proof must observe, not which recipe to use. Recipe choice and authoring belong to the run.
-- Say how each proof value is read: the harness action and field, the test ID, or the state path. If nothing exposes a value, say so under Risks instead of leaving the worker to discover it.
-- Every criterion is proven in the running app: a recipe assertion, a state read or a screenshot. Unit, integration and E2E tests never prove a criterion; list them under Tests. Rewrite or drop a criterion that only a test can show.
+- Every criterion is proven in the running app. Say what to observe and how it is read (harness action and field, test ID or state path); if nothing exposes it, say so under Risks. Recipe choice belongs to the run. Tests are regression coverage under Tests, never proof; rewrite or drop a criterion only a test can show.
 
 ## Template
 
@@ -30,7 +28,6 @@ Approved by @<github login> · <YYYY-MM-DD> · planned against <origin branch>@<
 - `<path:line>` <what happens and why>
 
 ## Change
-- Outcome: <change | already fixed>
 - `<path>` <symbol>: <what changes>
 - Files: `<path>`, `<path>`
 
