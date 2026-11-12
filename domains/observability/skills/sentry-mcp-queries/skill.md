@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: sentry-mcp-queries
-description: Query Sentry via MCP — error triage, tag distribution, volume estimation, replay retrieval
+description: >
+  Query Sentry via MCP — error triage, tag distribution, volume estimation, replay retrieval. Use
+  when investigating a production error before attributing a root cause, checking the MV3 vs MV2
+  error split, estimating event or span volume, comparing error rates across releases, or
+  retrieving a session replay or profile.
 ---
 
 # Sentry MCP Queries

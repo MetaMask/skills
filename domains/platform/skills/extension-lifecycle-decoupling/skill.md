@@ -1,7 +1,10 @@
 ---
 maturity: experimental
 name: extension-lifecycle-decoupling
-description: Verify platform lifecycle events before assuming they cause application-level side effects
+description: >
+  Verify platform lifecycle events before assuming they cause application-level side effects. Use
+  when estimating event frequency from service worker eviction, debugging behavior that should
+  fire on lock or unlock but does not, or investigating keepalive, timer or state persistence.
 ---
 
 # Extension Lifecycle Decoupling

@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: effect-antipattern-scan
-description: Review PR diffs that add or modify `useEffect` for the systemic React effect antipatterns
+description: >
+  Review PR diffs that add or modify `useEffect` for the systemic React effect antipatterns. Use
+  on any change that adds or modifies a `useEffect`, or adds `setInterval`, `setTimeout`, `fetch`
+  or `addEventListener` inside a component, and when investigating a "Can't perform a React state
+  update on an unmounted component" warning.
 ---
 
 # Effect Anti-Pattern Review

@@ -1,7 +1,12 @@
 ---
 maturity: experimental
 name: data-analysis
-description: Structured approach for analyzing metrics, attributing changes, and communicating findings — five phases (collection → filtering → curation → questioning → synthesis), confidence assignment, audience-appropriate artifacts
+description: >
+  Structured approach for analyzing metrics, attributing changes, and communicating findings —
+  five phases (collection → filtering → curation → questioning → synthesis), confidence
+  assignment, audience-appropriate artifacts. Use for performance analysis from production
+  metrics, attributing an improvement or regression to code changes, executive summaries and
+  stakeholder updates, and any analysis that correlates changes with measured outcomes.
 ---
 
 # Data Analysis Skill

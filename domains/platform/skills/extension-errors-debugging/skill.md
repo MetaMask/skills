@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: extension-errors-debugging
-description: Diagnose browser extension errors — MV3 vs MV2, background/UI context, error tagging
+description: >
+  Diagnose browser extension errors — MV3 vs MV2, background/UI context, error tagging. Use when
+  an error appears in one manifest version but not the other, on background connection or
+  keepalive failures, on errors that reproduce only in production, and before attributing a Sentry
+  error's root cause.
 ---
 
 # Extension Errors Debugging

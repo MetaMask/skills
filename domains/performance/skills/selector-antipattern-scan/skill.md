@@ -1,7 +1,12 @@
 ---
 maturity: experimental
 name: selector-antipattern-scan
-description: Review and diagnose Redux selector antipatterns that cause render cascades, pre-merge and post-merge
+description: >
+  Review and diagnose Redux selector antipatterns that cause render cascades, pre-merge and
+  post-merge. Use on any change, written or reviewed, that touches a `selectors/` directory, adds
+  a `useSelector` call, or adds or modifies a `createSelector` / `createDeepEqualSelector`
+  definition, whatever the task is about and not only on a performance PR. After merge, use when
+  re-renders are out of proportion to the state change, grow with user data, or happen while idle.
 ---
 
 # Selector Anti-Pattern Review

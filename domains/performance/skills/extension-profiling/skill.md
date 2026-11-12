@@ -1,7 +1,11 @@
 ---
 maturity: experimental
 name: extension-profiling
-description: Compare browser extension performance between branches using WDYR, React DevTools Profiler, and E2E benchmarks with statistical rigor.
+description: >
+  Compare browser extension performance between branches using WDYR, React DevTools Profiler, and
+  E2E benchmarks with statistical rigor. Use when validating that a refactor reduces re-renders,
+  before and after, establishing baseline metrics for a performance initiative, or investigating a
+  reported UI slowdown in the extension.
 ---
 
 # Browser Extension Profiling
