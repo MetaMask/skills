@@ -21,24 +21,25 @@ For architecture details, see `test/e2e/playwright/llm-workflow/README.md`.
 ## Gotchas
 
 - `a11yRef`s (`e1`, `e2`, ...) are **ephemeral**. Always take refs from the latest response (`mm describe-screen` or the `observations` of your last action).
-- After a call with `--observe none`, refs are **not** refreshed. Target by `--testid`, or run `mm describe-screen` before you use refs again: a stale ref built from role and name can click a different element.
-- Each ref resolves to exactly one element. If a click fails with a strict mode violation, target the element by `--testid` or `--selector`, and scope it with `--within` when the selector or testId matches several elements (for example two stacked modals with a Close button).
+- A browser ref is tied to its DOM node: a live value in its name (a price such as `$2.42`, `3.92%` or `00:59`) does not break it. It fails at once with `MM_TARGET_NOT_FOUND` when the element was removed or re-mounted, or when a short name now says something else (a "Next" button became "Confirm"; plain integers such as `Account 1` count). Take a new `mm describe-screen` when that happens.
+- After a call with `--observe none`, refs are **not** refreshed. Target by `--testid`, or run `mm describe-screen` before you use refs again. A browser ref that fell back to `role=`/`text=` (an element that could not be stamped) or that points to an icon button can click a different element; a ref whose element is gone fails with `MM_TARGET_NOT_FOUND`.
+- Each ref resolves to exactly one element. A strict mode violation can only come from a fallback `role=`/`text=` ref or an explicit `--selector`/`--testid`; target the element by `--testid` or `--selector`, and scope it with `--within` when it matches several elements (for example two stacked modals with a Close button).
 - Output is one line of JSON when stdout is not a terminal. Parse it as JSON. Add `--pretty` (or set `MM_PRETTY=1`) only when a human reads the output.
-- Observations carry no app state. Use `mm get-state` for the screen, account, network, or balance.
-- When a call times out (`Tool execution timed out`), it is cancelled. An action that already started can still have happened, so run `mm describe-screen` before you retry.
-- `mm type` uses Playwright `fill()` and **clears the field first**.
+- A failed command prints **one JSON line on stdout** (`{"ok":false,"error":{"code","message","hint"?,"retryable"}}`) and exits non-zero. Nothing goes to stderr unless it is a terminal. Branch on `error.code` or the exit code; success has no `ok` field. `mm stop` is the exception and prints plain text.
+- Observations carry no app state. Use `mm get-state` for the account, network or balance, but not to identify the screen off home: on Settings it returned `isUnlocked: false` and `currentScreen: "unknown"` (with and without a reload). Use the URL and testIds from `mm describe-screen` there.
+- Do **not** sleep. A browser observation after a mutating or batch call has `animationsSettled`; when it is `false`, or you wait for data that loads, `mm wait-for` the element you expect (`mm wait-for --selector "text=Copied"`).
+- A click, type or request timeout says "state unknown" and has `retryable: false`. The action can have happened: run `mm describe-screen` before you retry.
+- `mm type` uses Playwright `fill()` and **clears the field first**. On the browser it fails at once with `MM_ELEMENT_NOT_EDITABLE` on a read-only or disabled field.
 - After confirm or reject in sidepanel mode, the page does **not** close. It stays open and navigates back to the home route.
 - `mm wait-for-notification` waits for the sidepanel confirmation route, not a legacy popup window.
 - `mm run-steps` expects a JSON **object** with a `steps` key, not a bare array.
 - You cannot switch context during an active session. Run `mm cleanup` first, or use `mm launch --context ...`.
 - The default password for built-in fixtures is `correct horse battery staple`.
-- Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them.
+- Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them. After you change a rule, run `mm reload` so the Extension fetches again.
 - `mm mock-network` **cannot** intercept requests during extension startup before the session is fully active.
-- There is **no `mm scroll` command**. If an element is below the viewport and `mm click` times out, scroll it into view via CDP before retrying:
-  ```bash
-  mm cdp Runtime.evaluate '{"expression":"document.querySelector(\"[data-testid=import-token-button]\").scrollIntoView({block:\"center\"})"}'
-  mm click --testid import-token-button
-  ```
+- An element below the fold is not a scroll problem for a click: Playwright's `click` already scrolls its target into view. To bring an element into view for a screenshot, use `mm scroll-to-element --testid <id>`; do not scroll with `mm cdp` scripts.
+- In the e2e fixture, the Activity tab opens "Basic functionality is off" with no bottom navigation, so `mm click --testid bottom-nav-home` fails after 2 s with `MM_TARGET_NOT_FOUND`. Use `mm navigate-home` instead.
+- Right after `mm reload` the observation can be empty. Run `mm wait-for` or `mm describe-screen` before you act on it.
 
 ## Prerequisites
 
@@ -80,6 +81,8 @@ Available presets: `withMultipleAccounts`, `withERC20Tokens`, `withConnectedDapp
 
 Two contexts: **e2e** (default — local Anvil, fixtures, seeding) and **prod** (no fixtures, no local chain). Use `mm get-context` / `mm set-context` to switch. Cannot switch during active session.
 
+Screenshots and session metadata default to `<repo>/test-artifacts/`. `MM_ARTIFACTS_DIR=/tmp/mm-artifacts mm launch` writes them to `/tmp/mm-artifacts/screenshots/` and `/tmp/mm-artifacts/<sessionId>/session.json`. Pass it on the `mm launch` that starts the daemon; `mm stop` a running daemon first.
+
 ### 2. Describe Screen
 
 ```bash
@@ -98,6 +101,13 @@ mm navigate-home --observe full                  # after navigation: get the who
 ```
 
 Only mutating and batch calls wait for animations before they observe. To get a settled screen after an action, let the action observe (`--observe full`) instead of running a read afterwards.
+
+The observation then has `animationsSettled`: `true` when the page loaded and its finite animations ended within the 1 s wait, `false` when some were still running. It does not cover infinite spinners or data loaded from the network. When it is `false`, or you wait for data, `mm wait-for` the element you expect instead of sleeping:
+
+```bash
+mm wait-for --testid activity-list
+mm wait-for --selector "text=Copied"
+```
 
 ### 3. Interact
 
@@ -141,18 +151,43 @@ mm click --selector "text=Rename" --within "testid:popover-content"
 
 If `--within` isn't working or you can't identify the right parent testId, use a CSS selector with `:nth-child()` or other structural selectors as a fallback.
 
+#### Inspect, hover and viewport
+
+Check styling and disabled states with values instead of by eye:
+
+```bash
+mm inspect --testid eth-overview-swap                 # disabled, attributes, styles
+mm inspect --testid eth-overview-send --styles color,opacity,cursor,display
+```
+
+`mm inspect` returns `attributes`, `disabled`, `readOnly`, `styles` (default `color`, `background-color`, `opacity`, `cursor`) and `effectiveOpacity`. A faded, disabled Swap button reads `"disabled": true`, `"effectiveOpacity": 0.5`, `"cursor": "not-allowed"`. Compare two elements with the same `--styles`; do not compare one against unrelated text.
+
+For hover-only UI and layout widths:
+
+```bash
+mm hover --testid account-menu-icon
+mm screenshot --name account-menu-hovered
+mm unhover
+mm set-viewport 400 600
+mm screenshot --name narrow
+mm reset-viewport
+```
+
+To bring a row further down a list into view for a screenshot, use `mm scroll-to-element --testid <id>`. A click already scrolls its target, so you do not need it before `mm click`.
+
 #### Timeouts
 
 All interaction commands accept `--timeout <ms>` (default 15000). This is a **single deadline budget** covering visibility wait + action combined.
 
 Phase-specific error codes on timeout:
-- `MM_WAIT_TIMEOUT` — element never became visible.
-- `MM_CLICK_TIMEOUT` — element found, click hung. May have completed; run `mm describe-screen`.
-- `MM_TYPE_TIMEOUT` — element found, `fill()` hung.
+- `MM_WAIT_TIMEOUT` — element never became visible. `retryable: true`.
+- `MM_TARGET_NOT_FOUND` — `mm click` without `--timeout`: nothing matched after 2 s (a wrong testId shows up here, for example `eth-overview-receive`; Receive is `eth-overview-default`). Pass `--timeout` to wait for a target that appears late.
+- `MM_CLICK_TIMEOUT` — click hung; state unknown. The message ends with Playwright's last step, for example `element is not enabled` (disabled Swap in the fixture) or `… intercepts pointer events` (a modal covers the target). Run `mm describe-screen` before retrying.
+- `MM_TYPE_TIMEOUT` — element found, `fill()` hung; state unknown.
 - `MM_GETTEXT_TIMEOUT` — element found, `textContent()` hung.
-- `MM_PAGE_CLOSED` — page closed during action (expected for some confirmation flows).
+- `MM_PAGE_CLOSED` — page closed during action (expected for some confirmation flows); exits 3.
 
-For the full error code table, see [references/error-recovery.md](references/error-recovery.md).
+For the full error code and exit code tables, see [references/error-recovery.md](references/error-recovery.md).
 
 ### 4. Verify-Fix Loop
 
@@ -192,7 +227,10 @@ Tab roles: `extension`, `notification`, `dapp`, `other`. To close a tab, pass `-
 mm navigate-home
 mm navigate-settings
 mm navigate https://test-dapp.io
+mm reload     # keep the route, refetch data after a network mock change
 ```
+
+`mm reload` keeps the URL (including the hash route) and reloads the page, so the Extension fetches API data again. `mm navigate-home` does not clear that cache because it only changes the hash.
 
 ### 7. Screenshots
 
@@ -209,6 +247,7 @@ Capture before and after meaningful state changes for visual validation evidence
 ```bash
 mm cleanup                 # stop browser and services
 mm cleanup --shutdown      # also stop the daemon
+mm stop                    # stop the daemon only (plain-text output)
 ```
 
 ## Sidepanel Mode

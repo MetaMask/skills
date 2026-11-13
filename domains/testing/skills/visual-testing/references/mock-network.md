@@ -19,6 +19,7 @@ Mock rules are installed on the active Playwright browser context:
 - `mm cleanup` removes all rules; `mm mock-network clear` removes rules and request history without ending the session.
 - Unmatched requests on a mocked origin continue unchanged and are recorded as misses.
 - **Cannot** intercept requests during extension startup before the session is fully active.
+- If the screen already fetched the data, `mm reload` before the triggering action: the Extension caches API data in memory, and `mm navigate-home` only changes the hash, so it does not refetch.
 
 ## Rule Shape
 
