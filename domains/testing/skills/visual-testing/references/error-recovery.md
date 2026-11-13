@@ -39,10 +39,10 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_NO_ACTIVE_SESSION`       | No session — `mm launch` first                                                               |
 | `MM_LAUNCH_FAILED`           | Browser launch failed                                                                        |
 | `MM_INVALID_INPUT`           | Invalid parameters or flag; nothing ran                                                      |
-| `MM_TARGET_NOT_FOUND`        | Element not found; a stale ref fails at once — take a new `mm describe-screen`               |
+| `MM_TARGET_NOT_FOUND`        | Element not found; a click without `--timeout` fails after 2 s, a stale ref at once — `mm describe-screen` |
 | `MM_TAB_NOT_FOUND`           | Tab not found                                                                                |
 | `MM_CLICK_FAILED`            | Click failed (post-find)                                                                     |
-| `MM_CLICK_TIMEOUT`           | Click timed out; state unknown — `mm describe-screen` before retrying                        |
+| `MM_CLICK_TIMEOUT`           | Click timed out; state unknown; the message ends with Playwright's last step — `mm describe-screen` before retrying |
 | `MM_TYPE_FAILED`             | Type failed (post-find)                                                                      |
 | `MM_TYPE_TIMEOUT`            | `fill()` timed out; state unknown                                                            |
 | `MM_ELEMENT_NOT_EDITABLE`    | Type target is read-only or disabled (browser, fails at once)                                |
@@ -75,7 +75,8 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `EADDRINUSE` port error                                 | Orphan processes                                                       | Check `.mm-server` for ports, kill the orphaned process            |
 | `MM_TARGET_NOT_FOUND` on a ref                          | Removed, re-mounted or other text since the snapshot                   | `mm describe-screen`; target by `--testid` when stable             |
 | `MM_WAIT_TIMEOUT`                                       | Element did not appear                                                 | `mm describe-screen`, check the screen, increase `--timeout`       |
-| `MM_CLICK_TIMEOUT` / `MM_TYPE_TIMEOUT`                  | Action hung; state unknown                                             | `mm describe-screen` to verify; retry with larger `--timeout`      |
+| `MM_TARGET_NOT_FOUND` after 2 s on a click (exit 4)      | No element matches the testId or selector (wrong or not rendered yet)  | Check `mm describe-screen`; if the screen is still loading, retry with `--timeout <ms>` |
+| `MM_CLICK_TIMEOUT` / `MM_TYPE_TIMEOUT`                  | Action hung; state unknown                                             | Read `(last Playwright step: …)` in the click message: `element is not enabled`, `… intercepts pointer events` (close the overlay), `resolved to hidden` (click the label); `mm describe-screen` before retrying |
 | `MM_ELEMENT_NOT_EDITABLE`                               | Field is read-only or disabled                                         | Expected when verifying a read-only field; check with `mm inspect` |
 | `MM_GETTEXT_TIMEOUT` / `MM_GETTEXT_FAILED`              | Element detached                                                       | `mm describe-screen` and re-target                                 |
 | `MM_PAGE_CLOSED`                                        | Confirmation auto-closed                                               | Expected — `mm describe-screen` to find the active page            |
@@ -86,7 +87,7 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | Stale a11yRefs after navigate or reload                 | Refs not refreshed                                                     | `mm describe-screen` for fresh refs                                |
 | A ref clicks the wrong element                          | After `--observe none`: a fallback `role=`/`text=` or icon-button ref  | `mm describe-screen`, or target by `--testid`                      |
 | Ref click fails at once with `MM_TARGET_NOT_FOUND`      | Removed, re-mounted or changed text after the snapshot                 | Expected; `mm describe-screen` and re-target                       |
-| Strict mode violation on click                          | A fallback ref or an explicit selector/testId matches several elements | Target by `--testid`/`--selector`; scope it with `--within`        |
+| `MM_CLICK_FAILED`: strict mode violation (exit 4)       | A fallback ref or an explicit selector/testId matches several elements | Target by `--testid`/`--selector`; scope it with `--within`        |
 | `TOOL_EXECUTION_FAILED`: `Tool execution timed out after <n>ms` (exit 1) | Call cancelled at the daemon's request limit | `mm describe-screen` before retry; the action can have happened |
 | `MM_REQUEST_TIMEOUT`: `request timed out after <n>ms; state unknown` (exit 5) | The daemon did not answer before the CLI's limit | `mm describe-screen` before retry; the action can have happened |
 | `Error: unknown command 'knowledge-...'`                | Knowledge store removed                                                | No replacement. Discover with `mm describe-screen`                 |
@@ -96,7 +97,7 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 `.mm-daemon.log` at the project root records every request with its outcome:
 
 ```text
-[2026-11-13T13:53:47.918Z] [INFO] POST /tool/click 200 ok=false code=MM_CLICK_TIMEOUT 15002ms
+[2026-11-13T15:25:10.579Z] [INFO] POST /tool/click 200 ok=false code=MM_TARGET_NOT_FOUND 2050ms
 [2026-11-13T13:54:23.290Z] [INFO] POST /tool/scroll_to_element 200 ok=false code=MM_WAIT_TIMEOUT 2063ms
 ```
 

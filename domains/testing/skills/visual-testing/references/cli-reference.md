@@ -91,7 +91,7 @@ A successful command prints one JSON line on stdout and exits 0. The response ha
 A failed command prints **one JSON line on stdout** and exits non-zero. Nothing goes to stderr unless stderr is a terminal (then a human also gets `Error: <message>`).
 
 ```json
-{"ok":false,"error":{"code":"MM_CLICK_TIMEOUT","message":"Click timed out after 2000ms; state unknown. Run describe-screen to check the screen before retrying.","hint":"The action state is unknown: run `mm describe-screen` to check the screen before you retry.","retryable":false},"meta":{"timing":{"queueMs":0,"toolMs":1999,"observationMs":38,"totalMs":2038}}}
+{"ok":false,"error":{"code":"MM_TARGET_NOT_FOUND","message":"Selector [data-testid=\"does-not-exist\"] (testId:does-not-exist) matched 0 elements after 2000ms","hint":"Run `mm describe-screen` to get fresh refs.","retryable":false},"meta":{"timing":{"queueMs":0,"toolMs":2010,"observationMs":40,"totalMs":2050}}}
 ```
 
 | Field | Meaning |
@@ -153,6 +153,26 @@ A failed command prints **one JSON line on stdout** and exits non-zero. Nothing 
 All interaction commands accept `--timeout <ms>` (default 15000). This is a **single deadline budget** covering visibility wait + action combined — not a per-phase timeout.
 
 `mm inspect` is read-only and returns no observation. `mm hover`, `mm unhover`, `mm set-viewport`, `mm reset-viewport` and `mm scroll-to-element` are mutating and observe by default.
+
+### Why a click failed
+
+| Case | Result |
+| --- | --- |
+| No `--timeout`, the target matches **0 elements** after 2 s | Fails at once: `MM_TARGET_NOT_FOUND`, exit 4, `Selector [data-testid="x"] (testId:x) matched 0 elements after 2000ms` (with `--within`, the message names the parent: `… inside testId:<parent> matched 0 elements …`) |
+| `--timeout <ms>` given | Waits that long for the target to appear, then `MM_CLICK_TIMEOUT`, exit 5. Pass one when the screen is still loading |
+| Target found but not clickable | `MM_CLICK_TIMEOUT`, exit 5, after the full timeout (15 s by default). The message ends with Playwright's last step |
+| Target matches several elements | `MM_CLICK_FAILED`, exit 4, at once: `strict mode violation … resolved to <n> elements`. Scope it with `--within` or use a ref |
+
+Only `mm click` fails fast. `wait-for`, `type`, `hover`, `inspect` and `scroll-to-element` wait the full timeout. A missing `--within` parent also waits the full timeout.
+
+A `MM_CLICK_TIMEOUT` message ends with `(last Playwright step: …)`, which says why:
+
+| Last step | Do |
+| --- | --- |
+| `element is not enabled` | The button is disabled; check the form state (`mm inspect` shows `disabled`) |
+| `<div …> from <div class="mm-modal" data-testid="home-network-filter-modal">…</div> subtree intercepts pointer events` | Another element covers the target; close it first |
+| `locator resolved to hidden <input …/>` | The element is hidden; click its visible label or wrapper |
+| `waiting for locator('[data-testid="x"]') to be visible` | The target never appeared within `--timeout` |
 
 On a click or type timeout the message says "state unknown" and `retryable` is `false`. The action can have happened: run `mm describe-screen` before you retry.
 
@@ -312,7 +332,7 @@ Two contexts: `e2e` (default — local Anvil, fixtures, seeding) and `prod` (no 
 `.mm-daemon.log` at the project root records every request with its outcome:
 
 ```text
-[2026-11-13T13:53:47.918Z] [INFO] POST /tool/click 200 ok=false code=MM_CLICK_TIMEOUT 15002ms
+[2026-11-13T15:25:10.579Z] [INFO] POST /tool/click 200 ok=false code=MM_TARGET_NOT_FOUND 2050ms
 [2026-11-13T13:54:23.290Z] [INFO] POST /tool/scroll_to_element 200 ok=false code=MM_WAIT_TIMEOUT 2063ms
 ```
 

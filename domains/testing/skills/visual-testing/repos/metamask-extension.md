@@ -38,7 +38,7 @@ For architecture details, see `test/e2e/playwright/llm-workflow/README.md`.
 - Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them. After you change a rule, run `mm reload` so the Extension fetches again.
 - `mm mock-network` **cannot** intercept requests during extension startup before the session is fully active.
 - An element below the fold is not a scroll problem for a click: Playwright's `click` already scrolls its target into view. To bring an element into view for a screenshot, use `mm scroll-to-element --testid <id>`; do not scroll with `mm cdp` scripts.
-- In the e2e fixture, the Activity tab opens "Basic functionality is off" with no bottom navigation, so `mm click --testid bottom-nav-home` waits out its timeout. Use `mm navigate-home` instead.
+- In the e2e fixture, the Activity tab opens "Basic functionality is off" with no bottom navigation, so `mm click --testid bottom-nav-home` fails after 2 s with `MM_TARGET_NOT_FOUND`. Use `mm navigate-home` instead.
 - Right after `mm reload` the observation can be empty. Run `mm wait-for` or `mm describe-screen` before you act on it.
 
 ## Prerequisites
@@ -181,7 +181,8 @@ All interaction commands accept `--timeout <ms>` (default 15000). This is a **si
 
 Phase-specific error codes on timeout:
 - `MM_WAIT_TIMEOUT` — element never became visible. `retryable: true`.
-- `MM_CLICK_TIMEOUT` — element found, click hung; state unknown. Run `mm describe-screen` before retrying.
+- `MM_TARGET_NOT_FOUND` — `mm click` without `--timeout`: nothing matched after 2 s (a wrong testId shows up here, for example `eth-overview-receive`; Receive is `eth-overview-default`). Pass `--timeout` to wait for a target that appears late.
+- `MM_CLICK_TIMEOUT` — click hung; state unknown. The message ends with Playwright's last step, for example `element is not enabled` (disabled Swap in the fixture) or `… intercepts pointer events` (a modal covers the target). Run `mm describe-screen` before retrying.
 - `MM_TYPE_TIMEOUT` — element found, `fill()` hung; state unknown.
 - `MM_GETTEXT_TIMEOUT` — element found, `textContent()` hung.
 - `MM_PAGE_CLOSED` — page closed during action (expected for some confirmation flows); exits 3.
