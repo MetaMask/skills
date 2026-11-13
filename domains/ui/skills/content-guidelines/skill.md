@@ -653,7 +653,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
 | Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
-| NFT | NFT | "collectible", "collectibles" for an NFT | Say NFT |
+| NFT | NFT | | |
 | Reset wallet | Reset wallet | delete wallet, erase | |
 | Add funds | Add funds | Deposit, except an activity-list type | |
 | Smart account | smart account | smart contract account, Smart Account | |
