@@ -87,7 +87,8 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | A ref clicks the wrong element                          | After `--observe none`: a fallback `role=`/`text=` or icon-button ref  | `mm describe-screen`, or target by `--testid`                      |
 | Ref click fails at once with `MM_TARGET_NOT_FOUND`      | Removed, re-mounted or changed text after the snapshot                 | Expected; `mm describe-screen` and re-target                       |
 | Strict mode violation on click                          | A fallback ref or an explicit selector/testId matches several elements | Target by `--testid`/`--selector`; scope it with `--within`        |
-| `request timed out after <n>ms; state unknown` (exit 5) | Call cancelled after the request limit                                 | `mm describe-screen` before retry; the action can have happened    |
+| `TOOL_EXECUTION_FAILED`: `Tool execution timed out after <n>ms` (exit 1) | Call cancelled at the daemon's request limit | `mm describe-screen` before retry; the action can have happened |
+| `MM_REQUEST_TIMEOUT`: `request timed out after <n>ms; state unknown` (exit 5) | The daemon did not answer before the CLI's limit | `mm describe-screen` before retry; the action can have happened |
 | `Error: unknown command 'knowledge-...'`                | Knowledge store removed                                                | No replacement. Discover with `mm describe-screen`                 |
 
 ## Daemon Log
