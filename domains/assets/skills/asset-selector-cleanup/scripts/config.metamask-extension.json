@@ -1,0 +1,7 @@
+{
+  "roots": [
+    {
+      "file": "shared/lib/selectors/assets-migration.ts"
+    }
+  ]
+}

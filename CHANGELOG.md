@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `assets/asset-selector-cleanup`: a workflow for removing the remaining `assets-migration` selector usages one file at a time in metamask-extension and metamask-mobile, built on the vendored selector-usage trace tooling (metamask-extension `44caf774` plus one documented `find-importers.js` relative-import patch) with repo auto-detection, a baseline/verify diff that proves each removal dropped the file with no new dependents, and repo overlays with the checks to run on touched files.
 - Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
 - Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.

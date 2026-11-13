@@ -1,0 +1,7 @@
+{
+  "roots": [
+    {
+      "file": "app/selectors/assets/assets-migration.ts"
+    }
+  ]
+}
