@@ -332,7 +332,7 @@ test(
         const git = (...args) =>
           execFileSync('git', ['-C', repo, '-c', 'commit.gpgsign=false', ...args], { stdio: 'pipe' });
         git('add', '-A');
-        git('commit', '--quiet', '-m', 'migrate activity');
+        git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '--quiet', '-m', 'migrate activity');
         const result = runScript(
           'verify.mjs',
           ['--baseline', baseline, '--expect-file', 'app/pages/activity.tsx', '--out-dir', outsideDir],
