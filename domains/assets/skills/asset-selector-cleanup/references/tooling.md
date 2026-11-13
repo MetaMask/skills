@@ -71,6 +71,22 @@ With this patch the metamask-extension trace at commit
 from 145 to 146 at that commit, at the time of vendoring. Any commit-specific
 number in this file is a point-in-time regression anchor, not a live fact.
 
+The tree-root search requires the `selectors`/`ducks` segment to be nested under a
+parent directory (`treeIndex > 0`): a source file directly inside a top-level
+`selectors/` or `ducks/` tree gets no tree-root search. Neither configured root has
+that shape (extension uses `ui/` and `shared/lib/`, mobile uses `app/`).
+
+To check the vendored bytes against upstream yourself, where `<upstream>` is a
+checkout of metamask-extension:
+
+```bash
+git -C <upstream> show 44caf77473de8813090f6efa2081b213cfb0cf51:trace-selectors/scripts/<file> | shasum -a 256
+```
+
+applied for every file except `find-importers.js`, whose upstream hash must be
+compared after applying the diff above; the results should match
+`references/vendored-checksums.json`.
+
 A discovered importer can land in the trace with `selectors: ["(default or *)"]` and
 an empty `migrationSelectors` list. That is upstream classification, not a patch
 effect: any import of a traced module joins the dependency graph, and a default or
@@ -100,12 +116,15 @@ Wrapper behavior worth knowing:
 - `baseline.mjs --save <path>` creates missing parent directories and writes a
   `<baseline>.meta.json` sidecar recording `{repoId, repoRoot, head}`. `verify.mjs`
   reads it when present and reports warnings when the baseline came from another
-  checkout, or from before a commit or pull. Warnings never change the verdict — but
-  take a fresh baseline when they appear. Baselines saved by other means (e.g. a
-  dashboard snapshot) have no sidecar and verify runs without those warnings.
-- Relative `--baseline`, `--expect-file` and `--expect-selector` paths resolve against
-  the current directory, then normalize to repo-relative; absolute paths normalize the
-  same way.
+  checkout, or from before a commit or pull. A baseline without a sidecar — anything
+  not written by `baseline.mjs`, e.g. a dashboard snapshot — also warns about its
+  unknown provenance. Warnings never change the verdict — but take a fresh baseline
+  when they appear.
+- Relative `--baseline` values are file paths resolved against the current
+  directory. Relative `--expect-file` and `--expect-selector` paths resolve against
+  the current directory and then normalize to repo-relative module paths; absolute
+  `--expect-*` values normalize the same way, with symlinked prefixes resolved so a
+  logical `$PWD` from a symlinked checkout still matches.
 
 Not shipped from the upstream directory: `prompts/` (upstream's agent instructions —
 this skill replaces them), `completed.txt` and `completion-file.example.txt` (upstream
@@ -166,8 +185,10 @@ verdict, `2` on usage or environment errors.
   `import()` are not; switching import syntax is not a migration.
 - Default and namespace imports show as `(default or *)` / `* as name` and keep the
   file in the report without attributing specific migration selectors. Verify's
-  `new broad import` check recognizes exactly those sentinel spellings via
-  `isBroadImportSymbol` in `run-trace.mjs`, kept in one place so a re-vendor that
+  `new broad import` check recognizes those sentinel spellings via
+  `isBroadImportSymbol` in `run-trace.mjs`, which centralizes the wrapper's copy;
+  the vendored scripts carry their own copies of the same three spellings
+  (`trace-usage.js`, `find-importers.js`) and must stay in sync — a re-vendor that
   renames them breaks loudly in the tests, not silently in verdicts.
 - Importers of `index.*` intermediates that spell the import without the trailing
   `/index` are always missed, in any directory: the non-barrel rg pattern requires

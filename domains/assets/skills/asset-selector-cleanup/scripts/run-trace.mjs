@@ -104,14 +104,31 @@ export function defaultOutDir(repoId, repoRoot) {
 export function normalizeRepoPath(value, repoRoot, cwd = process.cwd()) {
   let normalized = String(value).trim().replace(/\\/g, '/');
   if (path.isAbsolute(normalized)) {
-    normalized = path.relative(repoRoot, normalized).split(path.sep).join('/');
+    normalized = realpathish(normalized);
+    normalized = path.relative(realpathish(repoRoot), normalized).split(path.sep).join('/');
   } else {
     normalized = path
-      .relative(repoRoot, path.resolve(cwd, normalized))
+      .relative(realpathish(repoRoot), path.resolve(realpathish(cwd), normalized))
       .split(path.sep)
       .join('/');
   }
   return normalized.replace(/^\.\//, '');
+}
+
+function realpathish(value) {
+  const missing = [];
+  let current = value;
+  while (!fs.existsSync(current)) {
+    missing.unshift(path.basename(current));
+    const parent = path.dirname(current);
+    if (parent === current) return value;
+    current = parent;
+  }
+  try {
+    return path.join(fs.realpathSync(current), ...missing);
+  } catch {
+    return value;
+  }
 }
 
 export function gitHead(repoRoot) {

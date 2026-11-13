@@ -66,6 +66,12 @@ function runBaseline(repo, outDir) {
   return { result, baseline };
 }
 
+test('ripgrep is available wherever the behavioral suite runs', () => {
+  if (process.env.CI && !rgAvailable) {
+    throw new Error('ripgrep (rg) is missing in CI; the behavioral tests silently skipped');
+  }
+});
+
 test(
   'vendored trace tooling self-test passes from the skill bundle',
   { skip: !rgAvailable && 'ripgrep not installed' },
@@ -173,12 +179,13 @@ test(
         const pages = path.join(repo, 'app/pages');
         const result = runScript(
           'verify.mjs',
-          ['--baseline', path.relative(pages, baseline), '--expect-file', 'activity.tsx', '--out-dir', outsideDir],
+          ['--baseline', path.relative(pages, baseline), '--expect-file', path.join(repo, 'app/pages/activity.tsx'), '--out-dir', outsideDir],
           pages,
         );
         assert.equal(result.status, 0, result.stdout + result.stderr);
         assert.match(result.stdout, /verdict: PASS/);
         assert.match(result.stdout, /app\/pages\/activity\.tsx \(expected\)/);
+        assert.match(result.stdout, /warnings: none/);
       } finally {
         rmSync(outsideDir, { recursive: true, force: true });
       }

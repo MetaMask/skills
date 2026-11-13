@@ -61,6 +61,10 @@ if (fs.existsSync(metaPath)) {
       `baseline HEAD ${meta.head.slice(0, 12)} differs from current HEAD; if you committed or pulled since the baseline, take a fresh one before trusting the verdict`,
     );
   }
+} else {
+  baselineWarnings.push(
+    'baseline has no identity sidecar; if it did not come from baseline.mjs in this checkout, its provenance is unknown — prefer a fresh local baseline',
+  );
 }
 
 const run = runTrace({ repoId, repoRoot, outDir });
