@@ -157,7 +157,7 @@ Check styling and disabled states with values instead of by eye:
 
 ```bash
 mm inspect --testid eth-overview-swap                 # disabled, attributes, styles
-mm inspect --testid nickname-input --styles color,opacity
+mm inspect --testid eth-overview-send --styles color,opacity,cursor,display
 ```
 
 `mm inspect` returns `attributes`, `disabled`, `readOnly`, `styles` (default `color`, `background-color`, `opacity`, `cursor`) and `effectiveOpacity`. A faded, disabled Swap button reads `"disabled": true`, `"effectiveOpacity": 0.5`, `"cursor": "not-allowed"`. Compare two elements with the same `--styles`; do not compare one against unrelated text.
