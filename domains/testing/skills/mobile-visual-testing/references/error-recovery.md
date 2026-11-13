@@ -43,7 +43,7 @@ With `@metamask/client-mcp-core` 0.14.0 a failed command prints **one JSON line 
 | Exit | Meaning | Codes (examples) |
 | --- | --- | --- |
 | 0 | ok | |
-| 1 | anything else (internal error, tool failure, unknown code) | `MM_LAUNCH_FAILED`, `MM_INTERNAL_ERROR`, an `MM_*` code the CLI does not know |
+| 1 | anything else (internal error, tool failure, unknown code) | `MM_LAUNCH_FAILED`, `MM_INTERNAL_ERROR`, `TOOL_EXECUTION_FAILED` (includes `Tool execution timed out`), an `MM_*` code the CLI does not know |
 | 2 | usage or validation; nothing ran | `MM_INVALID_INPUT`, `MM_INVALID_CONFIG`, `VALIDATION_ERROR` |
 | 3 | no session, daemon not running, daemon connection lost | `MM_NO_ACTIVE_SESSION`, `MM_DAEMON_NOT_RUNNING`, `MM_DAEMON_CONNECTION_LOST` |
 | 4 | target not found or not actionable | `MM_TARGET_NOT_FOUND`, `MM_TARGET_NOT_VISIBLE`, `MM_TARGET_OBSCURED`, `MM_CLICK_FAILED` |
@@ -132,7 +132,7 @@ On mobile the screenshot is written to device-mcp's own temporary directory (`â€
 | `--testId` times out | Incorrect capitalization | Use `--testid` in lowercase |
 | Daemon address already in use | Stale daemon state (`MM_PORT_IN_USE`) | Run `yarn mm stop --force`, then `yarn mm launch` |
 
-The old `Tool execution timed out` text is no longer agent-facing: a cancelled call is now `MM_REQUEST_TIMEOUT` (the CLI stopped waiting) or `MM_REQUEST_ABORTED` (the daemon stopped the tool at its next checkpoint), both exit 5 with the action state unknown.
+A call that runs past the daemon's request limit is cancelled and fails with `TOOL_EXECUTION_FAILED` and the message `Tool execution timed out after <n>ms` (exit 1). `MM_REQUEST_TIMEOUT` (exit 5) means the CLI stopped waiting because the daemon did not answer at all. In both cases the action state is unknown: run `yarn mm describe-screen` before retrying.
 
 ## Safe App Resolution
 
