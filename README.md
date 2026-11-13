@@ -76,7 +76,7 @@ experimental skill opt-in semantics uniform across Mobile, Extension, Core, and
 future org packages.
 
 
-### For engineers in `metamask-extension` / `metamask-mobile` / `core`
+### For engineers in `metamask-extension` / `metamask-mobile` / `core` / `metamask-design-system`
 
 From inside an integrated consumer repo:
 
@@ -146,6 +146,7 @@ tools/
 | `platform`     | MM product eng    | Product analytics and other platform skills  |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
+| `design-system` | MMDS maintainers | Component architecture, creation, migration, docs, tests, Code Connect, releases (installs in `metamask-design-system` only) |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
@@ -212,8 +213,8 @@ METAMASK_SKILLS_DIR=/some/path yarn skills           # override location
 ```
 
 The CLI infers the repo name by default (`metamask-mobile`,
-`metamask-extension`, or `core`) from `git remote get-url origin` or the
-`package.json` repository URL. Use `METAMASK_SKILLS_TARGET_REPO` in
+`metamask-extension`, `core`, or `metamask-design-system`) from
+`git remote get-url origin` or the `package.json` repository URL. Use `METAMASK_SKILLS_TARGET_REPO` in
 `.skills.local` for forks or unusual remotes; pass `--repo` for one-off
 overrides/debugging.
 
@@ -373,6 +374,7 @@ domains/<area>/
     repos/metamask-extension.md   # optional repo overlay
     repos/metamask-mobile.md      # optional repo overlay
     repos/core.md                 # optional Core monorepo overlay
+    repos/metamask-design-system.md  # optional MMDS monorepo overlay
 ```
 
 ### `skill.md` frontmatter

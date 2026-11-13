@@ -16,6 +16,7 @@
 /domains/agentic/        @MetaMask/perps
 /domains/assets/         @MetaMask/metamask-assets
 /domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/design-system/  @MetaMask/design-system-engineers
 /domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/observability/  @MetaMask/extension-platform @MetaMask/mobile-platform
 /domains/observability/skills/*/repos/metamask-extension.md @MetaMask/extension-platform
