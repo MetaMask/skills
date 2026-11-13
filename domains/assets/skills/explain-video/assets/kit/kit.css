@@ -1,0 +1,331 @@
+html,
+body {
+	background-color: var(--surface-0, var(--color-bg));
+	color: var(--text, var(--color-fg));
+	font-family: var(--font-body);
+}
+
+.vw-stage {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	color: var(--text, var(--color-fg));
+	font-family: var(--font-body);
+	font-size: var(--typography-body-md-font-size, 28px);
+	line-height: 1.35;
+}
+
+.vw-lockup {
+	position: absolute;
+	top: var(--lockup-top, 64px);
+	left: var(--safe-left, 96px);
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.vw-safe {
+	position: absolute;
+	top: var(--safe-top, 152px);
+	left: var(--safe-left, 96px);
+	right: var(--safe-right, 96px);
+	bottom: var(--safe-bottom, 176px);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: var(--gap, 32px);
+	min-width: 0;
+	min-height: 0;
+}
+
+.vw-safe * {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.vw-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap, 32px);
+	min-height: 0;
+}
+
+.vw-row {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: var(--gap, 32px);
+	min-height: 0;
+}
+
+.vw-row > * {
+	flex: 1 1 0;
+}
+
+.vw-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+	gap: var(--gap, 32px);
+	min-height: 0;
+}
+
+.vw-fill {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.vw-title {
+	font-family: var(--font-display);
+	font-size: var(--typography-display-md-font-size, 88px);
+	line-height: var(--typography-display-md-line-height, 1.05);
+	font-weight: var(--typography-display-md-font-weight, 700);
+	letter-spacing: var(--typography-display-md-letter-spacing, -0.02em);
+	color: var(--text, var(--color-fg));
+}
+
+.vw-subtitle {
+	font-size: var(--typography-body-lg-font-size, 36px);
+	line-height: var(--typography-body-lg-line-height, 1.2);
+	font-weight: var(--typography-body-lg-font-weight, 500);
+	letter-spacing: var(--typography-body-lg-letter-spacing, 0);
+	color: var(--text-muted, var(--color-muted));
+}
+
+.vw-body {
+	font-size: var(--typography-body-md-font-size, 28px);
+	line-height: var(--typography-body-md-line-height, 1.4);
+	font-weight: var(--typography-body-md-font-weight, 400);
+	letter-spacing: var(--typography-body-md-letter-spacing, 0);
+	color: var(--text, var(--color-fg));
+}
+
+.vw-muted {
+	color: var(--text-muted, var(--color-muted));
+}
+
+.vw-accent {
+	color: var(--accent, var(--color-accent));
+}
+
+.vw-card {
+	background: var(--surface-1, var(--color-surface));
+	color: var(--text, var(--color-fg));
+	border: 1px solid var(--line, var(--color-border));
+	border-radius: var(--radius-md, 16px);
+	padding: 32px 36px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.vw-card.vw-card-2 {
+	background: var(--surface-2, var(--color-surface));
+}
+
+.vw-card.vw-focus {
+	border-color: var(--accent, var(--color-accent));
+}
+
+.vw-card-title {
+	font-family: var(--font-display);
+	font-size: var(--typography-heading-sm-font-size, 36px);
+	line-height: var(--typography-heading-sm-line-height, 1.15);
+	font-weight: var(--typography-heading-sm-font-weight, 700);
+	letter-spacing: var(--typography-heading-sm-letter-spacing, 0);
+}
+
+.vw-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	align-self: flex-start;
+	padding: 8px 18px;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-2, var(--color-surface));
+	color: var(--text, var(--color-fg));
+	border: 1px solid var(--line, var(--color-border));
+	font-family: var(--font-mono);
+	font-size: var(--typography-body-sm-font-size, 22px);
+	line-height: 1.2;
+	white-space: nowrap;
+}
+
+.vw-pill.vw-pill-accent {
+	background: var(--accent, var(--color-accent));
+	color: var(--text-on-accent, #000000);
+	border-color: transparent;
+}
+
+.vw-code {
+	background: var(--surface-2, var(--color-surface));
+	color: var(--text, var(--color-fg));
+	border: 1px solid var(--line, var(--color-border));
+	border-radius: var(--radius-md, 16px);
+	padding: 24px 28px;
+	font-family: var(--font-mono);
+	font-size: var(--typography-body-sm-font-size, 24px);
+	line-height: var(--typography-body-sm-line-height, 1.5);
+	white-space: pre-wrap;
+	overflow: hidden;
+}
+
+.vw-code .vw-code-head {
+	color: var(--text-muted, var(--color-muted));
+	font-size: var(--typography-body-xs-font-size, 20px);
+	margin-bottom: 12px;
+}
+
+.vw-frame {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 0;
+	overflow: hidden;
+	border-radius: var(--radius-md, 16px);
+}
+
+.vw-frame > img,
+.vw-frame > video,
+.vw-frame > svg,
+.vw-safe img,
+.vw-safe video {
+	display: block;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+}
+
+.vw-captions {
+	position: absolute;
+	left: 50%;
+	bottom: var(--captions-bottom, 56px);
+	transform: translateX(-50%);
+	max-width: 1400px;
+	padding: 14px 28px;
+	border-radius: 20px;
+	background: var(--captions-bg, rgba(24, 24, 27, 0.94));
+	color: var(--captions-text, #ffffff);
+	font-family: var(--font-body);
+	font-size: var(--typography-body-md-medium-font-size, 30px);
+	font-weight: var(--typography-body-md-medium-font-weight, 500);
+	line-height: 1.3;
+	text-align: center;
+	opacity: 0;
+}
+
+
+.vw-display-xl {
+	font-size: var(--typography-display-xl-font-size);
+	line-height: var(--typography-display-xl-line-height);
+	font-weight: var(--typography-display-xl-font-weight);
+	letter-spacing: var(--typography-display-xl-letter-spacing);
+}
+
+.vw-display-lg {
+	font-size: var(--typography-display-lg-font-size);
+	line-height: var(--typography-display-lg-line-height);
+	font-weight: var(--typography-display-lg-font-weight);
+	letter-spacing: var(--typography-display-lg-letter-spacing);
+}
+
+.vw-display-md {
+	font-size: var(--typography-display-md-font-size);
+	line-height: var(--typography-display-md-line-height);
+	font-weight: var(--typography-display-md-font-weight);
+	letter-spacing: var(--typography-display-md-letter-spacing);
+}
+
+.vw-heading-lg {
+	font-size: var(--typography-heading-lg-font-size);
+	line-height: var(--typography-heading-lg-line-height);
+	font-weight: var(--typography-heading-lg-font-weight);
+	letter-spacing: var(--typography-heading-lg-letter-spacing);
+}
+
+.vw-heading-md {
+	font-size: var(--typography-heading-md-font-size);
+	line-height: var(--typography-heading-md-line-height);
+	font-weight: var(--typography-heading-md-font-weight);
+	letter-spacing: var(--typography-heading-md-letter-spacing);
+}
+
+.vw-heading-sm {
+	font-size: var(--typography-heading-sm-font-size);
+	line-height: var(--typography-heading-sm-line-height);
+	font-weight: var(--typography-heading-sm-font-weight);
+	letter-spacing: var(--typography-heading-sm-letter-spacing);
+}
+
+.vw-body-lg {
+	font-size: var(--typography-body-lg-font-size);
+	line-height: var(--typography-body-lg-line-height);
+	font-weight: var(--typography-body-lg-font-weight);
+	letter-spacing: var(--typography-body-lg-letter-spacing);
+}
+
+.vw-body-md {
+	font-size: var(--typography-body-md-font-size);
+	line-height: var(--typography-body-md-line-height);
+	font-weight: var(--typography-body-md-font-weight);
+	letter-spacing: var(--typography-body-md-letter-spacing);
+}
+
+.vw-body-md-medium {
+	font-size: var(--typography-body-md-medium-font-size);
+	line-height: var(--typography-body-md-medium-line-height);
+	font-weight: var(--typography-body-md-medium-font-weight);
+	letter-spacing: var(--typography-body-md-medium-letter-spacing);
+}
+
+.vw-body-md-bold {
+	font-size: var(--typography-body-md-bold-font-size);
+	line-height: var(--typography-body-md-bold-line-height);
+	font-weight: var(--typography-body-md-bold-font-weight);
+	letter-spacing: var(--typography-body-md-bold-letter-spacing);
+}
+
+.vw-body-sm {
+	font-size: var(--typography-body-sm-font-size);
+	line-height: var(--typography-body-sm-line-height);
+	font-weight: var(--typography-body-sm-font-weight);
+	letter-spacing: var(--typography-body-sm-letter-spacing);
+}
+
+.vw-body-sm-medium {
+	font-size: var(--typography-body-sm-medium-font-size);
+	line-height: var(--typography-body-sm-medium-line-height);
+	font-weight: var(--typography-body-sm-medium-font-weight);
+	letter-spacing: var(--typography-body-sm-medium-letter-spacing);
+}
+
+.vw-body-sm-bold {
+	font-size: var(--typography-body-sm-bold-font-size);
+	line-height: var(--typography-body-sm-bold-line-height);
+	font-weight: var(--typography-body-sm-bold-font-weight);
+	letter-spacing: var(--typography-body-sm-bold-letter-spacing);
+}
+
+.vw-body-xs {
+	font-size: var(--typography-body-xs-font-size);
+	line-height: var(--typography-body-xs-line-height);
+	font-weight: var(--typography-body-xs-font-weight);
+	letter-spacing: var(--typography-body-xs-letter-spacing);
+}
+
+.vw-body-xs-medium {
+	font-size: var(--typography-body-xs-medium-font-size);
+	line-height: var(--typography-body-xs-medium-line-height);
+	font-weight: var(--typography-body-xs-medium-font-weight);
+	letter-spacing: var(--typography-body-xs-medium-letter-spacing);
+}
+
+.vw-display-xl,
+.vw-display-lg,
+.vw-display-md,
+.vw-heading-lg,
+.vw-heading-md,
+.vw-heading-sm {
+	font-family: var(--font-display);
+}

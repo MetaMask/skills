@@ -1,0 +1,73 @@
+{
+  "/v2/assets": {
+    "spoken": "version two assets"
+  },
+  "EVM": {
+    "spoken": "E V M"
+  },
+  "HeadingMd": {
+    "spoken": "heading M D"
+  },
+  "ID": {
+    "spoken": "I D",
+    "phonemes": "ˌIˈdi"
+  },
+  "id": {
+    "spoken": "I D",
+    "phonemes": "ˌIˈdi"
+  },
+  "launchpad": {
+    "spoken": "launch-pad"
+  },
+  "memecoin": {
+    "spoken": "meme-coin"
+  },
+  "OHLCV": {
+    "spoken": "O-H-L-C-V"
+  },
+  "PEPE": {
+    "spoken": "ˈpɛpeɪ"
+  },
+  "prefetch": {
+    "spoken": "pre-fetch"
+  },
+  "SectionHeader": {
+    "spoken": "section header"
+  },
+  "SectionHeading": {
+    "spoken": "section heading"
+  },
+  "SecurityTab.test.tsx": {
+    "spoken": "security tab dot test dot T S X"
+  },
+  "SecurityTab.tsx": {
+    "spoken": "security tab dot T S X"
+  },
+  "TanStack": {
+    "spoken": "tan-stack"
+  },
+  "titleProps": {
+    "spoken": "title props"
+  },
+  "vercel": {
+    "spoken": "ver sell"
+  },
+  "GitHub": {
+    "spoken": "GitHub"
+  },
+  "Kandev": {
+    "spoken": "Kan-dev"
+  },
+  "N F T S": {
+    "spoken": "N F T S",
+    "phonemes": "ˈɛn ˈɛf tˈiz"
+  },
+  "NFTs": {
+    "spoken": "NFTs",
+    "phonemes": "ˌɛnˌɛftˈiz"
+  },
+  "NFT": {
+    "spoken": "NFT",
+    "phonemes": "ˌɛnˌɛftˈi"
+  }
+}
