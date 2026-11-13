@@ -41,6 +41,27 @@ if (baseline.status !== 'ok') {
   fail(`Baseline status is "${baseline.status}": ${baseline.issues.join(' ')}`, 2);
 }
 
+const baselineWarnings = [];
+const metaPath = `${baselinePath}.meta.json`;
+if (fs.existsSync(metaPath)) {
+  let meta;
+  try {
+    meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+  } catch {
+    baselineWarnings.push(`unreadable baseline sidecar ${metaPath}; its identity is unknown`);
+  }
+  if (meta && meta.repoRoot && meta.repoRoot !== repoRoot) {
+    baselineWarnings.push(
+      `baseline was taken in ${meta.repoRoot}, not this checkout; take a fresh baseline`,
+    );
+  }
+  if (meta && meta.head && meta.head !== gitHead(repoRoot)) {
+    baselineWarnings.push(
+      `baseline HEAD ${meta.head.slice(0, 12)} differs from current HEAD; if you committed or pulled since the baseline, take a fresh one before trusting the verdict`,
+    );
+  }
+}
+
 const run = runTrace({ repoId, repoRoot, outDir });
 const failure = traceFailure(run);
 if (failure) fail(failure, 2);
@@ -143,6 +164,7 @@ const report = [
   `root: ${current.roots.map((root) => root.file).join(', ')}`,
   `baseline: ${baselinePath} (${baseline.remaining.files} files before)`,
   countLine(current),
+  ...section('warnings', baselineWarnings, 10),
   ...section('removed', removedLines, 20),
   ...section('violations', violations, 20),
   ...section('changed imports', changed, 10),

@@ -96,13 +96,20 @@ export function loadConfig(repoId) {
 
 export function defaultOutDir(repoId, repoRoot) {
   const digest = createHash('sha256').update(repoRoot).digest('hex').slice(0, 8);
-  return path.join(os.tmpdir(), 'asset-selector-cleanup', `${repoId}-${digest}`);
+  const cacheBase =
+    process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
+  return path.join(cacheBase, 'asset-selector-cleanup', `${repoId}-${digest}`);
 }
 
-export function normalizeRepoPath(value, repoRoot) {
+export function normalizeRepoPath(value, repoRoot, cwd = process.cwd()) {
   let normalized = String(value).trim().replace(/\\/g, '/');
   if (path.isAbsolute(normalized)) {
     normalized = path.relative(repoRoot, normalized).split(path.sep).join('/');
+  } else {
+    normalized = path
+      .relative(repoRoot, path.resolve(cwd, normalized))
+      .split(path.sep)
+      .join('/');
   }
   return normalized.replace(/^\.\//, '');
 }
@@ -147,8 +154,12 @@ export function runTrace({ repoId, repoRoot, outDir }) {
 
 export function traceFailure(run) {
   if (run.error) return `Could not run trace-usage.js: ${run.error.message}`;
-  if (run.exitCode === 2) return 'ripgrep (rg) is required on PATH';
-  if (run.exitCode === 1) return `trace-usage.js failed:\n${run.stderr.trim()}`;
+  if (run.exitCode === 2) {
+    return `ripgrep (rg) failed or is missing on PATH: ${(run.stderr || '').trim()}`;
+  }
+  if (run.exitCode !== 0 && run.exitCode !== 3) {
+    return `trace-usage.js exited with ${run.exitCode == null ? 'no status (killed?)' : run.exitCode}:\n${(run.stderr || run.stdout || '').trim()}`;
+  }
   return null;
 }
 

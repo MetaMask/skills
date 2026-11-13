@@ -38,7 +38,16 @@ if (summary.status !== 'ok') {
 }
 
 const savePath = options['--save'] || path.join(outDir, 'baseline.json');
+fs.mkdirSync(path.dirname(savePath), { recursive: true });
 fs.copyFileSync(run.summaryPath, savePath);
+fs.writeFileSync(
+  `${savePath}.meta.json`,
+  `${JSON.stringify(
+    { repoId, repoRoot, head: gitHead(repoRoot) },
+    null,
+    2,
+  )}\n`,
+);
 
 const trackedExports = summary.layers[0]?.importedSymbolSlots ?? 0;
 process.stdout.write(

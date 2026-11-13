@@ -17,11 +17,22 @@ The scripts are CommonJS with no dependencies beyond `node` and `rg` (ripgrep) o
 running under a consumer repo regardless of that repo's own module mode.
 
 Do not modify the vendored scripts to hide drift from upstream — fix upstream or carry
-a new documented patch here. Validate an installed copy any time:
+a new documented patch here. Drift is enforced: `references/vendored-checksums.json`
+records the SHA-256 of every vendored file, and the skills-repo test suite
+(`test/asset-selector-cleanup.test.mjs`) asserts the copies match, so any local edit
+— accidental or deliberate — fails the build. The recorded hashes match the vendored
+copy in the dashboard repo at the time of vendoring; the inline diff below is the
+authoritative statement of the delta, the fork link is convenience. Validate an
+installed copy any time:
 
 ```bash
 node --test .agents/skills/mms-asset-selector-cleanup/scripts/tooling.test.js
 ```
+
+That vendored self-test covers the upstream scripts' own fixtures. The patch below is
+not exercised by it; it is exercised by the skills-repo test suite (the fixture's
+`../selectors/wallet` importers resolve through the patched tree-root search), which
+is what actually guards this delta.
 
 ## The find-importers patch
 
@@ -78,6 +89,21 @@ Not vendored from upstream:
   wrapper always sets it). The mobile config follows the dashboard's locally authored
   one: same scripts, mobile root.
 
+Wrapper behavior worth knowing:
+
+- Default output directory: `$XDG_CACHE_HOME/asset-selector-cleanup/<repoId>-<sha256-8 of the repo root>`
+  (falling back to `~/.cache/...`), one directory per checkout, outside the repo so
+  runs never dirty the working tree. `--out-dir` overrides it.
+- `baseline.mjs --save <path>` creates missing parent directories and writes a
+  `<baseline>.meta.json` sidecar recording `{repoId, repoRoot, head}`. `verify.mjs`
+  reads it when present and reports warnings when the baseline came from another
+  checkout, or from before a commit or pull. Warnings never change the verdict — but
+  take a fresh baseline when they appear. Baselines saved by other means (e.g. a
+  dashboard snapshot) have no sidecar and verify runs without those warnings.
+- Relative `--baseline`, `--expect-file` and `--expect-selector` paths resolve against
+  the current directory, then normalize to repo-relative; absolute paths normalize the
+  same way.
+
 Not shipped from the upstream directory: `prompts/` (upstream's agent instructions —
 this skill replaces them), `completed.txt` and `completion-file.example.txt` (upstream
 example completion lists), `output/` (upstream sample reports), `README.md` and
@@ -133,8 +159,40 @@ verdict, `2` on usage or environment errors.
   not by resolved types. A local module that happens to share a path suffix with the
   root can only appear if the specifier literally matches; false positives are filtered
   by resolving relative imports against the source file.
+- Only `import` / `export ... from` statements are discovered. `require()` and dynamic
+  `import()` are not; switching import syntax is not a migration.
 - Default and namespace imports show as `(default or *)` / `* as name` and keep the
   file in the report without attributing specific migration selectors.
+- Cross-directory relative imports of intermediates outside the `selectors`/`ducks`
+  trees are missed: relative importer search only covers the source file's own
+  directory (plus the patched tree-root search for `selectors`/`ducks`), while
+  full-path matching needs the repo-relative path inside the specifier. Real example:
+  mobile's `app/core/redux/slices/bridge/index.ts` is a traced layer-2 intermediate,
+  but its consumers elsewhere — `app/util/bridge/hooks/useSubmitBridgeTx.ts`,
+  `app/components/Views/Homepage/components/HomepageActionButtonsGrid/buttons/BatchSwapButton.tsx`,
+  `app/selectors/bridge/index.ts`, `app/selectors/bridgeController/index.ts`,
+  `app/core/DeeplinkManager/handlers/legacy/handleBatchSellUrl.ts` — all spell it
+  `../../core/redux/slices/bridge` style and none appear in the trace. The dashboard
+  runs the same scripts, so its counts share the gap; the reference counts in this
+  skill's evidence match the dashboard because both miss the same files.
+- `classify-file.js` marks any file named `use*.ts(x)`/`use*.js(x)` (case-insensitive)
+  or under a `hooks/` directory as a terminal hook before considering its `selectors/`
+  path, so a non-hook selector file with a `use…` name (mobile's `app/selectors/user.ts`)
+  would be classified terminal and its own dependents never walked. No traced file in
+  either repo is affected today; the shape is a live footgun for new files.
+- The alias/wrapper warm-up in `migration-seeds.js` walks extension-shaped directories
+  (`ui/selectors`, `ui/ducks`, `shared/lib/selectors`, `app/scripts`); files outside
+  them — all of mobile's `app/selectors` — are indexed lazily, once, in walk order.
+  A wrapper file whose seeds are computed before a same-layer file it imports from
+  never records that import's derived exports, so consumers importing those exports
+  through it are dropped. Reproduced: with `app/selectors/a.ts` importing both the
+  root and `./z` (itself importing the root), `a.ts` is ensured before `z.ts`
+  (alphabetical, same layer) and a consumer importing only `a.ts`'s `aBalance`
+  (derived from `z`'s `zBalance`) never enters the trace, while the equivalent
+  consumer of `z.ts` does. Chains where the imported wrapper was already indexed —
+  earlier layers, or alphabetical order that puts the dependency first — are traced
+  fully (the skills-repo test pins such a chain: `portfolio.ts` -> `wallet.ts` ->
+  root, with the layer-4 consumer present). The dashboard shares this gap.
 - Directory-specifier imports of a `selectors`/`ducks` barrel (e.g.
   `from '../selectors'`) are only followed when the barrel resolves under `ui/`
   (`ui/selectors/index.*`, `ui/ducks/index.*`) and the importer also lives under
@@ -147,11 +205,9 @@ verdict, `2` on usage or environment errors.
 - `summary.js` hardcodes the metamask-extension root path inside the report's
   `metricsNote` string, so a mobile run carries the extension path in that one
   descriptive field. Every field that drives counts or the cleanup prompts is derived
-  from the config.
-- The alias/wrapper warm-up in `migration-seeds.js` walks extension-shaped directories
-  (`ui/selectors`, `ui/ducks`, `shared/lib/selectors`, `app/scripts`); files outside
-  them, including all of mobile's `app/selectors`, are indexed lazily during the walk
-  and still traced fully.
+  from the config. The same is true of the report header's self-reference to
+  `trace-selectors/scripts/trace-usage.js`, a path that exists upstream but not in an
+  installed copy of this skill.
 - Test files (`*.test.*`, `*.spec.*`, `*.stories.*`, `__tests__`, `__snapshots__`), the
   `trace-selectors/` directory itself, `node_modules`, `dist` and `build` trees are
   excluded from discovery, so a selector used only from tests is invisible to the
