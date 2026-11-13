@@ -4,5 +4,5 @@
 HARNESS_PACKAGE_NAME="@deeeed/metamask-harness"
 # The one harness pin for every recipe-* skill: the reviewed personal-scope release.
 # Install only this exact version. Setup and Cook read it from here.
-HARNESS_RECOMMENDED_VERSION="0.96.7"
+HARNESS_RECOMMENDED_VERSION="0.96.14"
 HARNESS_PACKAGE_SPEC="$HARNESS_PACKAGE_NAME@$HARNESS_RECOMMENDED_VERSION"

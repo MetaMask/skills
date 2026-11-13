@@ -15,7 +15,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only; CDP must be reachable.
-  Require `artifacts/sandbox.json` with `ready: true`.
+  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
@@ -31,6 +31,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 8. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   Pair ordering, portal or z-index screenshots with a bounding-box read.
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 9. Run the recorded baseline and inspect visuals
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).
@@ -39,6 +40,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 11. Record the root cause
   In TASK.md `## Root Cause`, trace file:line from symptom to source.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 
 ## Fix
 - [ ] 12. Make the minimal AC-mapped fix

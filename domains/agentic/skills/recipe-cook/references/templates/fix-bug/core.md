@@ -15,7 +15,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only.
-  Require `artifacts/sandbox.json` with `ready: true`.
+  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
@@ -29,11 +29,13 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Draft the baseline recipe in reuse order
   When proof is required, draft `artifacts/recipe.json` asserting fixed behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 9. Probe setup and retain the failing baseline run
   Probe reused recipe entry/setup boundaries with a short bound, then run into `<task>/artifacts/recipe-baseline-run` with `--json`.
   Require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 11. Exit early if already fixed or not reproduced
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
 

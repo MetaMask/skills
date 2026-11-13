@@ -15,7 +15,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only; the simulator/device app must be running.
-  Require `artifacts/sandbox.json` with `ready: true`.
+  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
@@ -23,6 +23,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 5. Write the approach
   `artifacts/approach.md`: affected files, current behavior or insertion point, chosen approach and trade-offs (rules: proof-rules.md, Development).
   Choose the most defensible approach without pausing.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 6. Build the AC matrix
   Rules: proof-rules.md, Plan and baseline.
 - [ ] 7. Record the target and rationale
@@ -37,6 +38,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 
 ## Implement
 - [ ] 11. Implement the gated, AC-mapped change
