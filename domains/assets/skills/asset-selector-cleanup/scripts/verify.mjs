@@ -7,6 +7,7 @@ import {
   defaultOutDir,
   fail,
   gitHead,
+  isBroadImportSymbol,
   normalizeRepoPath,
   parseFlags,
   readSummary,
@@ -102,11 +103,16 @@ for (const value of options['--expect-selector']) {
   }
   const target = normalizeRepoPath(value.slice(0, separator), repoRoot);
   const selector = value.slice(separator + 1);
-  if (after.has(target)) {
+  const prior = before.get(target);
+  if (prior && !prior.migrationSelectors.includes(selector)) {
+    violations.push(
+      `${target} did not carry migration selector ${selector} in the baseline`,
+    );
+  } else if (after.has(target)) {
     if (after.get(target).migrationSelectors.includes(selector)) {
       violations.push(`${target} still carries migration selector ${selector}`);
     }
-  } else if (!before.has(target)) {
+  } else if (!prior) {
     violations.push(`${target} was not in the baseline, so no selector was removed from it`);
   }
 }
@@ -128,8 +134,7 @@ for (const [filePath, file] of after) {
     }
   }
   for (const symbol of file.selectors) {
-    const broad = symbol === '*' || symbol === '(default or *)' || symbol.startsWith('* as ');
-    if (broad && !prior.selectors.includes(symbol)) {
+    if (isBroadImportSymbol(symbol) && !prior.selectors.includes(symbol)) {
       violations.push(`new broad import: ${filePath} now imports the module via "${symbol}"`);
     }
   }

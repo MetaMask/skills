@@ -17,12 +17,14 @@ The scripts are CommonJS with no dependencies beyond `node` and `rg` (ripgrep) o
 running under a consumer repo regardless of that repo's own module mode.
 
 Do not modify the vendored scripts to hide drift from upstream — fix upstream or carry
-a new documented patch here. Drift is enforced: `references/vendored-checksums.json`
-records the SHA-256 of every vendored file, and the skills-repo test suite
-(`test/asset-selector-cleanup.test.mjs`) asserts the copies match, so any local edit
-— accidental or deliberate — fails the build. The recorded hashes match the vendored
-copy in the dashboard repo at the time of vendoring; the inline diff below is the
-authoritative statement of the delta, the fork link is convenience. Validate an
+a new documented patch here. `references/vendored-checksums.json` records the SHA-256
+of every vendored file and the skills-repo test suite
+(`test/asset-selector-cleanup.test.mjs`) asserts the copies match, so accidental
+edits fail the build, and a deliberate re-vendor has to consciously update the
+checksum record, which review sees. The recorded hashes were verified against the
+vendored copy in the dashboard repo at the time of vendoring; they do not
+continuously prove equivalence to upstream in CI, and the inline diff below remains
+the authoritative statement of the delta — the fork link is convenience. Validate an
 installed copy any time:
 
 ```bash
@@ -63,10 +65,11 @@ tree root; resolution against the source file still filters the matches:
 ```
 
 With this patch the metamask-extension trace at commit
-`4f43cc1cdf39cfdada1c478faeab70acb0faa1ee` gains one genuinely missed file
+`4f43cc1cdf39cfdada1c478faeab70acb0faa1ee` gained one genuinely missed file
 (`ui/ducks/index.js`, reached through the sibling import
-`ui/ducks/bridge/selectors.ts` -> `../metamask/metamask`): remaining files go from
-145 to 146.
+`ui/ducks/bridge/selectors.ts` -> `../metamask/metamask`): remaining files went
+from 145 to 146 at that commit, at the time of vendoring. Any commit-specific
+number in this file is a point-in-time regression anchor, not a live fact.
 
 A discovered importer can land in the trace with `selectors: ["(default or *)"]` and
 an empty `migrationSelectors` list. That is upstream classification, not a patch
@@ -162,19 +165,32 @@ verdict, `2` on usage or environment errors.
 - Only `import` / `export ... from` statements are discovered. `require()` and dynamic
   `import()` are not; switching import syntax is not a migration.
 - Default and namespace imports show as `(default or *)` / `* as name` and keep the
-  file in the report without attributing specific migration selectors.
-- Cross-directory relative imports of intermediates outside the `selectors`/`ducks`
-  trees are missed: relative importer search only covers the source file's own
-  directory (plus the patched tree-root search for `selectors`/`ducks`), while
-  full-path matching needs the repo-relative path inside the specifier. Real example:
-  mobile's `app/core/redux/slices/bridge/index.ts` is a traced layer-2 intermediate,
-  but its consumers elsewhere — `app/util/bridge/hooks/useSubmitBridgeTx.ts`,
+  file in the report without attributing specific migration selectors. Verify's
+  `new broad import` check recognizes exactly those sentinel spellings via
+  `isBroadImportSymbol` in `run-trace.mjs`, kept in one place so a re-vendor that
+  renames them breaks loudly in the tests, not silently in verdicts.
+- Importers of `index.*` intermediates that spell the import without the trailing
+  `/index` are always missed, in any directory: the non-barrel rg pattern requires
+  the specifier to end with the module path including `/index`, and the relative
+  fallback (own directory, plus the patched tree-root search) resolves the
+  specifier to the directory and filters it out against the module key, which
+  keeps the `/index`. Confirmed against mobile at commit `2bc18ed`, at the time of
+  vendoring: every consumer of
+  `app/selectors/bridge/index.ts` spells it `../selectors/bridge` and is missing
+  from the trace, and the consumers of `app/core/redux/slices/bridge/index.ts`
+  (`app/util/bridge/hooks/useSubmitBridgeTx.ts`,
   `app/components/Views/Homepage/components/HomepageActionButtonsGrid/buttons/BatchSwapButton.tsx`,
-  `app/selectors/bridge/index.ts`, `app/selectors/bridgeController/index.ts`,
-  `app/core/DeeplinkManager/handlers/legacy/handleBatchSellUrl.ts` — all spell it
-  `../../core/redux/slices/bridge` style and none appear in the trace. The dashboard
-  runs the same scripts, so its counts share the gap; the reference counts in this
-  skill's evidence match the dashboard because both miss the same files.
+  `app/selectors/bridgeController/index.ts`,
+  `app/core/DeeplinkManager/handlers/legacy/handleBatchSellUrl.ts`) are missing
+  the same way. The dashboard runs the same scripts, so its counts share the gap;
+  the reference counts in this skill's evidence match the dashboard because both
+  miss the same files.
+- Independently of the above, relative importers of a non-`index` intermediate
+  from another directory are only found when the specifier contains the
+  module's repo-relative path (the non-barrel pattern matches full path suffixes)
+  or the intermediate sits in the importer's own directory or `selectors`/`ducks`
+  tree (the patched searches). A `../../util/assets`-style specifier for
+  `app/util/assets.ts` from elsewhere is invisible.
 - `classify-file.js` marks any file named `use*.ts(x)`/`use*.js(x)` (case-insensitive)
   or under a `hooks/` directory as a terminal hook before considering its `selectors/`
   path, so a non-hook selector file with a `use…` name (mobile's `app/selectors/user.ts`)
@@ -219,6 +235,6 @@ The dashboard tracks cross-scan progress with a `completionFile` listing already
 migrated paths, so its reports show only remaining work. This skill does not ship one:
 the baseline-diff workflow replaces it (the report reflects the actual code, so a
 migrated file drops out on its own), and the wrapper never reads a completion file. To
-reproduce a dashboard count locally, account for its current completion list; as of the
-snapshots at extension `4f43cc1` / mobile `2bc18ed` that list is empty and local counts
-match the dashboard exactly.
+reproduce a dashboard count locally, account for its current completion list; at the
+time of vendoring, the snapshots at extension `4f43cc1` / mobile `2bc18ed` carried an
+empty list and local counts matched the dashboard exactly.

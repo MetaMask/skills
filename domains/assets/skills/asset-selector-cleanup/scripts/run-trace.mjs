@@ -183,6 +183,14 @@ export function countLine(summary) {
   return `remaining: ${remaining.files} files (terminal ${remaining.terminalFiles}, non-terminal ${remaining.nonTerminalFiles}, importedSymbolSlots ${remaining.importedSymbolSlots})`;
 }
 
+export function isBroadImportSymbol(symbol) {
+  return (
+    symbol === '*' ||
+    symbol === '(default or *)' ||
+    symbol.startsWith('* as ')
+  );
+}
+
 export function readFlagValue(argv, index, flag, usage) {
   const value = argv[index + 1];
   if (value === undefined || value.startsWith('--')) {

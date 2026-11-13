@@ -246,6 +246,186 @@ test(
   },
 );
 
+test(
+  'verify rejects an --expect-selector the baseline never carried',
+  { skip: !rgAvailable && 'ripgrep not installed' },
+  () => {
+    const repo = buildFixture();
+    try {
+      const outsideDir = mkdtempSync(path.join(tmpdir(), 'asset-selector-out-'));
+      try {
+        const { baseline } = runBaseline(repo, outsideDir);
+        writeFileSync(path.join(repo, 'app/pages/local.ts'), 'export const selectTokens = () => null;\n');
+        writeFileSync(
+          path.join(repo, 'app/pages/activity.tsx'),
+          "import { selectTokens } from './local';\n\nexport const useActivity = () => selectTokens;\n",
+        );
+        const result = runScript(
+          'verify.mjs',
+          ['--baseline', baseline, '--expect-selector', 'app/pages/activity.tsx:selectBalanse', '--out-dir', outsideDir],
+          repo,
+        );
+        assert.equal(result.status, 1, result.stdout + result.stderr);
+        assert.match(result.stdout, /verdict: FAIL/);
+        assert.match(result.stdout, /app\/pages\/activity\.tsx did not carry migration selector selectBalanse in the baseline/);
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'verify fails on a new broad import and on a new legacy flow',
+  { skip: !rgAvailable && 'ripgrep not installed' },
+  () => {
+    const repo = buildFixture();
+    try {
+      const outsideDir = mkdtempSync(path.join(tmpdir(), 'asset-selector-out-'));
+      try {
+        const { baseline } = runBaseline(repo, outsideDir);
+        writeFileSync(
+          path.join(repo, 'app/pages/activity.tsx'),
+          "import { selectBalance, selectTokens } from '../selectors/assets/assets-migration';\nimport * as legacy from '../selectors/assets/assets-migration';\n\nexport const useActivity = () => selectTokens + selectBalance + String(legacy);\n",
+        );
+        const result = runScript('verify.mjs', ['--baseline', baseline, '--out-dir', outsideDir], repo);
+        assert.equal(result.status, 1, result.stdout + result.stderr);
+        assert.match(result.stdout, /verdict: FAIL/);
+        assert.match(result.stdout, /new legacy flow: app\/pages\/activity\.tsx now also carries selectBalance/);
+        assert.match(result.stdout, /new broad import: app\/pages\/activity\.tsx now imports the module via "\(default or \*\)"|new broad import: app\/pages\/activity\.tsx now imports the module via "\* as legacy"/);
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'verify rejects a malformed --expect-selector and warns when the tree moved past the baseline',
+  { skip: !rgAvailable && 'ripgrep not installed' },
+  () => {
+    const repo = buildFixture();
+    try {
+      const outsideDir = mkdtempSync(path.join(tmpdir(), 'asset-selector-out-'));
+      try {
+        const { baseline } = runBaseline(repo, outsideDir);
+        const malformed = runScript('verify.mjs', ['--baseline', baseline, '--expect-selector', 'app/pages/activity.tsx', '--out-dir', outsideDir], repo);
+        assert.equal(malformed.status, 2);
+        assert.match(malformed.stderr, /--expect-selector must be <path>:<migration-selector>/);
+
+        writeFileSync(path.join(repo, 'app/pages/local.ts'), 'export const selectTokens = () => null;\n');
+        writeFileSync(
+          path.join(repo, 'app/pages/activity.tsx'),
+          "import { selectTokens } from './local';\n\nexport const useActivity = () => selectTokens;\n",
+        );
+        const git = (...args) =>
+          execFileSync('git', ['-C', repo, '-c', 'commit.gpgsign=false', ...args], { stdio: 'pipe' });
+        git('add', '-A');
+        git('commit', '--quiet', '-m', 'migrate activity');
+        const result = runScript(
+          'verify.mjs',
+          ['--baseline', baseline, '--expect-file', 'app/pages/activity.tsx', '--out-dir', outsideDir],
+          repo,
+        );
+        assert.equal(result.status, 0, result.stdout + result.stderr);
+        assert.match(result.stdout, /warnings \(1\):\s*\n\s*baseline HEAD [0-9a-f]+ differs from current HEAD/);
+        assert.match(result.stdout, /verdict: PASS/);
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'documents the same-layer lazy-seed gap pinned in references/tooling.md',
+  { skip: !rgAvailable && 'ripgrep not installed' },
+  () => {
+    const repo = buildFixture('metamask-mobile-seeds-');
+    try {
+      writeFileSync(
+        path.join(repo, 'app/selectors/a.ts'),
+        "import { selectTokens } from './assets/assets-migration';\nimport { zBalance } from './z';\n\nexport const aTokens = selectTokens;\nexport const aBalance = zBalance;\n",
+      );
+      writeFileSync(
+        path.join(repo, 'app/selectors/z.ts'),
+        "import { selectBalance } from './assets/assets-migration';\n\nexport const zBalance = selectBalance;\n",
+      );
+      writeFileSync(
+        path.join(repo, 'app/pages/a-page.tsx'),
+        "import { aBalance } from '../selectors/a';\n\nexport const useAPage = () => aBalance;\n",
+      );
+      writeFileSync(
+        path.join(repo, 'app/pages/z-page.tsx'),
+        "import { zBalance } from '../selectors/z';\n\nexport const useZPage = () => zBalance;\n",
+      );
+      const outsideDir = mkdtempSync(path.join(tmpdir(), 'asset-selector-out-'));
+      try {
+        const { baseline } = runBaseline(repo, outsideDir);
+        const summary = JSON.parse(readFileSync(baseline, 'utf8'));
+        const paths = summary.files.map((file) => file.path);
+        assert.ok(paths.includes('app/selectors/a.ts'), 'a.ts should be traced');
+        assert.ok(paths.includes('app/selectors/z.ts'), 'z.ts should be traced');
+        assert.ok(paths.includes('app/pages/z-page.tsx'), 'z-page should be traced');
+        assert.ok(
+          !paths.includes('app/pages/a-page.tsx'),
+          'a-page.tsx is a known discovery miss (references/tooling.md, lazy seed index); if upstream fixed it, update the doc',
+        );
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  'documents the index-module importer gap pinned in references/tooling.md',
+  { skip: !rgAvailable && 'ripgrep not installed' },
+  () => {
+    const repo = buildFixture('metamask-mobile-index-');
+    try {
+      mkdirSync(path.join(repo, 'app/selectors/bridge'), { recursive: true });
+      writeFileSync(
+        path.join(repo, 'app/selectors/bridge/index.ts'),
+        "import { selectBalance } from '../assets/assets-migration';\n\nexport const selectIsBridgeEnabled = selectBalance;\n",
+      );
+      writeFileSync(
+        path.join(repo, 'app/pages/bridge-badge.tsx'),
+        "import { selectIsBridgeEnabled } from '../selectors/bridge';\n\nexport const useBridgeBadge = () => selectIsBridgeEnabled;\n",
+      );
+      writeFileSync(
+        path.join(repo, 'app/selectors/bridge-badge.ts'),
+        "import { selectIsBridgeEnabled } from './bridge';\n\nexport const useBridgeBadgeSameTree = () => selectIsBridgeEnabled;\n",
+      );
+      const outsideDir = mkdtempSync(path.join(tmpdir(), 'asset-selector-out-'));
+      try {
+        const { baseline } = runBaseline(repo, outsideDir);
+        const summary = JSON.parse(readFileSync(baseline, 'utf8'));
+        const paths = summary.files.map((file) => file.path);
+        assert.ok(paths.includes('app/selectors/bridge/index.ts'), 'bridge/index.ts should be traced');
+        for (const missed of ['app/pages/bridge-badge.tsx', 'app/selectors/bridge-badge.ts']) {
+          assert.ok(
+            !paths.includes(missed),
+            `${missed} is a known discovery miss (references/tooling.md, /index importers); if upstream fixed it, update the doc`,
+          );
+        }
+      } finally {
+        rmSync(outsideDir, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  },
+);
+
 test('repo detection errors are explicit, with and without an override', () => {
   const repo = buildFixture('plain-project-', 'git@github.com:acme/widget.git');
   try {
@@ -270,7 +450,18 @@ test('vendored scripts stay byte-identical to the recorded checksums', () => {
     readFileSync(path.join(skill, 'references/vendored-checksums.json'), 'utf8'),
   );
   const names = Object.keys(recorded);
-  assert.ok(names.length >= 10, `expected the full vendored set, found ${names.length}`);
+  assert.deepEqual(names, [
+    'classify-file.js',
+    'discover-assets-controllers-roots.js',
+    'find-importers.js',
+    'list-exports.js',
+    'migration-seeds.js',
+    'package.json',
+    'selector-deps.js',
+    'summary.js',
+    'tooling.test.js',
+    'trace-usage.js',
+  ]);
   for (const name of names) {
     const actual = createHash('sha256')
       .update(readFileSync(path.join(scripts, name)))
