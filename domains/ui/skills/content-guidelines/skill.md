@@ -22,7 +22,7 @@ Component READMEs are background. When they disagree with this file, follow this
 ## How to apply
 
 - Unmarked rules are confirmed. Follow them.
-- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are numeric ranges, plus the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
+- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are numeric ranges, a context-based period rule for single-sentence body text, plus the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
 - [Checks pending](#checks-pending) are not finished. Do not claim them done, and do not migrate strings ahead of them.
 
 ## When to use
@@ -117,7 +117,7 @@ Do not write "fiat". Use the currency's name. Use "local currency" only when the
 | Category | Examples |
 | --- | --- |
 | Recovery term | Secret Recovery Phrase, Private Key |
-| MetaMask product names | MetaMask, MetaMask Card, Metal Card, Virtual Card, Snaps, Perps, Predictions, Rewards (the product) |
+| MetaMask product names | MetaMask, MetaMask Card, MetaMask Money, Metal Card, Virtual Card, Snaps, Perps, Predictions, Rewards (the product) |
 | Legal document names | Terms of Use, Privacy Policy. A partner document uses the partner's own title. Never "T&C" or "Terms and Conditions" for MetaMask's own |
 | The Settings screen | "Settings" when it names that screen ("Open Settings"). A sub-screen is sentence case ("Security and privacy") |
 | Other proper nouns | Ethereum, OpenSea, Ledger, Apple, Google, Consensys, Hyperliquid, X. Write "X", not "Twitter" or "X (Twitter)". Write "Hyperliquid", not "HyperLiquid" |
@@ -128,7 +128,7 @@ Do not write "fiat". Use the currency's name. Use "local currency" only when the
 
 ### Sentence case, including these
 
-Sentence case for titles, buttons, menus, settings labels, section headers, tags, and feature names that are not on the list. "Smart transactions", "Hardware wallet", "Smart account", "NFT media", "Money account", "Pix key".
+Sentence case for titles, buttons, menus, settings labels, section headers, tags, and feature names that are not on the list. "Smart transactions", "Hardware wallet", "Smart account", "NFT media", "Pix key". "MetaMask Money" is the product name, so it stays on the title-case list.
 
 ```
 ❌ "Turn on Device Authentication"
@@ -166,11 +166,11 @@ When a string has more than one sentence, end every sentence with a period. Neve
 
 Do not use a period on a header, menu item, subheader, label, button, tag, tab, or "Learn more".
 
+Do not apply the old rule that a single sentence never ends with a period. A context-based period rule for single-sentence body text is pending content design. See [PROPOSED](#proposed).
+
 ```
-✅ "Your transaction couldn't be completed, so it was canceled"
 ✅ "Network fee"
 ✅ "Turn on notifications"
-❌ "Your transaction couldn't be completed, so it was canceled."
 ❌ "Network fee."
 ❌ "Learn more."
 ❌ "Incorrect password. Try again"
@@ -354,7 +354,7 @@ An empty state is a moment, not a dead end. When someone hasn't started yet, giv
 1. **First-time empty (nothing yet).** Write it with warmth and a bit of optimism, tied to the feature. Add a button with a verb.
 2. **Search or filter with no results.** Keep it plain and helpful. Say what didn't match and what to try next.
 3. **Couldn't load.** That's an error, not an empty state, so follow the error rules.
-4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe.
+4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe. On any surface, never say "Withdraw anytime", or an equivalent promise such as "withdraw at any time". That is a promise. To say the user has access to their MetaMask Money balance, use "No lockups", "Direct access", and "No notice periods or penalties".
 5. **Don't** sound sad or apologetic ("Nothing to see yet"), blame the person ("You don't have any…"), use emoji, or copy the same line across features.
 
 ```
@@ -362,7 +362,7 @@ An empty state is a moment, not a dead end. When someone hasn't started yet, giv
 ✅ "Your first prediction could be your best." + "Make a prediction" (`activity_view.empty_state.predictions`)
 ✅ "There's a world of NFTs out there. Start your collection today." (`nft_empty_description`)
 ✅ "Lend, borrow, and trade, right in your wallet." + "Explore DeFi" (`defi_positions.empty_state`)
-✅ Search: "No markets match "{{searchQuery}}" in this category. Try a different search or clear the filter."
+✅ Search: "No markets match “{{searchQuery}}” in this category. Try a different search or clear the filter."
 ❌ "Nothing to see yet. Add funds to your wallet to get started."
 ❌ "You don't have any open positions yet.\nStart trading to see your positions here."
 ❌ "No tokens. No problem. Explore and buy tokens to batch sell." (repeats the title, `batchSellEmptyStateDescription`)
@@ -609,9 +609,11 @@ Account group labels are "Secret Recovery Phrase 1", "Secret Recovery Phrase 2",
 
 ## Spelling and word forms
 
-American English. "canceled", not "cancelled". "authorizes", not "authorises". The existing example "so it was canceled" is the spelling to copy.
+American English. "canceled", not "cancelled". "authorizes", not "authorises".
 
 Two words for the verb, one word for the noun: "log in" / "login", "set up" / "setup", "back up" / "backup". "opt in" is the verb. "opt-in" is the adjective. "Backup and sync" may stay as the feature name. Where "sign in" and "log in" mean the same action, use "log in". Social login buttons are the exception: Apple and Google require "Sign in with Apple" and "Sign in with Google". Do not rewrite those.
+
+Write "lockup" and "lockups" as one word. Never "lock-up" or "lock-ups". Example: "No lockups".
 
 ## Abbreviations
 
@@ -651,11 +653,12 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Local currency | local currency, or the currency name | fiat | Name the currency (USD, EUR) when one is meant. "Local currency" is the setting |
 | Network currency | network currency | native currency | |
 | Tokens | tokens | coins, cryptocurrency | "coin" only on Perps market screens. "crypto" is the category. "Assets" is tokens and NFTs. "Funds" move. "Balance" is an amount |
-| NFT | NFT | | |
+| NFT | NFT | "collectible", "collectibles" for an NFT | Say NFT |
 | Reset wallet | Reset wallet | delete wallet, erase | |
 | Add funds | Add funds | Deposit, except an activity-list type | |
 | Smart account | smart account | smart contract account, Smart Account | |
-| Money account | Money account | Money Account | Sentence case |
+| MetaMask Money | MetaMask Money | Money account, Money Account | The product name. For access to the balance, use "No lockups", "Direct access", and "No notice periods or penalties". Never "Withdraw anytime" or "withdraw at any time" |
+| Lockup | lockup, lockups | lock-up, lock-ups | One word. Example: "No lockups" |
 | Snaps | MetaMask Snaps, then Snaps | snap for the platform | First mention in a page or flow is "MetaMask Snaps". "A Snap" is one instance |
 | Perps, Predictions, Rewards | Product form, or lower for the generic noun | Predict as a noun. Yield, ROI, or securities analogies for network rewards | Rewards (the product), points, and redeemed rewards are three meanings |
 | Settings | Settings | settings, when it names the screen | Sub-screens stay sentence case |
@@ -702,6 +705,7 @@ Not decided. Do not rewrite existing copy to satisfy these.
 1. **Numeric ranges.** Hyphen (`1-20`) vs en dash is unresolved in the Style Guide.
 2. **Locale file and `toSentenceCase`.** Drafts in the mobile overlay. Do not enforce them until content design confirms them.
 3. **Translator descriptions.** A draft in the extension overlay. Do not enforce it until content design confirms it.
+4. **Single-sentence periods.** A context-based period rule for single-sentence body text is pending content design. Do not keep applying the old rule that a single sentence never ends with a period.
 
 ## Checks pending
 
