@@ -70,8 +70,8 @@ Apply the sections for this flow and platform at each step.
 
 ## Runtime proof
 
-- Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json`.
-- Mobile/Extension add `--record-video=full-run`; Mobile video is under `recipe-run/videos/`. Core bug-fix recipes run only when required and must pass.
+- Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --json` without `--artifacts-dir`. The harness places each attempt under `<task>/artifacts/recipe-runs/<attempt>/`; `artifacts/latest-valid-recipe-run.json` names the selected attempt.
+- Mobile/Extension add `--record-video=full-run`; Mobile video is under the selected attempt's `videos/`. Core bug-fix recipes run only when required and must pass.
 - Core setup failures: inspect retained state/logs, diagnose and repair drift with `--heal auto`; never weaken assertions. Apply Cook's blocked rule.
 - After self-review, rerun proof when proven behavior changed; otherwise record an explicit no-rerun decision.
 
@@ -124,8 +124,8 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 
 ## Coverage and finish
 
-- Write `artifacts/recipe-coverage.md` with one row per AC/claim: proof mode, evidence path under `recipe-run/`, recipe nodes, verdict and rationale.
-- UI verdicts are PROVEN/WEAK/UNTESTABLE/MISSING. Check bug-fix rows against `recipe-run/trace.json`; failed nodes are never PROVEN. Fix WEAK/MISSING proof and rerun.
+- Write `artifacts/recipe-coverage.md` with one row per AC/claim: proof mode, evidence path under the selected attempt in `artifacts/recipe-runs/`, recipe nodes, verdict and rationale.
+- UI verdicts are PROVEN/WEAK/UNTESTABLE/MISSING. Check bug-fix rows against the selected attempt's `trace.json`; failed nodes are never PROVEN. Fix WEAK/MISSING proof and rerun.
 - Include `What this recipe does NOT prove`, ending with `Overall recipe coverage: <N>/<M> ACs PROVEN (untestable: <list or "none">, weak: 0, missing: 0)`.
 - Build `artifacts/recipe-quality.json` through Cook's [Finish instructions](../skill.md#finish). Never pass UI WEAK/MISSING rows, development assertions that also pass before implementation, or bug-fix recipes that pass with the fix reverted.
 - Core bug fixes write recipe coverage/quality when `artifacts/recipe.json` exists; non-recipe AC verdicts remain required.
