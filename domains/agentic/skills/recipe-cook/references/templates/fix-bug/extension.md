@@ -35,7 +35,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 9. Run the recorded baseline and inspect visuals [PROOF: artifacts/recipe-baseline-run]
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).
-- [ ] 10. Exit early if already fixed or not reproduced
+- [ ] 10. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 11. Record the root cause

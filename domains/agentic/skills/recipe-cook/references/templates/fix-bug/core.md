@@ -36,7 +36,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
-- [ ] 11. Exit early if already fixed or not reproduced
+- [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
 
 ## Fix
@@ -49,10 +49,10 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Read the step 13 receipt. Repeat its mark after source or test changes.
 
 ## Validate
-- [ ] 15. Run the required recipe
+- [ ] 15. Run the required recipe [OPTIONAL: the proof decision records no recipe requirement]
   When the decision requires proof, `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json`; it must pass (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
-- [ ] 16. Run the domain smoke when applicable
+- [ ] 16. Run the domain smoke when applicable [OPTIONAL: the project declares no domain smoke]
 
 ## Review
 - [ ] 17. Self-review the full diff

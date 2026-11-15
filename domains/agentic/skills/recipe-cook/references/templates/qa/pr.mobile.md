@@ -64,7 +64,7 @@ Hits: <pattern + file:line + pack | None.>
   Require a clean checkout and detach at the exact frozen SHA.
 
 ## Review
-- [ ] 3. Run explicitly named static checks only
+- [ ] 3. Run explicitly named static checks only [OPTIONAL: no team review checklist is named by the task or QA profile]
   Execute a team review checklist only when the task or selected QA profile explicitly names it; read that installed checklist as a declared dependency.
   Do not discover or activate skills from file paths, labels or metadata. Keep static findings separate from runtime AC verdicts.
 
