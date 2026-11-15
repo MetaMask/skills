@@ -84,8 +84,8 @@ Hits: <pattern + file:line + pack | None.>
   Author `artifacts/recipe.json`; every review AC has assertion nodes or a named UNTESTABLE limitation (rules: qa.md, Phase 4).
   Continuous-gesture claims (drag, pan, scrub, smoothness/lag/flicker while the pointer is down) are `needs-human` or `needs-new-action`, never proved by a discrete click or a resting-state screenshot.
   `<task>/mm-harness run <task>/artifacts/recipe.json --plan --adapter extension --json` passes; retain its output as `artifacts/recipe-plan.json`.
-- [ ] 7. Run the live recipe [PROOF: artifacts/recipe-run]
-  Include a runtime smoke assertion even with no changed behavior, then execute once with `--artifacts-dir <task>/artifacts/recipe-run` (rules: qa.md, Phase 5).
+- [ ] 7. Run the live recipe [PROOF: artifacts/recipe-runs]
+  Include a runtime smoke assertion even with no changed behavior, then execute once, letting the harness place the attempt under `<task>/artifacts/recipe-runs/` (rules: qa.md, Phase 5).
   Preserve the first failure and enforce mutation replay safety.
 - [ ] 8. Audit the evidence and code risk
   Read trace, manifest, real browser screenshots and state/log proof; inspect the complete PR diff and changed production files (rules: qa.md, Phase 6).

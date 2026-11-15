@@ -5,7 +5,7 @@ description: Extension fix-bug checklist with runtime proof.
 
 # Extension fix-bug checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
@@ -51,8 +51,8 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 14. Write the fixed-behavior after recipe and plan it
   `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes `--plan` and fails with the fix reverted (rules: proof-rules.md, Bug fixing).
-- [ ] 15. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-run]
-  Reload with `mm-harness doctor --expect-live`, then `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Extension runtime).
+- [ ] 15. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-runs]
+  Reload with `mm-harness doctor --expect-live`, then `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Extension runtime).
   After captures must differ from `before-...` as the bug-to-fix claim describes; read every PNG (rules: proof-rules.md, UI evidence).
 - [ ] 16. Write regression tests and inspect the CI receipt
   Follow `/mms-extension-testing` (rules: proof-rules.md, Tests).
@@ -72,7 +72,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 
 ## Finish
 - [ ] 20. Record coverage and per-AC acceptance verdicts
-  Write `artifacts/recipe-coverage.md`, checked against `recipe-run/trace.json`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
+  Write `artifacts/recipe-coverage.md`, checked against the selected attempt's `trace.json` under `artifacts/recipe-runs/`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
   List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
 - [ ] 21. Render the PR body, retain artifacts and complete
   Write `artifacts/pr-description.md` with the root cause, run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` and read that file.

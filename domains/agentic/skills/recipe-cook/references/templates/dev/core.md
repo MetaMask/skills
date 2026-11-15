@@ -5,7 +5,7 @@ description: Core dev checklist with runtime proof.
 
 # Core dev checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
@@ -47,8 +47,8 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 12. Changed-file CI [DETERMINISTIC: ci.local_check]
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
-- [ ] 13. Run the recipe and inspect state and logs [PROOF: artifacts/recipe-run]
-  `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json` (rules: proof-rules.md, Runtime proof).
+- [ ] 13. Run the recipe and inspect state and logs [PROOF: artifacts/recipe-runs]
+  `<task>/mm-harness run <task>/artifacts/recipe.json --json` (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
 
 ## Review

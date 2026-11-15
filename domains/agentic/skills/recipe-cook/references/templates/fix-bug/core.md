@@ -5,7 +5,7 @@ description: Core fix-bug checklist with runtime proof.
 
 # Core fix-bug checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
@@ -50,7 +50,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 
 ## Validate
 - [ ] 15. Run the required recipe [OPTIONAL: the proof decision records no recipe requirement]
-  When the decision requires proof, `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json`; it must pass (rules: proof-rules.md, Runtime proof).
+  When the decision requires proof, `<task>/mm-harness run <task>/artifacts/recipe.json --json`; it must pass (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
 - [ ] 16. Run the domain smoke when applicable [OPTIONAL: the project declares no domain smoke]
 

@@ -5,7 +5,7 @@ description: Extension dev checklist with runtime proof.
 
 # Extension dev checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
@@ -47,9 +47,9 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
 
 ## Validate
-- [ ] 13. Run the recorded recipe [PROOF: artifacts/recipe-run]
+- [ ] 13. Run the recorded recipe [PROOF: artifacts/recipe-runs]
   Reload with `mm-harness doctor --expect-live`; run `mm-harness launch --verify` if the extension stopped responding (rules: proof-rules.md, Extension runtime).
-  `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Runtime proof).
+  `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Runtime proof).
 - [ ] 14. Pass the visual evidence gate
   Read every visual/mixed PNG: the claimed target is visible, unclipped and not a generic home or empty screen (rules: proof-rules.md, UI evidence).
   Accept capture-helper screenshots only. Fix insufficient evidence and rerun instead of shipping a caveat.
