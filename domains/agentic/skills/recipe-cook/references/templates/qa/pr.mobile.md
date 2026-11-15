@@ -80,7 +80,7 @@ Hits: <pattern + file:line + pack | None.>
   Author `artifacts/recipe.json`; every review AC has assertion nodes or a named UNTESTABLE limitation (rules: qa.md, Phase 4).
   Continuous-gesture claims (drag, pan, fling, pinch, slider scrub, smoothness/lag/flicker while the finger is down) are `needs-human` or `needs-new-action`, never proved by a discrete tap or a resting-state screenshot.
   `<task>/mm-harness run <task>/artifacts/recipe.json --plan --adapter mobile --platform <ios|android> --device "<selected device>" --json` passes; retain its output as `artifacts/recipe-plan.json`.
-- [ ] 7. Run the live recipe
+- [ ] 7. Run the live recipe [PROOF: artifacts/recipe-run]
   Start screen-stack-dependent cases with `app.lifecycle restart` and bounded `ensure_unlocked`; include a runtime smoke assertion even with no changed behavior (rules: qa.md, Phase 5).
   Execute once on the selected device with `--artifacts-dir <task>/artifacts/recipe-run`; add `--record-video=full-run` for every visual review. The actual run proves Android support only when it produces the video artifact.
   Preserve the first failure and enforce mutation replay safety.

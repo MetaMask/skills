@@ -34,7 +34,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 9. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
-- [ ] 10. Run the recorded baseline and inspect visuals
+- [ ] 10. Run the recorded baseline and inspect visuals [PROOF: artifacts/recipe-baseline-run]
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).
 - [ ] 11. Exit early if already fixed or not reproduced
@@ -53,7 +53,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 15. Write the fixed-behavior after recipe and plan it
   `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes `--plan` and fails with the fix reverted (rules: proof-rules.md, Bug fixing).
-- [ ] 16. Run the recorded after recipe and pass the evidence gate
+- [ ] 16. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-run]
   Run `mm-harness call app.lifecycle command=restart`, then `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Mobile runtime).
   After captures must differ from `before-...` as the bug-to-fix claim describes; read every PNG (rules: proof-rules.md, UI evidence).
 - [ ] 17. Write regression tests and inspect the CI receipt

@@ -34,7 +34,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 9. Capture a comparable UI baseline or additive N/A
   Before editing existing UI, capture `before-*` evidence on the same route, state, target and viewport.
   For purely additive work, write `Baseline: N/A. additive` in TASK.md (rules: proof-rules.md, Development).
-- [ ] 10. Draft the recipe and run pre-implementation proof
+- [ ] 10. Draft the recipe and run pre-implementation proof [PROOF: artifacts/recipe-baseline-run]
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
@@ -47,7 +47,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
 
 ## Validate
-- [ ] 13. Run the recorded recipe
+- [ ] 13. Run the recorded recipe [PROOF: artifacts/recipe-run]
   Reload with `mm-harness doctor --expect-live`; run `mm-harness launch --verify` if the extension stopped responding (rules: proof-rules.md, Extension runtime).
   `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Runtime proof).
 - [ ] 14. Pass the visual evidence gate

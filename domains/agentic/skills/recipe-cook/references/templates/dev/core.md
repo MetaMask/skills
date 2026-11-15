@@ -32,7 +32,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   The recipe drives the controller through its public API as Mobile or Extension do (real messenger, mocked only at the network boundary) and asserts the observable state or event; a Jest or unit-test probe is never the proof.
   Sign real testnet orders only with a testnet-wallet fixture; otherwise use read paths and record why.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
-- [ ] 9. Draft the recipe and run pre-implementation proof
+- [ ] 9. Draft the recipe and run pre-implementation proof [PROOF: artifacts/recipe-baseline-run]
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
@@ -47,7 +47,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 12. Changed-file CI [DETERMINISTIC: ci.local_check]
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
-- [ ] 13. Run the recipe and inspect state and logs
+- [ ] 13. Run the recipe and inspect state and logs [PROOF: artifacts/recipe-run]
   `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json` (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
 
