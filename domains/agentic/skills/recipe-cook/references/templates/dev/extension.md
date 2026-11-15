@@ -1,6 +1,7 @@
 ---
 platforms: [extension, chrome-extension]
 description: Extension dev checklist with runtime proof.
+produces: [artifacts/no-change-report.md]
 ---
 
 # Extension dev checklist

@@ -1,6 +1,7 @@
 ---
 platforms: [core, cli]
 description: Core fix-bug checklist with runtime proof.
+produces: [artifacts/recipe-coverage.md, artifacts/recipe-quality.json]
 ---
 
 # Core fix-bug checklist

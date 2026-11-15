@@ -1,6 +1,7 @@
 ---
 platforms: [mobile, ios, android]
 description: Mobile dev checklist with runtime proof.
+produces: [artifacts/no-change-report.md]
 ---
 
 # Mobile dev checklist

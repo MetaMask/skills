@@ -1,6 +1,7 @@
 ---
 platforms: [core, cli]
 description: Core dev checklist with runtime proof.
+produces: [artifacts/no-change-report.md]
 ---
 
 # Core dev checklist
