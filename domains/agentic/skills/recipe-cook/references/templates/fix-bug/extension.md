@@ -14,7 +14,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Follow `/mms-recipe-harness`: doctor/status/launch for this checkout only; CDP must be reachable.
+  Follow `/mms-recipe-harness`: doctor/status/launch/verify for this checkout only; CDP must be reachable.
   Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
