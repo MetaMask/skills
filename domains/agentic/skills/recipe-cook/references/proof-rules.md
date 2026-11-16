@@ -54,6 +54,7 @@ Apply the sections for this flow and platform at each step.
 - Core: `required: false` requires no listed action that can exercise the change. Missing setup state is not an exemption; diagnose and repair missing runtime prerequisites first.
 - Core: when required, draft `artifacts/recipe.json` asserting fixed behavior, prefer reusable recipes and require plan PASS. Run it into `recipe-baseline-run/` and require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
 - Mobile/Extension: draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior through live actions or run-scoped markers/logs; require plan PASS, then run it into `recipe-baseline-run/` with `--record-video=full-run --json` and read every visual PNG.
+- A marked baseline run is evidence: never delete or overwrite it. A changed baseline recipe gets a new run directory (`recipe-baseline-run-2`, `-3`) with the reason in TASK.md.
 - For already-fixed/not-reproduced cases, write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before marking no-change. UI flows add `--already-fixed` to the terminal mark when this branch already fixes it; setup/environment failures follow Cook's blocked rule.
 - After the minimal fix, UI `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes plan and fails with the fix reverted.
 - If the ticket cites an earlier fix as noise, list the call sites that fix covered before accepting it.

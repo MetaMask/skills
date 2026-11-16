@@ -35,6 +35,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
 - [ ] 9. Probe setup and retain the failing baseline run [PROOF: artifacts/recipe-baseline-run]
   Probe reused recipe entry/setup boundaries with a short bound, then run into `<task>/artifacts/recipe-baseline-run` with `--json`.
   Require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
+  Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
