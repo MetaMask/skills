@@ -10,7 +10,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
-  Confirm the handoff's checklist path; never estimate or rewrite it (rules: proof-rules.md, Task and sandbox).
+  Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
