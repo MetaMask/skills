@@ -56,8 +56,8 @@ Compare error rates or metrics across releases for regression detection:
 
 1. `mcp__sentry__find_releases` — list releases sorted by date
 2. **Filter out unreliable releases** (see below) before comparing
-3. `mcp__sentry__search_events` with `release:12.5.0` for baseline
-4. `mcp__sentry__search_events` with `release:12.6.0` for comparison
+3. `mcp__sentry__search_events` with `release:metamask-extension@12.5.0` for baseline
+4. `mcp__sentry__search_events` with `release:metamask-extension@12.6.0` for comparison
 5. **Normalize by sessions or users** — raw counts conflate traffic changes with error rate changes:
    ```
    rate = events / sessions_for_that_release
