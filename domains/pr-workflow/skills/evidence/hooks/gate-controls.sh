@@ -36,6 +36,23 @@ BODY
 probe() { printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$1")"; }
 
 fails=0
+# The comment-consent gate (`_gate_comment_consent`) blocks any comment write that has no
+# authorization in the user's own words, ahead of the body checks. A negative arm that only
+# wants to measure the BODY checks must therefore satisfy that gate the way a real write does:
+# a transcript holding a typed message with a publish verb, a marker quoting it, and the outward
+# passes named on a `gates:` line. The gate stays fully on; the arm supplies what it asks for.
+CSID="gate-controls-$$"
+CMARK="/tmp/.cc-comment-consent.$CSID"
+trap 'rm -rf "$tmp" "$CMARK" "$CMARK.consumed"' EXIT
+printf '%s\n' '{"type":"user","origin":{"kind":"human"},"message":{"content":"Post the reply on o/r#1"}}' > "$tmp/transcript.jsonl"
+check_consented() { # name expected command  (consent supplied, body checks measured)
+  local name="$1" want="$2" cmd="$3" got
+  printf 'Post the reply on o/r#1\ngates: disclosure / read-as / trim\n' > "$CMARK"
+  python3 -c 'import json,sys;print(json.dumps({"tool_name":"Bash","tool_input":{"command":sys.argv[1]},"transcript_path":sys.argv[2]}))' "$cmd" "$tmp/transcript.jsonl" \
+    | CLAUDE_CODE_SESSION_ID="$CSID" python3 "$tmp/hook.py" >/dev/null 2>&1; got=$?
+  if [ "$got" = "$want" ]; then printf '  ok    %-34s exit=%s\n' "$name" "$got"
+  else printf '  FAIL  %-34s exit=%s want=%s\n' "$name" "$got" "$want"; fails=$((fails+1)); fi
+}
 check() { # name expected command
   local name="$1" want="$2" cmd="$3" got
   probe "$cmd" | python3 "$tmp/hook.py" >/dev/null 2>&1; got=$?
@@ -99,7 +116,12 @@ check "positive: gh pr comment"       2 "gh pr comment 1 --repo o/r --body-file 
 check "positive: finding via comment" 2 "gh issue comment 1 --repo o/r --body-file $tmp/finding.md"
 check "negative: unrelated command"   0 "ls -la"
 check "negative: gh read, no body"    0 "gh pr view 1 --repo o/r"
-check "negative: a reply is a reply"  0 "gh issue comment 1 --repo o/r --body-file $tmp/reply.md"
+check_consented "negative: a reply is a reply" 0 "gh issue comment 1 --repo o/r --body-file $tmp/reply.md"
+# The consent gate itself must still refuse the same write when no consent was supplied.
+check "positive: no consent, still blocked" 2 "gh issue comment 1 --repo o/r --body-file $tmp/reply.md"
+# And consent alone must not open the body checks: a bad body is still blocked with consent given,
+# which is what shows the consented arm above reaches the body check rather than skipping it.
+check_consented "positive: consent given, bad body" 2 "gh issue comment 1 --repo o/r --body-file $tmp/bad.md"
 
 # The gate reads the command as text, so a body it cannot resolve is a body it cannot
 # check. These three are how an entire session of publishes went ungated while every
