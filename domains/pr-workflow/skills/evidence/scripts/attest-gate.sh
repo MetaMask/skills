@@ -191,7 +191,7 @@ elif [ "$MODE" = diligence ] || [ "$MODE" = inline ]; then
     pass "4b cross-references resolve"
   fi
 else
-hasre 'head `[0-9a-f]{7,}|sha256|node `v|yarn\.lock `|[Ff]irefox [0-9]+\.[0-9]|[Cc]hrom(e|ium) [0-9]+\.|[Ss]afari [0-9]+\.|[Nn]ode v?[0-9]+\.[0-9]' \
+hasre '[Hh]ead `[0-9a-f]{7,}|sha256|node `v|yarn\.lock `|[Ff]irefox [0-9]+\.[0-9]|[Cc]hrom(e|ium) [0-9]+\.|[Ss]afari [0-9]+\.|[Nn]ode v?[0-9]+\.[0-9]' \
   && pass "4 environment pinned" \
   || fail "4 environment pinned" "no head SHA, lockfile hash, or pinned toolchain/browser version"
 fi
@@ -318,7 +318,10 @@ if [ "$MODE" = diligence ]; then
   printf '  SKIP  %s\n' "8 verdict is earned — no verdict rendered"
   printf '  SKIP  %s\n' "9 verdict matches artifact — no verdict rendered"
 else
-if hasi '\*\*Verdict:\*\*.*proven' && ! hasre 'Produced by |actions/runs|evidence-artifacts/'; then
+# `\bproven\b` and not a bare substring: "unproven" is a legal flat ending (SKILL.md) and made the
+# earlier `.*proven` fail every run that said so. "not proven" is likewise a non-claim.
+PROVEN_CLAIM="$(grep -iE '\*\*Verdict:\*\*.*\bproven\b' "$FILE" | grep -viE '\b(not|never)[[:space:]]+proven\b' | head -1)"
+if [ -n "$PROVEN_CLAIM" ] && ! hasre 'Produced by |actions/runs|evidence-artifacts/'; then
   fail "8 verdict is earned" "claims 'proven' with no execution artifact — reading yields 'unverified'"
 else
   pass "8 verdict is earned"
@@ -375,7 +378,29 @@ if grep -qE '^```diff' "$FILE"; then
     fail "17b a diff block is complete, not elided" \
       "a bare '@@' marks lines the block skipped, so nobody can apply it and nothing forced you to read them. Write one complete hunk with its context, or a 'suggestion' block, which GitHub applies in one click"
   else
-    pass "17b a diff block is complete, not elided"
+    # The anchor decides the form (the-anchor-decides-a-review-comments-block-form): a ```diff
+    # whose real hunk header lies wholly inside the line range the comment's own permalink
+    # anchors (`#L10`, `#L10-L12`) is an edit a `suggestion` block applies in one click.
+    INANCHOR="$(python3 - "$FILE" <<'PYEOF'
+import re, sys
+t = open(sys.argv[1]).read()
+prose = re.sub(r'```.*?```', ' ', t, flags=re.S)
+m = re.search(r'#L(\d+)(?:-L(\d+))?', prose)
+if m:
+    a = int(m.group(1)); b = int(m.group(2) or a)
+    for blk in re.findall(r'^```diff\n(.*?)^```', t, flags=re.S | re.M):
+        for h in re.finditer(r'^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@', blk, flags=re.M):
+            s0 = int(h.group(1)); n = int(h.group(2) if h.group(2) is not None else 1)
+            if n >= 1 and a <= s0 and s0 + n - 1 <= b:
+                print("%d-%d inside L%d-L%d" % (s0, s0 + n - 1, a, b)); sys.exit(0)
+PYEOF
+)"
+    if [ -n "$INANCHOR" ]; then
+      fail "17b a diff block is complete, not elided" \
+        "the diff edits lines $INANCHOR, inside the anchor its own permalink names, so a 'suggestion' block applies it in one click and a 'diff' block does not. The anchor decides the form: write a suggestion block, or move the anchor if the edit is not on those lines"
+    else
+      pass "17b a diff block is complete, not elided"
+    fi
   fi
 fi
 
@@ -426,7 +451,11 @@ elif [ "$MODE" = inline ]; then
   printf '  SKIP  %s\n' "11 disclaimer — carried once by the body comment, not per inline"
 else
 DISC="$(grep -n -i 'trial run' "$FILE" | head -1 | cut -d: -f1)"
-FIRST_EXHIBIT="$(grep -n '^```' "$FILE" | head -1 | cut -d: -f1)"
+# An exhibit is a fenced block OR an image. Counting only fences let a run whose exhibit is a
+# screenshot carry the disclaimer at the foot, after the capture it frames (O4, 2026-11-16).
+FIRST_FENCE="$(grep -n '^```' "$FILE" | head -1 | cut -d: -f1)"
+FIRST_IMAGE="$(grep -n '!\[[^]]*\]([^)]*)' "$FILE" | head -1 | cut -d: -f1)"
+FIRST_EXHIBIT="$(printf '%s\n%s\n' "$FIRST_FENCE" "$FIRST_IMAGE" | grep -E '^[0-9]+$' | sort -n | head -1)"
 if [ -z "$DISC" ]; then
   fail "11 disclaimer present and early" "no trial-run disclaimer — a reviewer cannot tell what this is or where to send feedback"
 elif ! grep -qi 'trial run' "$FILE" || ! grep -q 'skills/pull/\|MetaMask/skills' "$FILE"; then
