@@ -44,6 +44,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 11. Record the root cause
   In TASK.md `## Root Cause`, trace file:line from symptom to source.
+  If the root cause is in a shared package (`@metamask/perps-controller` or another Core package), stop with `mark blocked` naming the Core fix; never work around it in this client.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 
 ## Fix
