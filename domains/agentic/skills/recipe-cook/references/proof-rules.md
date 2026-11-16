@@ -11,7 +11,7 @@ Apply the sections for this flow and platform at each step.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
 - Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
-- Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout. Require `artifacts/sandbox.json` with `ready: true`. A ready record written by this task's preparation passes the gate; re-run the checks only when the app or dev server restarted since.
+- Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` on all three. Require `artifacts/sandbox.json` with `ready: true`. A ready record written by this task's preparation passes the gate; re-run the checks only when the app or dev server restarted since.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
 - Create or switch to the local task branch before product edits. Do not open a PR.
 
@@ -37,7 +37,7 @@ Apply the sections for this flow and platform at each step.
 - Read affected code end to end; write `artifacts/approach.md` with affected files, current behavior/insertion point, chosen approach and trade-offs.
 - Mobile/Extension: choose the most defensible approach without pausing. Before editing existing UI, capture comparable `before-*` evidence on the same route, state, target and viewport. For purely additive work, write `Baseline: N/A. additive` in TASK.md.
 - Draft the recipe file and require `mm-harness run <recipe> --plan` PASS.
-- Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate.
+- Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate. Mobile/Extension bug fixes follow Bug fixing instead: their baseline asserts the buggy behavior.
 - Place regression guards before the first new-behavior AC; guards must pass before and after implementation. If every AC is a guard, require the baseline run to pass end to end.
 - Record the recipe path and command, including for visual/mixed proof. Implement only after the recipe gate is marked PASS.
 - For a flag-gated UI change, capture flag-off then flag-on state before the first new-behavior node and declare two before/after pairs.
@@ -54,6 +54,7 @@ Apply the sections for this flow and platform at each step.
 - Core: `required: false` requires no listed action that can exercise the change. Missing setup state is not an exemption; diagnose and repair missing runtime prerequisites first.
 - Core: when required, draft `artifacts/recipe.json` asserting fixed behavior, prefer reusable recipes and require plan PASS. Run it into `recipe-baseline-run/` and require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
 - Mobile/Extension: draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior through live actions or run-scoped markers/logs; require plan PASS, then run it into `recipe-baseline-run/` with `--record-video=full-run --json` and read every visual PNG.
+- A marked baseline run is evidence: never delete or overwrite it. A changed baseline recipe gets a new run directory (`recipe-baseline-run-2`, `-3`) with the reason in TASK.md.
 - For already-fixed/not-reproduced cases, write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before marking no-change. UI flows add `--already-fixed` to the terminal mark when this branch already fixes it; setup/environment failures follow Cook's blocked rule.
 - After the minimal fix, UI `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes plan and fails with the fix reverted.
 - If the ticket cites an earlier fix as noise, list the call sites that fix covered before accepting it.
@@ -70,8 +71,8 @@ Apply the sections for this flow and platform at each step.
 
 ## Runtime proof
 
-- Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json`.
-- Mobile/Extension add `--record-video=full-run`; Mobile video is under `recipe-run/videos/`. Core bug-fix recipes run only when required and must pass.
+- Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --json` without `--artifacts-dir`. The harness places each attempt under `<task>/artifacts/recipe-runs/<attempt>/`; `artifacts/latest-valid-recipe-run.json` names the selected attempt.
+- Mobile/Extension add `--record-video=full-run`; Mobile video is under the selected attempt's `videos/`. Core bug-fix recipes run only when required and must pass.
 - Core setup failures: inspect retained state/logs, diagnose and repair drift with `--heal auto`; never weaken assertions. Apply Cook's blocked rule.
 - After self-review, rerun proof when proven behavior changed; otherwise record an explicit no-rerun decision.
 
@@ -124,8 +125,8 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 
 ## Coverage and finish
 
-- Write `artifacts/recipe-coverage.md` with one row per AC/claim: proof mode, evidence path under `recipe-run/`, recipe nodes, verdict and rationale.
-- UI verdicts are PROVEN/WEAK/UNTESTABLE/MISSING. Check bug-fix rows against `recipe-run/trace.json`; failed nodes are never PROVEN. Fix WEAK/MISSING proof and rerun.
+- Write `artifacts/recipe-coverage.md` with one row per AC/claim: proof mode, evidence path under the selected attempt in `artifacts/recipe-runs/`, recipe nodes, verdict and rationale.
+- UI verdicts are PROVEN/WEAK/UNTESTABLE/MISSING. Check bug-fix rows against the selected attempt's `trace.json`; failed nodes are never PROVEN. Fix WEAK/MISSING proof and rerun.
 - Include `What this recipe does NOT prove`, ending with `Overall recipe coverage: <N>/<M> ACs PROVEN (untestable: <list or "none">, weak: 0, missing: 0)`.
 - Build `artifacts/recipe-quality.json` through Cook's [Finish instructions](../skill.md#finish). Never pass UI WEAK/MISSING rows, development assertions that also pass before implementation, or bug-fix recipes that pass with the fix reverted.
 - Core bug fixes write recipe coverage/quality when `artifacts/recipe.json` exists; non-recipe AC verdicts remain required.
@@ -134,7 +135,7 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - Missing verdicts require eligible recipe proof, including non-UI claims. Never write verdicts; only a verified person handles exceptions.
 - Write `artifacts/pr-description.md` with only repository-template prose, `TICKET_URL` when set and proof summary; bug fixes include root cause, and Mobile includes marker SHA/log excerpt. Never paste recipe JSON or run output into renderer-owned sections.
 - Run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` with mm-harness 0.92.21 or newer, then read that file. Preserve `--command <invocation>` when supplied. Require exit 0, `status: ok` and the generated body; renderer failure must not fall back to authored prose. Keep task markers and the locked harness receipt unchanged.
-- Write `artifacts/evidence-manifest.json`: UI includes PROVEN visual evidence only, paths relative to `artifacts/`. Read video names from each run's `artifact-manifest.json` and prefix its run folder; manifests use run-relative paths.
+- Write `artifacts/evidence-manifest.json`: UI includes PROVEN visual evidence only, paths relative to `artifacts/`. Read video names from each run's `artifact-manifest.json` and prefix its run folder; manifests use run-relative paths. `videos` is an object `{before, after, preferred, note}` (each optional), never a list.
 - Put visual comparisons under `before_after_pairs`, with `label`, `covers`, `before` and `after`; use `standalone` for evidence that is not a comparison. Keep paths relative to `artifacts/`, including their run folders; never match captures by basename or invent a missing side.
 - The manifest accepts only `version`, `preferred_mode`, `summary`, `before_after_pairs`, `standalone`, `omit` and `videos`. Keep draft, review and runtime-status notes in the report, not additional manifest keys.
 - Development `before` images require screenshot nodes before the failing AC assertion. Core uses a media-free manifest, `{"version":1,"summary":"..."}`.

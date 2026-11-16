@@ -5,16 +5,17 @@ description: Mobile fix-bug checklist with runtime proof.
 
 # Mobile fix-bug checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
-  Confirm the handoff's checklist path; never estimate or rewrite it (rules: proof-rules.md, Task and sandbox).
+  Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+  Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only; the simulator/device app must be running.
+  Follow `/mms-recipe-harness`: doctor/status/launch/verify for this checkout only; the simulator/device app must be running.
   Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
@@ -27,6 +28,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Mark ACs reachable only on an unavailable platform `UNTESTABLE: wrong platform`; never claim them later.
 - [ ] 7. Plan the baseline proof and apply the Mainnet policy
   Plan the expected buggy evidence and each AC's state (rules: proof-rules.md, Bug fixing).
+  An AC you cannot reach live (a failure you cannot trigger, a post-release metric) is recorded now as UNTESTABLE with its reason or as proof mode review; never leave it for the gate.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Add and commit the reproduction marker
   Add `DevLogger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition and observe it in `metro.log`.
@@ -34,10 +36,12 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 9. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
-- [ ] 10. Run the recorded baseline and inspect visuals
+- [ ] 10. Run the recorded baseline and inspect visuals [PROOF: artifacts/recipe-baseline-run]
   Run it into `<task>/artifacts/recipe-baseline-run` with `--record-video=full-run --json`.
   Read every visual PNG (rules: proof-rules.md, UI evidence).
-- [ ] 11. Exit early if already fixed or not reproduced
+  Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
+- [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
+  On this path mark this step; never skip it. Skip it only when the bug reproduces.
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 12. Record the root cause
@@ -53,8 +57,8 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 15. Write the fixed-behavior after recipe and plan it
   `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes `--plan` and fails with the fix reverted (rules: proof-rules.md, Bug fixing).
-- [ ] 16. Run the recorded after recipe and pass the evidence gate
-  Run `mm-harness call app.lifecycle command=restart`, then `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Mobile runtime).
+- [ ] 16. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-runs]
+  Run `mm-harness call app.lifecycle command=restart`, then `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Mobile runtime).
   After captures must differ from `before-...` as the bug-to-fix claim describes; read every PNG (rules: proof-rules.md, UI evidence).
 - [ ] 17. Write regression tests and inspect the CI receipt
   Follow `/mms-mobile-testing` (rules: proof-rules.md, Tests).
@@ -77,7 +81,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 
 ## Finish
 - [ ] 22. Record coverage and per-AC acceptance verdicts
-  Write `artifacts/recipe-coverage.md`, checked against `recipe-run/trace.json`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
+  Write `artifacts/recipe-coverage.md`, checked against the selected attempt's `trace.json` under `artifacts/recipe-runs/`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
   List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
 - [ ] 23. Render the PR body, retain artifacts and complete
   Write `artifacts/pr-description.md` with the root cause and marker SHA/log excerpt, run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` and read that file.
