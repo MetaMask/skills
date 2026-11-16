@@ -46,7 +46,7 @@ Check applicability against the frozen diff and its affected callers. Open each 
 - [ ] Controller Portability (Core)
   `PerpsController` lives in `core/packages/perps-controller` and is published as `@metamask/perps-controller`; Mobile, Extension and Terminal consume the package. See references/shared.md#controller-portability-core
 - [ ] Perps Math Comes From the Controller
-  Perps trading math (PnL, RoE, TP/SL trigger ↔ RoE/percentage, leverage, margin, liquidation, fees, account summary) must come from `@metamask/perps-controller`. See references/shared.md#perps-math-comes-from-the-controller
+  Perps trading math (PnL, RoE, TP/SL trigger ↔ RoE/percentage, leverage, margin, liquidation, fees, account summary) and advanced order logic (TWAP, chase and scale: slicing, scheduling, validation, active/history state) must come from `@metamask/perps-controller`. See references/shared.md#perps-math-comes-from-the-controller
 - [ ] Shared Formatting & Display Precision
   Displayed Perps numbers and their precision come from `@metamask/perps-controller` formatters and constants; formatting is shared logic, not display-only. See references/shared.md#shared-formatting-display-precision
 - [ ] Missing numeric data stays undefined
