@@ -378,7 +378,34 @@ fi
 # question was a tag. Four prose passes ran over that draft and none required opening the
 # file; the error died the moment a diff had to name lines. Measured on the same review:
 # 5 of 5 line comments carried a block, 0 of 2 replies did, and this gate had no check.
-if [ "$MODE" = inline ] && grep -qiE "((^|[.!?][[:space:]]+)(let's|could we|i'd suggest))" "$FILE"; then
+if [ "$MODE" = inline ] && python3 - "$FILE" <<'PYEOF'
+import re, sys
+# O5 (2026-11-16): the ask must be one a diff can carry. /pr-comment: "Use prose only when no text can
+# express the change." Fenced blocks are code, not asks. A sentence about its own PR or ticket, a
+# rollout, a follow-up, a write-up ("or record/explain ...") or PR-description text is not a code change
+# (posted false hits: "Could we split this into its own PR", "scope the MV2 exposure, or record in the PR
+# why ..."). The real hit ("Could we add a build-time assertion ...") names none of these. Same lists as
+# pr-evidence-gate.py::_FENCE_NONCODE and deslop-gate.py NONCODE.
+ASK = re.compile(r"(?i)^(?:let's|could we|i'd suggest)")
+NONCODE = re.compile(
+    r"(?i)\b(?:its own|a separate|a new|another|a follow-?up) (?:PR|pull request|ticket|issue)\b"
+    r"|\bin the (?:PR|pull request|description|ticket|issue)\b"
+    r"|\brollout\b|\broll(?:ed|ing)? out\b|\bfollow-?up\b"
+    r"|\bor (?:record|document|explain|note|state|say|justify)\b")
+DESC_PREV = re.compile(r"(?i)\bthe (?:PR |pull request )?description\b|\bthe (?:PR|pull request) (?:title|body)\b")
+ANAPHOR = re.compile(r"(?i)\b(?:those|these|them)\b")
+t = re.sub(r'```.*?```', ' ', open(sys.argv[1]).read(), flags=re.S)  # closed fences only: an unclosed one must not hide the ask
+for para in re.split(r'\n\s*\n', t):
+    desc = False
+    for sent in re.split(r'(?<=[.!?])\s+|\n+', para):
+        sent = sent.strip()
+        if ASK.search(sent) and not NONCODE.search(sent) and not (desc and ANAPHOR.search(sent)):
+            sys.exit(0)
+        if DESC_PREV.search(sent):
+            desc = True
+sys.exit(1)
+PYEOF
+then
   if grep -qE '^```(suggestion|diff)' "$FILE"; then
     pass "17 a requested change ships as a block"
   else
