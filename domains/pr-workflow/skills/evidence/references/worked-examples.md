@@ -1,6 +1,6 @@
 # Worked examples (end-to-end)
 
-Full runs: claim → lanes → capture → trust-gate → publish. The visual case is in SKILL.md; these cover the non-visual claim shapes.
+Full runs: claim → lanes → capture → trust-gate → publish. The visual case is in SKILL.md; these cover the non-visual claim shapes. Each example describes its case and names no PR or issue number: a run on a cited PR would read its own answer.
 
 ## Perf — "defer Rive wasm at startup"
 - **Claim:** on cold start of the home view, the Rive wasm chunk isn't requested until the animation surface mounts. **Surface:** startup network + chunk graph. **Falsifier:** the chunk appears in the cold-start waterfall. **Baseline:** base requests it at startup.

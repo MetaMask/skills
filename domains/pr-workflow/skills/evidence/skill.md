@@ -38,7 +38,7 @@ Twenty rules the rest of this skill implements. When a situation isn't covered b
 
 **When to stop**
 - **Stop at the falsifier** — match the bar to the claim's risk; evidence past the closed falsifier is noise.
-- **CI coverage is neither re-verified nor narrated** — mutate the mechanism and run the PR's committed test first; if it fails, CI already closes the falsifier, so the lane is dropped and left out of the output.
+- **CI coverage is neither re-verified nor narrated** — mutate the mechanism and run the PR's committed test first; if it fails, CI already closes the falsifier, so the lane is dropped and left out of the output. On a high-stakes surface it closes only the falsifier its author intended (see [Sufficiency](#sufficiency--how-much-is-enough)).
 - **State what was not covered** — steps that could not be automated are recorded as open, with the reason. A report listing only successes reads the same as one where nothing was checked.
 
 **How it is handled**
@@ -74,10 +74,12 @@ A claim must be falsifiable, surface-specific, **anchored to the diff** (if the 
 | Interaction responsiveness / startup timing | **C2 INP · C3 TBT · C5 benchmark (paired A/B)** | C1 phase traces, C6 profile |
 | Telemetry / error-rate / latency in prod | **E1 Sentry links** (before/after) | E2 Tempo; span-volume → `/sentry-quota` |
 | Bundle / build output | **D1 size · D2 chunk membership** | — |
-| A dependency change is safe | **D3 LavaMoat policy + D4 manifest diff** | D1 size |
+| A dependency change is safe | **D3 LavaMoat policy + D4 manifest diff** | D1 size; an event trace through the real package when it registers its own listeners (D3) |
 | Persisted-state change | **⭐ F1 migration** (`changedKeys`, old→new state) | F2 vault round-trip |
 | Tx / dapp / flag / snap / i18n behavior | **F3 sim · F4 provider · F5 flag matrix · F6 snaps · F7 i18n** | B2 e2e trace |
 | Behavior with no UI | **B3 test + G4 repro** | — |
+| Race, cancellation or timing (retry, supersession, close during a pending call), and any timing finding another lane surfaced | **⭐ B7 deterministic interleaving** — each ordering forced: before, during and after | B3; C8 for a live forced race |
+| Navigation or redirect change: a redirect, route, tab or default destination added or removed, or a flag removal that changes where an entry point lands | **⭐ B7 ordering lane** — every navigator that can fire in the same window, unchanged code included | B3 per entry point; F5 if a flag chose the old destination |
 | Mechanical migration / "rename-only" refactor; a hand-written type/schema/constant/policy that restates a source | **⭐ D6 substitution A/B** at a fixed head (`compare` arm kind `substitution`) | B3 if behavior-visible; D1 for accidental output change |
 
 Lane IDs (A1, B3, …) index [references/evidence-catalog.md](references/evidence-catalog.md) — the full menu with verified capture commands and the complete matching guide. When a PR mixes claims (a UI fix that also shifts a metric), run more than one lane and assemble them into one bundle.
@@ -103,7 +105,7 @@ Not for code-correctness review (use `/review`, `/code-review`) or span-quota re
 | `/evidence status <run-id>` | Poll `GET /v1/runs/:id`; print stage timeline + `evidenceBundle.artifactRefs`. |
 | `/evidence evidence <pr> [--run <id>]` | Assemble + publish a bundle from an existing run and/or complementary sources (Sentry/screens/devtools). No new AEP run. |
 | `/evidence lane <id> <pr>` | Run a single [catalog](references/evidence-catalog.md) lane by id (e.g. `lane F1`, `lane C3`, `lane D3`) — for the non-AEP lanes where you know the claim type. |
-| `/evidence compare <pr>` | Paired A/B for a perf or refactor claim. Two arm kinds — pick by what the claim varies: **`ref`** (default) builds base + head, captures the lane on both, diffs; avoids the stale-baseline trap (catalog C5). **`substitution`** holds a **fixed head** and varies one *artifact* instead of the ref — replace the PR's hand-written type/schema/constant/policy with the authoritative equivalent and diff a checker's output (catalog D6); no build, no rebase, no merge boundary. **Per-arm checks first, one per kind:** for `ref`, verify the mechanism under test is actually active in each arm (chunk split present, span emitted, flag evaluated) — a null arm without delivered treatment is a no-op, not a control (2026-07-22, #42795 bisect lesson). For `substitution`, verify the unmodified arm is **silent** and that each diagnostic fires for the reason claimed — a noisy Arm A destroys attribution, and a diagnostic tripping one property early scores as a confirmation it isn't (trustworthiness gate item 19; 2026-07-30, #44397). |
+| `/evidence compare <pr>` | Paired A/B for a perf or refactor claim. Two arm kinds — pick by what the claim varies: **`ref`** (default) builds base + head, captures the lane on both, diffs; avoids the stale-baseline trap (catalog C5). **`substitution`** holds a **fixed head** and varies one *artifact* instead of the ref — replace the PR's hand-written type/schema/constant/policy with the authoritative equivalent and diff a checker's output (catalog D6); no build, no rebase, no merge boundary. **Per-arm checks first, one per kind:** for `ref`, verify the mechanism under test is actually active in each arm (chunk split present, span emitted, flag evaluated) — a null arm without delivered treatment is a no-op, not a control. For `substitution`, verify the unmodified arm is **silent** and that each diagnostic fires for the reason claimed — a noisy Arm A destroys attribution, and a diagnostic tripping one property early scores as a confirmation it isn't (trustworthiness gate item 19). |
 
 `<pr>` is a number or URL on `MetaMask/metamask-extension` unless another repo is given. Every variant runs Step 1 (extract the Claim Card) first — the claim decides the lane, even when you named one.
 
@@ -137,10 +139,11 @@ Match the bar to the claim; stop when the claim's falsifier is closed. Don't ove
 
 - **One lead lane that closes the falsifier** is enough for low-risk, single-claim PRs (a copy fix → one screenshot; a bug fix → the falsifying test).
 - **Weigh AEP's cost before reaching for it.** A `visual_validation`/`perf_validation` run spins the full stack *and* burns autonomous-agent tokens — by far the most expensive lane. Use it when the claim genuinely needs autonomous capture of a reachable surface; when a lighter lane closes the same falsifier (a single `mm` screenshot, a falsifying test, a CDP capture, an artifact CI already produced), prefer it and skip the stack. Whenever you do start it, tear it down after (see [references/aep-local-run.md](references/aep-local-run.md)).
-- **Lead + one corroborator** for perf/telemetry (a number *and* its source) and for anything user-facing that also moves a metric. **For a perf-targeting PR the lead lane is the measured impact itself** — a paired A/B benchmark at the current head (C5) or equivalent — never mechanism evidence alone (chunk membership, netlog exclusion prove the improvement is *possible*, not that it *happened*). A perf PR also always carries correctness + non-regression lanes: changed-surface tests green at head, affected flows exercised, neutral profile within noise. (2026-07-22, #42795 lesson.)
-- **Lead + integrity lane** for high-stakes surfaces regardless of size: persisted-state (migration + vault), money (tx simulation), permissions (LavaMoat + manifest), security/keyring. Size-S doesn't lower the bar here.
+- **Lead + one corroborator** for perf/telemetry (a number *and* its source) and for anything user-facing that also moves a metric. **For a perf-targeting PR the lead lane is the measured impact itself** — a paired A/B benchmark at the current head (C5) or equivalent — never mechanism evidence alone (chunk membership, netlog exclusion prove the improvement is *possible*, not that it *happened*). A perf PR also always carries correctness + non-regression lanes: changed-surface tests green at head, affected flows exercised, neutral profile within noise.
+- **Lead + integrity lane** for high-stakes surfaces regardless of size: persisted-state (migration + vault), money (tx simulation), permissions (LavaMoat + manifest), security/keyring, and security boundaries (a signature check, a skipped warning or interstitial). Size-S doesn't lower the bar here.
 - **Per-claim** for mixed PRs — each Claim Card needs its own closed falsifier; a strong UI proof doesn't cover the metric it also shifts.
 - **CI coverage is neither re-verified nor narrated.** Before running a lane, run the PR's own committed tests against its falsifier: mutate the mechanism and run the test that covers it. If that test fails, CI already closes the falsifier. Drop the lane, and leave it out of the output entirely: no check counts, no "tests pass at head", no "CI already covers X". Only a falsifier the committed tests stay green under earns a lane, and only that lane's result is reported.
+- **On a high-stakes surface, a failing committed test closes only the author's falsifier.** On the surfaces the integrity bullet lists, the PR's test checks what the author intended, not what else the change permits. Drop the intended falsifier as above, then list the inputs the changed code now accepts beyond the tested one (other routes, parameters, profile states, entry points) and drive each. The lane closes when those are driven, not when the committed test fails under mutation.
 
 Stop when each claim has one trustworthy artifact that would have shown its falsifier. More evidence past that is noise.
 
@@ -238,6 +241,12 @@ flag gates it, and cannot show how often the surrounding package invokes the cal
 a gap to apologise for — it is the finding. *"Cost scales with a call frequency decided in another
 package, so nothing here bounds it"* is a real conclusion, and the reviewer is the person who knows
 the number.
+
+That boundary holds only for a frequency the run cannot count. When the diff ties a span to a user
+action (a click, a keypress, a navigation, an interaction forwarded to the background), the run
+sizes the concern before reporting it: spans per action, counted at every process the action
+reaches, times the action's rate in traffic, with the traffic figure's source and window. Method:
+catalog E1.
 
 Say where the edge is, in the comment, in the reviewer's terms.
 
@@ -401,7 +410,7 @@ reviewer. It is not required to catch every concern, resolve each correctly, or 
 conclusion. That is a lower bar than being right, and a much higher one than staying silent
 unless certain.
 
-Three consequences worth being explicit about:
+Four consequences worth being explicit about:
 
 **A coverage gap is not a failed run.** No runner here checks a diff against an architectural
 decision record. A run that says *"this touches deeplinks, which are ADR-governed; the falsifier
@@ -416,6 +425,12 @@ the deliverable.
 it. *"This might be unsafe"* is noise. *"Unsigned parameters on a signed link skip the
 interstitial — check whether the signature covers them"* is actionable. The difference is whether
 the next step is stated.
+
+**A finding is weighed by what the user loses, not by whether the base was also incomplete.**
+State the loss first: the behavior, destination or data that a user, or an engineer reading the
+telemetry, no longer gets. "The base did not have it either" does not demote the finding when the
+PR claims to deliver the thing and delivers it empty or broken; the comparison is with the claim.
+Give the base comparison after the loss, as context.
 
 The runners raise questions with evidence attached; they are not oracles. Their limits are
 publishable content, which is why the table above lists what each cannot establish.
@@ -640,7 +655,10 @@ A refutation is a *successful* validation — the skill did its job. Report it c
 
 ## Worked example
 
-PR claims privacy mode now hides the Perps balance (the demo bug #42683):
+Examples here and in the references describe their case and name no PR or issue number: a run on a
+cited PR would read its own answer.
+
+A bug-fix PR claims privacy mode now hides the Perps balance, which had stayed visible:
 1. `gh pr view` → claim = "with privacy mode on, the Perps tab balance is masked like everywhere else."
 2. Lane = `visual_validation` (visible). Preflight stack.
 3. Submit with `description: "Onboard, enable privacy mode in Settings, open the Perps tab, confirm the balance is masked. If the Perps tutorial modal blocks, use the Shield entry modal as the reachable surface."` + `publishEvidence:false`.
@@ -655,8 +673,8 @@ End-to-end examples for **non-visual** claims (perf, migration, flag-gated, refa
 Three adjacent things; keep the boundary clear so they compose instead of collide:
 
 - **AEP** — governed *fleet orchestration*: sandboxes, Temporal, autonomous runs at scale. The heavy engine.
-- **ADR-0058 recipes** ([decisions#173](https://github.com/MetaMask/decisions/pull/173)) — a *dev-machine inner-loop* proof artifact: a declarative per-PR recipe run against the live app over CDP, emitting `summary.json`/`trace.json`/manifest.
-- **evidence** (this skill) — the *claim→evidence methodology + taxonomy* both draw on. The Claim Card is the bridge from a PR's claim to the right proof target; the [evidence catalog](references/evidence-catalog.md) is the lane vocabulary; [lane-assertions.md](references/lane-assertions.md) maps each lane to a recipe assertion (and flags the out-of-band, non-UI lanes — the gap raised in review of decisions#173).
+- **ADR-0058 recipes** (Recipe-Based Verification, in `MetaMask/decisions`) — a *dev-machine inner-loop* proof artifact: a declarative per-PR recipe run against the live app over CDP, emitting `summary.json`/`trace.json`/manifest.
+- **evidence** (this skill) — the *claim→evidence methodology + taxonomy* both draw on. The Claim Card is the bridge from a PR's claim to the right proof target; the [evidence catalog](references/evidence-catalog.md) is the lane vocabulary; [lane-assertions.md](references/lane-assertions.md) maps each lane to a recipe assertion (and flags the out-of-band, non-UI lanes — the gap raised in the ADR's review).
 
 evidence is the one a human drives; it can dispatch an AEP run or author a recipe as its capture step.
 
@@ -686,7 +704,7 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
 - [references/lane-assertions.md](references/lane-assertions.md) — lane → declarative recipe-assertion mapping (ADR-0058 bridge).
 - [references/aep-local-run.md](references/aep-local-run.md) — full local-stack bring-up + every gotcha.
 - `~/Code/metamask/metamask-autonomous-engineering-platform` — the AEP repo (`docs/demo-runbook.md`, `packages/agent-chain/src/graphs/{visual,perf}-validation/`, `packages/github/src/pr-body-builder.ts`).
-- `MetaMask/decisions#173` — ADR-0058 Recipe-Based Verification (the adjacent inner-loop proof system).
+- ADR-0058 Recipe-Based Verification in `MetaMask/decisions` (the adjacent inner-loop proof system).
 - `/sentry-quota` — sibling skill for span-volume PR review; `/review`, `/code-review` — code correctness.
 - **Engine skills — delegate the analysis, package the result.** Each owns a category in
   [references/evidence-catalog.md](references/evidence-catalog.md); all run standalone too.

@@ -56,7 +56,7 @@ A good claim is **falsifiable** (observable outcome + clear falsifier), **surfac
 
 ## Worked examples
 
-- **Visible (#42683):** body "privacy mode doesn't hide the Perps balance"; issue: expected masked, actual visible; diff touches the Perps balance component. → **Claim:** *Given privacy mode on, when I open the Perps tab, the balance is masked.* **Surface:** Perps tab (gated → fallback: Shield entry modal). **Type:** visible → A1/B1. **Falsifier:** balance digits visible under privacy mode. **Baseline:** same flow on base reproduces the bug.
+- **Visible (a privacy-mode masking bug):** body "privacy mode doesn't hide the Perps balance"; issue: expected masked, actual visible; diff touches the Perps balance component. → **Claim:** *Given privacy mode on, when I open the Perps tab, the balance is masked.* **Surface:** Perps tab (gated → fallback: Shield entry modal). **Type:** visible → A1/B1. **Falsifier:** balance digits visible under privacy mode. **Baseline:** same flow on base reproduces the bug.
 - **Perf:** body "defer Rive wasm at startup"; diff: dynamic `import()` of the Rive runtime. → **Claim:** *On cold start of the home view, the Rive wasm chunk is not requested until the animation surface mounts.* **Surface:** startup network + chunk graph. **Type:** perf → A2/C6/D2. **Falsifier:** the chunk appears in the cold-start waterfall. **Baseline:** base requests it at startup.
 - **Migration:** diff adds migration NNN. → **Claim:** *Loading a profile from `<prior>` applies migration NNN; `changedKeys = {<controllers>}`; all other state intact.* **Type:** state → F1. **Falsifier:** an untouched controller mutated, or migrated state malformed. **Baseline:** a prior-version profile.
 

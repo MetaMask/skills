@@ -1,6 +1,6 @@
 # Lane → declarative assertion mapping (ADR-0058 bridge)
 
-Maps each evidence-catalog lane to a declarative assertion form, so a Claim Card can be expressed as an ADR-0058 recipe (pre-conditions → proof targets → assertions → screenshot points) where possible — and so we know which lanes are **CDP-expressible** vs **out-of-band**. State/log assertions give determinism; screenshots/video give reviewer confidence. See [[../ITERATION]] items 9–11 and MetaMask/decisions#173.
+Maps each evidence-catalog lane to a declarative assertion form, so a Claim Card can be expressed as an ADR-0058 recipe (pre-conditions → proof targets → assertions → screenshot points) where possible — and so we know which lanes are **CDP-expressible** vs **out-of-band**. State/log assertions give determinism; screenshots/video give reviewer confidence. See [[../ITERATION]] items 9–11 and ADR-0058 in `MetaMask/decisions`.
 
 | Lane | Assertion form | Expressible as a CDP recipe action? |
 |---|---|---|
@@ -23,4 +23,4 @@ Maps each evidence-catalog lane to a declarative assertion form, so a Claim Card
 | F7 i18n | static: `verify-locales` exit 0 | out-of-band |
 | F8 runtime containment | `Object.isFrozen(Object.prototype)`; scuttled global throws + exception resolves; `typeof SNOW` | **yes** — `Runtime.evaluate`, but only against the SHIPPED build variant (dev is unscuttled, test's exception list is wider) |
 
-**Takeaway.** UI-state and runtime-metric lanes (A/B-visual, C1–C3/C6, F3/F5) map cleanly to CDP recipe assertions — ADR-0058's sweet spot. Static (D, F7), test-runner (B3, C5, F1), and dashboard (E) lanes are **out-of-band**: the recipe should *reference* them as proof targets without executing them. That out-of-band reference is precisely the **non-UI scaling gap** flagged in review of decisions#173 — a recipe schema that admits out-of-band assertion references (not only CDP actions) closes it. This table is the proposed taxonomy to contribute back (ITERATION item 10).
+**Takeaway.** UI-state and runtime-metric lanes (A/B-visual, C1–C3/C6, F3/F5) map cleanly to CDP recipe assertions — ADR-0058's sweet spot. Static (D, F7), test-runner (B3, C5, F1), and dashboard (E) lanes are **out-of-band**: the recipe should *reference* them as proof targets without executing them. That out-of-band reference is precisely the **non-UI scaling gap** flagged in the ADR-0058 review — a recipe schema that admits out-of-band assertion references (not only CDP actions) closes it. This table is the proposed taxonomy to contribute back (ITERATION item 10).

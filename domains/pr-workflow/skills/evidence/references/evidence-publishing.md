@@ -164,7 +164,7 @@ SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits | jq -r --arg me
 Any number you derived rather than read off a tool — a hash comparison, a count, a delta, a
 statistic — is only as trustworthy as the reader's ability to re-run it. **A prose `method:` field
 is not provenance.** Reviewers discount computed figures from an agent by default, and correctly:
-on extension#45024 a reviewer dismissed a policy-identity check as *"we know LLMs are really bad at
+on a PR whose evidence was a policy-file comparison, a reviewer dismissed a policy-identity check as *"we know LLMs are really bad at
 this"*. It had in fact been a deterministic `sha256`, not the model counting — but the script lived
 in a throwaway `python3 - <<'PY'` heredoc, so nothing could show that. The objection was
 unanswerable because of how the evidence was packaged, not because of what it said.
@@ -195,7 +195,6 @@ cannot read, and the correct answer to that is no.
 say what changed relative to what is currently live. "I've drafted it, shall I post?" with a path
 instead of the text is incomplete — pointing at `/tmp/validation-run.md` is the same failure as the
 prompt itself. If the body is too long to show comfortably, that is a signal to trim it.
-(Three consecutive denials on extension#45024, 2026-07-30, all from this.)
 
 ### body surface (I own the PR)
 ```bash
@@ -272,7 +271,7 @@ Open the evidence section with a ledger:
 
 Status vocabulary: `✅ proven` (link) · `⚠️ inconclusive` (name what's missing) · `➖ N/A` (reason) · `⏳ not-captured`. Mirror the `N/A — <reason>` convention the `### Screenshots` block already uses for no-UI PRs. Never upgrade a `⏳`/`⚠️` to a pass by omission.
 
-**Sibling-PR parity:** when a set of PRs shares a claim shape (same program, same author, "root the X traces"), their ledgers must match lane-for-lane. A lane present on one and absent on another is either added or explicitly marked `➖ N/A — <reason>` — a bar that silently drifts between siblings is a finding (postmortem 2026-07-17, #43929/#43930).
+**Sibling-PR parity:** when a set of PRs shares a claim shape (same program, same author, "root the X traces"), their ledgers must match lane-for-lane. A lane present on one and absent on another is either added or explicitly marked `➖ N/A — <reason>` — a bar that silently drifts between siblings is a finding.
 
 ## Non-visual & multi-lane evidence
 
@@ -316,11 +315,11 @@ contract. `hooks/pr-evidence-gate.py` enforces the canonical literal only on bod
 trip it, which is the tell that the two are different artifacts rather than one with a
 different skin.
 
-**Per-scenario presentation (2026-07-21):** the same applies one level down — when the evidence spans multiple test scenarios (flag-on vs flag-off, control vs treatment in an A/B falsifier, numbered manual-testing steps), give each scenario its **own sub-section**: a heading naming the scenario in observation terms, one line on what it tests plus its verdict, and that scenario's artifacts co-located under it. Never bunch all scenarios' artifacts into one large evidence dump — the reviewer verifies "under condition X, artifact shows Y" one condition at a time, and a merged block destroys that mapping even when every artifact is real. For long artifact sets use a `<details>` block *per scenario*, not a merge. (Instance: #44610.)
+**Per-scenario presentation (2026-07-21):** the same applies one level down — when the evidence spans multiple test scenarios (flag-on vs flag-off, control vs treatment in an A/B falsifier, numbered manual-testing steps), give each scenario its **own sub-section**: a heading naming the scenario in observation terms, one line on what it tests plus its verdict, and that scenario's artifacts co-located under it. Never bunch all scenarios' artifacts into one large evidence dump — the reviewer verifies "under condition X, artifact shows Y" one condition at a time, and a merged block destroys that mapping even when every artifact is real. For long artifact sets use a `<details>` block *per scenario*, not a merge.
 
 ## Artifact contract (ADR-0058 alignment)
 
-To stay interoperable with the recipe-based verification system (MetaMask/decisions#173), shape the bundle like its reviewer-visible contract where practical: a `summary.json` (claim → verdict → evidence refs), a `trace.json` (the run/assertion log), and an artifact manifest (names + media types), with screenshots/video as the confidence layer. Publishing then becomes "render `summary.json` into the PR section." This keeps evidence's output and a recipe's output the same shape — see [lane-assertions.md](lane-assertions.md). Don't hand-roll a divergent format.
+To stay interoperable with the recipe-based verification system (ADR-0058 in `MetaMask/decisions`), shape the bundle like its reviewer-visible contract where practical: a `summary.json` (claim → verdict → evidence refs), a `trace.json` (the run/assertion log), and an artifact manifest (names + media types), with screenshots/video as the confidence layer. Publishing then becomes "render `summary.json` into the PR section." This keeps evidence's output and a recipe's output the same shape — see [lane-assertions.md](lane-assertions.md). Don't hand-roll a divergent format.
 
 ## Checklist before you publish
 
