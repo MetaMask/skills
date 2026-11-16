@@ -16,7 +16,7 @@ Complete command reference for the `mm` CLI. For core workflow and getting start
 
 ## Syntax Rules
 
-The CLI is strict about flag names and argument positions. Mistyped flags are silently treated as element targets, producing confusing timeout errors.
+The CLI is strict about flag names and argument positions. A mistyped flag is read as the element target, so the command fails on a target that does not exist.
 
 ### Flag spelling is exact — lowercase, no variants
 
@@ -25,13 +25,13 @@ The CLI is strict about flag names and argument positions. Mistyped flags are si
 mm click --testid unlock-submit
 mm type --testid unlock-password "correct horse battery staple"
 
-# WRONG — all of these silently fail with a timeout
+# WRONG — each flag becomes the testId: MM_TARGET_NOT_FOUND after 2 s (with --timeout: MM_CLICK_TIMEOUT)
 mm click --testId unlock-submit     # capital I — treated as testId "--testId"
 mm click --test-id unlock-submit    # hyphenated — treated as testId "--test-id"
 mm click --TestId unlock-submit     # PascalCase — same problem
 ```
 
-The only recognized flags are `--testid`, `--selector`, `--within` and `--timeout`; `mm inspect` adds `--styles`, and `mm scroll-to-element` adds `--direction` and `--maxAttempts`. Anything else (including `--testId` with a capital I) is parsed as a positional argument and used as a literal testId value, producing a locator like `[data-testid="--testId"]` which always times out.
+The only recognized flags are `--testid`, `--selector`, `--within` and `--timeout`; `mm inspect` adds `--styles`, and `mm scroll-to-element` adds `--direction` and `--maxAttempts`. Anything else (including `--testId` with a capital I) is parsed as a positional argument and used as a literal testId value, producing a locator like `[data-testid="--testId"]` that matches nothing.
 
 ### a11yRefs are positional arguments — no `--ref` flag
 
@@ -88,7 +88,7 @@ Every tool, `launch` and `cleanup` response includes `meta.timing` (`queueMs`, `
 
 A successful command prints one JSON line on stdout and exits 0. The response has no `ok` field: the result is at the top level, with `observations` and `meta.timing` when collected.
 
-A failed command prints **one JSON line on stdout** and exits non-zero. Nothing goes to stderr unless stderr is a terminal (then a human also gets `Error: <message>`).
+A failed command prints **one JSON line on stdout** and exits non-zero. When stderr is a terminal, a human also gets `Error: <message>` there. `mm launch` writes `Warning: unknown launch flag '<flag>'` to stderr and ignores the flag.
 
 ```json
 {"ok":false,"error":{"code":"MM_TARGET_NOT_FOUND","message":"Selector [data-testid=\"does-not-exist\"] (testId:does-not-exist) matched 0 elements after 2000ms","hint":"Run `mm describe-screen` to get fresh refs.","retryable":false},"meta":{"timing":{"queueMs":0,"toolMs":2010,"observationMs":40,"totalMs":2050}}}
@@ -100,7 +100,7 @@ A failed command prints **one JSON line on stdout** and exits non-zero. Nothing 
 | `error.message` | Detail for a human. A browser timeout carries Playwright's message and can contain ANSI escapes. |
 | `error.hint` | What to do next, when the code has a default hint. |
 | `error.retryable` | `true` only when the same command can run again unchanged. It is `false` for click, type and request timeouts: the action state is unknown. |
-| `meta` | Request timing. Missing on usage errors (exit 2) and when the daemon did not answer. |
+| `meta` | Request timing. Missing on CLI usage errors (`MM_INVALID_INPUT`) and when the daemon did not answer; schema errors (`VALIDATION_ERROR`) have it. |
 
 | Exit | Meaning |
 |---|---|
@@ -113,13 +113,15 @@ A failed command prints **one JSON line on stdout** and exits non-zero. Nothing 
 | 6 | Platform, device, Metro or Hermes unavailable |
 | 7 | Daemon version mismatch (reserved) |
 
-`mm stop` is the exception: it prints plain text (`Daemon stopped (was PID … on port …).`) and exits 0.
+With no daemon running, an unknown command or a bad flag returns exit 3 (`MM_DAEMON_NOT_RUNNING`), not 2.
+
+`mm stop` is the exception: it prints plain text (`Daemon stopped (was PID … on port …).`) and exits 0. With no daemon it prints `No daemon is running.` on stderr and exits 0.
 
 ## Lifecycle
 
 | Command                 | Description                            |
 | ----------------------- | -------------------------------------- |
-| `mm launch`             | Launch MetaMask in headless Chrome     |
+| `mm launch`             | Launch MetaMask in Chrome              |
 | `mm cleanup`            | Stop browser and services              |
 | `mm cleanup --shutdown` | Stop browser, services, and the daemon |
 | `mm stop [--force]`     | Stop the daemon (plain-text output)    |
@@ -145,7 +147,7 @@ A failed command prints **one JSON line on stdout** and exits non-zero. Nothing 
 | `mm screenshot [--name <n>]` | Take and save a full-page screenshot                   |
 | `mm wait-for <ref>`          | Wait for element to be visible                         |
 | `mm scroll-to-element <ref>` | Scroll the element into view                           |
-| `mm wait-for-notification`   | Wait for sidepanel confirmation route, set as active   |
+| `mm wait-for-notification`   | Wait for the confirmation page, set it as active       |
 | `mm accessibility-snapshot`  | Get trimmed a11y tree with refs                        |
 | `mm list-testids`            | List visible `data-testid` attributes                  |
 | `mm clipboard <action>`      | Read from or write to browser clipboard                |
@@ -172,7 +174,7 @@ A `MM_CLICK_TIMEOUT` message ends with `(last Playwright step: …)`, which says
 | `element is not enabled` | The button is disabled; check the form state (`mm inspect` shows `disabled`) |
 | `<div …> from <div class="mm-modal" data-testid="home-network-filter-modal">…</div> subtree intercepts pointer events` | Another element covers the target; close it first |
 | `locator resolved to hidden <input …/>` | The element is hidden; click its visible label or wrapper |
-| `waiting for locator('[data-testid="x"]') to be visible` | The target never appeared within `--timeout` |
+| `waiting for locator('[data-testid="x"]') to be visible` | The target never appeared within `--timeout`, or it is in the DOM but hidden (a styled checkbox `input`); click its visible label or wrapper |
 
 On a click or type timeout the message says "state unknown" and `retryable` is `false`. The action can have happened: run `mm describe-screen` before you retry.
 
@@ -246,11 +248,13 @@ Returns `target`, `tagName`, `attributes` (every attribute, by name), `disabled`
 `mm hover <ref>` moves the pointer over an element so hover-only UI shows (a tooltip, a popover, a hover style). It waits for the element and checks that nothing covers it, like `mm click`. `mm unhover` moves the pointer off the page, so the hovered element loses its state and no other element gets one. Browser only.
 
 ```bash
-mm hover --testid address-row --within "testid:multichain-address-rows-list"
-mm screenshot --name address-row-hovered
+mm hover --testid account-menu-icon
+mm screenshot --name account-menu-hovered
 mm unhover
-mm screenshot --name address-row-idle
+mm screenshot --name account-menu-idle
 ```
+
+`mm inspect --testid account-menu-icon --styles background-color` shows the change: `rgb(243, 243, 244)` while hovered, `rgba(0, 0, 0, 0)` after `mm unhover`.
 
 The pointer stays where `mm hover` left it until the next hover, click or `mm unhover`, so take the screenshot right after the hover. Success is `{"hovered":true,"target":"testId:<id>"}`; `mm unhover` returns `{"unhovered":true}`. A target that does not appear, or stays covered, fails with `MM_WAIT_TIMEOUT`; other failures return `MM_HOVER_FAILED`.
 
@@ -287,7 +291,7 @@ mm cdp Input.dispatchKeyEvent '{"type":"keyUp","key":"Escape","code":"Escape","w
 
 Tab roles: `extension`, `notification`, `dapp`, `other`.
 
-`mm reload` reloads the active page and keeps its URL, including the hash route. Use it after adding or changing a network mock: the Extension caches API data in memory, and `mm navigate-home` does not clear that cache because it only changes the hash. The observation right after the reload can be empty; run `mm wait-for` or `mm describe-screen` before you act.
+`mm reload` reloads the active page and keeps its URL, including the hash route. `mm navigate-home` and `mm navigate-settings` also load the page again, at `home.html` and `home.html#settings`. Both drop state injected with `mm cdp`. The observation right after the reload can be empty; run `mm wait-for` or `mm describe-screen` before you act.
 
 `mm switch-to-tab dapp` is equivalent to `mm switch-to-tab --role dapp`. `mm close-tab` has no positional form: `mm close-tab dapp` prints a usage error, so pass `--role` or `--url`.
 
@@ -313,7 +317,7 @@ Two contexts: `e2e` (default — local Anvil, fixtures, seeding) and `prod` (no 
 | `mm get-contract-address` | Get deployed contract address                               |
 | `mm list-contracts`       | List all deployed contracts                                 |
 
-`mm run-steps` returns `summary` (`ok`, `total`, `succeeded`, `failed`, `skipped`, `durationMs`). A failed step does not fail the call, so check `summary.ok`; a batch that exceeds `batchTimeoutMs` fails the call with `MM_BATCH_TIMEOUT`. The daemon log adds `failed=<n>/<total>` and the first failed step's code (see [Daemon log](#daemon-log)).
+`mm run-steps` returns `summary` (`ok`, `total`, `succeeded`, `failed`, `skipped`, `durationMs`). A failed step does not fail the call or stop the batch (unless `"stopOnError": true`), so check `summary.ok`; a batch that exceeds `batchTimeoutMs` fails the call with `MM_BATCH_TIMEOUT`. The daemon log adds `failed=<n>/<total>` and the first failed step's code (see [Daemon log](#daemon-log)).
 
 ## Advanced
 
@@ -336,7 +340,7 @@ Two contexts: `e2e` (default — local Anvil, fixtures, seeding) and `prod` (no 
 [2026-11-13T13:54:23.290Z] [INFO] POST /tool/scroll_to_element 200 ok=false code=MM_WAIT_TIMEOUT 2063ms
 ```
 
-A failed tool call still answers HTTP 200 and puts the failure in the body, so the status code is not the outcome; `grep ok=false .mm-daemon.log` lists the failed calls of a run. A `run_steps` line with failed steps adds `failed=<n>/<total>` and the first failed step's code: `POST /tool/run_steps 200 ok=true failed=1/3 code=MM_WAIT_TIMEOUT …`.
+A failed tool call still answers HTTP 200 and puts the failure in the body, so the status code is not the outcome (only a schema failure logs `400 ok=false code=VALIDATION_ERROR`); `grep ok=false .mm-daemon.log` lists the failed calls of a run. A `run_steps` line with failed steps adds `failed=<n>/<total>` and the first failed step's code: `POST /tool/run_steps 200 ok=true failed=1/3 code=MM_WAIT_TIMEOUT …`.
 
 For mock network details, see [mock-network.md](mock-network.md).
 For CDP state manipulation, see [state-manipulation.md](state-manipulation.md).

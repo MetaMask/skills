@@ -25,18 +25,17 @@ For architecture details, see `test/e2e/playwright/llm-workflow/README.md`.
 - After a call with `--observe none`, refs are **not** refreshed. Target by `--testid`, or run `mm describe-screen` before you use refs again. A browser ref that fell back to `role=`/`text=` (an element that could not be stamped) or that points to an icon button can click a different element; a ref whose element is gone fails with `MM_TARGET_NOT_FOUND`.
 - Each ref resolves to exactly one element. A strict mode violation can only come from a fallback `role=`/`text=` ref or an explicit `--selector`/`--testid`; target the element by `--testid` or `--selector`, and scope it with `--within` when it matches several elements (for example two stacked modals with a Close button).
 - Output is one line of JSON when stdout is not a terminal. Parse it as JSON. Add `--pretty` (or set `MM_PRETTY=1`) only when a human reads the output.
-- A failed command prints **one JSON line on stdout** (`{"ok":false,"error":{"code","message","hint"?,"retryable"}}`) and exits non-zero. Nothing goes to stderr unless it is a terminal. Branch on `error.code` or the exit code; success has no `ok` field. `mm stop` is the exception and prints plain text.
-- Observations carry no app state. Use `mm get-state` for the account, network or balance, but not to identify the screen off home: on Settings it returned `isUnlocked: false` and `currentScreen: "unknown"` (with and without a reload). Use the URL and testIds from `mm describe-screen` there.
+- A failed command prints **one JSON line on stdout** (`{"ok":false,"error":{"code","message","hint"?,"retryable"}}`) and exits non-zero. Branch on `error.code` or the exit code; success has no `ok` field. `mm stop` prints plain text, and `mm launch` warns about an unknown flag on stderr and ignores it (see [Output and Errors](references/cli-reference.md#output-and-errors)).
+- Observations carry no app state. Use `mm get-state` for the account, network or balance. On `home.html#settings` (the route `mm navigate-settings` opens) it returns `isUnlocked: false` and `currentScreen: "unknown"`; use the URL and testIds from `mm describe-screen` there. Settings sub-pages such as `#/settings/about-us` report correctly.
 - Do **not** sleep. A browser observation after a mutating or batch call has `animationsSettled`; when it is `false`, or you wait for data that loads, `mm wait-for` the element you expect (`mm wait-for --selector "text=Copied"`).
 - A click, type or request timeout says "state unknown" and has `retryable: false`. The action can have happened: run `mm describe-screen` before you retry.
 - `mm type` uses Playwright `fill()` and **clears the field first**. On the browser it fails at once with `MM_ELEMENT_NOT_EDITABLE` on a read-only or disabled field.
-- After confirm or reject in sidepanel mode, the page does **not** close. It stays open and navigates back to the home route.
-- `mm wait-for-notification` waits for the sidepanel confirmation route, not a legacy popup window.
+- After confirm or reject in the side panel, the page does **not** close. It stays open and navigates back to the home route.
+- Headless, `mm wait-for-notification` waits for a confirmation route in `sidepanel.html`; headed, it waits for a `notification.html` popup. See [Confirmation pages](#confirmation-pages).
 - `mm run-steps` expects a JSON **object** with a `steps` key, not a bare array.
 - You cannot switch context during an active session. Run `mm cleanup` first, or use `mm launch --context ...`.
 - The default password for built-in fixtures is `correct horse battery staple`.
-- Network mocks are session-scoped. Add rules after `mm launch` and before the triggering UI action; `mm cleanup` removes them. After you change a rule, run `mm reload` so the Extension fetches again.
-- `mm mock-network` **cannot** intercept requests during extension startup before the session is fully active.
+- Network mocks are session-scoped. In the e2e fixture Basic functionality is off, and the home screen made no request to the MetaMask API origins, so a mock there can get no request at all. Check with `mm mock-network requests` before you rely on a mock; see [Mock Network](references/mock-network.md).
 - An element below the fold is not a scroll problem for a click: Playwright's `click` already scrolls its target into view. To bring an element into view for a screenshot, use `mm scroll-to-element --testid <id>`; do not scroll with `mm cdp` scripts.
 - In the e2e fixture, the Activity tab opens "Basic functionality is off" with no bottom navigation, so `mm click --testid bottom-nav-home` fails after 2 s with `MM_TARGET_NOT_FOUND`. Use `mm navigate-home` instead.
 - Right after `mm reload` the observation can be empty. Run `mm wait-for` or `mm describe-screen` before you act on it.
@@ -71,13 +70,15 @@ cat .mm-server   # look under subPorts for anvil and fixture ports
 ### 1. Launch
 
 ```bash
-mm launch                                          # pre-onboarded wallet, 25 ETH on local Anvil
-mm launch --state onboarding                       # fresh wallet
-mm launch --state custom --preset withERC20Tokens  # custom fixture
-mm launch --context prod --state onboarding        # production-like mode
+mm launch                                    # pre-onboarded wallet, 25 ETH on local Anvil
+mm launch --state onboarding                 # fresh wallet
+mm launch --context prod --state onboarding  # production-like mode
+MM_HEADLESS=true mm launch                   # headless Chrome
 ```
 
-Available presets: `withMultipleAccounts`, `withERC20Tokens`, `withConnectedDapp`, `withPopularNetworks`, `withMainnet`, `withNFTs`, `withFiatDisabled`, `withHSTToken`.
+Chrome is headed by default. `MM_HEADLESS=true` makes it headless; without `MM_HEADLESS`, `PLAYWRIGHT_HEADLESS`, `HEADLESS` or `CI` also do. The daemon reads it when it starts, so pass it on the `mm launch` that starts the daemon.
+
+`mm launch` has no flag for a fixture preset: `--state custom` fails with `MM_LAUNCH_FAILED` (`stateMode 'custom' requires either 'fixturePreset' or 'fixture'`). Start from the default wallet and change state with [State Manipulation](references/state-manipulation.md).
 
 Two contexts: **e2e** (default — local Anvil, fixtures, seeding) and **prod** (no fixtures, no local chain). Use `mm get-context` / `mm set-context` to switch. Cannot switch during active session.
 
@@ -91,7 +92,7 @@ mm describe-screen
 
 Returns current screen, active tab, visible testIds, and accessibility tree with refs.
 
-**Observation efficiency:** Mutating actions (`click`, `type`, `navigate`) and `mm run-steps` return compact diff-based observations after the first observation. Use these for quick next-step targeting. Reads, discovery commands and `mm cdp` return no observation. Call `mm describe-screen` when you need the full a11y tree, screenshots, or to reset the baseline.
+**Observation efficiency:** Mutating actions (`click`, `type`, `navigate`) and `mm run-steps` return compact diff-based observations after the first observation. Use these for quick next-step targeting. Reads, discovery commands and `mm cdp` return no observation. Call `mm describe-screen` when you need the full a11y tree or to reset the baseline. It returns `screenshot: null`; use `mm screenshot` for an image.
 
 Use the global `--observe <none|diff|full>` flag to change the observation of one call:
 
@@ -183,8 +184,8 @@ Phase-specific error codes on timeout:
 - `MM_WAIT_TIMEOUT` — element never became visible. `retryable: true`.
 - `MM_TARGET_NOT_FOUND` — `mm click` without `--timeout`: nothing matched after 2 s (a wrong testId shows up here, for example `eth-overview-receive`; Receive is `eth-overview-default`). Pass `--timeout` to wait for a target that appears late.
 - `MM_CLICK_TIMEOUT` — click hung; state unknown. The message ends with Playwright's last step, for example `element is not enabled` (disabled Swap in the fixture) or `… intercepts pointer events` (a modal covers the target). Run `mm describe-screen` before retrying.
-- `MM_TYPE_TIMEOUT` — element found, `fill()` hung; state unknown.
-- `MM_GETTEXT_TIMEOUT` — element found, `textContent()` hung.
+- `MM_TYPE_TIMEOUT` — the field did not appear or `fill()` hung; state unknown.
+- `MM_GETTEXT_TIMEOUT` — the element did not appear or `textContent()` hung. `retryable: true`.
 - `MM_PAGE_CLOSED` — page closed during action (expected for some confirmation flows); exits 3.
 
 For the full error code and exit code tables, see [references/error-recovery.md](references/error-recovery.md).
@@ -212,7 +213,7 @@ If you change Redux state via CDP but the target component doesn't update:
 ```bash
 mm navigate https://test-dapp.io     # navigate to dapp
 mm click e1                           # trigger dapp action
-mm wait-for-notification              # wait for sidepanel confirmation
+mm wait-for-notification              # wait for the confirmation page
 mm describe-screen                    # see the confirmation
 mm click e2                           # confirm or reject
 mm describe-screen                    # verify return to home
@@ -227,10 +228,10 @@ Tab roles: `extension`, `notification`, `dapp`, `other`. To close a tab, pass `-
 mm navigate-home
 mm navigate-settings
 mm navigate https://test-dapp.io
-mm reload     # keep the route, refetch data after a network mock change
+mm reload     # reload the page, keep the route
 ```
 
-`mm reload` keeps the URL (including the hash route) and reloads the page, so the Extension fetches API data again. `mm navigate-home` does not clear that cache because it only changes the hash.
+`mm navigate-home` and `mm navigate-settings` load the page again (`home.html`, `home.html#settings`), which drops state injected with `mm cdp`. `mm reload` also loads the page again but keeps the current route.
 
 ### 7. Screenshots
 
@@ -250,15 +251,31 @@ mm cleanup --shutdown      # also stop the daemon
 mm stop                    # stop the daemon only (plain-text output)
 ```
 
-## Sidepanel Mode
+## Confirmation pages
 
-The extension runs in sidepanel mode by default (`sidepanel.html`).
+The session drives `home.html`, the full-page UI. Wallet-initiated confirmations (Send) render there, at `#/confirm-transaction/…`.
 
-Key behavior:
-- After confirm/reject, the sidepanel stays open and navigates back to home
-- `mm wait-for-notification` waits for a confirmation route in the URL hash
-- After a confirmation action, use `mm describe-screen` to verify the return to home state
+For dapp confirmations, `mm wait-for-notification` finds the confirmation page and makes it the active page:
+- Headless: `sidepanel.html` (tab role `notification`), once its URL hash is a confirmation route
+- Headed: the `notification.html` popup
+- After confirm/reject, the side panel stays open and navigates back to home; use `mm describe-screen` to verify
 - Confirmation routes: `/connect`, `/confirm-transaction`, `/confirmation`, `/confirm-import-token`, `/confirm-add-suggested-token`, `/confirm-add-suggested-nft`
+
+### Send recipe (e2e fixture)
+
+After `mm launch` and unlock (see [Batching](#batching-with-mm-run-steps)):
+
+```bash
+mm click --testid eth-overview-send
+mm click --testid token-asset-0x539-ETH       # "All networks" lists several ETH rows; 0x539 is the local chain
+mm type --testid recipient-address-input 0x2f318C334780961FB129D2a6c30D0763d9a5C970
+mm type --testid send-amount-input 0.01
+mm click --testid send-continue-button
+mm wait-for --testid confirm-footer-button    # the review page shows skeletons first
+mm click --testid confirm-footer-cancel-button   # or confirm-footer-button to send
+```
+
+The review page shows `confirm-send-amount` and `recipient-address`.
 
 ## Batching with mm run-steps
 
@@ -277,6 +294,7 @@ Details:
 - Use `within` in args to scope targeting within a parent element
 - Add `batchTimeoutMs` (1000–30000 ms) for an overall deadline. The whole call stops after 30 s, so use a lower value (for example 20000) to get partial results, and split longer flows into several batches
 - Add a top-level `observe` (`none` / `diff` / `full`, default `diff`) to set the observation collected after the batch. `includeObservations` was removed; check `summary.ok` to react to failures
+- A failed step does not stop the batch: later steps still run. Add `"stopOnError": true` to stop at the first failed step
 - Tool aliases like `navigate_home` and `navigate-home` are supported
 
 Pattern: discover with `mm describe-screen` → batch known steps with `mm run-steps` → re-verify with `mm describe-screen`.

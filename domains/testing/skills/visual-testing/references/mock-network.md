@@ -19,7 +19,8 @@ Mock rules are installed on the active Playwright browser context:
 - `mm cleanup` removes all rules; `mm mock-network clear` removes rules and request history without ending the session.
 - Unmatched requests on a mocked origin continue unchanged and are recorded as misses.
 - **Cannot** intercept requests during extension startup before the session is fully active.
-- If the screen already fetched the data, `mm reload` before the triggering action: the Extension caches API data in memory, and `mm navigate-home` only changes the hash, so it does not refetch.
+- A rule only works if the Extension makes the request. In the e2e fixture Basic functionality is off: the home screen made no request to the MetaMask API origins, even after `mm reload`, while a `fetch` from the page was matched. After the triggering action, check `mm mock-network requests`: `requestCount: 0` means nothing called the mocked origin.
+- `mm reload`, `mm navigate-home` and `mm navigate-settings` all load the page again; `mm reload` keeps the current route.
 
 ## Rule Shape
 

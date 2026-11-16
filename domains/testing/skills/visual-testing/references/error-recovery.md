@@ -44,10 +44,10 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_CLICK_FAILED`            | Click failed (post-find)                                                                     |
 | `MM_CLICK_TIMEOUT`           | Click timed out; state unknown; the message ends with Playwright's last step — `mm describe-screen` before retrying |
 | `MM_TYPE_FAILED`             | Type failed (post-find)                                                                      |
-| `MM_TYPE_TIMEOUT`            | `fill()` timed out; state unknown                                                            |
+| `MM_TYPE_TIMEOUT`            | The field did not appear or `fill()` hung; state unknown                                     |
 | `MM_ELEMENT_NOT_EDITABLE`    | Type target is read-only or disabled (browser, fails at once)                                |
 | `MM_GETTEXT_FAILED`          | `get-text` failed (element detached) — re-target                                             |
-| `MM_GETTEXT_TIMEOUT`         | `textContent()` timed out                                                                    |
+| `MM_GETTEXT_TIMEOUT`         | The element did not appear or `textContent()` hung; `retryable: true`                        |
 | `MM_INSPECT_FAILED`          | `mm inspect` could not read the element (non-timeout)                                        |
 | `MM_HOVER_FAILED`            | `mm hover` / `mm unhover` failed (non-timeout)                                               |
 | `MM_VIEWPORT_FAILED`         | `mm set-viewport` / `mm reset-viewport` could not resize the page                            |
@@ -78,7 +78,8 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_TARGET_NOT_FOUND` after 2 s on a click (exit 4)      | No element matches the testId or selector (wrong or not rendered yet)  | Check `mm describe-screen`; if the screen is still loading, retry with `--timeout <ms>` |
 | `MM_CLICK_TIMEOUT` / `MM_TYPE_TIMEOUT`                  | Action hung; state unknown                                             | Read `(last Playwright step: …)` in the click message: `element is not enabled`, `… intercepts pointer events` (close the overlay), `resolved to hidden` (click the label); `mm describe-screen` before retrying |
 | `MM_ELEMENT_NOT_EDITABLE`                               | Field is read-only or disabled                                         | Expected when verifying a read-only field; check with `mm inspect` |
-| `MM_GETTEXT_TIMEOUT` / `MM_GETTEXT_FAILED`              | Element detached                                                       | `mm describe-screen` and re-target                                 |
+| `MM_GETTEXT_TIMEOUT`                                    | Element missing (wrong testId or not rendered yet)                     | `mm describe-screen` and re-target                                 |
+| `MM_GETTEXT_FAILED`                                     | Element detached                                                       | `mm describe-screen` and re-target                                 |
 | `MM_PAGE_CLOSED`                                        | Confirmation auto-closed                                               | Expected — `mm describe-screen` to find the active page            |
 | `MM_CDP_BLOCKED`                                        | Destructive CDP method                                                 | Use a non-blocked method                                           |
 | `MM_CDP_FAILED`                                         | Invalid CDP params                                                     | Check method & params; retry with `--timeout` (max 30000)          |
@@ -101,4 +102,4 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 [2026-11-13T13:54:23.290Z] [INFO] POST /tool/scroll_to_element 200 ok=false code=MM_WAIT_TIMEOUT 2063ms
 ```
 
-A failed tool call still answers HTTP 200 and puts the failure in the body, so the status code is not the outcome. Run `grep ok=false .mm-daemon.log` to list the failed calls of a run. A `run_steps` line with failed steps adds `failed=<n>/<total>` and the first failed step's code: `POST /tool/run_steps 200 ok=true failed=1/3 code=MM_WAIT_TIMEOUT …`.
+A failed tool call still answers HTTP 200 and puts the failure in the body, so the status code is not the outcome (only a schema failure logs `400 ok=false code=VALIDATION_ERROR`). Run `grep ok=false .mm-daemon.log` to list the failed calls of a run. A `run_steps` line with failed steps adds `failed=<n>/<total>` and the first failed step's code: `POST /tool/run_steps 200 ok=true failed=1/3 code=MM_WAIT_TIMEOUT …`.
