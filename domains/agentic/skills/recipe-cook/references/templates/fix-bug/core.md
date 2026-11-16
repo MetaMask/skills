@@ -1,20 +1,22 @@
 ---
 platforms: [core, cli]
 description: Core fix-bug checklist with runtime proof.
+produces: [artifacts/recipe-coverage.md, artifacts/recipe-quality.json]
 ---
 
 # Core fix-bug checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
-  Confirm the handoff's checklist path; never estimate or rewrite it (rules: proof-rules.md, Task and sandbox).
+  Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+  Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only.
+  Follow `/mms-recipe-harness`: doctor/status/verify for this checkout only.
   Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
@@ -30,13 +32,14 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 8. Draft the baseline recipe in reuse order
   When proof is required, draft `artifacts/recipe.json` asserting fixed behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
-- [ ] 9. Probe setup and retain the failing baseline run
+- [ ] 9. Probe setup and retain the failing baseline run [PROOF: artifacts/recipe-baseline-run]
   Probe reused recipe entry/setup boundaries with a short bound, then run into `<task>/artifacts/recipe-baseline-run` with `--json`.
   Require failure at the reported bug's AC assertion. Focused tests are never the baseline proof for a runtime claim.
+  Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
-- [ ] 11. Exit early if already fixed or not reproduced
+- [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
 
 ## Fix
@@ -49,10 +52,10 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Read the step 13 receipt. Repeat its mark after source or test changes.
 
 ## Validate
-- [ ] 15. Run the required recipe
-  When the decision requires proof, `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json`; it must pass (rules: proof-rules.md, Runtime proof).
+- [ ] 15. Run the required recipe [OPTIONAL: the proof decision records no recipe requirement]
+  When the decision requires proof, `<task>/mm-harness run <task>/artifacts/recipe.json --json`; it must pass (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
-- [ ] 16. Run the domain smoke when applicable
+- [ ] 16. Run the domain smoke when applicable [OPTIONAL: the project declares no domain smoke]
 
 ## Review
 - [ ] 17. Self-review the full diff
