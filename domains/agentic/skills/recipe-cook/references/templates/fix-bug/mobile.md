@@ -28,6 +28,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Mark ACs reachable only on an unavailable platform `UNTESTABLE: wrong platform`; never claim them later.
 - [ ] 7. Plan the baseline proof and apply the Mainnet policy
   Plan the expected buggy evidence and each AC's state (rules: proof-rules.md, Bug fixing).
+  An AC you cannot reach live (a failure you cannot trigger, a post-release metric) is recorded now as UNTESTABLE with its reason or as proof mode review; never leave it for the gate.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Add and commit the reproduction marker
   Add `DevLogger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition and observe it in `metro.log`.
@@ -40,6 +41,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Read every visual PNG (rules: proof-rules.md, UI evidence).
   Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
+  On this path mark this step; never skip it. Skip it only when the bug reproduces.
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 12. Record the root cause
