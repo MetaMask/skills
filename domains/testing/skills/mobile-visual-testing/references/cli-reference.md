@@ -185,7 +185,7 @@ The generic core package may display environment-selection and test-state comman
 - `--timeout <ms>`: one deadline for visibility and action
 - `--testid <id>`: target by test ID
 
-`mm click` also accepts `--dismiss-keyboard`: when the keyboard covers the target (verified on iOS), the driver closes it and taps once more, and the result has `keyboardDismissed: true`:
+`mm click` also accepts `--dismiss-keyboard`: when the keyboard covers the target, the driver closes it and taps once more, and the result has `keyboardDismissed: true`:
 
 ```bash
 yarn mm click --testid log-in-button --dismiss-keyboard
