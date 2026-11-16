@@ -13,7 +13,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
-  Mark this step before any source investigation. Investigate only inside this checkout; never read other checkouts or search the host for an existing fix.
+  Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Follow `/mms-recipe-harness`: doctor/status/verify for this checkout only.
