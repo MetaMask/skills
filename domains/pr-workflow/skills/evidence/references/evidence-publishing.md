@@ -77,7 +77,7 @@ Files >1MB exceed `ARG_MAX` for an inline `-f content=` — use `gh api -F conte
 
 ## Step 2 — Build the section (canonical header + mirror AEP)
 
-**Canonical header (2026-07-21):** every validation-run output — a PR comment *or* the PR-body section — leads with the exact literal `## 🧪 Validation Run`. Never reworded, never demoted to `###`: the constant string is the identifiability anchor, exactly like Copilot's fixed `## Pull request overview`. `hooks/pr-evidence-gate.py` blocks any `gh` write whose body has a validation/verification/evidence heading or AEP marker without this literal.
+**Canonical header:** a validation-run output in the PR-body section of a PR you authored, or in the private record, leads with the exact literal `🧪 Validation Run`: a `####` heading under the template's `### **After**` in a PR body, `##` in the private record. Never reworded: the constant string is the identifiability anchor, exactly like Copilot's fixed `## Pull request overview`. A comment or review on a PR is written in `/pr-comment` format instead, with no header, no marker pair and no verdict line. `hooks/pr-evidence-gate.py` blocks any `gh` write whose body has a validation/verification/evidence heading or AEP marker without this literal.
 
 Marker pairs, used so re-runs replace idempotently:
 
@@ -91,7 +91,7 @@ Section shape:
 
 ```markdown
 <!-- VALIDATION_RUN_START -->
-## 🧪 Validation Run
+#### 🧪 Validation Run
 
 **Verdict:** ✅ proven — **Claim:** <one-line falsifiable behavior under test>
 head `<sha>` · <YYYY-MM-DD> · lanes: <e2e A/B, unit falsifier, Sentry, AEP visual, …>
@@ -99,7 +99,7 @@ head `<sha>` · <YYYY-MM-DD> · lanes: <e2e A/B, unit falsifier, Sentry, AEP vis
 <claim → artifact table or per-lane bullets, every claim binding its artifact>
 
 <!-- AEP_VISUAL_VALIDATION_START -->
-### AEP Visual Validation
+##### AEP Visual Validation
 
 **✅ Passed**
 
@@ -116,7 +116,7 @@ Run `<run-id>` · [LangSmith trace](<url>)
 <!-- VALIDATION_RUN_END -->
 ```
 
-Verdict icon: `✅` Passed, `❌` Failed, `ℹ️` otherwise. For perf, retitle the nested block `### AEP Perf Validation` and put `M/M assertions proven` in the headline. When AEP's *service* publishes its own `## AEP Visual Validation` block (publishEvidence:true, not the local flow), leave that block's heading alone — the demotion to `###` applies to hand-assembled bundles under the canonical header.
+Verdict icon: `✅` Passed, `❌` Failed, `⚠️` partial or scoped, `📋` measured with no verdict asserted. For perf, retitle the nested block `##### AEP Perf Validation` and put `M/M assertions proven` in the headline. When AEP's *service* publishes its own `## AEP Visual Validation` block (publishEvidence:true, not the local flow), leave that block's heading alone — the demotion to `#####` applies to hand-assembled bundles under the canonical header.
 
 Screenshots block (injected into `### After`, or appended under `### Screenshots`):
 
@@ -153,8 +153,9 @@ SURFACE=$(gh pr view "$PR" --repo "$REPO" --json author,commits | jq -r --arg me
 - `body` — you authored the PR → upsert into the PR body (below). Validation is
   part of your own claim.
 - `comment` — not author but I have a solo commit (no HUMAN co-author) → post a
-  `gh pr comment` under the canonical `## 🧪 Validation Run` header. Never edit
-  someone else's PR body.
+  `gh pr comment` in `/pr-comment` format: the impact first, one ask in the last sentence, the change
+  as a `suggestion` or `diff` block, data and method behind `<details>`, no Validation Run header and
+  no marker pair. Never edit someone else's PR body.
 - `skip` — my only commits are co-authored with a human (review/pairing) OR I
   have no commits → **do not publish**. Not my PR to validate outward.
 
@@ -201,7 +202,7 @@ prompt itself. If the body is too long to show comfortably, that is a signal to 
 gh pr view "$PR" --json body -q .body > /tmp/pr-body.md
 # Replace the region between VALIDATION_RUN markers if present, else append.
 # (Legacy bodies: replace the AEP_VISUAL_VALIDATION region and re-wrap it under
-# the canonical "## 🧪 Validation Run" header + VALIDATION_RUN markers.)
+# the canonical "#### 🧪 Validation Run" header + VALIDATION_RUN markers.)
 # Replace the region between AEP_SCREENSHOTS markers if present, else inject after
 # the "### **After**" heading (replacing the [screenshots/recordings] placeholder).
 # ...edit /tmp/pr-body.md...
@@ -210,7 +211,7 @@ gh pr edit "$PR" --body-file /tmp/pr-body.md
 
 ### comment surface (I contributed but don't own)
 ```bash
-# Same canonical "## 🧪 Validation Run" header + bundle; post as a comment.
+# /pr-comment format (impact first, one ask last, no Validation Run header or markers); post as a comment.
 gh pr comment "$PR" --repo "$REPO" --body-file /tmp/validation-run.md
 ```
 
@@ -249,7 +250,7 @@ The common loop — a run refutes a claim, the author pushes a fix, `/evidence` 
 
 - **Presentation is delta-only.** Full exhibits only for lanes whose outcome changed (flipped verdict / new lane / new residual). Unchanged lanes collapse to a `Prior run | This run` ledger, each row with a fresh run-log link from the new head plus one link to the prior run's comment for the full exhibits — and say so ("unchanged rows re-run at `<head>`; full exhibits in the prior run").
 - **Evidence is never delta.** Evidence is head-pinned: re-run every automated lane at the new head and re-earn every verdict with a fresh artifact. "Unchanged" is a conclusion from the re-run, never a carried-over assumption (the stale-baseline trap at report level). Re-running is cheap — the falsifier harness already exists from the first run.
-- Same canonical header + markers; the meta line names the fix commit and links the prior run. Comments: one per run, chronological, each linking its predecessor. PR-body section: replaced in place via markers.
+- PR-body section: same canonical header + markers, replaced in place; the meta line names the fix commit and links the prior run. Comments (`/pr-comment` format, no header or markers): one per run, chronological, each linking its predecessor.
 - New head → **new hosted artifact directory keyed to the fix commit** (`pr-<n>/fix-<sha>/`), commit-pinned raw URLs; never overwrite a prior run's published files.
 - Residuals the fix intentionally leaves get their own row/section — don't round a fixed-with-residual claim up to fully proven.
 
@@ -261,12 +262,12 @@ The published section must **enumerate every lane the claim type calls for and g
 Open the evidence section with a ledger:
 
 ```markdown
-| Lane | Status | Evidence |
+| Check | Status | Evidence |
 |---|---|---|
-| B3 falsifying test | ✅ proven | 32/32 head, 3/32 reverted |
-| E1 Sentry before/after | ✅ proven | [discover](…) — distinct trace ids |
-| A1 visual | ➖ N/A | background change, no UI surface |
-| C6 CDP netlog | ⏳ not-captured | — |
+| red-on-base check | ✅ proven | 32/32 head, 3/32 reverted |
+| Sentry before/after | ✅ proven | [discover](…) — distinct trace ids |
+| visual capture | ➖ N/A | background change, no UI surface |
+| network capture | ⏳ not-captured | — |
 ```
 
 Status vocabulary: `✅ proven` (link) · `⚠️ inconclusive` (name what's missing) · `➖ N/A` (reason) · `⏳ not-captured`. Mirror the `N/A — <reason>` convention the `### Screenshots` block already uses for no-UI PRs. Never upgrade a `⏳`/`⚠️` to a pass by omission.
@@ -279,7 +280,7 @@ Screenshots are only one lane. Most claims (perf, telemetry, state, build) publi
 
 Per-lane rendering:
 
-- **Sentry / Tempo (E1/E2):** a markdown link to the discover/trace query with the before/after window baked in, plus the headline numbers inline (`errors: 1.2% → 0.0% over 24h post-release`). Link, not screenshot — reviewers re-run it.
+- **Sentry / Tempo (E1/E2):** a markdown link to the discover/trace query with the before/after window baked in, beside a screenshot of the query, and any figure quoted verbatim from that capture (`errors: 1.2% → 0.0% over 24h post-release`). The link is how reviewers re-run it; the screenshot is what they read.
 - **Benchmark / web-vitals / TBT (C2/C3/C5):** a small before/after table (metric · base · head · Δ · threshold). State it's a **paired A/B** if the stored baseline was bypassed.
 - **Migration (F1):** the `changedKeys` set + a before/after state-shape snippet, and a link to the migration-test run.
 - **Bundle / chunk / LavaMoat / manifest (D1–D4):** the diff or size delta in a fenced block; for policy/manifest, the actual `git diff` (or "diff empty — no new capability").
@@ -291,11 +292,12 @@ Multi-claim PRs get one sub-block per claim under the status section, each with 
 
 Sub-blocks are for several claims **of the same kind**. When a PR draws two different
 kinds — say an executed Validation Run *and* a read-level capability triage — they get
-**separate comments**, each with its own header, its own marker pair, and its own format.
+**separate artifacts**, each with its own header, its own marker pair, and its own format: the
+Validation Run is the PR-body section of an authored PR, and the triage is a comment.
 
 | | Validation Run | LavaMoat policy diligence |
 |---|---|---|
-| header | `## 🧪 Validation Run` | `## 🔒 LavaMoat Grants — <pkg> <old> → <new>` |
+| header | `#### 🧪 Validation Run` | `## 🔒 LavaMoat Grants — <pkg> <old> → <new>` |
 | markers | `VALIDATION_RUN_*` | `LAVAMOAT_DILIGENCE_*` |
 | opens on | `**Verdict:** ✅/⚠️/❌` | the finding; **no verdict at all** |
 | body | lane ledger, artifacts per lane | deny candidates, enumeration folded |
@@ -307,7 +309,7 @@ needs a tracker it does not have. The marker pairs also collide — a re-run rep
 `VALIDATION_RUN` region would silently eat the diligence output sharing it.
 
 **So: choose the format from the evidence kind, not from this document's default.** The
-canonical `## 🧪 Validation Run` header applies when a run produced artifacts. An engine
+canonical `🧪 Validation Run` header applies to the PR-body section when a run produced artifacts. An engine
 skill that defines its own output contract (`lavamoat-policy`) publishes in that
 contract. `hooks/pr-evidence-gate.py` enforces the canonical literal only on bodies that
 *claim* validation/evidence framing — a diligence comment that renders no verdict does not
@@ -329,7 +331,7 @@ To stay interoperable with the recipe-based verification system (MetaMask/decisi
 - [ ] **Automated-process voice, no first person** — published validation output never says "I ran/captured/verified"; attribute to the process ("Automated validation ran…", "the harness captured…") so readers know the evidence is machine-generated, not a manual account under the author's name
 - [ ] Every image/GIF re-hosted to the configured bucket under `public/…`; no localhost/local-path URLs in the body
 - [ ] **Every published link curl'd unauthenticated and returning 200** — never a personal private repo
-- [ ] Work cited by **PR link** rather than tracking-ticket id, unless the ticket's own content (an RCA, a spec) is the referent
+- [ ] Work cited by **PR link** rather than tracking-ticket id, unless the ticket's own content (an RCA, a spec) is the referent; when the ticket is the referent, cite its MWPE key (Jira is primary), not `MetaMask-planning#N`
 - [ ] Narrative scrubbed of username/paths/internal hosts
 - [ ] Marker pairs present so the upsert is idempotent
 - [ ] Section rendered and **confirmed by the user**

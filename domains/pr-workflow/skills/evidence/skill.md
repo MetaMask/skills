@@ -434,11 +434,13 @@ set?"* would have been enough.
 **A comment or review on a PR is written in `/pr-comment` format, not in this shape** (*"mms-evidence output uses /pr-comment format"*, 2026-11-13): the impact first, one ask in the last sentence, the change as a ```suggestion or ```diff block, `/pr-comment`'s per-unit length limits, and data and method behind `<details>`. No `## 🧪 Validation Run` header, no marker pair, no verdict line. Enforced at `hooks/pr-evidence-gate.py::_block_validation_run_comment`.
 
 The shape below is for the PR-body section of a PR you authored and for the private record, so re-runs
-replace idempotently instead of accumulating:
+replace idempotently instead of accumulating. In a PR body it sits as a `####` heading under the
+template's `### **After**` in Screenshots/Recordings, never in a section of its own; in the private
+record it opens with `##`:
 
 ```markdown
 <!-- VALIDATION_RUN_START -->
-## 🧪 Validation Run
+#### 🧪 Validation Run
 
 **Verdict:** ✅ proven — **Claim:** <one-line falsifiable behavior under test>
 head `<sha>` · <YYYY-MM-DD> · lanes: <lane ids>
@@ -468,6 +470,9 @@ The qualifying media are the ones where verification does not route through you:
 - an **image of the tool's own surface** — the run page, the Discover view, the waterfall;
 - a **link that re-executes or re-renders** — a CI run, a query permalink, a dashboard;
 - a **hosted artifact the reader fetches** — the log at a URL, not a quotation of it.
+
+A raw log or JSON dump counts as a hosted artifact here only beside a link or visual that carries the
+verdict (trustworthiness item 13); alone it passes check 5 and is blocked by the dump-resolver gate.
 
 Paste the fenced block *beside* one of those, never instead of one. This is also why a
 plaintext check can never close the gap: every property of text is forgeable by whatever emits
@@ -531,8 +536,10 @@ artifact's own table and downgrades it.
 Paragraphs of explanation read as an infodump and bury the finding; if a bullet needs three
 sentences the exhibit is not doing its job.
 
-**There must be a finding.** A run ends with something the reader can agree or disagree with —
-this holds, or it does not. Running the instruments and publishing what they printed is not
+**There must be a finding** in the PR-body section or private record. A run ends with something the
+reader can agree or disagree with — this holds, or it does not. A comment or review on another PR
+carries the finding as its ask, with no verdict line and no accept or reject token: it furnishes the
+evidence and leaves the verdict to its reader. Running the instruments and publishing what they printed is not
 that. `📋 measured, no verdict asserted` is not a verdict, and neither is a headline that
 reports a delta: *"494 → 651 packages, 24 rows escalated"* is a measurement in a verdict's
 clothes, leaving the reader to work out whether it is good news.
@@ -549,8 +556,8 @@ genuinely inconclusive result: a number with nothing to hold it against. Find th
 turns it into a claim — a sibling artifact, the other build target, the previous release, the
 arm the change did not touch.
 
-Verdict icons: `✅` proven · `❌` failed · `ℹ️` otherwise. Never `❌` for a gap in *evidence* — that
-reads as a verdict on the author's work.
+Verdict icons: `✅` proven · `⚠️` partial or scoped · `📋` measured, no verdict asserted · `❌` failed. Never `❌`
+for a gap in *evidence* — that reads as a verdict on the author's work.
 
 The template itself, slot by slot, and how a run is assembled from it:
 **[references/output-templates.md](references/output-templates.md)** — that file is the
@@ -568,7 +575,7 @@ The parts that decide *whether* to publish, rather than how:
   are silent, so hold until every planned lane is present, and put changed verdicts in a new
   comment referencing the original. The PR body is pull, so an idempotent marker upsert is
   correct there.
-- **Lead with the canonical header** `## 🧪 Validation Run`, then verdict and claim.
+- **Lead with the canonical header** `🧪 Validation Run` in the PR-body section or private record, then verdict and claim. A comment or review has no such header.
 - **Falsifier-forward** — what would have made this false, and what rules it out, before any
   lane inventory.
 - **Don't restate CI.** Lint, build, and test results are already on the Checks tab.

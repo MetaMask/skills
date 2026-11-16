@@ -11,9 +11,12 @@ nothing else does.
 
 ## The template
 
+In a PR body the envelope sits as a `####` heading under the repo template's `### **After**`, inside
+Screenshots/Recordings, never in a section of its own. In the private record it opens with `##`.
+
 ```markdown
 <!-- VALIDATION_RUN_START -->
-## 🧪 Validation Run
+#### 🧪 Validation Run
 
 **Verdict:** <icon> <the conclusion, in words a reviewer can act on> — **Claim:** <the
 falsifiable thing under test> head `<sha>` · <YYYY-MM-DD> · <check name in words>
@@ -63,7 +66,9 @@ needs three sentences, the exhibit is not carrying its weight.
 reviewer needs *before* they read a verdict on their own PR from a source they have not seen
 before — where feedback goes, and that nothing here blocks them. Edited by the same rules as
 prose it drifts to the foot of the page in `<sub>`, where it arrives after the reaction it
-exists to shape. Check 11 tests its position, not just its presence.
+exists to shape. Check 11 tests its position, not just its presence. The disclaimer belongs to the
+PR-body section and the private record only; in a review it follows the ask, once at most
+(`/pr-comment`).
 
 **Open for review.** One question, about this change. The runners' generic limits go to stderr
 and the `.json` precisely so they do not end up here three times over; read them, and write
@@ -99,7 +104,9 @@ naming it in the prose ("the comments sit in file order, which is not their orde
 draws attention to a property of the tooling rather than of the change — the same defect as
 publishing lane ids. Say nothing about ordering; just order it correctly.
 
-## Every applicable finding carries a valence marker
+## Every finding in a PR-body section carries a valence marker
+
+**Scope: a body section of a PR you authored, and the private record.** A comment or review on a PR opens with its ask and the reason for it, and carries no valence marker; the only severity it states is a `nit:` prefix (`/pr-comment`).
 
 A finding opens with a marker stating which way it cuts, and **the marker is a phrase, not a
 glyph**. The emoji is a scanning aid attached to the phrase; it never carries the valence alone:
@@ -116,17 +123,18 @@ marked while stating nothing: the reader gets a colour and has to infer the clai
 author never has to write the judgement as a sentence they would have to stand behind. That
 gap is the whole point of the phrase.
 
-This applies to **every** finding on every surface: inline comments, body sections, and the
-items of any list. Not the first one, not the ones that felt severe enough to warrant it.
+This applies to **every** finding in a body section, and to the items of any list in one. Not the
+first one, not the ones that felt severe enough to warrant it.
 
 The failure mode is partial application. Marking two findings out of three does not give the
 reader a partial signal, it gives them a broken one: the unmarked finding reads as deliberately
 unranked, and they cannot tell whether the omission means *neutral* or means *nobody decided*.
 A consistently-marked set is scannable; an inconsistently-marked set is worse than none.
 
-**`nit:` is severity, not valence, so it does not substitute.** It says how much the finding
-matters and nothing about which direction it points. A nit still takes its marker —
-`ℹ️ nit: …` — because the two carry different information.
+**`nit:` is severity, not valence, so in a body section it does not substitute.** It says how much
+the finding matters and nothing about which direction it points. A nit there still takes its
+marker — `ℹ️ nit: …` — because the two carry different information. In a comment or review the
+`nit:` prefix is the only severity marker, and no valence marker accompanies it.
 
 Section headings that introduce a finding take the marker too. `❓` marks a question being
 handed to a human, which is a routing label rather than a valence; where a section states a
@@ -305,6 +313,11 @@ three forms that work.
 
 Quoted text and code are exempt — a blockquote carries someone else's words, and a fence carries
 source.
+
+**Scope.** The ban covers the envelope and any narration of the run or the draft: what was
+verified, corrections, earlier passes. A review or reply written as the poster (`/pr-comment`) may use
+I or we for the poster's own stance and commitments, and an author reply that says "I'll fix" carries
+the diff that fixes it.
 
 Enforced by `attest-gate.sh` check 7, which previously named this in its own rationale ("the
 byline may not be yours") while implementing only a fixed list of retraction phrases. Twelve

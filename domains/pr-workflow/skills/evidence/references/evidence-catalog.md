@@ -57,6 +57,7 @@ Legend: **first-class lanes** are `##`-headed; closely-related variants are sub-
   - **Engine: the `red-on-base` skill.**
 - **Capture:** add the test, run it on the PR branch (pass) and on the PR's **merge-base** (fail) — pin the base, don't use whatever `main` points at today. Pair with the PR's `Fixes #N`. **Read the base failure's message, not its exit code:** it must fail on the assertion that encodes the bug. A `ModuleNotFoundError`, a missing fixture, or an unrelated pre-existing red produces an identical non-zero exit and falsifies nothing.
 - **Reach for it:** every bug-fix PR. If you can't write a test that fails on main, question whether the fix addresses the reported bug.
+- **How it reads:** in a PR body, show the red-on-base run as a capture, not a test-file name. The name alone suffices only in a comment or review, where the file is an inspectable artifact.
 
 ## B4. Component / Storybook visual
 - **Proves:** a component renders across states/props in isolation.

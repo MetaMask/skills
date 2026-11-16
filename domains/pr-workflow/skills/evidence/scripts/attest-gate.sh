@@ -80,12 +80,13 @@ elif [ "$MODE" = inline ]; then
   # ungated on #45504 for exactly that reason: a check that cannot pass teaches you to skip it.
   printf '  SKIP  %s\n' "1 marker pair — an inline comment is anchored by id, not by marker"
   printf '  SKIP  %s\n' "2 canonical header — an inline comment has no header"
-  printf '  SKIP  %s\n' "3 verdict line — an inline comment carries a valence phrase instead"
+  printf '  SKIP  %s\n' "3 verdict line — an inline comment carries none"
 
-  # The inline counterpart of the header: <emoji> **<valence phrase> — <finding>**
+  # An inline comment opens with its ask and the reason for it, and states severity only as a
+  # `nit:` prefix (/pr-comment). A valence marker opener is the Validation Run body's convention.
   hasre '^(🔴|⚠️|ℹ️|✅|🟢|🟡|🔵|🟠|⚪|🔒)[[:space:]]+(nit:[[:space:]]+)?\*\*[^*]*—' \
-    && pass "3b valence phrase opener" \
-    || fail "3b valence phrase opener" "no '<emoji> **<valence phrase> — <finding>**' opener — an emoji alone states nothing, and the phrase is what forces the judgement into a sentence"
+    && fail "3b opens with the ask" "opens with a valence marker — an inline comment leads with the ask and its reason, and severity goes only in a 'nit:' prefix" \
+    || pass "3b opens with the ask"
 
 elif [ "$MODE" = diligence ]; then
   # Any diligence lane, not only lavamoat-policy: the envelope is <LANE>_DILIGENCE_START/_END
@@ -148,9 +149,9 @@ has 'VALIDATION_RUN_START' && has 'VALIDATION_RUN_END' \
   && pass "1 marker pair" \
   || fail "1 marker pair" "no VALIDATION_RUN_START/_END — a re-run appends a duplicate instead of replacing"
 
-has '## 🧪 Validation Run' \
+hasre '^#{2,4} 🧪 Validation Run' \
   && pass "2 canonical header" \
-  || fail "2 canonical header" "missing '## 🧪 Validation Run'"
+  || fail "2 canonical header" "missing the '🧪 Validation Run' heading (## in the private record, #### under ### **After** in a PR body)"
 
 hasre '^\*\*Verdict:\*\*.*\*\*Claim:\*\*' \
   && pass "3 verdict line" \
@@ -246,7 +247,7 @@ if [ "$MODE" = diligence ] || [ "$MODE" = inline ] || [ "$MODE" = reply ]; then
     pass "5 captured artifact"
   fi
 elif ! hasre '!\[[^]]*\]\(https?://|<img [^>]*src="https?://|actions/runs/[0-9]|/gist\.|https?://[^ )]+\.(png|jpg|jpeg|gif|svg|txt|log|json)\b'; then
-  fail "5 captured artifact" "no reader-verifiable capture — an image of the tool surface, a run link, or a hosted artifact. A fenced block is the author\'s transcription, whatever produced it"
+  fail "5 captured artifact" "no reader-verifiable capture — an image of the tool surface, a run link, or a hosted artifact. A fenced block is the author\'s transcription, whatever produced it. A raw log or JSON dump counts only beside a link or visual that carries the verdict"
   # No separate attribution test: a hosted artifact the reader fetches is its own
   # attribution, and requiring `Produced by` on top of it only fails runs whose
   # evidence is stronger than a stamped fenced block.
@@ -295,13 +296,16 @@ fi
 # pass and that was wrong" — an instance of (a) that the enumeration still missed.
 #
 # Quoted text and code are exempt: a blockquote carries someone else's words, and a fence
-# carries source. In --inline mode "I'd suggest" is exempt too: it is a request form the
-# account holder chose for their own review comments (2026-09-15, extension#46123).
-FIRSTPERSON="$(
-  awk '/^[[:space:]]*```/{f=!f; next} f{next} /^[[:space:]]*>/{next} {print}' "$FILE" \
-    | { if [ "$MODE" = inline ]; then sed -E "s/\b[Ii]'d suggest\b//g"; else cat; fi; } \
-    | grep -oiE "\\b(I|I'm|I've|I'd|I'll|my|mine)\\b" | head -4 | tr '\n' ' '
-)"
+# carries source. (b) is the run's own voice. In --inline and --reply the poster writes as
+# themself, so I and we for the poster's own stance and commitments are theirs; only (a), the
+# narration of the draft, applies there.
+FIRSTPERSON=""
+if [ "$MODE" != inline ] && [ "$MODE" != reply ]; then
+  FIRSTPERSON="$(
+    awk '/^[[:space:]]*```/{f=!f; next} f{next} /^[[:space:]]*>/{next} {print}' "$FILE" \
+      | grep -oiE "\\b(I|I'm|I've|I'd|I'll|my|mine)\\b" | head -4 | tr '\n' ' '
+  )"
+fi
 if [ -n "$FIRSTPERSON" ]; then
   fail "7 no first-person voice" "publishes in the first person ($FIRSTPERSON) under a human's byline — the account holder did not write this. Use \"not established\", \"this read did not\", \"not verified here\", or the passive: \"what is committed was diffed\""
 elif hasi "correction to my earlier|filed by me|hard to calibrate|earlier revision|previous revision|an earlier version of this|is withdrawn|that claim was wrong|^#{1,4} *Correction[: ]|corrected below|see the correction|in an earlier pass"; then
@@ -376,9 +380,9 @@ if grep -qE '^```diff' "$FILE"; then
 fi
 
 if envelope_na "10 floats something for review"; then :
-elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)(let's|could we|i'd suggest))" "$FILE"; then
+elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)(let's|could we|would it make sense to))" "$FILE"; then
   # An inline comment's float is its closing ask: a request ("Let's ...", "Could we ...",
-  # "I'd suggest ...") or a genuine question to the author. "Maybe" is a hedge, for when the
+  # "Would it make sense to ...") or a genuine question to the author. "Maybe" is a hedge, for when the
   # reviewer is actually unsure, and does not count as a request. Not an
   # "Open for review:" heading, which lives once on the body. Accepting only a trailing "?"
   # pushed fix requests into "Can the X ...?" closers, which read as either a request or a
@@ -386,8 +390,8 @@ elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)
   pass "10 floats something for review"
   # 10b -- the closing ask must read as a request. "Can the preload move ...?" puts an
   # inanimate subject under a question mark, so the author cannot tell a request from a
-  # yes/no question about feasibility. First-person forms ("Could we", "Let's", "I'd
-  # suggest") are unambiguous and pass. 2026-09-15, extension#46123.
+  # yes/no question about feasibility. "Could we", "Let's" and "Would it make sense to" are
+  # unambiguous and pass. "I'd suggest" reads as a command, not a request (2026-10-26).
   # 10c -- no prose paragraph over three sentences. A GitHub body keeps each paragraph on one
   # source line, so a line-count rule never sees a wall of text; the sentence is the unit that
   # works on every surface. 2026-09-15, extension#46123.
@@ -399,7 +403,7 @@ elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)
   fi
   LAST="$(awk '/^[[:space:]]*```/{f=!f; next} !f && NF {l=$0} END{print l}' "$FILE")"
   if printf '%s' "$LAST" | grep -qE '^(nit: )?(Can|Could|Will|Would|Should) (the|this|these|that|those|it|its) '; then
-    fail "10b closing ask reads as a request" "the last sentence asks whether a thing can happen, which reads as either a request or a yes/no question. Phrase it as a request: \"Could we ...\", \"Let's ...\", \"I'd suggest ...\""
+    fail "10b closing ask reads as a request" "the last sentence asks whether a thing can happen, which reads as either a request or a yes/no question. Phrase it as a request: \"Could we ...\", \"Let's ...\", \"Would it make sense to ...\""
   else
     pass "10b closing ask reads as a request"
   fi
@@ -413,6 +417,8 @@ fi
 # the reader needs before they read a verdict on their own PR from an unfamiliar source.
 # Compressed and moved to the foot of the page — which is what happens when it is edited
 # by the same rules as prose — it arrives after the reaction it exists to shape.
+# It belongs to the PR-body section and the private record only; a review carries the
+# disclaimer after its ask, once at most (/pr-comment).
 if envelope_na "11 disclaimer present and early"; then DISC="skip"
 elif [ "$MODE" = inline ]; then
   # Repeating the disclaimer on every inline comment is the noise the skill warns
