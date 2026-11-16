@@ -525,26 +525,15 @@ else
   pass "13 figures trace to an exhibit"
 fi
 
-# 14 — which reasoning passes ran, recorded where an AUDITOR reads it and a REVIEWER does not.
-# No check above can see whether the right question was asked before the lanes were chosen; a run
-# that takes its scope from the request inherits the requester's framing. So the run declares it.
-# It goes in an HTML comment beside the marker: internal skill names mean nothing to a reviewer and
-# reading them in the body is a context leak, so a gate demanding reader-facing provenance would
-# manufacture the very defect the coldread pass exists to catch. Fails closed either way.
-if envelope_na "14 reasoning passes declared"; then PASSES="skip"
-elif [ "$MODE" = inline ]; then
-  printf '  SKIP  %s\n' "14 reasoning passes declared — carried once by the body comment, not per inline"; PASSES="skip"
-else
-PASSES="$(grep -iE '^[[:space:]]*<!--[[:space:]]*passes-run:' "$FILE" | head -1)"
-if [ -z "$PASSES" ]; then
-  fail "14 reasoning passes declared" "no '<!-- passes-run: ... -->' comment — an auditor cannot tell which analyses stand behind this finding, or which were not attempted"
-elif ! printf '%s' "$PASSES" | grep -qiE 'falsifiers-first|none'; then
-  fail "14 reasoning passes declared" "'passes-run' does not name falsifiers-first (or state 'none') — lane selection that follows the request inherits its framing"
+# 14 — skill names stay out of reader-facing prose. A reviewer cannot use a list of internal
+# passes, and a provenance comment reaches no reader at all (output-templates.md, "Provenance a
+# reader cannot see is not provenance"), so no declaration is required; the check only fails a
+# visible "Passes run:" line.
+if envelope_na "14 no pass list in prose"; then PASSES="skip"
 elif grep -qiE '^[^<]*\bpasses run:' "$FILE"; then
-  fail "14 reasoning passes declared" "'Passes run:' appears in reader-facing prose — provenance belongs in the comment, not the body"
+  fail "14 no pass list in prose" "'Passes run:' appears in reader-facing prose — internal pass names mean nothing to a reviewer"
 else
-  pass "14 reasoning passes declared"
-fi
+  pass "14 no pass list in prose"
 fi
 
 # 15 — hard-wrapped prose. GitHub renders a single newline inside a comment body as a hard
