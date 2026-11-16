@@ -17,6 +17,17 @@ Every file that imports one of these directly, or reaches it through wrappers, b
 
 Requires `node` and `rg` (ripgrep) on `PATH`. Scripts live under `.agents/skills/mms-asset-selector-cleanup/scripts/`. Trace outputs are written outside the repo (a per-user cache directory, keyed per checkout), so a run never dirties the working tree; pass `--out-dir` to place them somewhere specific.
 
+## Consuming Directly From The Branch (Not Installed)
+
+If you are reading this on GitHub rather than from an installed copy, fetch the whole directory first — the scripts load their configs and sibling modules by relative path, so a single saved file is not enough:
+
+```bash
+git clone --depth 1 --branch fm/asset-selector-skill --filter=blob:none --sparse https://github.com/MetaMask/skills.git asc-skill
+git -C asc-skill sparse-checkout set domains/assets/skills/asset-selector-cleanup
+```
+
+The skill root is `asc-skill/domains/assets/skills/asset-selector-cleanup`. Substitute that path wherever the commands below say `.agents/skills/mms-asset-selector-cleanup`, and run them from inside the metamask-extension or metamask-mobile checkout: the scripts locate the target repo by walking up from the working directory, and `--repo extension` / `--repo mobile` overrides that detection. Nothing is installed into the target repo, and trace outputs still land outside it.
+
 ## When To Use
 
 - Migrating a consumer file off an assets-migration selector, or deprecating/removing an export from the root module.
