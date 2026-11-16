@@ -28,6 +28,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Name the package/controller target and fixtures, proven headless through `state`, `command` or `log` without PNGs (rules: proof-rules.md, Plan and baseline).
 - [ ] 7. Plan the baseline proof and apply the Mainnet policy
   Discover with `mm-harness actions --json` and `mm-harness run --list --json`; write `artifacts/recipe-decision.json` with the shared proof-decision fields (rules: proof-rules.md, Bug fixing).
+  An AC you cannot reach live (a failure you cannot trigger, a post-release metric) is recorded now as UNTESTABLE with its reason or as proof mode review; never leave it for the gate.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Draft the baseline recipe in reuse order
   When proof is required, draft `artifacts/recipe.json` asserting fixed behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).

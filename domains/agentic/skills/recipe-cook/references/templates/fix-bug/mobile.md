@@ -28,6 +28,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Mark ACs reachable only on an unavailable platform `UNTESTABLE: wrong platform`; never claim them later.
 - [ ] 7. Plan the baseline proof and apply the Mainnet policy
   Plan the expected buggy evidence and each AC's state (rules: proof-rules.md, Bug fixing).
+  An AC you cannot reach live (a failure you cannot trigger, a post-release metric) is recorded now as UNTESTABLE with its reason or as proof mode review; never leave it for the gate.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Add and commit the reproduction marker
   Add `DevLogger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition and observe it in `metro.log`.
