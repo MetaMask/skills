@@ -171,6 +171,28 @@ elif [ "$MODE" = diligence ] || [ "$MODE" = inline ]; then
     fail "4 citations pinned" "a permalink points at a branch head; it will drift off the line it cites. Pin a tag or a 40-char SHA"
   elif grep -qE 'https://github\.com/[^ )]+/blob/[^/]+/' "$FILE"; then
     pass "4 citations pinned"
+  elif [ "$MODE" = inline ] && python3 - "$FILE" <<'PYEOF'
+import re, sys
+# O5 (2026-11-16): an inline comment owes a permalink for CODE ELSEWHERE that it names (/pr-comment:
+# "Link code locations as permalinks"). One that carries no prose beyond a lead-in, or says one
+# sentence and names no file, names nothing elsewhere: its evidence is the anchored lines. Judged
+# against the rulings, 8 of 9 posted comments of that shape were false hits (a bare suggestion
+# block, "Cases for the cap and the kill switch:", "We'd need to reapply the yarn patch ... here.").
+# Two or more sentences of prose, or any file path, keeps the check: all 6 real hits had one or both.
+t = open(sys.argv[1]).read()
+prose = re.sub(r'```.*?(?:```|\Z)', ' ', t, flags=re.S).strip()
+if re.search(r'[\w.-]+/[\w./-]+|\b[\w-]+\.(?:ts|tsx|js|jsx|mjs|cjs|json|html|md|css|py|sh)\b', prose):
+    sys.exit(1)
+flat = re.sub(r'`[^`]*`', 'x', prose)
+flat = re.sub(r'\]\([^)]*\)', ']', flat)
+segs = [x.strip() for x in re.split(r'(?<=[.!?])\s+(?=[A-Z`])|\n\s*\n', flat) if x.strip()]
+# a closing request ("Could we ...?") after the block is the ask, not an explanation of other code
+if len(segs) > 1 and re.match(r"(?i)(?:nit:\s+)?(?:let's|could we|would it make sense to)\b", segs[-1]):
+    segs = segs[:-1]
+sys.exit(0 if len(segs) <= 1 else 1)
+PYEOF
+  then
+    pass "4 citations pinned"
   else
     fail "4 citations pinned" "no source permalink at all — the permalink IS the evidence here; a retyped 'it needs X' proves nothing about provenance"
   fi
@@ -433,6 +455,28 @@ elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)
     pass "10b closing ask reads as a request"
   fi
 elif hasi 'open for review|raise with a human|falsifier|worth a look|left unmeasured|not covered by this run|no verdict offered|does not establish|what it does not|cannot attribute|is not established|was not measured|were not re-read|is not part of this read'; then
+  pass "10 floats something for review"
+elif [ "$MODE" = inline ] && python3 - "$FILE" <<'PYEOF'
+import re, sys
+# O5 (2026-11-16): a comment that is its block, or ends on the lead-in /pr-comment prescribes before
+# one ("Something like:", "Here's a diff if it helps:"), floats its ask as the block. 4 of 4 such
+# posted comments were false hits. "I'd suggest taking the diff below" before a block is not this form
+# and stays a hit (it is the 2026-10-26 command-not-request ruling): only the exact lead-ins pass.
+t = open(sys.argv[1]).read()
+if not re.search(r'^```(?:suggestion|diff)\b', t, flags=re.M):
+    sys.exit(1)
+prose = re.sub(r'```.*?(?:```|\Z)', '\n', t, flags=re.S)
+lines = [l.strip() for l in prose.splitlines() if l.strip()]
+if not lines:
+    sys.exit(0)
+ok = re.search(r"(?i)(?:^|[.!?]\s+|nit:\s+)(?:something like|here(?:'s| is) (?:a|the) (?:diff|suggestion)(?: if it helps)?):$", lines[-1])
+# or the whole prose is one label line ending in a colon ("Cases for the cap and the kill switch:") that
+# does not itself make the "I'd suggest" ask
+label = (len(lines) == 1 and lines[0].endswith(':') and not re.search(r'[.!?]\s', lines[0])
+         and not re.search(r"(?i)\bi(?:'d| would) (?:suggest|recommend)\b", lines[0]))
+sys.exit(0 if (ok or label) else 1)
+PYEOF
+then
   pass "10 floats something for review"
 else
   fail "10 floats something for review" "no limit, open question, or falsifier named — an artifact that floats nothing implies its measurement was the whole surface"
