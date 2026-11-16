@@ -39,7 +39,7 @@ Do not "simplify" this to depend on the unstable value directly. The content key
 
 Flag the round-trip cast (`split` returns `string[]`) in the report — it is new surface area a reviewer should see.
 
-Verified on `app/components/UI/Assets/components/Balance/AccountGroupBalance.tsx` (1 failure to 0).
+Verified in metamask-mobile (1 failure to 0).
 
 ### `exhaustive-deps` disabled to add an extra dep
 
@@ -70,7 +70,44 @@ const { chartXMin, chartXMax } = useMemo(() => {
 
 Only sound if the new branch is unreachable or harmless. Check every consumer first — both readers here were already null-guarded, so an empty series yielding no domain changed nothing.
 
-Verified on `app/components/UI/AssetOverview/PriceChart/PriceChart.tsx` (revealed 3 further failures, see below).
+Verified in metamask-mobile (revealed 3 further failures in the same file, see the refs entry below).
+
+### `exhaustive-deps` disabled because a dep must stay out
+
+The effect reads a value on purpose without re-running when it changes — listing it would refetch, loop, or re-fire analytics. Read it through `useEffectEvent` (React 19.2+) and call the event from the effect. The event is not a dependency, so the honest dep list is the original one:
+
+```tsx
+const onLoaded = useEffectEvent(() => trackLoaded(selectedCurrency));
+
+useEffect(() => {
+  fetchQuote(id).then(onLoaded);
+}, [id]);
+```
+
+The compiler accepts it. Grep for existing `useEffectEvent` use before adopting it, and check the React version. If the omitted value is not a render snapshot the event can close over, a ref written by an earlier effect is the fallback.
+
+### `exhaustive-deps` disabled on an effect that calls a render-body helper
+
+An effect calls `const fetchX = async () => { ... }` declared in the render body, and the helper cannot be listed because it is new every render. Inline the helper's body into the effect and list what it actually reads. Do not list the helper, and do not wrap it in `useCallback` to make it listable — either way the effect re-runs every render.
+
+### `exhaustive-deps` disabled on a mount-only `[]` effect
+
+Adding the honest deps turns run-once into run-on-change. Add a run-once guard in the same edit:
+
+```tsx
+const ranRef = useRef(false);
+useEffect(() => {
+  if (ranRef.current) return;
+  ranRef.current = true;
+  if (prefill) setForm(prefill);
+}, [prefill]);
+```
+
+Without it, any object dep rebuilt between renders (`params?.prefill`) re-runs the effect, which sets state, which rebuilds the dep — an infinite loop that shows up in Jest as an out-of-memory crash (`Ineffective mark-compacts near heap limit`), not a failed assertion.
+
+If the effect must run only when a tracked dep becomes truthy, guard on that dep in the same check: `if (ranRef.current || !form.addMode) return;`. Setting the guard first latches it on the mount render, while the tracked dep is still falsy.
+
+Deleting the suppression often reveals the next failure in the same function — commonly a `try`/`finally` in the effect's async body.
 
 ---
 
@@ -98,9 +135,11 @@ const slideAnim = useAnimatedValue(0);
 
 The ref still exists, one stack frame up inside the hook, where it is opaque to the compiler. Nothing else in the file changes: the value has the same identity and lifetime, so effects, dep arrays, and animation calls all stay as they are. It also fixes the incidental waste in the original, which constructed a throwaway `Animated.Value` on every render.
 
-Prefer this over rung 2 whenever it applies. Rung 2 makes lifetime depend on `useMemo`, which React may discard; a hook wrapping a `useRef` guarantees it — and per "Keep the memoization" below, guarantees are what survive Jest with the compiler off.
+Do not move this one into an effect (rung 1): the value is read while rendering the animated style.
 
-Grep the codebase for the hook before adopting it. If it has precedent here it is a rename; if not, you are introducing an API in a migration pass, which needs a mention in the report.
+Prefer this over rung 2 whenever it applies. Rung 2 makes lifetime depend on `useMemo`, which React may discard; a hook wrapping a `useRef` guarantees it — and per "Keep the memoization" below, guarantees are what survive a test run with the compiler off.
+
+Grep the codebase for the hook before adopting it. If it has precedent in the repo it is a rename; if not, you are introducing an API in a migration pass, which needs a mention in the report.
 
 1. **Ref writes during render** move into an effect with no dep array:
 
@@ -115,6 +154,8 @@ useEffect(() => {
   updatePositionRef.current = updatePosition;
 });
 ```
+
+Declare that sync effect *before* any effect that reads the ref, since effects run in declaration order. This rung is for refs only written during render and read in effects or callbacks.
 
 2. **`useRef(createSomething(...))`** becomes `useMemo`. The `useRef` form re-runs the initializer every render and discards the result anyway, so this is a bug fix as well as a compiler fix. Update the read site from `x.current` to `x`.
 
@@ -134,15 +175,36 @@ const createChartPanResponder = ({
 
 5. **If the factory still needs "latest" values**, stop passing refs and pass the functions, memoizing on them.
 
+6. **A ref that means "the previous render's value"** and is read during render goes through the repo's `usePrevious` hook, if it has one. The value still lives in a ref, but inside the hook where the compiler cannot see it:
+
+```tsx
+const previousPrivacyMode = usePrevious(privacyMode);
+const skipBalanceAnimation = Boolean(previousPrivacyMode) && !privacyMode;
+```
+
+Do not swap it for `useState` plus an effect: the effect commits a second render, so a value meant to hold for exactly one frame (skip this animation) flips back before anything changed. `usePrevious` returns `undefined` on the first render, so check that the first-render result matches the old `useRef(current)` — for a boolean coerced with `Boolean(...)` it does.
+
+7. **A "previous key" ref that resets state when a prop changes** becomes state. Adjusting state during render is a supported React pattern, and the compiler accepts it once the key is no longer a ref:
+
+```tsx
+const [prevUriKey, setPrevUriKey] = useState(uriKey);
+if (prevUriKey !== uriKey) {
+  setPrevUriKey(uriKey);
+  setIndex(0);
+}
+```
+
+Do not move the reset into an effect: it would also run for the mount value, and the stale index would render for one frame first. If the reset also writes a Reanimated shared value, do it in the same branch with `.set()`.
+
 ### Keep the memoization
 
 Step 5 tempts you to delete the `useMemo` and let the compiler memoize the call. Do not, for two reasons.
 
-`react-hooks/exhaustive-deps` is still enforced here and will error that the function "makes the dependencies of useMemo change on every render". Wrap the function in `useCallback` instead — the lint rule cannot see that the compiler already memoized it.
+Where `react-hooks/exhaustive-deps` is still enforced (metamask-mobile), it will error that the function "makes the dependencies of useMemo change on every render". Wrap the function in `useCallback` instead — the lint rule cannot see that the compiler already memoized it.
 
-More importantly, the compiler is **disabled under Jest** (`scripts/react-compiler.js` gates on `NODE_ENV === 'test'`). Anything whose *correctness* depends on compiler memoization behaves differently in tests than in the app. A `PanResponder` that is rebuilt every render loses its gesture state mid-drag, so its stability has to survive without the compiler.
+More importantly, a repo may disable the compiler **under Jest** (metamask-mobile does: `scripts/react-compiler.js` gates on `NODE_ENV === 'test'`). There, anything whose *correctness* depends on compiler memoization behaves differently in tests than in the app. A `PanResponder` that is rebuilt every render loses its gesture state mid-drag, so its stability has to survive without the compiler.
 
-Verified on `app/components/UI/AssetOverview/PriceChart/PriceChart.tsx` (4 failures to 0, ESLint clean, 25 tests passing), and on `SlidingPillToggle.tsx` + `AlertAmountInput.tsx` in `app/components/UI/Assets/PriceAlerts/components` (12 failures to 0 via rung 0 alone, one line each).
+Verified in metamask-mobile on a chart with a `PanResponder` (4 failures to 0, ESLint clean, tests passing), and on two animated inputs (12 failures to 0 via rung 0 alone, one line each).
 
 The count per site is noise — the same `useRef(new Animated.Value(...)).current` reported 7 failures in one file and 5 in another, one per downstream use. One construct, many diagnostics: fix the construct and they all clear at once, so do not budget effort by failure count.
 
@@ -194,7 +256,6 @@ Three mechanical substitutions, no control flow changes.
 **`throw` moves behind a module-scope function returning `never`.** The `never` annotation preserves TypeScript's narrowing, so the guard still convinces the compiler that `target` is defined afterwards.
 
 ```tsx
-// Extracted because React Compiler (BuildHIR) cannot lower a `throw` written inside a try/catch.
 function failRequest(message: string): never {
   throw new Error(message);
 }
@@ -205,7 +266,9 @@ const response = await deleteAlertByType(target);
 if (!response.ok) failRequest(`HTTP ${response.status}`);
 ```
 
-Comment this one, in a single line that leads with *why it was extracted* and names `BuildHIR` — a bare thrower otherwise reads like indirection for its own sake, and the diagnostic name is what lets the next reader search it and know when the helper can go.
+Write it as a `function` declaration, not `const failRequest = (message: string): never => { ... }`. TypeScript only narrows on a `never`-returning call when the callee is declared with an explicit type, and an arrow assigned to an unannotated `const` does not count — `target` stays possibly undefined after the guard (`TS2345` / `TS18048`).
+
+Do not add a comment saying it exists for the compiler. Name the `BuildHIR` diagnostic in the commit message and PR body instead.
 
 **Value blocks in the `try` get hoisted behind a helper.** Usually this is a repeated optional-chained call. Wrapping it once removes the construct from every `try` at the same time, and reads better than the original:
 
@@ -239,7 +302,7 @@ Note what this does *not* do: compute the value above the `try`. That is the tem
 1. **The `catch` does not rethrow.** If the `try` throws, `catch` handles it and execution falls through to the next statement. A rethrowing `catch` skips the trailing statement entirely, and the `finally` guarantee was real — flag it instead of rewriting.
 2. **Neither the `try` nor the `catch` can exit early past the relocated code** — no `return`, `break`, or `continue`. `finally` runs on those paths; a trailing statement does not. This one is easy to miss because the early exit is often several lines above the `finally`.
 
-If precondition 2 fails, the rewrite is still valid when the relocated statements are provably no-ops on exactly those exit paths — but you have to show it. In `usePopularTokens.ts` both blocks `return` early on `fetchId !== fetchIdRef.current`, and the relocated body is wrapped in `if (fetchId === fetchIdRef.current)`, the exact negation, so the old `finally` did nothing on those paths:
+If precondition 2 fails, the rewrite is still valid when the relocated statements are provably no-ops on exactly those exit paths — but you have to show it. In one fetch hook both blocks `return` early on `fetchId !== fetchIdRef.current`, and the relocated body is wrapped in `if (fetchId === fetchIdRef.current)`, the exact negation, so the old `finally` did nothing on those paths:
 
 ```ts
 try {
@@ -251,8 +314,6 @@ try {
   setError(/* ... */);
 }
 
-// was `finally` — the guard is the negation of both early returns,
-// so relocating it out of the finally changes nothing
 if (fetchId === fetchIdRef.current) {
   setIsInitialLoading(false);
   setIsRefreshing(false);
@@ -265,7 +326,7 @@ The result should be a diff of substitutions: `throw new Error(x)` to `failReque
 
 The three diagnostics surface in sequence, so the value-block error usually appears only once the `finally` and `throw` errors are gone, and a stale dep array often follows. Not always, though — a file with one `finally` and no other rejected syntax is genuinely done after one edit. Let the marker decide when you are finished rather than digging for a cascade the skill led you to expect.
 
-Validated on `useOpenPositionForAsset.ts` (ASSETS-4331, PR 39600): the file bailed on `traderId ?? ''` written as an argument inside the `try`, while the same function's `catch` kept its ternary and `&&` test untouched — value blocks in the `catch` are not a bailout; leave them. The fix that cleared the file moved the `try` expressions into a module-level helper **called from inside the `try`** (calls are allowed, and the protected span is unchanged): CompileSuccess, memoBlocks 7, memoValues 7, pruned 0/0, directory failed files 2 → 1. Do not hoist the expression above the `try` instead — that moves the read outside the `catch`'s protection. And do not rewrite the `catch` into nested `if`s when the marker is already clean.
+Validated in metamask-mobile: a hook bailed on `traderId ?? ''` written as an argument inside the `try`, while the same function's `catch` kept its ternary and `&&` test untouched — value blocks in the `catch` are not a bailout; leave them. The fix that cleared the file moved the `try` expressions into a module-level helper **called from inside the `try`** (calls are allowed, and the protected span is unchanged): CompileSuccess, memoBlocks 7, memoValues 7, pruned 0/0, directory failed files 2 → 1. Do not hoist the expression above the `try` instead — that moves the read outside the `catch`'s protection. And do not rewrite the `catch` into nested `if`s when the marker is already clean.
 
 ---
 
@@ -283,9 +344,9 @@ sharedValue.set(withTiming(target, { duration: 300 }));
 
 Reads pair with `sharedValue.get()` where a worklet needs the current value.
 
-An effect-scoped write is a different case. On compiler 1.0.0, `sharedValue.value = withTiming(...)` written directly in a `useEffect` body is **not** a bailout: `ResourceRing.tsx` reached CompileSuccess with the effect write in place, and the effect write in `TokenDetailsStickyFooter.tsx` is absent from that file's failure list while its callback and worklet writes (lines 323, 352, 359, 371) bail. Run the marker instead of assuming either way — do not rewrite an effect-only `.value =` when `react-compiler-marker@0.2.0` plus the workspace `babel-plugin-react-compiler` already reports zero failures.
+An effect-scoped write is a different case. On compiler 1.0.0, `sharedValue.value = withTiming(...)` written directly in a `useEffect` body is **not** a bailout: one component reached CompileSuccess with the effect write in place, and in another the effect write was absent from the failure list while the same file's callback and worklet writes bailed. Run the marker instead of assuming either way — do not rewrite an effect-only `.value =` when `react-compiler-marker@0.2.0` plus the workspace `babel-plugin-react-compiler` already reports zero failures.
 
-Verified on `ResourceRing.tsx` and `TokenDetailsStickyFooter.tsx` (ASSETS-4320): effect-scoped write left as `.value =`, callback/worklet writes converted to `set()`/`get()`, CompileSuccess.
+Verified in metamask-mobile on two components: effect-scoped write left as `.value =`, callback/worklet writes converted to `set()`/`get()`, CompileSuccess. `.set()` in a `useCallback` and `.get()` inside a `useAnimatedStyle` worklet also pass `toHaveAnimatedStyle` assertions under Jest. The accessors exist on `SharedValue` from Reanimated 3.16; on an older version this fix is not available.
 
 ---
 
@@ -331,9 +392,9 @@ const filteredTransactions = getFilteredNonEvmTransactions(txs, {
 
 An unchanged dep array is the proof that a large extraction did not change when the memo recomputes. Type the parameter as a `Pick<...>` of the original so the field list stays honest.
 
-**Land the extraction inside the same build fence.** This block sits in `///: BEGIN:ONLY_INCLUDE_IF(keyring-snaps)`, and it uses imports that are themselves fenced — hoisting it to unfenced module scope compiles here and breaks the build that strips `keyring-snaps`. The original `let`s were unfenced only because they referenced nothing fenced. Check the imports your extracted code needs, wrap the extraction in the same fence, and confirm `BEGIN` and `END` counts still match.
+**Land the extraction inside the same build fence** (metamask-mobile's `///: BEGIN:ONLY_INCLUDE_IF(...)` code fences). This block sits in `///: BEGIN:ONLY_INCLUDE_IF(keyring-snaps)`, and it uses imports that are themselves fenced — hoisting it to unfenced module scope compiles here and breaks the build that strips `keyring-snaps`. The original `let`s were unfenced only because they referenced nothing fenced. Check the imports your extracted code needs, wrap the extraction in the same fence, and confirm `BEGIN` and `END` counts still match.
 
-Verified on `app/components/UI/TokenDetails/hooks/useTokenTransactions.ts` (2 failures to 0, revealing the logical-test failures below).
+Verified in metamask-mobile (2 failures to 0, revealing the logical-test failures below).
 
 ---
 
@@ -372,7 +433,7 @@ A same-operator chain of simple operands (`a && b && c`) is fine, so the hoist d
 
 For an expression-bodied arrow, convert to a block body so there is somewhere to hoist to — that, not the condition, is the only structural edit.
 
-Verified on `app/components/UI/TokenDetails/hooks/useTokenTransactions.ts` (3 occurrences to 0, ESLint and `tsc` clean, 484 tests passing).
+Verified in metamask-mobile (3 occurrences to 0, ESLint and `tsc` clean, tests passing).
 
 ---
 
@@ -392,7 +453,7 @@ That rename is out of scope for a migration pass: the name spans a presets modul
 
 The general rule: when a diagnostic names a *rule of React* rather than a syntax the compiler cannot lower, first establish that the code actually breaks the rule.
 
-Seen on `app/components/UI/AssetOverview/Price/Price.advanced.tsx` (not fixed, by design).
+Seen in metamask-mobile (not fixed, by design).
 
 ---
 
@@ -426,7 +487,7 @@ const handleDeFiRefresh = useCallback(async () => {
 
 Check one thing before using it: the call must always *return* a promise. `refresh` is declared `() => Promise<void>`, and an `async` function cannot throw synchronously, so `.finally` is guaranteed to attach. If the callee is synchronous, might return `undefined`, or could throw before returning, `.finally` either crashes or never attaches — in that case keep `try`/`finally` and move the whole thing into a module-scope helper instead.
 
-Verified on `app/components/UI/Assets/DeFiPositions/components/DeFiPositionsListV2.tsx` (1 failure to 0, 20 memo blocks, 0 pruned, 54 tests passing). The same shape sits in `DeFiPositionsList.tsx` and `Tokens/index.tsx`.
+Verified in metamask-mobile (1 failure to 0, 20 memo blocks, 0 pruned, tests passing). Pull-to-refresh handlers repeat this shape, so grep for siblings.
 
 ---
 
@@ -456,7 +517,7 @@ const accountId = useMemo(() => {
 
 Hoisting the optional access above the hook is the whole fix. It is also strictly more correct: `asset?.chainId` as a dep entry was always a promise the code could not keep, since the memo really did re-run whenever `asset` changed identity.
 
-Verified on `app/components/UI/TokenDetails/components/useAssetVisibility.ts` (2 failures to 0, then a hidden value-block failure surfaced — see below).
+Verified in metamask-mobile (2 failures to 0, then a hidden value-block failure surfaced).
 
 ### As a consequence of another fix
 
@@ -466,4 +527,4 @@ Also seen after extracting `toastRef?.current?.showToast` into a `showToast` hel
 
 Preserve odd-looking fallbacks exactly. `response.json().catch(() => [])` resets the cache to empty rather than to `previous`; that asymmetry is behavior, not a typo to tidy up mid-migration.
 
-Verified on `app/components/UI/Assets/PriceAlerts/Views/ManagePriceAlertsView/ManagePriceAlertsView.tsx` (6 failures to 0, ESLint clean, 203 tests passing).
+Verified in metamask-mobile (6 failures to 0, ESLint clean, tests passing).
