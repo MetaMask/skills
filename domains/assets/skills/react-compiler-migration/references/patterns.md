@@ -80,11 +80,13 @@ The effect reads a value on purpose without re-running when it changes — listi
 const onLoaded = useEffectEvent(() => trackLoaded(selectedCurrency));
 
 useEffect(() => {
-  fetchQuote(id).then(onLoaded);
+  fetchQuote(id).then(() => onLoaded());
 }, [id]);
 ```
 
-The compiler accepts it. Grep for existing `useEffectEvent` use before adopting it, and check the React version. If the omitted value is not a render snapshot the event can close over, a ref written by an earlier effect is the fallback.
+Call the event; do not pass it as a value, which `react-hooks` lint rejects. Grep for existing `useEffectEvent` use before adopting it, and check the React version. If the omitted value is not a render snapshot the event can close over, a ref written by an earlier effect is the fallback.
+
+Verified in metamask-mobile (suppression removed, CompileSuccess with marker 0.2.0 and compiler 1.0.0).
 
 ### `exhaustive-deps` disabled on an effect that calls a render-body helper
 
@@ -108,6 +110,8 @@ Without it, any object dep rebuilt between renders (`params?.prefill`) re-runs t
 If the effect must run only when a tracked dep becomes truthy, guard on that dep in the same check: `if (ranRef.current || !form.addMode) return;`. Setting the guard first latches it on the mount render, while the tracked dep is still falsy.
 
 Deleting the suppression often reveals the next failure in the same function — commonly a `try`/`finally` in the effect's async body.
+
+Verified in metamask-mobile (suppressions removed, ESLint clean, tests passing; the missing guard showed up first as the out-of-memory crash above).
 
 ---
 
@@ -194,7 +198,9 @@ if (prevUriKey !== uriKey) {
 }
 ```
 
-Do not move the reset into an effect: it would also run for the mount value, and the stale index would render for one frame first. If the reset also writes a Reanimated shared value, do it in the same branch with `.set()`.
+Do not move the reset into an effect: it would also run for the mount value, and the stale index would render for one frame first. Only `setState` belongs in that branch. A shared-value write or any other external mutation is a side effect, so keep it in an effect keyed on the same value.
+
+Rungs 6 and 7 verified in metamask-mobile (CompileSuccess, pruned memo blocks 0) and on a minimal reproduction with marker 0.2.0 and compiler 1.0.0; the same reset held in a `useRef` still fails with `Cannot access refs during render`.
 
 ### Keep the memoization
 
@@ -268,7 +274,7 @@ if (!response.ok) failRequest(`HTTP ${response.status}`);
 
 Write it as a `function` declaration, not `const failRequest = (message: string): never => { ... }`. TypeScript only narrows on a `never`-returning call when the callee is declared with an explicit type, and an arrow assigned to an unannotated `const` does not count — `target` stays possibly undefined after the guard (`TS2345` / `TS18048`).
 
-Do not add a comment saying it exists for the compiler. Name the `BuildHIR` diagnostic in the commit message and PR body instead.
+Do not add a comment saying it exists for the compiler. Name the `BuildHIR` diagnostic in the commit message and PR body instead. The declaration-versus-arrow difference was hit in metamask-mobile and reproduces under `tsc --strict`.
 
 **Value blocks in the `try` get hoisted behind a helper.** Usually this is a repeated optional-chained call. Wrapping it once removes the construct from every `try` at the same time, and reads better than the original:
 
