@@ -269,7 +269,7 @@ Open the evidence section with a ledger:
 | network capture | ⏳ not-captured | — |
 ```
 
-Status vocabulary: `✅ proven` (link) · `⚠️ inconclusive` (name what's missing) · `➖ N/A` (reason) · `⏳ not-captured`. Mirror the `N/A — <reason>` convention the `### Screenshots` block already uses for no-UI PRs. Never upgrade a `⏳`/`⚠️` to a pass by omission.
+Status vocabulary: `✅ proven` (link) · `⚠️ inconclusive` (name what's missing) · `➖ N/A` (reason) · `⏳ not-captured`, each translated from the run record's claim and lane statuses as [evidence-record.md](evidence-record.md#publishing) maps them. Mirror the `N/A — <reason>` convention the `### Screenshots` block already uses for no-UI PRs. Never upgrade a `⏳`/`⚠️` to a pass by omission.
 
 **Sibling-PR parity:** when a set of PRs shares a claim shape (same program, same author, "root the X traces"), their ledgers must match lane-for-lane. A lane present on one and absent on another is either added or explicitly marked `➖ N/A — <reason>` — a bar that silently drifts between siblings is a finding.
 

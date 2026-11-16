@@ -7,7 +7,7 @@ or the same correction arrives again on the next run.
 Drafting a template in a scratch directory is how that goes wrong: the comment gets better and
 nothing else does.
 
-**Scope: the PR-body section of a PR you authored, and the private record.** A comment or review on a PR is written in `/pr-comment` format instead (*"mms-evidence output uses /pr-comment format"*, 2026-11-13); the rules below on ordering, one review per subject and replies still apply to it.
+**Scope: the PR-body section of a PR you authored, and the private record.** A comment or review on a PR is written in `/pr-comment` format instead (*"mms-evidence output uses /pr-comment format"*, 2026-11-13); the rules below on ordering, one review per subject and replies still apply to it. The private record's ids and status values are defined in [evidence-record.md](evidence-record.md); this file shapes how a run reads, not what its fields hold.
 
 ## The template
 

@@ -54,6 +54,7 @@ A PR makes a **falsifiable claim** ("privacy mode now hides the Perps balance"; 
 **Step 1 — extract the claim.** Read the PR (`gh pr view`, `gh pr diff`) *and the linked issue*, then write a **Claim Card** — the linchpin; every lane is only as good as the claim. Full rubric, anti-patterns, and special cases (refactor/no-op, bug-fix, perf, migration, flag-gated): **[references/claim-extraction.md](references/claim-extraction.md).**
 
 ```
+Id:        claim-<n>
 Claim:     Given <precondition>, when <action>, then <observable>.
 Surface:   <screen / API / metric>  (reachable? seed / flag / fallback: …)
 Type:      <visible | perf | telemetry | state | build | behavior>  → lanes <…>
@@ -82,7 +83,7 @@ A claim must be falsifiable, surface-specific, **anchored to the diff** (if the 
 | Navigation or redirect change: a redirect, route, tab or default destination added or removed, or a flag removal that changes where an entry point lands | **⭐ B7 ordering lane** — every navigator that can fire in the same window, unchanged code included | B3 per entry point; F5 if a flag chose the old destination |
 | Mechanical migration / "rename-only" refactor; a hand-written type/schema/constant/policy that restates a source | **⭐ D6 substitution A/B** at a fixed head (`compare` arm kind `substitution`) | B3 if behavior-visible; D1 for accidental output change |
 
-Lane IDs (A1, B3, …) index [references/evidence-catalog.md](references/evidence-catalog.md) — the full menu with verified capture commands and the complete matching guide. When a PR mixes claims (a UI fix that also shifts a metric), run more than one lane and assemble them into one bundle.
+Lane IDs (A1, B3, …) index [references/evidence-catalog.md](references/evidence-catalog.md); the run record writes them exactly as the catalog heads them, one bare token per field ([references/evidence-record.md](references/evidence-record.md)). The catalog is the full menu with verified capture commands and the complete matching guide. When a PR mixes claims (a UI fix that also shifts a metric), run more than one lane and assemble them into one bundle.
 
 ## When to use
 
@@ -400,7 +401,7 @@ inconclusive arm is not offset by another lane passing.
 2. **Correctness gates measurement.** `selector-recompute` fails outright on an unstable value,
    and that ordering generalises: a performance number over changed behaviour is not a
    performance result, it is a missed regression.
-3. **A `2` is load-bearing.** Report it as its own line. Averaging it away, or quoting the lanes
+3. **A `2` is load-bearing.** Report it as its own line; in the run record the lane is `ran` and the claim is `inconclusive`. Averaging it away, or quoting the lanes
    that passed, converts "we could not tell" into "it is fine".
 4. **Security and privacy findings route privately** regardless of what the other lanes say. A
    green performance lane does not make an egress finding publishable here.
@@ -455,7 +456,8 @@ set?"* would have been enough.
 The shape below is for the PR-body section of a PR you authored and for the private record, so re-runs
 replace idempotently instead of accumulating. In a PR body it sits as a `####` heading under the
 template's `### **After**` in Screenshots/Recordings, never in a section of its own; in the private
-record it opens with `##`:
+record it opens with `##`, and the record's ids, input and lane ledgers and claim statuses follow
+[references/evidence-record.md](references/evidence-record.md):
 
 ```markdown
 <!-- VALIDATION_RUN_START -->
@@ -639,13 +641,15 @@ Next: publish to PR body? (y/N)
 
 If a lane comes back inconclusive, say so and name what's missing — never upgrade a vacuous pass to "proven".
 
+The report-back above is for the person running the skill. The private record of the same run uses the closed vocabularies in [references/evidence-record.md](references/evidence-record.md): catalog lane ids, `held` / `refuted` / `inconclusive` / `not-run` per claim, a lane ledger of `ran` / `skipped` (closed reasons) / `failed`, and `claim-<n>` / `finding-<n>` ids that stay fixed across re-runs. `✅ proven` in a report-back or PR body is the record's `held`.
+
 ### When validation refutes the claim (❌)
 
 A refutation is a *successful* validation — the skill did its job. Report it constructively, do **not** publish a public "Failed" section to the author's PR unprompted:
 
 - **Lead with the falsifier you hit:** "Claim refuted — under privacy mode the Perps balance is still visible (screenshot)." Show the evidence that disproves it.
 - **Localize:** which lane, which surface, the exact observation vs the expected. Tie it to the diff if you can see why.
-- **Separate refuted from inconclusive:** refuted = evidence shows the claim is false; inconclusive = evidence couldn't be captured / was untrustworthy (trust-gate fail). Don't conflate.
+- **Separate refuted from inconclusive:** refuted = evidence shows the claim is false; inconclusive = evidence couldn't be captured / was untrustworthy (trust-gate fail). Don't conflate. A falsifier that was looked for and did not fire means the claim held; it is never recorded as refuted.
 - **Hand back, don't fix:** this skill proves behavior; fixing is the author's loop (or a `bug_fix`/`pr_feedback` run). Offer the repro, not a patch.
 - Surface privately first; only post to the PR if the author asks or it's your own PR.
 
@@ -703,6 +707,7 @@ Where evidence sits in the PR lifecycle (see the public `pr-workflow` siblings):
 - [references/claim-extraction.md](references/claim-extraction.md) — Step 1: turn a PR into a falsifiable Claim Card.
 - [references/evidence-catalog.md](references/evidence-catalog.md) — the full menu of evidence kinds, verified capture commands, and what each proves.
 - [references/evidence-trustworthiness.md](references/evidence-trustworthiness.md) — the anti-reward-hacking gate before believing/publishing a lane.
+- [references/evidence-record.md](references/evidence-record.md) — the private run record: lane ids, claim statuses, input and lane ledgers, finding ids.
 - [references/evidence-publishing.md](references/evidence-publishing.md) — PR-body format, non-visual/multi-lane rendering, image re-hosting, recordings→GIF, privacy scrub, ADR-0058 artifact contract.
 - [references/worked-examples.md](references/worked-examples.md) — end-to-end runs for perf / migration / flag-gated / refactor claims.
 - [references/lane-assertions.md](references/lane-assertions.md) — lane → declarative recipe-assertion mapping (ADR-0058 bridge).

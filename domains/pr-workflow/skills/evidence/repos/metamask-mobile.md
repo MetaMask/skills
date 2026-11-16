@@ -44,7 +44,7 @@ When the claim depends on a limit, the Jest result does not reach it: say which 
 
 ### Lanes that need a device
 
-A device is an iOS Simulator (a macOS host, driven by `idb`), an Android emulator (needs KVM), or a device farm. A lane, or a lane's device half, run without one ends **⚠️ inconclusive** and names itself: *"H4, device half (real suspension): not run, no device."* The Linux half's verdict stands for the claim it tested and never stands in for the device half. A device-only lane is not replaced by the nearest Linux mechanism; a component-view render proves a tree, not pixels.
+A device is an iOS Simulator (a macOS host, driven by `idb`), an Android emulator (needs KVM), or a device farm. A lane, or a lane's device half, run without one ends **⚠️ inconclusive** and names itself: *"H4, device half (real suspension): not run, no device."* In the [run record](../references/evidence-record.md) the device half is its own row (`lane: H4`, `subject: device half`) with `status: skipped`, `reason: input-unavailable`, `input: device`. The Linux half's verdict stands for the claim it tested and never stands in for the device half. A device-only lane is not replaced by the nearest Linux mechanism; a component-view render proves a tree, not pixels.
 
 ### The catalog's 41 lanes on mobile
 

@@ -23,6 +23,7 @@ The linchpin of evidence: before choosing any lane, turn the PR into a **falsifi
 ## Claim Card (output)
 
 ```
+Id:        claim-<n>
 Claim:     Given <precondition>, when <action>, then <observable>.
 Surface:   <screen / API / metric>  (reachable? seed / flag / fallback: …)
 Type:      <visible | perf | telemetry | state | build | behavior>  → lanes <A1, …>
@@ -30,7 +31,7 @@ Falsifier: <observation that would disprove the claim>
 Baseline:  <base ref | fails-on-main test | before-window>
 ```
 
-One card per claim. For a refactor, the claim is a **negation** (see below).
+One card per claim, numbered as the [run record](evidence-record.md#claim-and-finding-ids) numbers claims. For a refactor, the claim is a **negation** (see below).
 
 ## Claim quality bar
 
