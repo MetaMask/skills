@@ -625,7 +625,9 @@ only interesting to someone who knows how the tool works, cut it.
 
 ## Validation output format
 
-When reporting back (before publishing), lead with the verdict and the claim it tests:
+**The run's deliverable is `/pr-comment` drafts, whether or not posting is asked** (*"mms-evidence runs should produce /pr-comment output following evidence review rulings"*, 2026-11-16). One file per review unit, with its `<!-- target: … -->` header, shown in full; lanes CI already closes are dropped, a finding goes in only when it gives the author a choice, and an unrun lead lane makes the verdict inconclusive. The block below is the private run report beside those drafts, never a substitute for them. Enforced at `migrated-sensors.py::evidence_run_without_pr_comment`.
+
+When reporting back, lead with the verdict and the claim it tests:
 
 ```
 PR #<n> — <title>
@@ -636,7 +638,6 @@ Evidence:
   - perf_validation run <id> — M/M assertions proven
   - Sentry: <before/after link>
 Artifacts: <local paths or re-hosted URLs>
-Next: publish to PR body? (y/N)
 ```
 
 If a lane comes back inconclusive, say so and name what's missing — never upgrade a vacuous pass to "proven".
