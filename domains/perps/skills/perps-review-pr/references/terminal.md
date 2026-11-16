@@ -13,6 +13,7 @@ Hyperliquid-specific logic stays behind the `@metamask/perps-controller` provide
 Before implementation, MetaMask Mobile's matching flow, validation, copy and controller use are checked and matched unless the ticket explicitly requires a difference, which the PR explains.
 
 - [ ] **Unexplained Mobile divergence** — a flow, validation or copy that differs from the matching Mobile implementation without a stated reason. Cite the Mobile counterpart you read.
+- [ ] **Advanced order divergence** — TWAP, chase and scale orders (placement, validation, listing, status and cancel) match Mobile exactly; any difference blocks. Without a readable Mobile checkout this row is BLOCKED, never NOT_CHECKED.
 - [ ] **Formatting divergence** — formatting and display precision are never an explained divergence, even when the PR states it; apply the shared *Shared Formatting & Display Precision* check.
 
 <a id="reuse-and-types"></a>
