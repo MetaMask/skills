@@ -2,7 +2,7 @@
 
 The menu of evidence kinds for validating a MetaMask **extension** PR, with **what each proves**, **how to capture it (verified against the live repo)**, and **when to reach for it**. AEP is the primary autonomous engine; the rest are complementary. The skill's job is to **match evidence to the claim** and to **proactively suggest kinds the author didn't think of**.
 
-Pick the evidence that would **falsify the claim if it were false**. Prefer a lane that yields an artifact a reviewer can independently re-check (a link, an image, a number, a replayable trace) over prose. Don't run the whole menu — match, then capture. Capture commands cite `~/Code/metamask/metamask-extension`; verify script names against its `package.json` (they drift).
+Pick the evidence that would **falsify the claim if it were false**. Prefer a lane that yields an artifact a reviewer can independently re-check (a link, an image, a number, a replayable trace) over prose. Don't run the whole menu — match, then capture. Capture commands cite `~/Code/metamask/metamask-extension`; verify script names against its `package.json` (they drift). On a mobile PR, the skill's *MetaMask Mobile* section gives each lane's mobile mechanism and adds lanes H1–H13; what each lane proves is unchanged.
 
 Legend: **first-class lanes** are `##`-headed; closely-related variants are sub-bullets. Capture marked *(manual)* has no repo helper — it's a DevTools/CDP action.
 
