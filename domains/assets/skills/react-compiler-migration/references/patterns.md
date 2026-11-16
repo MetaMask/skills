@@ -90,7 +90,7 @@ Verified in metamask-mobile (suppression removed, CompileSuccess with marker 0.2
 
 ### `exhaustive-deps` disabled on an effect that calls a render-body helper
 
-An effect calls `const fetchX = async () => { ... }` declared in the render body, and the helper cannot be listed because it is new every render. Inline the helper's body into the effect and list what it actually reads. Do not list the helper, and do not wrap it in `useCallback` to make it listable — either way the effect re-runs every render.
+An effect calls `const fetchX = async () => { ... }` declared in the render body, and the helper cannot be listed because it is new every render. Inline the helper's body into the effect and list what it actually reads. Do not list the raw helper: it is new every render, so the effect re-runs every render. Wrapping it in `useCallback` with honest deps also works, but it adds a memo the migration does not need and a larger diff.
 
 ### `exhaustive-deps` disabled on a mount-only `[]` effect
 
@@ -208,7 +208,7 @@ Step 5 tempts you to delete the `useMemo` and let the compiler memoize the call.
 
 Where `react-hooks/exhaustive-deps` is still enforced (metamask-mobile), it will error that the function "makes the dependencies of useMemo change on every render". Wrap the function in `useCallback` instead — the lint rule cannot see that the compiler already memoized it.
 
-More importantly, a repo may disable the compiler **under Jest** (metamask-mobile does: `scripts/react-compiler.js` gates on `NODE_ENV === 'test'`). There, anything whose *correctness* depends on compiler memoization behaves differently in tests than in the app. A `PanResponder` that is rebuilt every render loses its gesture state mid-drag, so its stability has to survive without the compiler.
+More importantly, a repo may disable the compiler **under Jest** (metamask-mobile does; see the skill's Repo notes). There, anything whose *correctness* depends on compiler memoization behaves differently in tests than in the app. A `PanResponder` that is rebuilt every render loses its gesture state mid-drag, so its stability has to survive without the compiler.
 
 Verified in metamask-mobile on a chart with a `PanResponder` (4 failures to 0, ESLint clean, tests passing), and on two animated inputs (12 failures to 0 via rung 0 alone, one line each).
 

@@ -33,7 +33,7 @@ Never fix a bail-out by suppressing it. `"use no memo"`, a fresh `eslint-disable
 The CLI scans directories, not files, and resolves `babel-plugin-react-compiler` relative to the scanned path — so pass the plugin path explicitly and run from the repo root:
 
 ```bash
-npx -y react-compiler-marker@latest \
+npx -y react-compiler-marker@0.2.0 \
   --babel-plugin-path node_modules/babel-plugin-react-compiler \
   app/path/to/containing/dir
 ```
@@ -90,7 +90,7 @@ Zero failures is necessary, not sufficient. Add `--format json` and read the per
 The CLI writes progress to stderr, so redirect it or the output will not parse:
 
 ```bash
-npx -y react-compiler-marker@latest \
+npx -y react-compiler-marker@0.2.0 \
   --babel-plugin-path node_modules/babel-plugin-react-compiler \
   --format json app/path/to/dir 2>/dev/null
 ```
