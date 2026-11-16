@@ -1,6 +1,7 @@
 ---
 platforms: [mobile, ios, android, extension, chrome-extension, core, cli]
 description: Validate a frozen PR, range or landed-change window using a dynamic recipe set and required runtime smoke proof.
+produces: [artifacts/learnings.md, artifacts/recipe-quality.json]
 ---
 
 # Runtime QA checklist
