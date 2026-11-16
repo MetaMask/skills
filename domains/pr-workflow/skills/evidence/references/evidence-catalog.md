@@ -20,7 +20,7 @@ Legend: **first-class lanes** are `##`-headed; closely-related variants are sub-
 | **D. Build** | 7 | `D1` Bundle-size diff · `D2` Chunk membership / source-map · `D3` LavaMoat policy / supply-chain capability diff · `D4` Manifest permissions diff · `D5` Build-variant matrix · `D6` Authored-vs-authoritative substitution A/B · `D7` Build & rebuild duration A/B |
 | **E. Production telemetry** | 3 | `E1` Sentry query links · `E2` Tempo distributed traces · `E3` Sentry error-event / breadcrumb shape |
 | **F. Extension integrity (high-stakes, extension-specific)** | 8 | `F1` State migration / upgrade · `F2` Vault / keyring round-trip · `F3` Transaction simulation / gas · `F4` Provider / dapp connectivity · `F5` Feature-flag matrix · `F6` Snaps / multichain execution · `F7` i18n usage · `F8` SES lockdown / runtime containment |
-| **G. CI, review & process** | 6 | `G1` CI check links · `G2` Coverage delta · `G3` Automated-reviewer output · `G4` Manual reproduction steps · `G5` CI-workflow change, run on a test fork · `G6` CI job-duration delta |
+| **G. CI, review & process** | 6 | `G1` CI check links (not a lane) · `G2` Coverage delta (not a lane) · `G3` Automated-reviewer output · `G4` Manual reproduction steps · `G5` CI-workflow change, run on a test fork · `G6` CI job-duration delta |
 ---
 
 # A. AEP harness (primary, autonomous)
@@ -264,8 +264,8 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 
 # G. CI, review & process
 
-- **G1. CI check links** — `gh pr checks <n>`; link the full suite (AEP's bundle is often `partial`). Always worth a one-line "all green" + link.
-- **G2. Coverage delta** — `yarn test:unit:coverage` → `coverage/unit/` (and `yarn test:unit:webpack:coverage`); `codecov.yml`. Proves the new code is exercised.
+- **G1. CI check links** — not a lane, and never restated: the Checks tab already shows them. Before any lane, mutate the mechanism and run the PR's committed test that covers it. If that test fails, CI already closes the falsifier, and the lane is dropped from the output.
+- **G2. Coverage delta** — not a lane: CI already runs `yarn test:unit:coverage` and reports it (`report-coverage` in `run-tests.yml`), so re-running it re-verifies CI and quoting it narrates CI. A covered line can still pass with the change reverted; the mutation check under G1 is what shows a test closes the falsifier.
 - **G3. Automated-reviewer output** — independent bot (e.g. cursor[bot]) found nothing blocking. Complements, never replaces, behavior evidence.
 - **G4. Manual reproduction steps** — human-followable steps that reproduce the fixed behavior; populates the PR template's Manual testing steps.
 - **G5. CI-workflow change, run on a test fork** — a CI-YAML-only PR usually **cannot exercise the workflow it edits**: identical build output ⇒ builds reused from base ⇒ `needs-<X>=false` ⇒ the workflow is *skipped* (`get-requirements.yml:654`). Escape: push to a branch literally named **`main`** (or `stable`) on your own test fork of the repo — `IS_RUN_EVERYTHING_BRANCH` (line 48) disables `find-reusable-builds` (line 310), so the workflow runs; `IS_CROSS_REPO_PR` is false inside the fork. Requires the workflow's secrets on the fork (`INFURA_PROJECT_ID`, `TEST_SRP_*` for benchmarks; `vars.`-gated Sentry/AWS steps skip cleanly) and a fork sync first. **State fork-scope in the published evidence** — it proves the workflow logic, not a run on the canonical repo..
@@ -288,7 +288,7 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 | an error/crash fixed | E1 Sentry rate→0 | B3 test, A1 if visible |
 | a dep change is safe | D3 LavaMoat + D4 manifest | D1 size; supply-chain-audit's patch/resolutions/ignore lanes |
 | a mechanical migration / "rename-only" refactor | **D6 substitution A/B** (authored artifact vs its authoritative source) | B3 if behavior-visible; D1 for accidental output change |
-| a hand-written type/schema/policy restates a source | **D6 substitution A/B** | G1 checks (as the *premise*: it compiles, which is why nobody noticed) |
+| a hand-written type/schema/policy restates a source | **D6 substitution A/B** | — (green CI is the *premise*: it compiles, which is why nobody noticed) |
 | runtime containment / SES / scuttling | **F8 runtime containment** (on the shipped variant) | D3 policy; E1 for `Lockdown failed` events |
 | persisted-state change | **F1 migration** | F2 vault |
 | tx/confirmation behavior | F3 simulation | B2 e2e |
@@ -296,6 +296,6 @@ COOKIE_NAME=grafana_session COOKIE_VALUE="$sess" COOKIE_DOMAIN=<host> \
 | flag-gated behavior | F5 flag matrix | A1/B1 per state |
 | snap behavior | F6 snaps | E2 trace |
 | copy/localization | F7 i18n | A1 visual |
-| CI workflow behavior | **G5 fork run** (branch named `main`) | G1 checks, G4 repro steps |
+| CI workflow behavior | **G5 fork run** (branch named `main`) | G4 repro steps |
 
 Run the cheapest lane that yields an independently re-checkable artifact, confirm the claim holds, then escalate. Don't over-instrument a one-line copy fix; don't under-prove a startup-latency or migration claim with a single screenshot.

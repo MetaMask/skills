@@ -21,6 +21,7 @@ Twenty rules the rest of this skill implements. When a situation isn't covered b
 - **Falsifier coverage is not exhaustive — human intervention point.** There is no fixed checklist, so there is no completeness guarantee: the falsifiers found are bounded by claim-extraction quality and by what the reviewer thought to test. "Nothing turned up" is not "there is nothing to find." A human judges whether the falsifier chosen matches the claim's actual risk, and whether a mixed or high-stakes claim needed more than one — this skill closes the falsifiers it finds, it does not attest that it found all of them.
 - **Diff-anchored** — the claim is what the code *can* do, not what the PR body promises. Drift between them is a finding, not a claim.
 - **Surface-specific, and a surface need not be a screen** — a job graph, a build artifact, a policy file, or a telemetry shape are all legitimate surfaces with their own falsifiers.
+- **Gathered per merge stack, never per PR** — when PRs merge together, only the stack's final state reaches production. Run one arm at the stack's merge base and one at its top, and have every PR in the stack cite those runs. An intermediate PR head is never deployed, so a run there measures a state nobody will see. For telemetry, the claim that run tests is that the post-merge state leaves the data sane and analyzable.
 
 **What counts as evidence**
 - **Demonstrate, don't claim** — a verdict shows the objective met with an inspectable artifact. Prose asserting it is a vacuous pass.
@@ -37,12 +38,12 @@ Twenty rules the rest of this skill implements. When a situation isn't covered b
 
 **When to stop**
 - **Stop at the falsifier** — match the bar to the claim's risk; evidence past the closed falsifier is noise.
-- **Defer to CI** where CI already covers it, unless the coverage is itself the point.
+- **CI coverage is neither re-verified nor narrated** — mutate the mechanism and run the PR's committed test first; if it fails, CI already closes the falsifier, so the lane is dropped and left out of the output.
 - **State what was not covered** — steps that could not be automated are recorded as open, with the reason. A report listing only successes reads the same as one where nothing was checked.
 
 **How it is handled**
 - **Refutation is a successful validation** — report it, localize it, hand back the repro. Don't fix, and don't publish a failure to someone else's PR unprompted.
-- **Publish surface follows ownership** — the PR body when you authored it; a comment when validating someone else's.
+- **Publish surface follows ownership** — the PR body when you authored it; a comment when validating someone else's, written in `/pr-comment` format.
 - **Scrub before publishing, confirm before any public write** — local paths and usernames leak through failure summaries; one PR's approval does not carry to the next.
 - **Isolate concurrent runs** — colliding ports, artifact dirs, or upload paths cross-contaminate evidence *silently*. That is an integrity failure, not flakiness.
 
@@ -76,7 +77,7 @@ A claim must be falsifiable, surface-specific, **anchored to the diff** (if the 
 | A dependency change is safe | **D3 LavaMoat policy + D4 manifest diff** | D1 size |
 | Persisted-state change | **⭐ F1 migration** (`changedKeys`, old→new state) | F2 vault round-trip |
 | Tx / dapp / flag / snap / i18n behavior | **F3 sim · F4 provider · F5 flag matrix · F6 snaps · F7 i18n** | B2 e2e trace |
-| Behavior with no UI | **B3 test + G4 repro** | G1 CI checks |
+| Behavior with no UI | **B3 test + G4 repro** | — |
 | Mechanical migration / "rename-only" refactor; a hand-written type/schema/constant/policy that restates a source | **⭐ D6 substitution A/B** at a fixed head (`compare` arm kind `substitution`) | B3 if behavior-visible; D1 for accidental output change |
 
 Lane IDs (A1, B3, …) index [references/evidence-catalog.md](references/evidence-catalog.md) — the full menu with verified capture commands and the complete matching guide. When a PR mixes claims (a UI fix that also shifts a metric), run more than one lane and assemble them into one bundle.
@@ -126,7 +127,7 @@ AEP is primary but rarely sufficient alone. Pull whatever the claim needs — **
 - **D. Build output** — bundle-size, chunk membership, **LavaMoat policy diff**, manifest permissions diff, build-variant matrix.
 - **E. Production telemetry** — Sentry links (span-volume → `/sentry-quota`), Tempo traces, error-event shape.
 - **F. Extension integrity** — **⭐ state migration**, vault/keyring, tx simulation, provider/dapp, feature-flag matrix, snaps, i18n.
-- **G. CI/review/process** — check links, coverage delta, reviewer bot, manual repro.
+- **G. CI/review/process** — reviewer bot, manual repro, a CI-workflow change run on a test fork, CI job duration. CI's check results and coverage are not lanes.
 
 Screen recordings (motion a still can't prove): `mm` + a Playwright `recordVideo` preload → `ffmpeg` two-pass palette GIF (webm/mp4 don't render inline). See [references/evidence-publishing.md](references/evidence-publishing.md).
 
@@ -139,7 +140,7 @@ Match the bar to the claim; stop when the claim's falsifier is closed. Don't ove
 - **Lead + one corroborator** for perf/telemetry (a number *and* its source) and for anything user-facing that also moves a metric. **For a perf-targeting PR the lead lane is the measured impact itself** — a paired A/B benchmark at the current head (C5) or equivalent — never mechanism evidence alone (chunk membership, netlog exclusion prove the improvement is *possible*, not that it *happened*). A perf PR also always carries correctness + non-regression lanes: changed-surface tests green at head, affected flows exercised, neutral profile within noise. (2026-07-22, #42795 lesson.)
 - **Lead + integrity lane** for high-stakes surfaces regardless of size: persisted-state (migration + vault), money (tx simulation), permissions (LavaMoat + manifest), security/keyring. Size-S doesn't lower the bar here.
 - **Per-claim** for mixed PRs — each Claim Card needs its own closed falsifier; a strong UI proof doesn't cover the metric it also shifts.
-- **Rely on CI for routine coverage — don't re-collect what CI already establishes.** Lint, build, typecheck, the full test suite, changelog validation: CI is the authoritative source; **cite the check result** (e.g. "423 pass / 0 fail at head") instead of re-running it locally. Spend independent evidence only on (a) the claim's load-bearing falsifier, (b) specifically important/noteworthy areas (security, money, permissions, the exact changed surface), or (c) where the trust-gate warns a green result could be vacuous/misattributed. This is the economy counterpart to *"don't trust green blindly"*: that gate polices the **claim-critical** lane; this rule spares the **routine** coverage — re-collecting what CI covers is bundle noise. (#9628: cited CI's pass matrix for build/test, ran independent evidence only for the load-bearing homogeneity + resolution lanes.)
+- **CI coverage is neither re-verified nor narrated.** Before running a lane, run the PR's own committed tests against its falsifier: mutate the mechanism and run the test that covers it. If that test fails, CI already closes the falsifier. Drop the lane, and leave it out of the output entirely: no check counts, no "tests pass at head", no "CI already covers X". Only a falsifier the committed tests stay green under earns a lane, and only that lane's result is reported.
 
 Stop when each claim has one trustworthy artifact that would have shown its falsifier. More evidence past that is noise.
 
@@ -430,7 +431,9 @@ set?"* would have been enough.
 
 ### Canonical output shape
 
-Every validation-run output — PR comment *or* PR-body section — uses exactly this, so re-runs
+**A comment or review on a PR is written in `/pr-comment` format, not in this shape** (*"mms-evidence output uses /pr-comment format"*, 2026-11-13): the impact first, one ask in the last sentence, the change as a ```suggestion or ```diff block, `/pr-comment`'s per-unit length limits, and data and method behind `<details>`. No `## 🧪 Validation Run` header, no marker pair, no verdict line. Enforced at `hooks/pr-evidence-gate.py::_block_validation_run_comment`.
+
+The shape below is for the PR-body section of a PR you authored and for the private record, so re-runs
 replace idempotently instead of accumulating:
 
 ```markdown
@@ -559,7 +562,7 @@ Full recipe — image re-hosting, recordings, AEP mirroring, the privacy scrub:
 
 The parts that decide *whether* to publish, rather than how:
 
-- **Surface follows ownership** — the PR body when you authored it, a comment when validating
+- **Surface follows ownership** — the PR body when you authored it, a `/pr-comment`-format comment when validating
   someone else's. Never publish a failure to another author's PR unprompted.
 - **Post complete, once.** A comment is push: its audience is notified at post time and edits
   are silent, so hold until every planned lane is present, and put changed verdicts in a new

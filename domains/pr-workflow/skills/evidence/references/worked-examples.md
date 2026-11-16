@@ -25,6 +25,6 @@ Full runs: claim → lanes → capture → trust-gate → publish. The visual ca
 
 ## Refactor / no-op — "extract a hook, no behavior change"
 - **Claim (negation):** behavior of `<surface>` is unchanged. **Falsifier:** any output/behavior diff. **Baseline:** base behavior.
-- **Lanes:** B3 regression suite stays green + B4 snapshot diff empty + D1 bundle within noise.
+- **Lanes:** before any lane, change the extracted code's behavior and run the committed suite, snapshots included. A test that fails there is a falsifier CI already closes, so it gets no lane. Lanes go only to behavior the suite stays green under, plus D1 if the bundle could move.
 - **Trust gate:** snapshots were *not* regenerated to hide a diff; the tests actually cover the surface; bundle delta is within noise, not "small but real".
-- **Publish:** "no behavior change — regression suite green, snapshots unchanged, bundle ±0"; link CI. A passing screenshot is not evidence here.
+- **Publish:** only those lanes' results, such as "bundle ±0" from D1. No "regression suite green", no "snapshots unchanged", no CI link. A passing screenshot is not evidence here.

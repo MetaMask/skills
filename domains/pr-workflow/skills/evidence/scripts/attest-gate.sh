@@ -25,10 +25,11 @@ while [ $# -gt 0 ]; do
     --diligence) MODE="diligence"; shift ;;
     --reply)     MODE="reply"; shift ;;
     --parent)    PARENT="${2:-}"; shift 2 ;;
+    --inline)    MODE="inline"; shift ;;
     *) shift ;;
   esac
 done
-[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>] [--diligence|--reply] [--parent <file>]" >&2; exit 2; }
+[ -n "$FILE" ] || { echo "usage: attest-gate.sh <artifact.md> [--reference <file>] [--target <owner/repo#N>] [--diligence|--reply|--inline] [--parent <file>]" >&2; exit 2; }
 [ -f "$FILE" ] || { echo "attest-gate: not found: $FILE" >&2; exit 2; }
 
 FAILED=0
@@ -68,16 +69,80 @@ if [ "$MODE" = reply ]; then
   envelope_na "1 marker pair"
   envelope_na "2 canonical header"
   envelope_na "3 verdict line"
-elif [ "$MODE" = diligence ]; then
-  has 'LAVAMOAT_DILIGENCE_START' && has 'LAVAMOAT_DILIGENCE_END' \
-    && pass "1 marker pair" \
-    || fail "1 marker pair" "no LAVAMOAT_DILIGENCE_START/_END — a re-run appends a duplicate instead of replacing, and the pair must not be VALIDATION_RUN_* or an evidence re-run would eat this region"
+elif [ "$MODE" = inline ]; then
+  # An inline comment has no envelope: no marker pair (GitHub anchors it to a line, and a
+  # re-run replaces by comment id, not by marker), no canonical header, no verdict line. It
+  # still carries every substantive obligation — pinned citations, no process narration, no
+  # "what would close it", figures tracing to an exhibit.
+  #
+  # Without this mode the only options were --diligence, under which a perfectly good inline
+  # comment fails four to six envelope checks, or no gate at all. Seven inline comments shipped
+  # ungated on #45504 for exactly that reason: a check that cannot pass teaches you to skip it.
+  printf '  SKIP  %s\n' "1 marker pair — an inline comment is anchored by id, not by marker"
+  printf '  SKIP  %s\n' "2 canonical header — an inline comment has no header"
+  printf '  SKIP  %s\n' "3 verdict line — an inline comment carries a valence phrase instead"
 
-  hasre '^\*\*LavaMoat grants|^LavaMoat grants' \
+  # The inline counterpart of the header: <emoji> **<valence phrase> — <finding>**
+  hasre '^(🔴|⚠️|ℹ️|✅|🟢|🟡|🔵|🟠|⚪|🔒)[[:space:]]+(nit:[[:space:]]+)?\*\*[^*]*—' \
+    && pass "3b valence phrase opener" \
+    || fail "3b valence phrase opener" "no '<emoji> **<valence phrase> — <finding>**' opener — an emoji alone states nothing, and the phrase is what forces the judgement into a sentence"
+
+elif [ "$MODE" = diligence ]; then
+  # Any diligence lane, not only lavamoat-policy: the envelope is <LANE>_DILIGENCE_START/_END
+  # with a matching _END, and the opener is a bold one-line subject. Hardcoding the lavamoat
+  # strings meant every other diligence read (deeplink, privacy-egress) failed checks 1 and 2
+  # for having the wrong lane name, which is not a defect in the comment.
+  LANE="$(sed -n 's/.*<!--[[:space:]]*\([A-Z0-9_]\{1,\}\)_DILIGENCE_START[[:space:]]*-->.*/\1/p' "$FILE" | head -1)"
+  if [ -n "$LANE" ] && has "${LANE}_DILIGENCE_END"; then
+    pass "1 marker pair"
+  else
+    fail "1 marker pair" "no <LANE>_DILIGENCE_START/_END pair — a re-run appends a duplicate instead of replacing, and the pair must not be VALIDATION_RUN_* or an evidence re-run would eat this region"
+  fi
+
+  hasre '^\*\*[^*]+\*\*[[:space:]]*$' \
     && pass "2 canonical header" \
-    || fail "2 canonical header" "missing the 'LavaMoat grants — <package> <old> -> <new>' opener"
+    || fail "2 canonical header" "no bold one-line subject opener (e.g. '**LavaMoat grants — <package> <old> -> <new>**') — the reader cannot tell what was read from what"
 
   printf '  SKIP  %s\n' "3 verdict line — a diligence comment renders none, by contract"
+
+  # 3c — a body's FINDING sections carry a valence marker, exactly as inline comments do.
+  # The rule ("every applicable finding, on every surface") was written the same day the
+  # --inline valence check was, and enforcement landed only on the inline path — so the one
+  # surface where the markers were actually dropped had nothing checking it. #45111 shipped
+  # a body with three findings and zero markers while the gate reported phase 0 clean.
+  #
+  # Residue sections are not findings and are exempt by name; anything else headed `###`
+  # is treated as a finding and must open with a marker.
+  UNMARKED="$(
+    grep -E '^###[[:space:]]' "$FILE" \
+      | grep -vE '^###[[:space:]]*(🔴|⚠️|ℹ️|✅|❓|🟢|🟡|🔵|🟠|⚪|🔒)' \
+      | grep -viE 'not established|not checked|not covered|open for review|worth coordinating|residue' \
+      | head -3
+  )"
+  if [ -n "$UNMARKED" ]; then
+    fail "3c finding sections carry a marker" "headed section with no valence marker: $(printf '%s' "$UNMARKED" | head -1) — a marked set is scannable, a partly-marked one is worse than none because the reader cannot tell neutral from undecided"
+  else
+    # A body whose findings are all bolded rather than headed still needs at least one.
+    # A finding may head a section (### 🔴 …) or be the summary of a collapsed one
+    # (<details><summary>🔴 …). Both are marked; only the pattern differed.
+    if grep -qE '^(###[[:space:]]*|<details><summary>)?(🔴|⚠️|ℹ️|✅|🟢|🟡|🔵|🟠|⚪|🔒)' "$FILE"; then
+      pass "3c finding sections carry a marker"
+    else
+      fail "3c finding sections carry a marker" "no valence marker anywhere in the body — every finding it states arrives unranked"
+    fi
+  fi
+
+  # 3d — a marker set that does not say what it grades is decoration. The severity scale
+  # (🔴/⚠️/ℹ️/✅) is the validation-run axis; a lane with its own dispositions has a different
+  # one, and importing the scale makes the least-committal marker the residue class for
+  # everything it cannot express. #45664 shipped ℹ️ on both the deliverable and on background.
+  if grep -qE '(🔴|⚠️|ℹ️|✅|🟢|🟡|🔵|🟠|⚪|🔒)' "$FILE"; then
+    if grep -qiE 'graded on|the axis|markers? (mean|read)|key:|— removable|scale below' "$FILE"; then
+      pass "3d marker scale declares its axis and key"
+    else
+      fail "3d marker scale declares its axis and key" "markers are used with no stated axis and no key — a reader meeting one has nothing to resolve it against, and the same marker silently covers findings needing different actions"
+    fi
+  fi
 else
 has 'VALIDATION_RUN_START' && has 'VALIDATION_RUN_END' \
   && pass "1 marker pair" \
@@ -100,13 +165,29 @@ fi
 # that can rot is a branch-head link drifting out from under the line it names.
 if [ "$MODE" = reply ]; then
   envelope_na "4 environment pinned"
-elif [ "$MODE" = diligence ]; then
+elif [ "$MODE" = diligence ] || [ "$MODE" = inline ]; then
   if grep -qE 'https://github\.com/[^ )]+/blob/(main|master|develop|HEAD)/' "$FILE"; then
     fail "4 citations pinned" "a permalink points at a branch head; it will drift off the line it cites. Pin a tag or a 40-char SHA"
   elif grep -qE 'https://github\.com/[^ )]+/blob/[^/]+/' "$FILE"; then
     pass "4 citations pinned"
   else
     fail "4 citations pinned" "no source permalink at all — the permalink IS the evidence here; a retyped 'it needs X' proves nothing about provenance"
+  fi
+
+  # 4b — check 4 is EXISTENCE (>=1 permalink anywhere); this is COVERAGE. A line-level "does
+  # this line contain a URL" test is not enough: the line can carry a permalink to something
+  # else entirely, which is how "the full grant table is in the policy review comment on this
+  # PR" shipped on a line holding four dependency links. Strip markdown link spans first, then
+  # look for the referring expression in what is left — containment, not proximity.
+  DANGLING="$(
+    sed 's/\[[^]]*\]([^)]*)//g' "$FILE" \
+      | grep -onE '(in|see|per|from) the [a-z][a-z -]{2,30}(comment|review|body|section|table|thread)' \
+      | head -2
+  )"
+  if [ -n "$DANGLING" ]; then
+    fail "4b cross-references resolve" "a referring expression names a sibling artifact and is not itself a link: $(printf '%s' "$DANGLING" | head -1) — the reader must search for something whose URL you hold"
+  else
+    pass "4b cross-references resolve"
   fi
 else
 hasre 'head `[0-9a-f]{7,}|sha256|node `v|yarn\.lock `|[Ff]irefox [0-9]+\.[0-9]|[Cc]hrom(e|ium) [0-9]+\.|[Ss]afari [0-9]+\.|[Nn]ode v?[0-9]+\.[0-9]' \
@@ -144,7 +225,7 @@ fi
 # So the trigger is "did this artifact show a command or a run result", which is the
 # diligence conditional, already reviewed. A reply that pastes terminal output still owes
 # the reader something fetchable.
-if [ "$MODE" = diligence ] || [ "$MODE" = reply ]; then
+if [ "$MODE" = diligence ] || [ "$MODE" = inline ] || [ "$MODE" = reply ]; then
   # A permalink is the medium for a CITATION — a reader clicks it and lands on the line. It is
   # not the medium for anything you RAN. The first version of this branch tested for phrases
   # ("npm pack", "complete specifier set") and passed an artifact whose entire results section
@@ -200,10 +281,33 @@ fi
 # The list grew after a comment shipped a '### Correction:' section retracting its own
 # previous revision in place — right instinct, wrong surface. Retract by restating the
 # finding correctly; the account of how it changed belongs in a postmortem.
-if hasi "I originally|correction to my earlier|filed by me|hard to calibrate|I withdraw|my earlier comment|earlier revision|previous revision|an earlier version of this|is withdrawn|that claim was wrong|^#{1,4} *Correction[: ]|corrected below|see the correction"; then
-  fail "7 no process narration" "contains first-person process commentary — the reader did not see the earlier draft, and the byline may not be yours"
+# Two separate defects, one check.
+#
+# (a) Drafting history is the author's, not the reader's: a reader who never saw the earlier
+#     version learns nothing from being told it existed.
+# (b) FIRST-PERSON AT ALL. These publish under a human's GitHub account, so "I did not verify
+#     the version numbers" reads as that person personally declining to check — when a bot
+#     wrote it. The byline is theirs; the voice must not impersonate them.
+#
+# The previous pattern named (b) in its own rationale ("the byline may not be yours") and
+# implemented only (a), as a fixed list of retraction phrases. Fifteen distinct first-person
+# phrases shipped across five PRs while it passed, including "I said otherwise in an earlier
+# pass and that was wrong" — an instance of (a) that the enumeration still missed.
+#
+# Quoted text and code are exempt: a blockquote carries someone else's words, and a fence
+# carries source. In --inline mode "I'd suggest" is exempt too: it is a request form the
+# account holder chose for their own review comments (2026-09-15, extension#46123).
+FIRSTPERSON="$(
+  awk '/^[[:space:]]*```/{f=!f; next} f{next} /^[[:space:]]*>/{next} {print}' "$FILE" \
+    | { if [ "$MODE" = inline ]; then sed -E "s/\b[Ii]'d suggest\b//g"; else cat; fi; } \
+    | grep -oiE "\\b(I|I'm|I've|I'd|I'll|my|mine)\\b" | head -4 | tr '\n' ' '
+)"
+if [ -n "$FIRSTPERSON" ]; then
+  fail "7 no first-person voice" "publishes in the first person ($FIRSTPERSON) under a human's byline — the account holder did not write this. Use \"not established\", \"this read did not\", \"not verified here\", or the passive: \"what is committed was diffed\""
+elif hasi "correction to my earlier|filed by me|hard to calibrate|earlier revision|previous revision|an earlier version of this|is withdrawn|that claim was wrong|^#{1,4} *Correction[: ]|corrected below|see the correction|in an earlier pass"; then
+  fail "7 no first-person voice" "narrates its own drafting history — the reader never saw the earlier draft. Retract by restating the finding correctly; the account of how it changed belongs in a postmortem"
 else
-  pass "7 no process narration"
+  pass "7 no first-person voice"
 fi
 
 if [ "$MODE" = diligence ]; then
@@ -238,8 +342,68 @@ fi
 # it blind to a limit phrased outside the list — a real run stated its limit as "what it
 # does not establish" and the check called it absent. Add phrases when that happens;
 # judging whether the stated limit is substantive is the dispatched passes' job.
+# 17 -- a comment that ASKS for a change ships the change. Not a formatting preference:
+# writing the block forces a read of the lines being changed, and prose does not. On
+# 2026-09-17 a reply told an author their objection was wrong, on a mechanism read one
+# field over -- `endTrace` applies `data`, `trace` applies `tags`, and the value in
+# question was a tag. Four prose passes ran over that draft and none required opening the
+# file; the error died the moment a diff had to name lines. Measured on the same review:
+# 5 of 5 line comments carried a block, 0 of 2 replies did, and this gate had no check.
+if [ "$MODE" = inline ] && grep -qiE "((^|[.!?][[:space:]]+)(let's|could we|i'd suggest))" "$FILE"; then
+  if grep -qE '^```(suggestion|diff)' "$FILE"; then
+    pass "17 a requested change ships as a block"
+  else
+    fail "17 a requested change ships as a block" \
+      "this asks for a change and shows none. Write the suggestion or diff block: if it cannot be written without opening the file, that is the point of it, and a proposal you can phrase but cannot diff is one you have not checked"
+  fi
+fi
+
+# 17b -- check 17 matches a FENCE, not an applicable change, and a bare `@@` elision is the
+# escape hatch it leaves open. Check 17's own rationale is that "writing the block forces a
+# read of the lines being changed"; an elided diff forces nothing, because `@@` is exactly
+# where the unread lines were skipped. A `suggestion` block is machine-applicable and a
+# complete hunk is applicable by hand; a sketch with `@@` in it can be applied by nobody and
+# passes 17 all the same. Measured 2026-09-18 on review 5240312753: 3 of 5 blocks carried a
+# bare `@@`, every one of them green on 17. A real unified-diff header (`@@ -12,7 +12,6 @@`)
+# is not an elision and is allowed.
+if grep -qE '^```diff' "$FILE"; then
+  if grep -qE '^@@[[:space:]]*$' "$FILE"; then
+    fail "17b a diff block is complete, not elided" \
+      "a bare '@@' marks lines the block skipped, so nobody can apply it and nothing forced you to read them. Write one complete hunk with its context, or a 'suggestion' block, which GitHub applies in one click"
+  else
+    pass "17b a diff block is complete, not elided"
+  fi
+fi
+
 if envelope_na "10 floats something for review"; then :
-elif hasi 'open for review|raise with a human|falsifier|worth a look|left unmeasured|not covered by this run|no verdict offered|does not establish|what it does not|cannot attribute'; then
+elif [ "$MODE" = inline ] && grep -qiE "(\?[[:space:]]*$)|((^|[.!?][[:space:]]+)(let's|could we|i'd suggest))" "$FILE"; then
+  # An inline comment's float is its closing ask: a request ("Let's ...", "Could we ...",
+  # "I'd suggest ...") or a genuine question to the author. "Maybe" is a hedge, for when the
+  # reviewer is actually unsure, and does not count as a request. Not an
+  # "Open for review:" heading, which lives once on the body. Accepting only a trailing "?"
+  # pushed fix requests into "Can the X ...?" closers, which read as either a request or a
+  # yes/no question (2026-09-15, extension#46123).
+  pass "10 floats something for review"
+  # 10b -- the closing ask must read as a request. "Can the preload move ...?" puts an
+  # inanimate subject under a question mark, so the author cannot tell a request from a
+  # yes/no question about feasibility. First-person forms ("Could we", "Let's", "I'd
+  # suggest") are unambiguous and pass. 2026-09-15, extension#46123.
+  # 10c -- no prose paragraph over three sentences. A GitHub body keeps each paragraph on one
+  # source line, so a line-count rule never sees a wall of text; the sentence is the unit that
+  # works on every surface. 2026-09-15, extension#46123.
+  LONGP="$(awk '/^[[:space:]]*```/{f=!f; next} !f && NF { t=$0; gsub(/`[^`]*`/, "x", t); gsub(/\]\([^)]*\)/, "]", t); n=gsub(/[.!?]( |$)/, "&", t); if (n>3) print n": "substr($0,1,70) }' "$FILE")"
+  if [ -n "$LONGP" ]; then
+    fail "10c no paragraph over three sentences" "split these into a framed list or shorter paragraphs: $LONGP"
+  else
+    pass "10c no paragraph over three sentences"
+  fi
+  LAST="$(awk '/^[[:space:]]*```/{f=!f; next} !f && NF {l=$0} END{print l}' "$FILE")"
+  if printf '%s' "$LAST" | grep -qE '^(nit: )?(Can|Could|Will|Would|Should) (the|this|these|that|those|it|its) '; then
+    fail "10b closing ask reads as a request" "the last sentence asks whether a thing can happen, which reads as either a request or a yes/no question. Phrase it as a request: \"Could we ...\", \"Let's ...\", \"I'd suggest ...\""
+  else
+    pass "10b closing ask reads as a request"
+  fi
+elif hasi 'open for review|raise with a human|falsifier|worth a look|left unmeasured|not covered by this run|no verdict offered|does not establish|what it does not|cannot attribute|is not established|was not measured|were not re-read|is not part of this read'; then
   pass "10 floats something for review"
 else
   fail "10 floats something for review" "no limit, open question, or falsifier named — an artifact that floats nothing implies its measurement was the whole surface"
@@ -249,7 +413,12 @@ fi
 # the reader needs before they read a verdict on their own PR from an unfamiliar source.
 # Compressed and moved to the foot of the page — which is what happens when it is edited
 # by the same rules as prose — it arrives after the reaction it exists to shape.
-if envelope_na "11 disclaimer present and early"; then DISC="skip"; else
+if envelope_na "11 disclaimer present and early"; then DISC="skip"
+elif [ "$MODE" = inline ]; then
+  # Repeating the disclaimer on every inline comment is the noise the skill warns
+  # about — the reviewer reads the same paragraph N times. It belongs once, on the body.
+  printf '  SKIP  %s\n' "11 disclaimer — carried once by the body comment, not per inline"
+else
 DISC="$(grep -n -i 'trial run' "$FILE" | head -1 | cut -d: -f1)"
 FIRST_EXHIBIT="$(grep -n '^```' "$FILE" | head -1 | cut -d: -f1)"
 if [ -z "$DISC" ]; then
@@ -261,6 +430,21 @@ elif [ -n "$FIRST_EXHIBIT" ] && [ "$DISC" -gt "$FIRST_EXHIBIT" ]; then
 else
   pass "11 disclaimer present and early"
 fi
+fi
+
+# 16 — the corrections already given on THIS artifact, as executable predicates.
+# A new instruction adds constraints without clearing the earlier ones, so every established
+# constraint has to be checked against new output. As prose that rule asks the author to
+# remember, at the exact moment they are focused on the newest correction — and it did not fire
+# once across ~20 corrections on #45664. A sidecar file makes it run instead of be recalled:
+# a fix that breaks an earlier correction fails here rather than reaching the reader.
+CONSTRAINTS="${FILE%.md}.constraints.py"
+if [ -f "$CONSTRAINTS" ]; then
+  if CONS_OUT="$(python3 "$CONSTRAINTS" "$FILE" 2>&1)"; then
+    pass "16 prior corrections still hold ($(printf '%s' "$CONS_OUT" | grep -c 'PASS') checked)"
+  else
+    fail "16 prior corrections still hold" "a correction already given on this artifact no longer holds: $(printf '%s' "$CONS_OUT" | grep -m1 FAIL | sed 's/^ *//')"
+  fi
 fi
 
 if [ -n "$REF" ] && [ -f "$REF" ]; then
@@ -306,12 +490,25 @@ fi
 # rather than measurements — whole URLs, issue refs, version strings, dates, SHAs,
 # file:line citations, hyphenated identifiers like P-256, and regex quantifiers. Every
 # one of those was added after a control run flagged something that was not a figure.
+#
+# URLs are stripped to whitespace rather than to the first `)`. A Sentry Discover
+# permalink contains `count()` and `count_unique(trace)`, so stopping at `(` left the
+# whole query string in the prose, and every digit in it — project id, time window,
+# per_page — was reported as a figure tracing to no exhibit. A check that fires on every
+# body citing a Discover link teaches the operator to publish through it.
 echo
 NUM_ORPHANS="$(
-  awk '/^```/{f=!f; next} f{print}' "$FILE" > "$FILE.exh" 2>/dev/null
-  awk '/^```/{f=!f; next} !f{print}' "$FILE" \
-    | sed -E 's#https?://[^ )]*##g' \
-    | sed -E 's/#[0-9]+//g; s/\bv?[0-9]+\.[0-9]+(\.[0-9]+)?\b//g; s/\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b//g; s/\b[0-9a-f]{7,}\b//g; s/:[0-9]+\b//g; s/[A-Za-z]+-[0-9]+//g; s/\{[0-9,]+\}//g' \
+  awk '/^[[:space:]]*```/{f=!f; next} f{print}' "$FILE" > "$FILE.exh" 2>/dev/null
+  # A diligence lane's exhibit is a TABLE by contract ("the capability -> call-site table is the
+  # deliverable"), not a fenced capture. Counting only fences failed a correct extension#45807
+  # draft whose every figure sat in a table, and would push the lane toward re-typing its table
+  # into a fence to pass -- the gate rewarding the weaker medium. Validation-run mode unchanged.
+  [ "$MODE" = diligence ] && grep -E '^[[:space:]]*\|' "$FILE" >> "$FILE.exh"
+  awk '/^[[:space:]]*```/{f=!f; next} !f{print}' "$FILE" \
+    | sed -E 's#\[[^]]*\]\([^)]*\)##g' \
+    | sed -E 's/`[^`]*[A-Za-z_][^`]*`//g' \
+  | sed -E 's#https?://[^[:space:]]*##g' \
+    | sed -E 's/#[0-9]+//g; s/\bv?[0-9]+\.[0-9]+(\.[0-9]+)?\b//g; s/\b[0-9]{4}-[0-9]{2}-[0-9]{2}\b//g; s/\b[0-9a-f]{7,}\b//g; s/:[0-9]+\b//g; s/[A-Za-z]+-[0-9]+//g; s/(Chrome|Chromium|Firefox|Edge|Safari|Node|Gecko)[[:space:]]+[0-9]+\+?//g; s/\b[0-9]+\+//g; s/\{[0-9,]+\}//g' \
     | grep -oE '\b[0-9]{2,}\b' | sort -u \
     | while read -r n; do grep -qF "$n" "$FILE.exh" || printf '%s ' "$n"; done
   rm -f "$FILE.exh"
@@ -328,7 +525,10 @@ fi
 # It goes in an HTML comment beside the marker: internal skill names mean nothing to a reviewer and
 # reading them in the body is a context leak, so a gate demanding reader-facing provenance would
 # manufacture the very defect the coldread pass exists to catch. Fails closed either way.
-if envelope_na "14 reasoning passes declared"; then PASSES="skip"; else
+if envelope_na "14 reasoning passes declared"; then PASSES="skip"
+elif [ "$MODE" = inline ]; then
+  printf '  SKIP  %s\n' "14 reasoning passes declared — carried once by the body comment, not per inline"; PASSES="skip"
+else
 PASSES="$(grep -iE '^[[:space:]]*<!--[[:space:]]*passes-run:' "$FILE" | head -1)"
 if [ -z "$PASSES" ]; then
   fail "14 reasoning passes declared" "no '<!-- passes-run: ... -->' comment — an auditor cannot tell which analyses stand behind this finding, or which were not attempted"
@@ -341,35 +541,44 @@ else
 fi
 fi
 
-# 15. GitHub renders a single newline inside a comment as <br>, so prose hard-wrapped at the
-# ~95 columns that is correct for a file on disk arrives as a ragged stack of forced breaks.
-# Authoring in a file is mandatory here (the body must be readable before publication), which
-# makes the file's line convention ride along into every artifact unless it is undone at the
-# boundary. Counts soft breaks - a non-empty line followed by a non-empty line, outside fenced
-# code - ignoring the structures that legitimately want their breaks: quotes, tables, lists,
-# headings and HTML. Fix by rejoining each paragraph onto one source line.
-SOFT="$(awk '
-  /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
-  fence { next }
-  { line[NR] = $0 }
-  END {
-    n = 0
-    for (i = 1; i <= NR; i++) {
-      cur = line[i]; nxt = line[i+1]
-      if (cur ~ /^[[:space:]]*$/ || nxt ~ /^[[:space:]]*$/) continue
-      if (cur ~ /^[[:space:]]*([>|#<*+-]|[0-9]+[.)])/) continue
-      if (nxt ~ /^[[:space:]]*([>|#<*+-]|[0-9]+[.)]|(```|~~~))/) continue
-      n++
-    }
-    print n
-  }' "$FILE")"
-if [ "${SOFT:-0}" -gt 3 ]; then
-  fail "15 prose is not hard-wrapped" "$SOFT soft line breaks in prose - GitHub renders each as <br>, so this publishes as a ragged column instead of paragraphs. Rejoin each paragraph of $FILE onto one source line."
+# 15 — hard-wrapped prose. GitHub renders a single newline inside a comment body as a hard
+# break, so a paragraph wrapped at ~95 columns arrives as a ragged stack of short lines. The
+# bytes are correct and the defect lives entirely in the destination's semantics, which is why
+# nothing in the authoring loop sees it: the file looks right in an editor and in a diff.
+#
+# Counts soft breaks — a non-empty line directly followed by another non-empty line — outside
+# fenced code, and excluding the constructs where a newline is load-bearing: block quotes,
+# tables, list items, headings, HTML comments and link-reference lines. Above 3, the body was
+# authored to a column width rather than as paragraphs.
+#
+# A prose predicate ("median line under ~110 chars") did not prevent a repeat, so this check
+# runs the rule instead of recording it. Recorded enforcement that does not exist closes the
+# question, which is worse than an open one.
+SOFTBREAKS="$(
+  awk '
+    /^[[:space:]]*```/            { f = !f; next }
+    f                 { next }
+    /^[[:space:]]*$/  { prev = ""; next }
+    # A standalone HTML block tag is structure, not prose. GitHub REQUIRES <details> and
+    # <summary> on their own lines for the markdown inside to be parsed at all — joining them
+    # to satisfy this check is what shipped a comment whose code blocks rendered as plain text.
+    /^[[:space:]]*(<\/?(details|summary|table|thead|tbody|tr|td|th|div|p|br|img|picture|source|kbd|sub|sup)\b|<\/?[a-z]+>[[:space:]]*$)/ { prev = ""; next }
+    /^[[:space:]]*(>|\||#{1,6} |[-*+] |[0-9]+\. |<!--|\[[^]]+\]:)/ { prev = ""; next }
+    # A line that is only a link or an image is a deliberate line, not wrapped prose: an
+    # exhibit list puts one per line on purpose, and joining them would split a verdict
+    # from the exhibits the evidence hook requires in its paragraph.
+    /^[[:space:]]*!?\[[^]]*\]\([^)]*\)[[:space:]]*$/ { prev = $0; next }
+    { if (prev != "") n++; prev = $0 }
+    END { print n + 0 }
+  ' "$FILE"
+)"
+if [ "${SOFTBREAKS:-0}" -gt 3 ]; then
+  fail "15 prose is not hard-wrapped" "$SOFTBREAKS soft line breaks outside code — GitHub renders each as a hard break, so these paragraphs arrive as a stack of short lines. Reflow prose to one line per paragraph"
 else
   pass "15 prose is not hard-wrapped"
 fi
 
-# 16. Restating the other party's own argument back to them. Every sentence is true, which is
+# 18. Restating the other party's own argument back to them. Every sentence is true, which is
 # why it survives every other check and every read - it is the appeasing move that looks like
 # rigour. It costs their reading time and implies they need corroboration from me. Detected as
 # the longest verbatim prose run shared with the comment being answered, after stripping code
@@ -392,12 +601,12 @@ PYEOF
   ECHO_LEN="$(printf '%s' "$ECHO_N" | head -1)"
   ECHO_TXT="$(printf '%s' "$ECHO_N" | tail -1)"
   if [ "${ECHO_LEN:-0}" -ge 30 ]; then
-    fail "16 no echo of the other party" "$ECHO_LEN chars restated back at the person you are answering: \"$ECHO_TXT\" — they wrote it; repeating it costs their reading time and implies they need corroboration. Cut it and keep what is yours"
+    fail "18 no echo of the other party" "$ECHO_LEN chars restated back at the person you are answering: \"$ECHO_TXT\" — they wrote it; repeating it costs their reading time and implies they need corroboration. Cut it and keep what is yours"
   else
-    pass "16 no echo of the other party"
+    pass "18 no echo of the other party"
   fi
 elif [ "$MODE" = reply ]; then
-  printf '  SKIP  %s\n' "16 no echo of the other party — no --parent given, so nothing checked the reply against what it answers"
+  printf '  SKIP  %s\n' "18 no echo of the other party — no --parent given, so nothing checked the reply against what it answers"
 fi
 
 echo
