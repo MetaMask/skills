@@ -392,7 +392,11 @@ inconclusive arm is not offset by another lane passing.
 ### Synthesising a run from several runners
 
 1. **Lead lane first.** Pick the runner whose output *is* the claim. A corroborator strengthens
-   a lead; it never substitutes for one.
+   a lead; it never substitutes for one. When the claim's type names a lead lane (a visible UI
+   change names before/after screenshots; a perf PR names the measured impact), that lane is
+   required: if it has not run, the headline is *inconclusive* and names the lane. Secondary
+   lanes that passed are reported under it, never above it as a clean verdict. A lane that costs
+   more than expected is started, not demoted to a "not checked" caveat.
 2. **Correctness gates measurement.** `selector-recompute` fails outright on an unstable value,
    and that ordering generalises: a performance number over changed behaviour is not a
    performance result, it is a missed regression.
