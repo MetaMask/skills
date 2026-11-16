@@ -1,4 +1,4 @@
-# Error Recovery and Troubleshooting for Mobile (iOS)
+# Error Recovery and Troubleshooting for Mobile (iOS and Android)
 
 ## Contents
 
@@ -12,13 +12,17 @@
 
 ## On Failure
 
-If launch or the iOS toolchain is the problem (not an in-app screen issue), run the environment doctor first:
+If launch or the toolchain is the problem (not an in-app screen issue), check the environment first.
+
+iOS: run the environment doctor:
 
 ```bash
 yarn mm:doctor
 ```
 
-It prints a PASS/FAIL report for Xcode, `idb`, `idb_companion`, and a booted simulator, with install commands for anything missing, and exits non-zero when a prerequisite is absent. This is the fastest way to resolve `MM_DEPENDENCIES_MISSING` and `MM_DEVICE_NOT_AVAILABLE`.
+It prints a PASS/FAIL report for Xcode, `idb`, `idb_companion`, and a booted simulator, with install commands for anything missing, and exits non-zero when a prerequisite is absent. It checks iOS only, so it fails on an Android-only machine.
+
+Android: `adb devices` must list exactly one `emulator-*` in state `device` (or the `--device-id` one), and `adb -s <serial> shell getprop sys.boot_completed` must print `1`.
 
 For in-app failures:
 
@@ -38,7 +42,8 @@ With `@metamask/client-mcp-core` 0.14.0 a failed command prints **one JSON line 
 - Decide with `error.code` or the exit code. Do not grep stderr or match `Error:` text: stderr is for human logs only.
 - `error.hint` is optional. `error.retryable` is always present and is `true` only when running the same command again, unchanged, is safe (reads and waits). It is `false` for click, type and request timeouts, because the action state is unknown.
 - `meta` is present when the daemon answered. A usage error the CLI rejects before sending (exit 2) and a missing daemon (exit 3) have none; a daemon-side schema `VALIDATION_ERROR` does.
-- A successful result has **no** `ok` field. `mm stop` still prints plain text (`Daemon stopped (was PID <pid> on port <port>).`).
+- A successful result has **no** `ok` field. `mm stop` still prints plain text (`Daemon stopped (was PID <pid> on port <port>).`, or `No daemon is running.` on stderr with exit 0).
+- Without a daemon, an unknown command exits 3 (`MM_DAEMON_NOT_RUNNING`), not 2: the daemon check runs first.
 
 | Exit | Meaning | Codes (examples) |
 | --- | --- | --- |
@@ -53,13 +58,13 @@ With `@metamask/client-mcp-core` 0.14.0 a failed command prints **one JSON line 
 
 ## Error Codes
 
-Launch errors use the core `ErrorCode` set. `launch` preserves any consumer-thrown `MM_*` code (known or not); a code the CLI does not know reaches the caller and exits 1. The iOS driver reports launch and prerequisite failures with core codes (`MM_DEPENDENCIES_MISSING`, `MM_DEVICE_NOT_AVAILABLE`, `MM_INVALID_CONFIG`, `MM_LAUNCH_FAILED`), with the iOS-specific detail in the message and remediation text, not in a dedicated `MM_IOS_*` code.
+Launch errors use the core `ErrorCode` set. `launch` preserves any consumer-thrown `MM_*` code (known or not); a code the CLI does not know reaches the caller and exits 1. The iOS and Android adapters report launch and prerequisite failures with core codes (`MM_DEPENDENCIES_MISSING`, `MM_DEVICE_NOT_AVAILABLE`, `MM_INVALID_CONFIG`, `MM_LAUNCH_FAILED`), with the platform detail in the message and remediation text, not in a dedicated `MM_IOS_*` / `MM_ANDROID_*` code.
 
 ### Interaction Errors
 
 | Code | Exit | Meaning and recovery |
 | --- | --- | --- |
-| `MM_TARGET_NOT_FOUND` | 4 | The element is not in the UI tree, or the reference is stale (for `scroll-to-element`: never found). Run `yarn mm describe-screen` and target again; a conditionally rendered section can unmount a test ID that an earlier snapshot had. |
+| `MM_TARGET_NOT_FOUND` | 4 | The element is not in the UI tree, or the reference is stale or not targetable (`Unknown a11yRef`; for `scroll-to-element`: never found). Run `yarn mm describe-screen` and target again; a conditionally rendered section can unmount a test ID that an earlier snapshot had. A message that says `Use device_snapshot` names an MCP tool; the CLI equivalent is `mm describe-screen`. |
 | `MM_TARGET_NOT_VISIBLE` | 4 | The element was found but is outside the viewport: a tap on an off-screen element, or `scroll-to-element` that could not bring it into view. Run `yarn mm scroll-to-element`, then tap. When the failing command **is** `scroll-to-element`, its hint is not useful: run `describe-screen`, check the element still exists and its `bounds`, try the other `--direction`, or tap the center of `bounds` with `mm tap-coordinates`. |
 | `MM_WAIT_TIMEOUT` | 5 | The element did not appear before the deadline. `retryable: true`. Verify the screen and increase `--timeout` if the app is still transitioning. |
 | `MM_TARGET_OBSCURED` | 4 | iOS: another element (keyboard, sheet, overlay) covers the tap point, so nothing was tapped. Close the keyboard with `mm click â€¦ --dismiss-keyboard`, or close the overlay first. |
@@ -81,10 +86,10 @@ Launch errors use the core `ErrorCode` set. `launch` preserves any consumer-thro
 | `MM_DAEMON_NOT_RUNNING` | 3 | No daemon is running, or it refused the connection. Run `yarn mm launch` (or `yarn mm serve`) to start it. |
 | `MM_DAEMON_CONNECTION_LOST` | 3 | The connection failed after the request was sent. The CLI does not resend it: the action may have run, so run `describe-screen` before retrying. |
 | `MM_REQUEST_TIMEOUT` | 5 | The CLI stopped waiting for the daemon. The action state is unknown: run `yarn mm describe-screen` before retrying. |
-| `MM_LAUNCH_FAILED` | 1 | The app or platform driver failed to start. Run `yarn mm cleanup` and retry; inspect the simulator, installed app, and `.mm-daemon.log`. |
-| `MM_DEPENDENCIES_MISSING` | 6 | Xcode command-line tools or `idb` (Facebook iOS Debug Bridge) are missing. Run `yarn mm:doctor`, then install `idb` with `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb`. |
-| `MM_DEVICE_NOT_AVAILABLE` | 6 | No simulator is booted, the given UDID does not exist, or `simctl` failed. Run `xcrun simctl list devices` and boot one; verify `--device-id`. |
-| `MM_INVALID_CONFIG` | 2 | The launch options are not usable: no app installed and no `--app-bundle`, a destructive flag without `--app-bundle`, a `fox_code` mismatch, an unreachable Metro port, or an e2e-only option in this prod-only workflow. Read the remediation text in the error. |
+| `MM_LAUNCH_FAILED` | 1 | The app or platform driver failed to start (Android: `io.metamask did not become ready`). Run `yarn mm cleanup` and retry; inspect the device, installed app, and `.mm-daemon.log`. |
+| `MM_DEPENDENCIES_MISSING` | 6 | iOS: Xcode command-line tools or `idb` (Facebook iOS Debug Bridge) are missing. Run `yarn mm:doctor`, then install `idb` with `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb`. Android: `adb` is unavailable; install Android SDK Platform-Tools and put `adb` on `PATH`. |
+| `MM_DEVICE_NOT_AVAILABLE` | 6 | iOS: no simulator is booted, the given UDID does not exist, or `simctl` failed; run `xcrun simctl list devices` and boot one. Android: no or several online emulators, a `--device-id` that is not an online `emulator-<port>`, boot not completed, `io.metamask` not installed, an `adb` command failed, or an `adb reverse` conflict; check `adb devices`. Verify `--device-id`. |
+| `MM_INVALID_CONFIG` | 2 | The launch options are not usable: no app installed and no `--app-bundle`, a destructive flag without `--app-bundle`, a `fox_code` mismatch, an unreachable Metro port, or an e2e-only option in this prod-only workflow. Android also rejects `--app-bundle`, `--reinstall`, `--reset-app-data` and `--allow-fox-code-mismatch` (`Android reuses the installed io.metamask app`) and a `.device-session` file. Read the remediation text in the error. |
 | `MM_PORT_IN_USE` | 1 | The daemon port is already bound by stale state. Run `yarn mm stop --force`, then launch again. |
 | `MM_INVALID_INPUT` | 2 | A command or flag value is malformed. Correct it before retrying. A `mm click` with no target is this case: `error.message` is the usage line. |
 
@@ -93,7 +98,7 @@ Launch errors use the core `ErrorCode` set. `launch` preserves any consumer-thro
 | Code | Exit | Meaning and recovery |
 | --- | --- | --- |
 | `MM_DISCOVERY_FAILED` | 1 | A `describe-screen` / accessibility snapshot failed. Wait for transitions to settle, capture a screenshot, and verify the app has not crashed, then retry. |
-| `MM_SCREENSHOT_FAILED` | 1 | The simulator screen capture failed. Verify the simulator is booted and the session is active. |
+| `MM_SCREENSHOT_FAILED` | 1 | The device screen capture failed. Verify the simulator or emulator is booted and the session is active. |
 
 On mobile the screenshot is written to device-mcp's own temporary directory (`â€¦/T/device-mcp-XXXX/screenshot-<hex>.png`), not to `MM_ARTIFACTS_DIR`, and `--name` does not change the file name. Use the `path` from the response.
 
@@ -104,9 +109,9 @@ On mobile the screenshot is written to device-mcp's own temporary directory (`â€
 | Code | Exit | Meaning and recovery |
 | --- | --- | --- |
 | `MM_HERMES_NOT_AVAILABLE` | 6 | `hermes-targets` was run on a session with no mobile driver, or Metro is not attached. Launch with `--metro-port <port>` (or `MM_METRO_PORT`) set and retry. |
-| `MM_HERMES_FAILED` | 6 | Hermes target discovery failed. Verify Metro is running, the app is a development build, and one simulator/one Metro process per worktree. |
+| `MM_HERMES_FAILED` | 6 | Hermes target discovery failed. Verify Metro is running, the app is a development build, and one device/one Metro process per worktree. |
 | `MM_CDP_BLOCKED` | 2 | The requested `cdp` method is blocked as destructive. Use a safe inspection method instead. |
-| `MM_CDP_FAILED` | 1 | `cdp` execution failed or timed out. On Node 20 confirm `--experimental-websocket` was set at launch; inspect Metro and `.mm-daemon.log`. |
+| `MM_CDP_FAILED` | 1 | `cdp` execution failed or timed out. `[HERMES_CONNECTION_FAILED] â€¦ fetch failed` means Metro is not on the port used: pass `--metro-port <port>`. On Node 20 confirm `--experimental-websocket` was set at launch; inspect Metro and `.mm-daemon.log`. |
 | `MM_TOOL_NOT_SUPPORTED_ON_PLATFORM` | 6 | The command is browser-only on this mobile session (`inspect`, `hover` / `unhover`, `set-viewport` / `reset-viewport`, `reload`, `navigate`, the tab commands, `clipboard`, `mock-network`, `build`), or a mobile-only command ran without a mobile driver. The message names the tool and platform, for example `Tool "inspect" is not supported on ios platform`. Use visible mobile UI interactions instead. |
 
 ## Common Failures and Solutions
@@ -115,9 +120,10 @@ On mobile the screenshot is written to device-mcp's own temporary directory (`â€
 | --- | --- | --- |
 | Previous session blocks launch | Session was not cleaned up | `yarn mm cleanup`, then `yarn mm launch` |
 | No active session | The app has not been launched through the daemon | `yarn mm launch` |
-| Launch cannot locate MetaMask | MetaMask is not installed on the selected simulator | Install the intended app build on that simulator, then launch again |
+| Launch cannot locate MetaMask | MetaMask is not installed on the selected device | Install the intended app build on that device, then launch again |
 | Simulator is unavailable | No booted simulator or incorrect UDID | Check `xcrun simctl list devices`, boot the intended device, and use `--device-id <UDID>` |
-| App identity mismatch (`MM_INVALID_CONFIG`, `different fox_code`) | Installed and requested builds have different `fox_code` values | Reuse the existing installed app, or install a matching build with `--app-bundle` plus `--reinstall` / `--allow-fox-code-mismatch` (destructive to wallet state) |
+| Emulator is unavailable | No or several online emulators, or a non-emulator serial | Check `adb devices`, leave one `emulator-*` in state `device`, and use `--device-id emulator-<port>` |
+| App identity mismatch (`MM_INVALID_CONFIG`, `different fox_code`) | iOS: installed and requested builds have different `fox_code` values | Reuse the existing installed app, or install a matching build with `--app-bundle` plus `--reinstall` / `--allow-fox-code-mismatch` (destructive to wallet state) |
 | `idb` not installed | Missing iOS Debug Bridge dependency (`MM_DEPENDENCIES_MISSING`) | Run `yarn mm:doctor`, then `brew tap facebook/fb && brew install idb-companion && pip3 install fb-idb` |
 | Empty or failed screen snapshot | Splash screen, animation, app transition, or crash | Wait briefly, describe again, and capture a screenshot |
 | Stale accessibility references | Screen changed after the references were generated | Run `yarn mm describe-screen` and use fresh references |
@@ -161,8 +167,8 @@ If Metro attachment or Hermes inspection fails:
 1. Start Metro with `yarn watch:clean`.
 2. Verify its status endpoint, normally `http://localhost:8081/status`.
 3. Ensure `--metro-port <port>` (or `MM_METRO_PORT`) matches the running Metro process.
-4. Confirm the installed app is a compatible development build and belongs to the selected simulator.
-5. Use one Metro process and one active simulator per worktree to avoid target ambiguity.
+4. Confirm the installed app is a compatible development build and belongs to the selected device.
+5. Use one Metro process and one active device per worktree to avoid target ambiguity.
 6. Inspect `.mm-daemon.log` for attachment and target-selection details.
 7. Restart safely:
 
