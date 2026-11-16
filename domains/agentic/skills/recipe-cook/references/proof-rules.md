@@ -37,7 +37,7 @@ Apply the sections for this flow and platform at each step.
 - Read affected code end to end; write `artifacts/approach.md` with affected files, current behavior/insertion point, chosen approach and trade-offs.
 - Mobile/Extension: choose the most defensible approach without pausing. Before editing existing UI, capture comparable `before-*` evidence on the same route, state, target and viewport. For purely additive work, write `Baseline: N/A. additive` in TASK.md.
 - Draft the recipe file and require `mm-harness run <recipe> --plan` PASS.
-- Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate.
+- Run it before implementation with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; require failure at the first new-behavior AC assertion, not setup, before marking the recipe gate. Mobile/Extension bug fixes follow Bug fixing instead: their baseline asserts the buggy behavior.
 - Place regression guards before the first new-behavior AC; guards must pass before and after implementation. If every AC is a guard, require the baseline run to pass end to end.
 - Record the recipe path and command, including for visual/mixed proof. Implement only after the recipe gate is marked PASS.
 - For a flag-gated UI change, capture flag-off then flag-on state before the first new-behavior node and declare two before/after pairs.
