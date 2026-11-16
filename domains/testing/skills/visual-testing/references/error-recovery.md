@@ -43,7 +43,7 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_TAB_NOT_FOUND`           | Tab not found                                                                                |
 | `MM_CLICK_FAILED`            | Click failed (post-find)                                                                     |
 | `MM_CLICK_TIMEOUT`           | Click timed out; state unknown; the message ends with Playwright's last step — `mm describe-screen` before retrying |
-| `MM_TYPE_FAILED`             | Type failed (post-find)                                                                      |
+| `MM_TYPE_FAILED`             | Type failed (post-find); also when the target is not an input, textarea, select or contenteditable, e.g. a button: `locator.isEditable: Element is not an <input>…`, not `MM_ELEMENT_NOT_EDITABLE` |
 | `MM_TYPE_TIMEOUT`            | The field did not appear or `fill()` hung; state unknown                                     |
 | `MM_ELEMENT_NOT_EDITABLE`    | Type target is read-only or disabled (browser, fails at once)                                |
 | `MM_GETTEXT_FAILED`          | `get-text` failed (element detached) — re-target                                             |
