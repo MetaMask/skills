@@ -13,11 +13,21 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 
 Choose the layer first via installed `knowledge/extension-testing-layers.md`. Static or default presentation is GAP / ACCEPT there, so a diff that only changes it needs no new or updated test.
 
+Do not unit test static styling: component-library defaults, or overrides
+passed through props (`className`, `style`, color props) that don't depend on
+any logic. The design system already tests that its props apply, and visual
+changes are verified with screenshots (`visual-testing`) and the PR's
+before/after evidence.
+
+Test presentation only when JS logic decides it (state, props or data choose
+between styles, e.g. error vs default, selected, disabled). Prefer asserting
+what the user sees (text, disabled or ARIA state), and use a style assertion
+only when the style itself is the outcome of that logic.
+
 - **NEVER** assert spacing, color, typography, or fixed layout values (computed styles, `className` strings, design-token values)
-- **NEVER** add or refresh a snapshot because only class names, SCSS, or static styles changed
+- **NEVER** add a snapshot to cover a static styling change. If an existing snapshot fails because class names or static styles changed, update it so CI stays green; that update is not coverage of the styling change
 - **NEVER** add a `data-testid` whose only use is reading `style` or `className`
 - **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.
-- Verify static presentation with screenshots (`visual-testing`) and the PR's before/after evidence
 
 ```typescript
 ❌ WRONG:
@@ -25,11 +35,7 @@ it('removes the extra padding from the price summary', () => {
   render(<PriceSummary />);
   expect(screen.getByTestId('price-summary')).not.toHaveClass('px-4');
 });
-```
 
-Presentation that depends on state or props is behavior. Test it by asserting what the user sees (text shown or hidden, disabled, ARIA state), not class names or style values.
-
-```typescript
 ✅ CORRECT:
 it('disables the submit button when the amount is empty', () => {
   render(<SendForm amount="" />);
@@ -216,7 +222,7 @@ async function withController(...args: WithControllerArgs) {
 - **ALWAYS use "render matches snapshot" or similar variants**
 - Add context when needed: "render matches snapshot when not enabled"
 - Remember: Snapshots only check for changes, NOT correctness
-- Do not add a snapshot to cover a static styling change; see [Do Not Test Static Presentation](#do-not-test-static-presentation)
+- Do not add a snapshot to cover a static styling change. If an existing snapshot fails because class names or static styles changed, update it so CI stays green; that update is not coverage of the styling change. See [Do Not Test Static Presentation](#do-not-test-static-presentation)
 
 Examples:
 
@@ -777,7 +783,7 @@ Before submitting tests, ensure:
 ### Final Checks
 
 - [ ] Snapshot tests are named "render matches snapshot"
-- [ ] No tests or snapshot updates exist only to cover static styling
+- [ ] No tests exist only to cover static styling
 - [ ] All tests pass and are deterministic
 - [ ] Tests run in isolation (can run individually)
 - [ ] No console errors or warnings

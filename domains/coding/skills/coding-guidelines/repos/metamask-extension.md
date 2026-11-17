@@ -587,7 +587,7 @@ export function formatBalance(
 ### Write Tests for All Components and Utilities
 
 - **ALWAYS write tests for new behavior** (logic, state, and conditional UI)
-- **Do not** write tests for static styling changes (spacing, color, typography, class-name swaps); see `extension-testing` → `references/unit.md`
+- **Do not** write tests for static styling: component-library defaults, or `className` / `style` / color-prop overrides that don't depend on any logic. The design system already tests that its props apply, and visual changes are verified with screenshots. Test presentation only when JS logic decides it (e.g. error vs default, selected, disabled), asserting what the user sees; see `extension-testing` → `references/unit.md`
 - Tests reduce possibilities of errors and regressions
 - Ensure components behave as expected
 - Use Jest as the testing framework

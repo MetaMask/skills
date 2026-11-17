@@ -21,11 +21,22 @@ Follow installed `knowledge/testing-layers.md` before choosing unit vs component
 - **Default for screen/view behavior:** `*.view.test.tsx` via [`component-view.md`](component-view.md) — not a broad RTL unit test that mocks hooks/selectors.
 - **This skill applies when:** pure helpers, local utilities, narrow component contracts, or the CV framework cannot cover the case yet (smallest focused unit test + note why).
 - **Do not** add new full-page `*.test.tsx` files that render a screen and mock Redux/hooks to force UI state; convert or write CV instead.
-- **Do not** add a unit test for static presentation (spacing, color, typography, fixed layout props). The layer policy marks it GAP / ACCEPT — see [Do Not Test Static Presentation](#do-not-test-static-presentation).
+- **Do not** add a unit test for static styling (component-library defaults, or `twClassName` / `style` / color-prop overrides that depend on no logic). The layer policy marks it GAP / ACCEPT — see [Do Not Test Static Presentation](#do-not-test-static-presentation).
 
 ## Do Not Test Static Presentation
 
-A diff that only changes static or default styling needs no new or updated test, even inside an existing `*.test.tsx`. These assertions do not catch regressions a user would notice, and they break whenever a design token changes.
+Do not unit test static styling: component-library defaults, or overrides
+passed through props (`twClassName`, `style`, color props) that don't depend on
+any logic. The design system already tests that its props apply, and visual
+changes are verified with screenshots (`mobile-visual-testing`) and the PR's
+before/after evidence. A diff that only changes static styling needs no new or
+updated test, even inside an existing `*.test.tsx`; such assertions don't
+guard behavior and break whenever a design token changes.
+
+Test presentation only when JS logic decides it (state, props or data choose
+between styles, e.g. error vs default, selected, disabled). Prefer asserting
+what the user sees (text, disabled or accessibility state), and use a style
+assertion only when the style itself is the outcome of that logic.
 
 ```tsx
 // ❌ WRONG - asserts padding values after a spacing fix
@@ -42,14 +53,25 @@ expect(title.props.ellipsizeMode).toBe('tail');
 expect(StyleSheet.flatten(divider.props.style)).toEqual(
   expect.objectContaining({ marginBottom: 0, marginTop: 20 }),
 );
+
+// ❌ WRONG - asserts a static twClassName override that no logic chooses
+expect(screen.getByTestId('token-list-item').props.twClassName).toBe(
+  'bg-background-default',
+);
+
+// ✅ CORRECT - the error style is chosen by logic (amount exceeds balance)
+it('marks the amount input invalid when the amount exceeds the balance', () => {
+  render(<SendForm amount="1000" />);
+
+  expect(screen.getByTestId('send-amount-input').props.twClassName).toContain(
+    'bg-error',
+  );
+});
 ```
 
 - **Do not** add a `testID` whose only use is reading `style`.
 - **Do not** remove a `useTailwind` mock so `StyleSheet.flatten` can see real spacing.
 - **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.
-- Verify static presentation with screenshots (`mobile-visual-testing`) and the PR's before/after evidence.
-
-Presentation that depends on state or props is behavior. Test it by asserting what the user sees (text shown or hidden, disabled, accessibility state), not style values.
 
 ## Test Naming Rules
 
@@ -628,7 +650,7 @@ expect(result).toBe(false);
 Before submitting any test file, verify:
 
 - [ ] **No `toMatchSnapshot()` calls** — BANNED; use explicit assertions or `toMatchInlineSnapshot()` instead
-- [ ] **No static style assertions** — no `StyleSheet.flatten` padding/margin/color checks, fixed layout-prop checks, or style-only testIDs
+- [ ] **No static style assertions** — no `StyleSheet.flatten` padding/margin/color checks, fixed layout-prop checks, or style-only testIDs; a style assertion is allowed only when the style itself is the outcome of logic
 - [ ] **No mocking to inject testIDs** - Use component's built-in testID support
 - [ ] **testIDs via child prop objects** - Use `closeButtonProps={{ testID }}` not mocks
 - [ ] **No "should" in any test name**
