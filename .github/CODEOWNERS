@@ -69,4 +69,4 @@
 # that agreement and can only be approved by maintainers of the repo.
 # Note: As the highest-priority entry, this rule should always be placed
 # at the very bottom of the CODEOWNERS file.
-/.github/CODEOWNERS      @abretonc7s @MajorLift @cryptotavares @AugmentedMode
+/.github/CODEOWNERS      @abretonc7s @MajorLift @cryptotavares
