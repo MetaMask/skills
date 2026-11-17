@@ -7,7 +7,7 @@ maturity: stable
 
 # Perps static review
 
-Generated from the canonical Perps review rules @ 7d19985bb8c17a97f2c050ea2caa42192b4d8115. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
+Generated from the canonical Perps review rules @ 89e910c834297df877b6922dcf27e5aef0da804f. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source, diff and recorded evidence only: no tests, builds, recipes, installs, probes, app launch, product change, publish or workspace cleanup. Delegated skills inherit this static, read-only boundary. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
@@ -58,7 +58,7 @@ Check applicability against the frozen diff and its affected callers. Open each 
 - [ ] Pro Mode UI Gating
   Pro market UI renders only when the remote flag (`selectPerpsProModeEnabledFlag`) and the controller mode (`PerpsMode.Pro`) are both active; a PR that checks one gate ships a silent no-op that looks… See references/shared.md#pro-mode-ui-gating
 - [ ] MetaMetrics Events
-  Every perps event uses one of the eight consolidated events and their typed property constants; no new event names or untyped properties. See references/shared.md#metametrics-events
+  Perps sends a fixed set of events, the `PerpsAnalyticsEvent` values in `@metamask/perps-controller`; a new tracking need adds a property, or a value of an existing property, to one of those events… See references/shared.md#metametrics-events
 - [ ] Sentry Tracing
   Unbounded background trace volume: For unlock, polling, reconnect or fan-out instrumentation, estimate added spans at normal and retry load. See references/shared.md#sentry-tracing
 - [ ] Connection & WebSocket Architecture
@@ -75,6 +75,8 @@ Check applicability against the frozen diff and its affected callers. Open each 
   Degenerate fixtures hide formula errors: Choose values where competing calculations differ, such as a deeper order-book row with size unequal to cumulative total. See references/shared.md#test-layer-coverage
 - [ ] Embedded Signer Boundaries
   An embedded signer receives sensitive key material only after its communication boundary is established. See references/shared.md#embedded-signer-boundaries
+- [ ] Architecture Docs
+  A change is checked against the doc sections its families link: Core `packages/perps-controller/docs/` and the client's `docs/perps/`, read from the reference checkouts at the recorded revision. See references/shared.md#architecture-docs
 
 ## Cross-repository conformity
 

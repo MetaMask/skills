@@ -3,7 +3,7 @@
 Mobile is the reference implementation for perps. Extension was built after mobile without rigorous
 comparison. Use this map to check that a change on one platform has, or explicitly does not need, its
 counterpart on the other. Check the extension for parity only; never copy its patterns into mobile.
-When the reference checkout is not available the parity step reports "not checked" with the reason.
+When a reference checkout the comparison needs is not available, the parity step is BLOCKED and names the missing checkout.
 
 
 ## Screen/Route Mapping
