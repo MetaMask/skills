@@ -11,7 +11,7 @@ Reference: [MetaMask Unit Testing Guidelines](https://github.com/MetaMask/contri
 
 ### Do Not Test Static Presentation
 
-Choose the layer first via installed `knowledge/extension-testing-layers.md`. Static or default presentation is GAP / ACCEPT there, so a diff that only changes it needs no new or updated test.
+Choose the layer first via installed `knowledge/extension-testing-layers.md`. Static or default presentation is GAP / ACCEPT there, so a diff that only changes it needs no new test.
 
 Do not unit test static styling: component-library defaults, or overrides
 passed through props (`className`, `style`, color props) that don't depend on

@@ -55,8 +55,8 @@ A change to static or default presentation is **GAP / ACCEPT** at every layer.
 Do not unit test static styling: component-library defaults, or overrides
 passed through props (`twClassName`, `style`, color props) that don't depend
 on any logic. The rule covers Mobile component-view tests (`*.view.test.tsx`)
-too — they must not assert `twClassName` or other static styles either. This
-includes:
+too — they must not assert a static `twClassName` that no logic chooses, or
+other static styles. This includes:
 
 - Spacing, padding, margin, inset, and alignment
 - Color, typography, and design-token values

@@ -31,9 +31,10 @@ any logic. The design system already tests that its props apply, and visual
 changes are verified with screenshots (`mobile-visual-testing`) and the PR's
 before/after evidence. A diff that only changes static styling needs no new or
 updated test, even inside an existing `*.test.tsx`; such assertions don't
-guard behavior and break whenever a design token changes. MetaMask Mobile
-does not use snapshots at all, so no snapshot can fail on a class-name change;
-do not add `toMatchSnapshot()` or `toMatchInlineSnapshot()`.
+guard behavior and break whenever a design token changes. Mobile bans
+snapshots of rendered UI — `toMatchSnapshot()` in any form, and
+`toMatchInlineSnapshot()` on component output — so a styling-only diff cannot
+break a snapshot; do not add one to cover it.
 
 Test presentation only when JS logic decides it (state, props or data choose
 between styles, e.g. error vs default, selected, disabled). Prefer asserting
@@ -245,7 +246,8 @@ testID={`network-option-${network.chainId}`}
 ### The Rule
 
 - ❌ **`toMatchSnapshot()` is BANNED** — Do not use it. Do not add it. Do not approve it.
-- ❌ **`toMatchInlineSnapshot()` is BANNED too** — MetaMask Mobile does not use snapshots at all. Assert the values you care about explicitly instead.
+- ❌ **`toMatchInlineSnapshot()` on rendered UI is BANNED** — the serialized blob locks in styles, class names, and layout, so a design-token or class-name change fails the test even though no behavior regressed.
+- ✅ **`toMatchInlineSnapshot()` on serialized data is ALLOWED** — use it only when the serialized value itself is the assertion (a data object, a formatted string), never as a lazy substitute for explicit `expect` calls.
 
 ### Why `toMatchSnapshot()` Is Banned
 
@@ -255,15 +257,17 @@ External snapshot files (`.snap`) have three critical problems:
 2. **No code ownership** — `CODEOWNERS` explicitly assigns `**/*.snap` to *nobody*, meaning no team is accountable for snapshot correctness.
 3. **Brittle by design** — Any style tweak, whitespace change, or unrelated refactor regenerates the snapshot and silently passes CI.
 
-### Why `toMatchInlineSnapshot()` Is Banned Too
+### Why Inline Snapshots of Rendered UI Are Banned
 
-Inline snapshots are still snapshots: the serialized blob locks in rendered
-output (styles, class names, layout), so a design-token or class-name change
-fails the test even though no behavior regressed. MetaMask Mobile does not use
-snapshots in any test layer — unit, component-view, and integration all assert
-specific values with explicit `expect` calls.
+An inline snapshot of a component locks in rendered output (styles, class
+names, layout), so a design-token or class-name change fails the test even
+though no behavior regressed. Assert what the component does and shows with
+explicit matchers (`toBeOnTheScreen`, text, disabled state) instead of
+snapshotting the serialized tree.
 
-### Use Explicit Assertions
+### When to Use `toMatchInlineSnapshot()`
+
+Only use it when the serialized shape of the output **is** the assertion — for example, verifying a complex object structure, a formatted string, or a serialized data payload. Never snapshot rendered UI with it, and do not use it as a lazy substitute for explicit `expect` calls.
 
 ```ts
 // ❌ BANNED — writes to an external .snap file
@@ -271,21 +275,30 @@ expect(tree).toMatchSnapshot();
 expect(component).toMatchSnapshot();
 expect(result).toMatchSnapshot();
 
-// ❌ BANNED — inline snapshots are snapshots too
-expect(result).toMatchInlineSnapshot(`...`);
+// ❌ BANNED — snapshots rendered UI (styles, class names, layout)
+expect(screen.getByTestId('send-amount-input')).toMatchInlineSnapshot();
+
+// ✅ ALLOWED — the serialized value itself is the assertion (data, not UI)
+expect(result).toMatchInlineSnapshot(`
+  {
+    "chainId": "0x1",
+    "name": "Ethereum Mainnet",
+  }
+`);
 
 // ✅ PREFERRED — explicit assertions are always better than snapshots
 expect(result.chainId).toBe('0x1');
 expect(result.name).toBe('Ethereum Mainnet');
 ```
 
-### Migrating Existing Snapshot Calls
+### Migrating Existing `toMatchSnapshot()` Calls
 
-When you encounter an existing `toMatchSnapshot()` or `toMatchInlineSnapshot()` call:
-1. **Replace it** with explicit `expect` assertions targeting the specific values that matter.
-2. Delete the corresponding `.snap` file entry once migrated (external snapshots only).
+When you encounter an existing `toMatchSnapshot()` call:
+1. **Prefer replacing it** with explicit `expect` assertions targeting the specific values that matter.
+2. If the full serialized output is genuinely meaningful — and not rendered UI — convert to `toMatchInlineSnapshot()`.
+3. Delete the corresponding `.snap` file entry once migrated.
 
-Do **not** leave either call in place when modifying a test file — migrate it as part of your change.
+Migrate opportunistically when you are already modifying a test file; do not block a PR solely to force migration.
 
 
 ## Assertions - PREFER toBeOnTheScreen
@@ -515,7 +528,7 @@ it.each(['small', 'medium', 'large'] as const)('renders %s size', (size) => {
 ## Test Determinism
 
 - **EVERYTHING** not under test must be mocked - no exceptions.
-- Avoid brittle tests: do not test internal state or UI snapshots for logic. **Snapshots are banned** (`toMatchSnapshot()` and `toMatchInlineSnapshot()`) — see Snapshot Testing Policy above.
+- Avoid brittle tests: do not test internal state or UI snapshots for logic. **`toMatchSnapshot()` and rendered-UI `toMatchInlineSnapshot()` are banned** — see Snapshot Testing Policy above.
 - Only test public behavior, not implementation details.
 - Mock time, randomness, and external systems to ensure consistent results.
 
@@ -631,7 +644,7 @@ expect(result).toBe(false);
 ```
 
 - Ensure tests use proper matchers (`toBeOnTheScreen` vs `toBeDefined`).
-- **Reject any new `.snap` files or new `toMatchSnapshot()` / `toMatchInlineSnapshot()` calls** — snapshots are banned; require the author to use explicit assertions instead.
+- **Reject any new `.snap` files or new `toMatchSnapshot()` calls, and any `toMatchInlineSnapshot()` of rendered UI** — require explicit assertions, or an inline snapshot only when the serialized value is the assertion.
 - Reject tests with complex names combining multiple logical conditions (AND/OR).
 
 # Refactoring Support
@@ -644,7 +657,7 @@ expect(result).toBe(false);
 
 Before submitting any test file, verify:
 
-- [ ] **No `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — BANNED; use explicit assertions instead
+- [ ] **No `toMatchSnapshot()` calls and no rendered-UI `toMatchInlineSnapshot()`** — BANNED; use explicit assertions (an inline snapshot is allowed only when the serialized value is the assertion)
 - [ ] **No static style assertions** — no `StyleSheet.flatten` padding/margin/color checks, fixed layout-prop checks, or style-only testIDs; a style assertion is allowed only when the style itself is the outcome of logic
 - [ ] **No mocking to inject testIDs** - Use component's built-in testID support
 - [ ] **testIDs via child prop objects** - Use `closeButtonProps={{ testID }}` not mocks
@@ -664,7 +677,7 @@ Before submitting any test file, verify:
 
 # Common Mistakes to AVOID - CRITICAL
 
-- ❌ **Using `toMatchSnapshot()` or `toMatchInlineSnapshot()`** — BANNED; MetaMask Mobile does not use snapshots; use explicit assertions instead
+- ❌ **Using `toMatchSnapshot()`, or `toMatchInlineSnapshot()` on rendered UI** — BANNED; use explicit assertions instead (inline snapshots of serialized data are fine)
 - ❌ **Mocking to inject testIDs** - Components already support testID (see guidelines above)
 - ❌ **Testing static styling** - Spacing, color, and fixed layout props are verified visually, not in Jest
 - ❌ **Using "should" in test names** - This is the #1 mistake, use action-oriented descriptions
@@ -709,8 +722,8 @@ yarn test:unit:coverage
 ## Workflow Requirements
 
 - Confirm all tests are passing before commit.
-- **Do not add new `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — snapshots are banned. See Snapshot Testing Policy.
-- When modifying a test file that contains a snapshot call, opportunistically migrate those calls to explicit assertions — do not block a PR solely to force migration, but do not add new ones.
+- **Do not add new `toMatchSnapshot()` calls, and never snapshot rendered UI with `toMatchInlineSnapshot()`** — see Snapshot Testing Policy.
+- When modifying a test file that contains `toMatchSnapshot()`, opportunistically migrate those calls to explicit assertions or `toMatchInlineSnapshot()` (data only) — do not block a PR solely to force migration, but do not add new ones.
 
 # Reference Code Examples
 
@@ -727,12 +740,13 @@ it('indicates expired milk when past due date', () => {
 });
 ```
 
-## ❌ Banned: Snapshots
+## ❌ Banned: Snapshots of Rendered UI
 
 ```ts
 // ❌ BANNED — toMatchSnapshot() writes to an external .snap file:
 // no code owner, hidden regressions, breaks on trivial changes.
-// toMatchInlineSnapshot() is banned too — Mobile does not use snapshots.
+// toMatchInlineSnapshot() on rendered UI is banned too — the blob locks
+// in styles and class names.
 it('renders the button', () => {
   const { container } = render(<MyButton />);
   expect(container).toMatchSnapshot(); // 🚫 BANNED — do not use
@@ -765,7 +779,7 @@ it('hides selector when disabled', () => {
 
 ## Reviewer Responsibilities
 
-Validate tests fail when code breaks • Ensure proper matchers • **Reject new `toMatchSnapshot()` / `toMatchInlineSnapshot()` calls and new `.snap` files** • Reject complex names with AND/OR
+Validate tests fail when code breaks • Ensure proper matchers • **Reject new `toMatchSnapshot()` calls, rendered-UI `toMatchInlineSnapshot()`, and new `.snap` files** • Reject complex names with AND/OR
 
 ```ts
 // OK
@@ -777,6 +791,6 @@ it('renders and disables button when input is empty or missing required field');
 
 ## Workflow
 
-Always run tests after changes • Confirm all pass before commit • **Do not add new `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — migrate existing ones to explicit assertions when touching a test file
+Always run tests after changes • Confirm all pass before commit • **Do not add new `toMatchSnapshot()` calls, and never snapshot rendered UI inline** — migrate existing ones to explicit assertions when touching a test file
 
 **Resources**: [Contributor docs](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md) • [Jest Matchers](https://jestjs.io/docs/using-matchers) • [React Native Testing Library](https://testing-library.com/docs/react-native-testing-library/intro/)
