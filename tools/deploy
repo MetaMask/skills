@@ -47,7 +47,7 @@ while IFS='=' read -r REPO TARGET_PATTERN; do
     matched=$((matched + 1))
     echo
     echo "=== $REPO → $TARGET ==="
-    "$SCRIPT_DIR/tools/install" --repo "$REPO" --target "$TARGET" "${EXTRA_ARGS[@]}"
+    bash "$SCRIPT_DIR/tools/install" --repo "$REPO" --target "$TARGET" "${EXTRA_ARGS[@]}"
   done
 
   if [[ "$matched" -eq 0 ]]; then

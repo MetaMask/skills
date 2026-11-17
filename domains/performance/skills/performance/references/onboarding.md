@@ -45,6 +45,18 @@ React Native DevTools → Profiler → ⚙️ → enable "Record why each compon
 → Start → reproduce the exact interaction → Stop → read "why did this render?"
 ```
 
+### Record a full performance timeline
+```
+React Native DevTools → Performance → Record → run the exact flow → Stop
+→ see js-performance-panel.md
+```
+
+### Inspect network requests
+```
+React Native DevTools → Network → run the flow (records automatically)
+→ see js-network-panel.md
+```
+
 ### Guard a component against render regressions (Reassure)
 ```bash
 # write app/.../MyComponent.perf-test.tsx (see DeepLinkModal.perf-test.tsx)
@@ -62,7 +74,7 @@ endTrace({ name: TraceName.AssetDetails });
 
 ### Analyze the bundle (no script wired — run manually)
 ```bash
-# Expo Atlas (recommended for this SDK 54 project)
+# Expo Atlas (recommended for this SDK 57 project)
 yarn expo install expo-atlas                                     # one-time, pinned
 EXPO_ATLAS=1 yarn expo export --platform ios && yarn expo-atlas
 ```

@@ -1,31 +1,72 @@
-# GitHub code ownership for MetaMask skills.
-# This is a first-pass domain mapping intended for domain-owner review.
+# Code owners for MetaMask skills.
+#
+# Domain teams maintain their skills. Platform teams own shared tooling,
+# documentation, and anything without a more specific owner.
+#
+# GitHub applies the LAST matching pattern, so order matters: fallbacks first,
+# specific domain owners next, self-protection last.
 
-# Product/domain-specific skills.
-/domains/perps/ @MetaMask/perps
-/domains/swaps/ @MetaMask/swaps-engineers
-/domains/transactions/ @MetaMask/transactions
-/domains/api-platform/ @MetaMask/api-platform @MetaMask/wallet-api-platform-engineers
-/domains/assets/ @MetaMask/metamask-assets
-/domains/engagement/ @MetaMask/engagement
-/domains/notifications/ @MetaMask/notifications
-/domains/web3auth/ @MetaMask/web3auth @MetaMask/web3auth-platform
-/domains/card/ @MetaMask/card
-/domains/portfolio/ @MetaMask/portfolio
+# Default fallback.
+*                        @MetaMask/extension-platform @MetaMask/mobile-platform
 
-# Domains currently present or pending in open PRs.
-/domains/analytics/ @MetaMask/performance-council
-/domains/platform/ @MetaMask/extension-platform @MetaMask/core-platform
+# By default, executable files in distributable paths require security review.
+# This rule is intended as a fallback and can be overridden by subsequent lines.
+/domains/                @MetaMask/security-liaisons @MetaMask/policy-reviewers
+/domains/**/scripts/     @MetaMask/application-security @MetaMask/security-liaisons @MetaMask/policy-reviewers
+/domains/**/adapters/    @MetaMask/application-security @MetaMask/security-liaisons @MetaMask/policy-reviewers
 
-# Horizontal skills domains.
-/domains/performance/ @MetaMask/performance-council
-/domains/testing/ @MetaMask/qa
-/domains/ui/ @MetaMask/design-system-engineers @MetaMask/design-system
-/domains/coding/ @MetaMask/engineering
-/domains/pr-workflow/ @MetaMask/engineering
-/domains/general/ @MetaMask/engineering
-/domains/web3-tools/ @MetaMask/developer-relations
+# By default, markdown files in distributable paths do not require codeowner review.
+# This rule is intended as a fallback, and can be overridden by subsequent lines.
+/domains/**/*.md
+/domains/**/*.mdc
 
-# Legacy/experimental.
-# ADR-58/recipe skills are experimental but owned by Perps during rollout.
-/domains/agentic/ @MetaMask/perps
+# Shared tooling and documentation.
+/.github/                @MetaMask/extension-platform @MetaMask/mobile-platform
+/bin/                    @MetaMask/extension-platform @MetaMask/mobile-platform
+/docs/                   @MetaMask/extension-platform @MetaMask/mobile-platform
+/test/                   @MetaMask/extension-platform @MetaMask/mobile-platform
+/tools/                  @MetaMask/extension-platform @MetaMask/mobile-platform
+/README.md               @MetaMask/extension-platform @MetaMask/mobile-platform
+/CONTRIBUTING.md         @MetaMask/extension-platform @MetaMask/mobile-platform
+
+# Product-specific domains.
+/domains/agentic/        @MetaMask/perps
+/domains/api-platform/   @MetaMask/api-platform @MetaMask/wallet-api-platform-engineers
+/domains/assets/         @MetaMask/metamask-assets
+/domains/card/           @MetaMask/card
+/domains/engagement/     @MetaMask/engagement
+/domains/notifications/  @MetaMask/notifications
+/domains/perps/          @MetaMask/perps
+/domains/portfolio/      @MetaMask/portfolio
+/domains/swaps/          @MetaMask/swaps-engineers
+/domains/transactions/   @MetaMask/transactions
+/domains/web3auth/       @MetaMask/web3auth @MetaMask/web3auth-platform
+
+# Horizontal domains. Engineering teams are co-owners so councils are not
+# flooded with low-priority review requests.
+/domains/analytics/      @MetaMask/data-council @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/coding/         @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/general/        @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/observability/  @MetaMask/sre @MetaMask/api-platform @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/observability/skills/*/repos/metamask-extension.md @MetaMask/extension-platform
+/domains/observability/skills/*/repos/metamask-mobile.md    @MetaMask/mobile-platform
+/domains/performance/    @MetaMask/performance-council @MetaMask/engineering
+/domains/planning/       @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/platform/       @MetaMask/extension-platform @MetaMask/mobile-platform @MetaMask/core-platform
+/domains/platform/skills/*/repos/metamask-extension.md      @MetaMask/extension-platform
+/domains/platform/skills/*/repos/metamask-mobile.md         @MetaMask/mobile-platform
+/domains/pr-workflow/    @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/testing/        @MetaMask/qa
+/domains/typescript/     @MetaMask/extension-platform @MetaMask/mobile-platform
+/domains/typescript/skills/*/repos/metamask-extension.md    @MetaMask/extension-platform
+/domains/typescript/skills/*/repos/metamask-mobile.md       @MetaMask/mobile-platform
+/domains/ui/             @MetaMask/design-system-engineers @MetaMask/design-system @MetaMask/engineering
+/domains/web3-tools/     @MetaMask/developer-relations @MetaMask/extension-platform @MetaMask/mobile-platform
+
+# The CODEOWNERS file constitutes an agreement amongst organization
+# admins and maintainers to restrict approval capabilities to a subset
+# of contributors. Modifications to this file result in a modification of
+# that agreement and can only be approved by maintainers of the repo.
+# Note: As the highest-priority entry, this rule should always be placed
+# at the very bottom of the CODEOWNERS file.
+/.github/CODEOWNERS      @abretonc7s @MajorLift @cryptotavares @AugmentedMode

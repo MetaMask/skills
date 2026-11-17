@@ -170,3 +170,5 @@ Only propose callback or dependency-array changes when the profiler or a reprodu
 
 - [js-react-compiler.md](./js-react-compiler.md) - Automatic memoization
 - [js-measure-fps.md](./js-measure-fps.md) - Quantify frame rate impact
+- [js-performance-panel.md](./js-performance-panel.md) - Full timeline: React scheduler + JS + network in one trace
+- [js-network-panel.md](./js-network-panel.md) - Inspect network requests and API timings
