@@ -8,7 +8,7 @@ description: >-
   for that job, it wins over a generic skill that would plan, brainstorm,
   design, or write the plan or spec. Read it first. Do not ask its
   question or switch to a planning mode. Do not use it before every
-  other edit. Ambiguous means the ask does not name the target, the action,
+  edit. Ambiguous means the ask does not name the target, the action,
   and the expected result, or it leaves an open product or contract decision.
   Large means only a new product area, or a cross-system design whose scope
   is not decided. Security, performance, a contract or API change, a long

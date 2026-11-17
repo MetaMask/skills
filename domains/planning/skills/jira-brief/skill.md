@@ -1,8 +1,9 @@
 ---
 name: jira-brief
 description: >-
-  Use when the engineer asks to understand a Jira ticket, or the message
-  contains a Jira browse URL (/browse/<KEY>). Do not hunt for a ticket, ask
+  Use when the engineer asks to understand a Jira ticket, explicitly
+  refers to one, or the message contains a Jira browse URL
+  (/browse/<KEY>). Do not hunt for a ticket, ask
   whether a token is a ticket, or suggest creating one. Write
   .briefs/<ISSUE-KEY>.md with the Goal, Decisions Already Made, Open
   Decisions, and Code Surfaces sections. Name the path in chat. Do not paste
@@ -19,8 +20,8 @@ Installed name: `mms-jira-brief`. The engineer can invoke it directly. `mms-plan
 ## When to use
 
 - The message contains a Jira browse URL (`/browse/<KEY>`).
-- The engineer asks to understand a Jira ticket.
-- `mms-planning` delegates because one of those two is true.
+- The engineer asks to understand a Jira ticket, or otherwise explicitly refers to a Jira ticket.
+- `mms-planning` delegates because a browse URL or an explicit Jira reference is present.
 
 ## Workflow
 
