@@ -7,7 +7,7 @@ maturity: stable
 
 # Perps static review
 
-Generated from the canonical Perps review rules @ bd85e44264c5d9e0a5ef83ec9a46d072d2745417. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
+Generated from the canonical Perps review rules @ 7d19985bb8c17a97f2c050ea2caa42192b4d8115. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source, diff and recorded evidence only: no tests, builds, recipes, installs, probes, app launch, product change, publish or workspace cleanup. Delegated skills inherit this static, read-only boundary. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
@@ -46,7 +46,7 @@ Check applicability against the frozen diff and its affected callers. Open each 
 - [ ] Controller Portability (Core)
   `PerpsController` lives in `core/packages/perps-controller` and is published as `@metamask/perps-controller`; Mobile, Extension and Terminal consume the package. See references/shared.md#controller-portability-core
 - [ ] Perps Math Comes From the Controller
-  Perps trading math (PnL, RoE, TP/SL trigger ↔ RoE/percentage, leverage, margin, liquidation, fees, account summary) and advanced order logic (TWAP, chase and scale: slicing, scheduling, validation, active/history state) must come from `@metamask/perps-controller`. See references/shared.md#perps-math-comes-from-the-controller
+  Perps trading math and advanced order logic (TWAP, chase and scale: slicing, scheduling, validation, active/history state) must come from `@metamask/perps-controller`. See references/shared.md#perps-math-comes-from-the-controller
 - [ ] Shared Formatting & Display Precision
   Displayed Perps numbers and their precision come from `@metamask/perps-controller` formatters and constants; formatting is shared logic, not display-only. See references/shared.md#shared-formatting-display-precision
 - [ ] Missing numeric data stays undefined
