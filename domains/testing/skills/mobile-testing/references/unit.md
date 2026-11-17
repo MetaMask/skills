@@ -32,8 +32,8 @@ changes are verified with screenshots (`mobile-visual-testing`) and the PR's
 before/after evidence. A diff that only changes static styling needs no new or
 updated test, even inside an existing `*.test.tsx`; such assertions don't
 guard behavior and break whenever a design token changes. MetaMask Mobile
-does not use snapshots at all, so no snapshot can fail on a class-name change
-— do not add `toMatchSnapshot()` or `toMatchInlineSnapshot()` to cover one.
+does not use snapshots at all, so no snapshot can fail on a class-name change;
+do not add `toMatchSnapshot()` or `toMatchInlineSnapshot()`.
 
 Test presentation only when JS logic decides it (state, props or data choose
 between styles, e.g. error vs default, selected, disabled). Prefer asserting
@@ -283,7 +283,7 @@ expect(result.name).toBe('Ethereum Mainnet');
 
 When you encounter an existing `toMatchSnapshot()` or `toMatchInlineSnapshot()` call:
 1. **Replace it** with explicit `expect` assertions targeting the specific values that matter.
-2. Delete the corresponding `.snap` file entry once migrated.
+2. Delete the corresponding `.snap` file entry once migrated (external snapshots only).
 
 Do **not** leave either call in place when modifying a test file — migrate it as part of your change.
 
