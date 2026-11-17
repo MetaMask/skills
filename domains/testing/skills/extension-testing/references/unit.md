@@ -24,7 +24,7 @@ between styles, e.g. error vs default, selected, disabled). Prefer asserting
 what the user sees (text, disabled or ARIA state), and use a style assertion
 only when the style itself is the outcome of that logic.
 
-- **NEVER** assert spacing, color, typography, or fixed layout values (computed styles, `className` strings, design-token values)
+- **NEVER** assert spacing, color, typography, or fixed layout values that no logic chooses (computed styles, `className` strings, design-token values) — a style or class assertion is allowed when JS logic chooses the style (e.g. an error-state class)
 - **NEVER** add a snapshot to cover a static styling change. If an existing snapshot fails because class names or static styles changed, update it so CI stays green; that update is not coverage of the styling change
 - **NEVER** add a `data-testid` whose only use is reading `style` or `className`
 - **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.

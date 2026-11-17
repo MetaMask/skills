@@ -31,7 +31,9 @@ any logic. The design system already tests that its props apply, and visual
 changes are verified with screenshots (`mobile-visual-testing`) and the PR's
 before/after evidence. A diff that only changes static styling needs no new or
 updated test, even inside an existing `*.test.tsx`; such assertions don't
-guard behavior and break whenever a design token changes.
+guard behavior and break whenever a design token changes. MetaMask Mobile
+does not use snapshots at all, so no snapshot can fail on a class-name change
+— do not add `toMatchSnapshot()` or `toMatchInlineSnapshot()` to cover one.
 
 Test presentation only when JS logic decides it (state, props or data choose
 between styles, e.g. error vs default, selected, disabled). Prefer asserting
@@ -243,7 +245,7 @@ testID={`network-option-${network.chainId}`}
 ### The Rule
 
 - ❌ **`toMatchSnapshot()` is BANNED** — Do not use it. Do not add it. Do not approve it.
-- ✅ **`toMatchInlineSnapshot()` is ALLOWED** — Use sparingly, only when the serialized output is the meaningful assertion.
+- ❌ **`toMatchInlineSnapshot()` is BANNED too** — MetaMask Mobile does not use snapshots at all. Assert the values you care about explicitly instead.
 
 ### Why `toMatchSnapshot()` Is Banned
 
@@ -253,16 +255,15 @@ External snapshot files (`.snap`) have three critical problems:
 2. **No code ownership** — `CODEOWNERS` explicitly assigns `**/*.snap` to *nobody*, meaning no team is accountable for snapshot correctness.
 3. **Brittle by design** — Any style tweak, whitespace change, or unrelated refactor regenerates the snapshot and silently passes CI.
 
-### Why `toMatchInlineSnapshot()` Is Allowed
+### Why `toMatchInlineSnapshot()` Is Banned Too
 
-The snapshot string lives directly in the test file, so:
-- It appears in the PR diff alongside the code that produces it
-- The file's code owner is responsible for reviewing it
-- Reviewers can see exactly what changed and why
+Inline snapshots are still snapshots: the serialized blob locks in rendered
+output (styles, class names, layout), so a design-token or class-name change
+fails the test even though no behavior regressed. MetaMask Mobile does not use
+snapshots in any test layer — unit, component-view, and integration all assert
+specific values with explicit `expect` calls.
 
-### When to Use `toMatchInlineSnapshot()`
-
-Only use it when the serialized shape of the output **is** the assertion — for example, verifying a complex object structure, a formatted string, or a serialized data payload. Do **not** use it as a lazy substitute for explicit `expect` calls.
+### Use Explicit Assertions
 
 ```ts
 // ❌ BANNED — writes to an external .snap file
@@ -270,27 +271,21 @@ expect(tree).toMatchSnapshot();
 expect(component).toMatchSnapshot();
 expect(result).toMatchSnapshot();
 
-// ✅ ALLOWED — snapshot is inline and visible in review
-expect(result).toMatchInlineSnapshot(`
-  {
-    "chainId": "0x1",
-    "name": "Ethereum Mainnet",
-  }
-`);
+// ❌ BANNED — inline snapshots are snapshots too
+expect(result).toMatchInlineSnapshot(`...`);
 
 // ✅ PREFERRED — explicit assertions are always better than snapshots
 expect(result.chainId).toBe('0x1');
 expect(result.name).toBe('Ethereum Mainnet');
 ```
 
-### Migrating Existing `toMatchSnapshot()` Calls
+### Migrating Existing Snapshot Calls
 
-When you encounter an existing `toMatchSnapshot()` call:
-1. **Prefer replacing it** with explicit `expect` assertions targeting the specific values that matter.
-2. If the full serialized output is genuinely meaningful, convert to `toMatchInlineSnapshot()`.
-3. Delete the corresponding `.snap` file entry once migrated.
+When you encounter an existing `toMatchSnapshot()` or `toMatchInlineSnapshot()` call:
+1. **Replace it** with explicit `expect` assertions targeting the specific values that matter.
+2. Delete the corresponding `.snap` file entry once migrated.
 
-Do **not** leave `toMatchSnapshot()` in place when modifying a test file — migrate it as part of your change.
+Do **not** leave either call in place when modifying a test file — migrate it as part of your change.
 
 
 ## Assertions - PREFER toBeOnTheScreen
@@ -520,7 +515,7 @@ it.each(['small', 'medium', 'large'] as const)('renders %s size', (size) => {
 ## Test Determinism
 
 - **EVERYTHING** not under test must be mocked - no exceptions.
-- Avoid brittle tests: do not test internal state or UI snapshots for logic. **`toMatchSnapshot()` is banned** — see Snapshot Testing Policy above.
+- Avoid brittle tests: do not test internal state or UI snapshots for logic. **Snapshots are banned** (`toMatchSnapshot()` and `toMatchInlineSnapshot()`) — see Snapshot Testing Policy above.
 - Only test public behavior, not implementation details.
 - Mock time, randomness, and external systems to ensure consistent results.
 
@@ -636,7 +631,7 @@ expect(result).toBe(false);
 ```
 
 - Ensure tests use proper matchers (`toBeOnTheScreen` vs `toBeDefined`).
-- **Reject any new `.snap` files or new `toMatchSnapshot()` calls** — these are banned; require the author to use explicit assertions or `toMatchInlineSnapshot()` instead.
+- **Reject any new `.snap` files or new `toMatchSnapshot()` / `toMatchInlineSnapshot()` calls** — snapshots are banned; require the author to use explicit assertions instead.
 - Reject tests with complex names combining multiple logical conditions (AND/OR).
 
 # Refactoring Support
@@ -649,7 +644,7 @@ expect(result).toBe(false);
 
 Before submitting any test file, verify:
 
-- [ ] **No `toMatchSnapshot()` calls** — BANNED; use explicit assertions or `toMatchInlineSnapshot()` instead
+- [ ] **No `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — BANNED; use explicit assertions instead
 - [ ] **No static style assertions** — no `StyleSheet.flatten` padding/margin/color checks, fixed layout-prop checks, or style-only testIDs; a style assertion is allowed only when the style itself is the outcome of logic
 - [ ] **No mocking to inject testIDs** - Use component's built-in testID support
 - [ ] **testIDs via child prop objects** - Use `closeButtonProps={{ testID }}` not mocks
@@ -669,7 +664,7 @@ Before submitting any test file, verify:
 
 # Common Mistakes to AVOID - CRITICAL
 
-- ❌ **Using `toMatchSnapshot()`** — BANNED; it writes opaque `.snap` files with no code owner; use explicit assertions or `toMatchInlineSnapshot()` instead
+- ❌ **Using `toMatchSnapshot()` or `toMatchInlineSnapshot()`** — BANNED; MetaMask Mobile does not use snapshots; use explicit assertions instead
 - ❌ **Mocking to inject testIDs** - Components already support testID (see guidelines above)
 - ❌ **Testing static styling** - Spacing, color, and fixed layout props are verified visually, not in Jest
 - ❌ **Using "should" in test names** - This is the #1 mistake, use action-oriented descriptions
@@ -714,9 +709,8 @@ yarn test:unit:coverage
 ## Workflow Requirements
 
 - Confirm all tests are passing before commit.
-- **Do not add new `toMatchSnapshot()` calls** — this is banned. See Snapshot Testing Policy.
-- When modifying a test file that contains `toMatchSnapshot()`, opportunistically migrate those calls to explicit assertions or `toMatchInlineSnapshot()` — do not block a PR solely to force migration, but do not add new ones.
-- `toMatchInlineSnapshot()` updates are acceptable but must be reviewed — confirm the new inline snapshot reflects an intentional, expected change.
+- **Do not add new `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — snapshots are banned. See Snapshot Testing Policy.
+- When modifying a test file that contains a snapshot call, opportunistically migrate those calls to explicit assertions — do not block a PR solely to force migration, but do not add new ones.
 
 # Reference Code Examples
 
@@ -733,14 +727,16 @@ it('indicates expired milk when past due date', () => {
 });
 ```
 
-## ❌ Banned: `toMatchSnapshot()`
+## ❌ Banned: Snapshots
 
 ```ts
-// ❌ BANNED — toMatchSnapshot() writes to an external .snap file.
-// It has no code owner, hides regressions, and breaks on trivial changes.
+// ❌ BANNED — toMatchSnapshot() writes to an external .snap file:
+// no code owner, hidden regressions, breaks on trivial changes.
+// toMatchInlineSnapshot() is banned too — Mobile does not use snapshots.
 it('renders the button', () => {
   const { container } = render(<MyButton />);
   expect(container).toMatchSnapshot(); // 🚫 BANNED — do not use
+  expect(container).toMatchInlineSnapshot(); // 🚫 BANNED — do not use
 });
 ```
 
@@ -769,7 +765,7 @@ it('hides selector when disabled', () => {
 
 ## Reviewer Responsibilities
 
-Validate tests fail when code breaks • Ensure proper matchers • **Reject new `toMatchSnapshot()` calls and new `.snap` files** • Reject complex names with AND/OR
+Validate tests fail when code breaks • Ensure proper matchers • **Reject new `toMatchSnapshot()` / `toMatchInlineSnapshot()` calls and new `.snap` files** • Reject complex names with AND/OR
 
 ```ts
 // OK
@@ -781,6 +777,6 @@ it('renders and disables button when input is empty or missing required field');
 
 ## Workflow
 
-Always run tests after changes • Confirm all pass before commit • **Do not add new `toMatchSnapshot()` calls** — migrate existing ones to explicit assertions or `toMatchInlineSnapshot()` when touching a test file
+Always run tests after changes • Confirm all pass before commit • **Do not add new `toMatchSnapshot()` or `toMatchInlineSnapshot()` calls** — migrate existing ones to explicit assertions when touching a test file
 
 **Resources**: [Contributor docs](https://github.com/MetaMask/contributor-docs/blob/main/docs/testing/unit-testing.md) • [Jest Matchers](https://jestjs.io/docs/using-matchers) • [React Native Testing Library](https://testing-library.com/docs/react-native-testing-library/intro/)
