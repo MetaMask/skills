@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `perps/perps-manual-cpu-profile-audit`: a step-by-step workflow that takes a Perps slowdown from complaint to proven fix using a Hermes CPU profile recorded by hand in the shake-menu profiler, with a MetaMask Mobile overlay and a standalone `.cpuprofile` analyzer script (fixed metric table, baseline noise band, capture check, time windows).
 - Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
 - Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
