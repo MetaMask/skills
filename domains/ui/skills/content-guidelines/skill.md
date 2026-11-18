@@ -356,7 +356,7 @@ An empty state is a moment, not a dead end. When someone hasn't started yet, giv
 1. **First-time empty (nothing yet).** Write it with warmth and a bit of optimism, tied to the feature. Add a button with a verb.
 2. **Search or filter with no results.** Keep it plain and helpful. Say what didn't match and what to try next.
 3. **Couldn't load.** That's an error, not an empty state, so follow the error rules.
-4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe. On any surface, never say "Withdraw anytime", or an equivalent promise such as "withdraw at any time". That is a promise. To say the user has access to their MetaMask Money balance, use "No lockups", "Direct access", and "No notice periods or penalties".
+4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe. For MetaMask Money, never say "Withdraw anytime", or an equivalent promise such as "withdraw at any time". That is a promise. To say the user has access to their MetaMask Money balance, use "No lockups", "Direct access", and "No notice periods or penalties".
 5. **Don't** sound sad or apologetic ("Nothing to see yet"), blame the person ("You don't have any…"), use emoji, or copy the same line across features.
 
 ```
