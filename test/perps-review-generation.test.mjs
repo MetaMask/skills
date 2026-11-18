@@ -9,6 +9,7 @@ import { test } from 'node:test';
 const hasRow = (text, instruction) => { const lines = text.split('\n'); const i = lines.indexOf('  ' + instruction); return i > 0 && lines[i - 1].startsWith('- [ ] '); };
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+const OWNED = { mobile: ['app/perps/**'], extension: ['ui/pages/perps/**'], core: ['packages/perps-controller/**'], terminal: ['src/perps/**'] };
 const generator = path.join(root, 'domains/perps/skills/perps-review-pr/scripts/materialize-review.mjs');
 
 test('generated shared and client checks compose through the standard installer without a second catalog', () => {
@@ -24,7 +25,7 @@ test('generated shared and client checks compose through the standard installer 
     }
     for (const file of ['parity', 'shared-packages']) writeFileSync(path.join(library, `review/${file}.md`), '# Reference\nContext\n');
     writeFileSync(path.join(library, 'review/report-template.md'), '# Posted review template\n\nCopy this filled example; keep its order and marks.\n');
-    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: { mobile: ['app/perps'] } }));
+    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: OWNED }));
     const git = (...args) => execFileSync('git', ['-C', library, ...args], { stdio: 'pipe' });
     git('init'); git('add', '.');
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'test: seed review rules');
@@ -76,12 +77,13 @@ test('direct delegations and the compact report template survive installation an
     const extension = 'Run `domains/testing/skills/extension-testing` by name for application behavior or test changes. ' + skip;
     writeFileSync(path.join(library, 'review/antipatterns.md'), '# Shared\n\n## Locale checks\n\n> Delegate: ' + shared + '\n\n- **Perps invariant**: Preserve financial units.\n');
     for (const [client, delegation] of [['mobile', mobile], ['extension', extension], ['core', null], ['terminal', null]]) {
-      writeFileSync(path.join(library, `review/antipatterns.${client}.md`), '# Rules\n\n## Client checks\n\n' + (delegation ? '> Delegate: ' + delegation + '\n' : 'Keep the client contract.\n'));
+      // Pack family ids are unique across files, so families with a body get distinct titles.
+      writeFileSync(path.join(library, `review/antipatterns.${client}.md`), `# Rules\n\n## ${delegation ? 'Client' : client} checks\n\n` + (delegation ? '> Delegate: ' + delegation + '\n' : 'Keep the client contract.\n'));
     }
     for (const name of ['parity', 'shared-packages']) writeFileSync(path.join(library, `review/${name}.md`), '# Reference\n');
     const report = '# Posted review template\n\nCopy the filled example; keep its order and marks.\n\nVERDICT: REQUEST_CHANGES\n\n<details>\n<summary>Details for agents</summary>\n\nFull ledger: artifacts/review-ledger.md\n\n</details>\n';
     writeFileSync(path.join(library, 'review/report-template.md'), report);
-    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: { mobile: ['app/perps'] } }));
+    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: OWNED }));
     const git = (...args) => execFileSync('git', ['-C', library, ...args], { stdio: 'pipe' });
     git('init'); git('add', '.');
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'test: seed delegated review rules');
@@ -109,5 +111,84 @@ test('direct delegations and the compact report template survive installation an
     assert.equal(analyzer.includes('from references/report-template.md'), false);
     const extensionBody = readFileSync(path.join(skill, 'repos/metamask-extension.md'), 'utf8');
     assert.ok(hasRow(extensionBody, extension), extension);
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+// The machine-readable rule pack (ADR-0073 Amendment 1) lists every criterion family with
+// the clients whose review carries it, so a hosted review can mark a family it does not
+// select without inventing checklist rows: each family in a client's scope must already
+// own exactly one step of that client's installed checklist.
+test('the rule pack lists every family, scoped to the clients whose checklist carries it', () => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'perps-pack-'));
+  try {
+    const library = path.join(temp, 'library');
+    const source = path.join(temp, 'source');
+    const skill = path.join(source, 'domains/perps/skills/perps-review-pr');
+    mkdirSync(path.join(library, 'review'), { recursive: true });
+    writeFileSync(path.join(library, 'review/antipatterns.md'), '# Shared\n\n## Blocking review checks\n\nEvery confirmed violation blocks.\n\n## Shared state\n\nKeep shared state in Core.\n\n- **Client copy**: A client recomputes Core state.\n- **Stale read**: A client reads state before hydration.\n');
+    for (const client of ['mobile', 'extension', 'core', 'terminal'])
+      writeFileSync(path.join(library, `review/antipatterns.${client}.md`), `# Rules\n\n## ${client} boundary\n\nKeep the ${client} boundary.\n\n- **${client} leak**: The ${client} client crosses its boundary.\n`);
+    for (const file of ['parity', 'shared-packages']) writeFileSync(path.join(library, `review/${file}.md`), '# Reference\n');
+    writeFileSync(path.join(library, 'review/report-template.md'), '# Posted review template\n');
+    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: OWNED }));
+    const git = (...args) => execFileSync('git', ['-C', library, ...args], { stdio: 'pipe' });
+    git('init'); git('add', '.');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'test: seed pack rules');
+    const revision = git('rev-parse', 'HEAD').toString().trim();
+    execFileSync(process.execPath, [generator, '--library', library, '--out', skill], { stdio: 'pipe' });
+    execFileSync(process.execPath, [generator, '--library', library, '--out', skill, '--check'], { stdio: 'pipe' });
+
+    const pack = JSON.parse(readFileSync(path.join(skill, 'references/pack.json'), 'utf8'));
+    assert.equal(pack.schemaVersion, 1);
+    assert.equal(pack.id, 'perps');
+    assert.deepEqual(pack.source, { repository: 'MetaMask/experimental-metamask-recipe-perps', revision });
+    const byId = Object.fromEntries(pack.families.map(family => [family.id, family]));
+    assert.deepEqual(Object.keys(byId).sort(), ['blocking-review-checks', 'core-boundary', 'extension-boundary', 'mobile-boundary', 'shared-state', 'terminal-boundary']);
+    assert.deepEqual(byId['shared-state'], {
+      id: 'shared-state', title: 'Shared state', file: 'references/shared.md',
+      areas: { paths: OWNED }, status: 'active', class: 'blocking',
+      rules: [{ label: 'Client copy', why: 'pre-0073' }, { label: 'Stale read', why: 'pre-0073' }],
+    });
+    // A family written as prose is one rule named by its title.
+    assert.deepEqual(byId['blocking-review-checks'].rules, [{ label: 'Blocking review checks', why: 'pre-0073' }]);
+    assert.deepEqual(byId['core-boundary'], {
+      id: 'core-boundary', title: 'core boundary', file: 'references/core.md',
+      areas: { paths: { core: OWNED.core } }, status: 'active', class: 'blocking', clients: ['core'],
+      rules: [{ label: 'core leak', why: 'pre-0073' }],
+    });
+
+    for (const [client, repo] of Object.entries({ mobile: 'metamask-mobile', extension: 'metamask-extension', core: 'core', terminal: 'va-mmcx-terminal' })) {
+      const target = path.join(temp, client); mkdirSync(target);
+      execFileSync('bash', [path.join(root, 'tools/install'), '--source', source, '--target', target, '--repo', repo, '--domain', 'none', '--include', 'perps-review-pr'], { stdio: 'pipe' });
+      const installed = path.join(target, '.agents/skills/mms-perps-review-pr');
+      assert.deepEqual(JSON.parse(readFileSync(path.join(installed, 'references/pack.json'), 'utf8')), pack, `${repo}: the installed pack is the generated one`);
+      const steps = readFileSync(path.join(installed, 'SKILL.md'), 'utf8').split(/\n(?=- \[ \] )/);
+      for (const family of pack.families) {
+        const owners = steps.filter(step => step.includes(`${family.file}#${family.id}`)).length;
+        const inScope = !family.clients || family.clients.includes(client);
+        assert.equal(owners, inScope ? 1 : 0, `${repo}: ${family.id} should own ${inScope ? 'one step' : 'no step'}`);
+      }
+    }
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('a client with review families but no owned paths is refused', () => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'perps-pack-owned-'));
+  try {
+    const library = path.join(temp, 'library');
+    mkdirSync(path.join(library, 'review'), { recursive: true });
+    writeFileSync(path.join(library, 'review/antipatterns.md'), '# Shared\n\n## Shared state\n\n- **Client copy**: A client recomputes Core state.\n');
+    for (const client of ['mobile', 'extension', 'core', 'terminal'])
+      writeFileSync(path.join(library, `review/antipatterns.${client}.md`), `# Rules\n\n## ${client} boundary\n\n- **${client} leak**: Crosses its boundary.\n`);
+    for (const file of ['parity', 'shared-packages', 'report-template']) writeFileSync(path.join(library, `review/${file}.md`), '# Reference\n');
+    const { terminal: _terminal, ...withoutTerminal } = OWNED;
+    writeFileSync(path.join(library, 'owned-paths.json'), JSON.stringify({ domain: 'perps', repos: withoutTerminal }));
+    const git = (...args) => execFileSync('git', ['-C', library, ...args], { stdio: 'pipe' });
+    git('init'); git('add', '.');
+    git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'test: seed rules');
+    assert.throws(
+      () => execFileSync(process.execPath, [generator, '--library', library, '--out', path.join(temp, 'skill')], { stdio: 'pipe' }),
+      error => /owned-paths\.json has no paths for terminal/.test(String(error.stderr)),
+    );
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
