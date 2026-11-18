@@ -1,7 +1,7 @@
 ---
 name: react-compiler-migration
 description: Migrate existing files so the React Compiler can optimize them, using react-compiler-marker output as the source of truth. Use when fixing React Compiler bail-outs, working through a react-compiler-marker report, or when the user mentions rcm, compiler failures, "Cannot access refs during render", "Existing memoization could not be preserved", or other compiler diagnostics.
-maturity: stable
+maturity: experimental
 ---
 
 # React Compiler Migration
