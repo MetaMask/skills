@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Generate `perps-review-pr/references/pack.json`, a machine-readable rule pack listing each criterion family with its areas, class, status and rules. Client-only families name their client, so a hosted review of one client never expects another client's rows. A direct invocation does not read the pack.
 - Add `platform/notifications-category-sync`: a repo-agnostic workflow for syncing a client with the backend notifications category manifest (fallback snapshot, preference keys, settings rows), with a MetaMask Mobile overlay.
 - Add `performance/profiling-regression-proposal`: an evidence-only skill that proposes follow-up actions after MetaMask Mobile CI has already classified a Hermes CPU-profile regression.
 - Support explicit-only workflow skills through native invocation controls, preserve repository overlays, and prune managed retired skill names during sync.
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add a `Rules (enforced by lint)` checklist to `testing/mobile-testing` component-view guidance: the flake anti-patterns ESLint rejects on `*.view.test.tsx` (arbitrary `jest.mock`, fake timers, `find*` nested in `waitFor`, awaiting a skeleton or sibling, pressing a node held across a remount, `clearAllMocks` without `mockReset`, fixed sleeps, and bare timeout bumps). Require `yarn eslint` on new CV tests before finishing.
 - Mark `planning`, `planning-spec`, and `jira-brief` `stable` and `base: true`, so a default install includes them. `planning` wins over a generic plan, brainstorm, design, or spec skill only when the engineer did not name another skill for that job. `planning` calls `jira-brief` only when the message has a Jira browse URL or the engineer explicitly refers to a Jira ticket. Otherwise it says nothing about Jira. A planning delegation never asks whether a bare token is a ticket. Opt out with `yarn skills --exclude planning/planning,planning/planning-spec,planning/jira-brief --save`.
 - Update the `assets/react-compiler-migration` skill: run `react-compiler-marker` from outside an offline checkout (install to a temp prefix, `bin/cli.js` entry point, pinned 0.2.0), stop on stale scan findings instead of editing a file the marker already reports clean, document effect-scoped shared-value writes compiling on compiler 1.0.0 while callback/worklet writes still need `set()`/`get()`, and add a validated try/catch example (ASSETS-4331) showing value-block diagnostics cover the `try` block only — catch-side ternaries are fine and the fix keeps the protected span by calling a helper from inside the `try`.
 
