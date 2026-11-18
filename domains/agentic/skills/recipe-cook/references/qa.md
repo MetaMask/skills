@@ -18,7 +18,7 @@ State this contract before runtime work:
   qa-result.json                 the same proof bound to the task (written only when inputs/qa.json exists); never hand-authored
   recipe.json                     review AC proof graph, when generated
   recipe-plan.json                mm-harness plan output
-  recipe-run/                     report, summary, trace, diagnostics, executed
+  recipe-runs/<attempt>/          report, summary, trace, diagnostics, executed
                                   recipe, artifact manifest, and evidence
   recipe-coverage.md              AC -> mode -> planned proof -> nodes -> evidence -> verdict
   evidence-manifest.json          strict reviewer-facing evidence selection
@@ -226,14 +226,14 @@ Execute:
 
 ```bash
 # Mobile
-"$HARNESS" run <task>/artifacts/recipe.json --adapter mobile --platform ios --device "<selected device>" --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json
-"$HARNESS" run <task>/artifacts/recipe.json --adapter mobile --platform android --device "<selected device>" --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json
+"$HARNESS" run <task>/artifacts/recipe.json --adapter mobile --platform ios --device "<selected device>" --record-video=full-run --json
+"$HARNESS" run <task>/artifacts/recipe.json --adapter mobile --platform android --device "<selected device>" --record-video=full-run --json
 
 # Extension
-"$HARNESS" run <task>/artifacts/recipe.json --adapter extension --artifacts-dir <task>/artifacts/recipe-run --json
+"$HARNESS" run <task>/artifacts/recipe.json --adapter extension --json
 
 # Core
-"$HARNESS" run <task>/artifacts/recipe.json --adapter core --artifacts-dir <task>/artifacts/recipe-run --json
+"$HARNESS" run <task>/artifacts/recipe.json --adapter core --json
 ```
 
 Run exactly one command matching the selected platform.
@@ -295,7 +295,7 @@ For range/window scope, title the report with that scope and include the frozen 
 
 For PR scope only, re-fetch `gh pr view "$PR_URL" --json headRefOid` before writing the report and compare it with the frozen, locally validated SHA. If it moved, report `BLOCKED: PR head changed during validation`. Retain the evidence under its original SHA and request a new QA task for the new head. Never overwrite the scope or attach old evidence to the new SHA.
 
-Render `artifacts/report.html` from `artifacts/report-data.json` using Recipe QA's renderer. Include the tested head/build, platform, scope, selected plan, recorded verdict, smoke proof, full criterion inventory, findings and evidence. For PR scope include the reviewer recommendation below. Do not author duplicate `qa-report.md` or `report.md` copies. Raw `recipe-run/report.md` remains an automatically generated execution artifact, not a second QA report.
+Render `artifacts/report.html` from `artifacts/report-data.json` using Recipe QA's renderer. Include the tested head/build, platform, scope, selected plan, recorded verdict, smoke proof, full criterion inventory, findings and evidence. For PR scope include the reviewer recommendation below. Do not author duplicate `qa-report.md` or `report.md` copies. The selected attempt's raw `report.md` remains an automatically generated execution artifact, not a second QA report.
 
 Every `FAIL` verdict and every finding cites a retained run (its artifacts directory and node id). A claim with no retained run is `UNTESTABLE`, never `FAIL`.
 

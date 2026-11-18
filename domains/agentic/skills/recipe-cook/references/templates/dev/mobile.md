@@ -1,20 +1,22 @@
 ---
 platforms: [mobile, ios, android]
 description: Mobile dev checklist with runtime proof.
+produces: [artifacts/no-change-report.md]
 ---
 
 # Mobile dev checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
-  Confirm the handoff's checklist path; never estimate or rewrite it (rules: proof-rules.md, Task and sandbox).
+  Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+  Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only; the simulator/device app must be running.
+  Follow `/mms-recipe-harness`: doctor/status/launch/verify for this checkout only; the simulator/device app must be running.
   Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
@@ -34,7 +36,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 9. Capture a comparable UI baseline or additive N/A
   Before editing existing UI, capture `before-*` evidence on the same route, state, target and viewport.
   For purely additive work, write `Baseline: N/A. additive` in TASK.md (rules: proof-rules.md, Development).
-- [ ] 10. Draft the recipe and run pre-implementation proof
+- [ ] 10. Draft the recipe and run pre-implementation proof [PROOF: artifacts/recipe-baseline-run]
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
@@ -47,12 +49,12 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
 
 ## Validate
-- [ ] 13. Run the recorded recipe
+- [ ] 13. Run the recorded recipe [PROOF: artifacts/recipe-runs]
   Run `mm-harness call app.lifecycle command=restart` and confirm an introduced string in the bundle (rules: proof-rules.md, Mobile runtime).
-  `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --record-video=full-run --json` (rules: proof-rules.md, Runtime proof).
+  `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Runtime proof).
 - [ ] 14. Pass the visual evidence gate
   Read every visual/mixed PNG: the claimed target is visible, unclipped and not a generic home or empty screen (rules: proof-rules.md, UI evidence).
-  Video is under `recipe-run/videos/`. Fix insufficient evidence and rerun instead of shipping a caveat.
+  Video is under the selected attempt's `videos/` in `artifacts/recipe-runs/`. Fix insufficient evidence and rerun instead of shipping a caveat.
 - [ ] 15. Write regression tests and inspect the CI receipt
   Follow `/mms-mobile-testing` (rules: proof-rules.md, Tests).
   Read the step 12 receipt. Repeat its mark after source or test changes.

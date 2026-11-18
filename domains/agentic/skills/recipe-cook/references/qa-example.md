@@ -125,7 +125,7 @@ must make at least one AC assertion fail.
 **Platform/proof profile:** extension / extension-cdp-live
 **Overall verdict:** PASS
 **Reviewer recommendation:** READY FOR HUMAN REVIEW
-**Run evidence:** temp/tasks/recipe-cook/<review-task>/artifacts/recipe-run
+**Run evidence:** temp/tasks/recipe-cook/<review-task>/artifacts/recipe-runs/<attempt>
 
 | # | Acceptance criterion | Source | Proof mode | Recipe nodes | Evidence | Verdict | Rationale |
 |---|---|---|---|---|---|---|---|

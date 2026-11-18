@@ -64,7 +64,7 @@ Hits: <pattern + file:line + pack | None.>
   Require a clean checkout and detach at the exact frozen SHA.
 
 ## Review
-- [ ] 3. Run explicitly named static checks only
+- [ ] 3. Run explicitly named static checks only [OPTIONAL: no team review checklist is named by the task or QA profile]
   Execute a team review checklist only when the task or selected QA profile explicitly names it; read that installed checklist as a declared dependency.
   Do not discover or activate skills from file paths, labels or metadata. Keep static findings separate from runtime AC verdicts.
 
@@ -80,9 +80,9 @@ Hits: <pattern + file:line + pack | None.>
   Author `artifacts/recipe.json`; every review AC has assertion nodes or a named UNTESTABLE limitation (rules: qa.md, Phase 4).
   Continuous-gesture claims (drag, pan, fling, pinch, slider scrub, smoothness/lag/flicker while the finger is down) are `needs-human` or `needs-new-action`, never proved by a discrete tap or a resting-state screenshot.
   `<task>/mm-harness run <task>/artifacts/recipe.json --plan --adapter mobile --platform <ios|android> --device "<selected device>" --json` passes; retain its output as `artifacts/recipe-plan.json`.
-- [ ] 7. Run the live recipe
+- [ ] 7. Run the live recipe [PROOF: artifacts/recipe-runs]
   Start screen-stack-dependent cases with `app.lifecycle restart` and bounded `ensure_unlocked`; include a runtime smoke assertion even with no changed behavior (rules: qa.md, Phase 5).
-  Execute once on the selected device with `--artifacts-dir <task>/artifacts/recipe-run`; add `--record-video=full-run` for every visual review. The actual run proves Android support only when it produces the video artifact.
+  Execute once on the selected device, letting the harness place the attempt under `<task>/artifacts/recipe-runs/`; add `--record-video=full-run` for every visual review. The actual run proves Android support only when it produces the video artifact.
   Preserve the first failure and enforce mutation replay safety.
 - [ ] 8. Audit the evidence and code risk
   Read trace, manifest, screenshots, state/log proof and the full-run video when one was required; inspect the complete PR diff and changed production files (rules: qa.md, Phase 6).
