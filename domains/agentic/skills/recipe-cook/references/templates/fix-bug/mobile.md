@@ -16,7 +16,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Follow `/mms-recipe-harness`: doctor/status/launch/verify for this checkout only; the simulator/device app must be running.
-  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
+  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough (`.agents/skills/mms-recipe-cook/scripts/prepare-sandbox <task> --platform mobile` writes it).
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
@@ -31,7 +31,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   An AC you cannot reach live (a failure you cannot trigger, a post-release metric) is recorded now as UNTESTABLE with its reason or as proof mode review; never leave it for the gate.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - [ ] 8. Add and commit the reproduction marker
-  Add `DevLogger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition and observe it in `metro.log`.
+  Add `Logger.log('[<ticket>] BUG_MARKER: <condition>')` at the bug condition and observe it in `metro.log`.
   Commit it alone as `debug(<ticket>): add reproduction marker`. Retain the SHA and log excerpt.
 - [ ] 9. Draft the baseline recipe in reuse order
   Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
