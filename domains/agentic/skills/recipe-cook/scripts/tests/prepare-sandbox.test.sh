@@ -839,13 +839,13 @@ grep -q 'never run `yarn skills` or another skill install/update/sync command' "
 grep -q 'mm-harness help --json' "$skill/skill.md"
 grep -q 'Never put secrets in reports or learnings' "$skill/skill.md"
 grep -q 'mm-harness checklist closeout <task> --share' "$skill/skill.md"
-shared_rules="$skill/references/dev-fix-bug.md"
+shared_rules="$skill/references/proof-rules.md"
 grep -Fq '[DETERMINISTIC: ci.local_check]' "$shared_rules"
 grep -Fq 'the engine runs its frozen changed-file command and retains a receipt' "$shared_rules"
 grep -Fq 'Read failures, fix them and repeat that mark' "$shared_rules"
 grep -Fq 'Do not select or launch tests, builds, lint, format checks or validation scripts' "$shared_rules"
 for template in "$skill"/references/templates/{dev,fix-bug}/{core,extension,mobile}.md; do
-  grep -q 'Read and apply .*references/dev-fix-bug.md' "$template"
+  grep -q 'Read and apply .*references/proof-rules.md' "$template"
 done
 for template in "$skill"/references/templates/fix-bug/{core,extension,mobile}.md "$skill"/references/templates/dev/{extension,mobile}.md; do
   grep -Fq 'Repeat its mark after source or test changes' "$template"

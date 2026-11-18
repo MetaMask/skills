@@ -8,6 +8,7 @@ parent: recipe-harness
 - Exclude harness overlay paths from product diffs/PR evidence.
 - Pin one explicit device when more than one is connected. Native screenshot provider and selected-device provenance are discoverable with `mm-harness actions --action ui.screenshot --json`.
 - Prefer DevLogger or a run-scoped log watch for non-visual reproduction speed.
+- Inline `JSON.stringify(value)` in DevLogger markers; object arguments reach the log as `Object`.
 - Recover only through `mm-harness` and the `Next:` commands it prints; never run `yarn watch:clean`, `expo run:ios`/`run:android`, `xcodebuild`, `watchman` or cache deletes yourself.
 
 ## Source-build feature gates

@@ -13,6 +13,19 @@ if "$init" --platform mobile --task-kind review-pr --template review-pr/static-p
   echo 'static review accepted runtime preparation' >&2; exit 1
 fi
 
+# An approved plan starts a task only when its hash matches; a mismatch leaves no task state.
+plan_work="$(mktemp -d)"
+printf '# T-1 · dev\n' > "$plan_work/plan.md"
+if plan_out="$("$init" --platform mobile --task-kind dev --task-dir "$plan_work/task" --title t --task-text t --plan "$plan_work/plan.md" --plan-sha256 deadbeef 2>&1)"; then
+  echo 'init-template accepted a plan whose hash does not match' >&2; exit 1
+fi
+grep -Fq 'Plan hash mismatch' <<< "$plan_out" || { echo "unexpected plan mismatch output: $plan_out" >&2; exit 1; }
+test ! -e "$plan_work/task" || { echo 'plan hash mismatch created task state' >&2; exit 1; }
+if plan_out="$("$init" --platform mobile --task-kind dev --plan "$plan_work/plan.md" 2>&1)"; then
+  echo 'init-template accepted --plan without --plan-sha256' >&2; exit 1
+fi
+grep -Fq -- '--plan and --plan-sha256 must be given together' <<< "$plan_out" || { echo "unexpected plan pairing output: $plan_out" >&2; exit 1; }
+
 # create-harness-runner must produce a runner that actually resolves and execs a
 # harness, not merely contain the right text.
 work="$(mktemp -d)"

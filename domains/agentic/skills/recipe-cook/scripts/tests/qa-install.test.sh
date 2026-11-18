@@ -14,7 +14,7 @@ for product in mobile extension core; do
   bash "$repo_root/tools/install" --source "$repo_root" --repo "$repo" --target "$target" \
     --domain agentic --include recipe-cook,recipe-qa > "$work/$product.log"
   installed="$target/.agents/skills/mms-recipe-cook/references/templates"
-  cmp "$skill_dir/references/dev-fix-bug.md" "$target/.agents/skills/mms-recipe-cook/references/dev-fix-bug.md"
+  cmp "$skill_dir/references/proof-rules.md" "$target/.agents/skills/mms-recipe-cook/references/proof-rules.md"
   cmp "$skill_dir/references/templates/qa/default.md" "$installed/qa/default.md"
   cmp "$skill_dir/references/templates/fix-bug/$product.md" "$installed/fix-bug/$product.md"
   test -f "$target/.agents/skills/mms-recipe-qa/scripts/resolve-scope.mjs"
