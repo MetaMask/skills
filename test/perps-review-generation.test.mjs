@@ -149,8 +149,11 @@ test('the rule pack lists every family, scoped to the clients whose checklist ca
       areas: { paths: OWNED }, status: 'active', class: 'blocking',
       rules: [{ label: 'Client copy', why: 'pre-0073' }, { label: 'Stale read', why: 'pre-0073' }],
     });
-    // A family written as prose is one rule named by its title.
+    // A family written as prose is one rule named by its title. The blocking policy applies
+    // to every diff, so no path gates it.
     assert.deepEqual(byId['blocking-review-checks'].rules, [{ label: 'Blocking review checks', why: 'pre-0073' }]);
+    assert.deepEqual(byId['blocking-review-checks'].areas, { always: true });
+    assert.equal(byId['blocking-review-checks'].clients, undefined);
     assert.deepEqual(byId['core-boundary'], {
       id: 'core-boundary', title: 'core boundary', file: 'references/core.md',
       areas: { paths: { core: OWNED.core } }, status: 'active', class: 'blocking', clients: ['core'],
@@ -172,7 +175,7 @@ test('the rule pack lists every family, scoped to the clients whose checklist ca
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
 
-test('a client with review families but no owned paths is refused', () => {
+test('a client the pack needs but owned-paths.json lacks is refused', () => {
   const temp = mkdtempSync(path.join(tmpdir(), 'perps-pack-owned-'));
   try {
     const library = path.join(temp, 'library');
@@ -188,7 +191,7 @@ test('a client with review families but no owned paths is refused', () => {
     git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-m', 'test: seed rules');
     assert.throws(
       () => execFileSync(process.execPath, [generator, '--library', library, '--out', path.join(temp, 'skill')], { stdio: 'pipe' }),
-      error => /owned-paths\.json has no paths for terminal/.test(String(error.stderr)),
+      error => /owned-paths\.json has no paths for terminal, which the pack needs/.test(String(error.stderr)),
     );
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });

@@ -188,10 +188,12 @@ const criteriaFiles = Object.entries({ shared: perps, mobile, extension, core, t
 // entry per criterion family, keyed by the anchor its checklist row links. A family from a
 // client file is carried only by that client's overlay, so it names that client; shared
 // families reach every client. Areas start as each client's owned paths, and every rule
-// keeps `pre-0073` as its cause until an edit records the real one.
+// keeps `pre-0073` as its cause until an edit records the real one. The blocking policy
+// applies to every diff, so no path gates it.
+const ALWAYS = new Set(['blocking-review-checks']);
 function ownedPaths(client) {
   const paths = owned.repos[client];
-  if (!Array.isArray(paths) || !paths.length) throw new Error(`owned-paths.json has no paths for ${client}, which has review families`);
+  if (!Array.isArray(paths) || !paths.length) throw new Error(`owned-paths.json has no paths for ${client}, which the pack needs`);
   return paths;
 }
 const packIds = new Map();
@@ -206,7 +208,7 @@ const packFamilies = Object.entries({ shared: perps, mobile, extension, core, te
       id: slug,
       title,
       file: `references/${file}.md`,
-      areas: { paths: client ? { [client]: ownedPaths(client) } : Object.fromEntries(Object.keys(CLIENTS).map(name => [name, ownedPaths(name)])) },
+      areas: ALWAYS.has(slug) && !client ? { always: true } : { paths: client ? { [client]: ownedPaths(client) } : Object.fromEntries(Object.keys(CLIENTS).map(name => [name, ownedPaths(name)])) },
       status: 'active',
       class: 'blocking',
       ...(doc ? { doc } : {}),
