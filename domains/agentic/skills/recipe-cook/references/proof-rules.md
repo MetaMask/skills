@@ -44,7 +44,7 @@ Apply the sections for this flow and platform at each step.
 
 ### Bug fixing
 
-- Keep the sandbox green before baseline and fix. No product behavior edits before baseline; locator testIDs are allowed, as is the Mobile reproduction marker.
+- Keep the sandbox green before baseline and fix. Do not write the fix until the recorded baseline demonstrates the failure; a manual probe does not count. Locator testIDs and the Mobile reproduction marker are allowed before baseline.
 - Mobile/Extension: until the minimal-fix step, write only TASK.md, checklist marks and `<task>/artifacts/`, apart from those locator/marker exceptions.
 - A premature UI behavior change requires `artifacts/ordering-violation.md`; restore baseline order before continuing.
 - Plan the expected buggy evidence and each AC's state. Missing state that setup actions can build is not UNTESTABLE; Extension reserves that verdict for infrastructure limits.
