@@ -36,6 +36,17 @@ The skill root is `asc-skill/domains/assets/skills/asset-selector-cleanup`. Subs
 
 Not for authoring new selectors (`coding/selector-patterns`) or React Compiler bail-outs (`assets/react-compiler-migration`).
 
+## Read First: Taste And Patterns
+
+Before you start a ticket, and before you edit any code, read both of these files:
+
+1. `references/taste.md`: what reviewers reject. Relocated translation (legacy shapes rebuilt over new state), diff noise, dead code, the wrong import packages, test naming, waiting rather than flushing, and never changing an existing expected value.
+2. `references/patterns.md`: before/after shapes for a Step A selector, a consumer swap, a parity case, a discriminating case and a referential-stability case.
+
+These files are maintained with the skill and are **newer than the copy pasted into any ticket**. If a ticket's "Quality bar" block or its examples disagree with them, follow these files, and note the difference in your PR description.
+
+Every PR from this skill ends with the ticket's self-check list filled in. A box you cannot tick is a reason to stop and report, not to open the PR.
+
 ## Workflow
 
 ### 1. Baseline
