@@ -48,6 +48,10 @@ you there.
    feature examples in the mobile repo before proposing code.
 4. E2E POM methods must not use `try/catch`.
 5. Placement work defaults to **ANALYZE** — implement only when the user asks.
+6. **In-scope E2E moves down.** When writing or fixing tests, migrate existing
+   Appium scenarios in the touched feature that fail the E2E gate, in the same
+   change. Follow [`references/placement/e2e-to-lower-layer.md`](references/placement/e2e-to-lower-layer.md).
+   Do not ask. Do not sweep unrelated specs.
 
 ## Examples
 

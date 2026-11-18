@@ -113,10 +113,16 @@ with equivalent confidence.
 
 How to write/run: `mobile-testing` → `references/appium-e2e.md`.
 
+## Existing E2E in the touched feature
+
+When writing or fixing tests for a feature, inventory Appium specs whose screen, testID, page object, or flow belongs to the files in scope. For each scenario: **KEEP** when a concrete device/native boundary from the list above is required; **MIGRATE** to CV when CV can cover it with equivalent confidence; **MIGRATE** to integration when only an app↔controller seam remains; **SPLIT** mixed specs. Add the lower-layer test first, preserve assert specificity, run it, then remove the migrated E2E case. Do not ask. Leave specs outside the touched feature. If the boundary is unclear, KEEP and record one reason on the PR checklist.
+
+How: `mobile-testing` → `references/placement/e2e-to-lower-layer.md`.
+
 ## Smell / avoid
 
 Broad `*.test.tsx` files that render a whole screen/page and mock hooks/selectors to assert UI behavior. Convert those to `*.view.test.tsx` (or keep a minimal unit test only when CV cannot cover, with an explicit reason).
 
 ## Coverage during conversion
 
-Converting broad unit screen tests to component-view must preserve the same coverage intent. If a scenario cannot move to CV, document why and keep the smallest focused unit test needed.
+Converting broad unit screen tests or Appium specs to component-view (or integration) must preserve the same coverage intent. If a scenario cannot move down, document why and keep the smallest focused test at its current layer.
