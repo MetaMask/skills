@@ -25,8 +25,9 @@ what the user sees (text, disabled or ARIA state), and use a style assertion
 only when the style itself is the outcome of that logic.
 
 - **NEVER** assert spacing, color, typography, or fixed layout values that no logic chooses (computed styles, `className` strings, design-token values) — a style or class assertion is allowed when JS logic chooses the style (e.g. an error-state class)
-- **NEVER** add a snapshot to cover a static styling change. If an existing snapshot fails because class names or static styles changed, update it so CI stays green; that update is not coverage of the styling change
+- **NEVER** add a snapshot to cover a static styling change. If an existing snapshot fails because class names or static styles changed, update it so CI stays green — run Jest scoped to the failing file with `--updateSnapshot` (`yarn jest <file> -u`) and confirm the snapshot diff shows only class names or static style values; that update is not coverage of the styling change
 - **NEVER** add a `data-testid` whose only use is reading `style` or `className`
+- An existing test that asserts only static styling is safe to delete — keep any behavioral assertions it also makes, and if the repo's coverage gate flags the removal, assert what the user sees instead of keeping a style assertion
 - **Do not** justify a test by coverage alone. A render that touches a new JSX line adds coverage without protecting behavior.
 
 ```typescript

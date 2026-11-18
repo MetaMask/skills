@@ -74,7 +74,10 @@ verified with screenshots (`visual-testing`) and the PR's before/after
 evidence. Do not add a `data-testid` only so a test can read `style` or
 `className`. Do not add a snapshot to cover a static styling change. If an
 existing snapshot fails because class names or static styles changed, update
-it so CI stays green; that update is not coverage of the styling change.
+it so CI stays green — run Jest scoped to the failing file with
+`--updateSnapshot` (`yarn jest <file> -u`) and confirm the snapshot diff shows
+only class names or static style values; that update is not coverage of the
+styling change.
 
 Test presentation only when JS logic decides it (state, props or data choose
 between styles, e.g. error vs default, selected, disabled). Prefer asserting

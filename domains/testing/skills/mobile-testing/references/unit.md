@@ -29,12 +29,18 @@ Do not unit test static styling: component-library defaults, or overrides
 passed through props (`twClassName`, `style`, color props) that don't depend on
 any logic. The design system already tests that its props apply, and visual
 changes are verified with screenshots (`mobile-visual-testing`) and the PR's
-before/after evidence. A diff that only changes static styling needs no new or
-updated test, even inside an existing `*.test.tsx`; such assertions don't
-guard behavior and break whenever a design token changes. Mobile bans
-snapshots of rendered UI — `toMatchSnapshot()` in any form, and
-`toMatchInlineSnapshot()` on component output — so a styling-only diff cannot
-break a snapshot; do not add one to cover it.
+before/after evidence. A diff that only changes static styling needs no new
+test, even inside an existing `*.test.tsx`; such assertions don't guard
+behavior and break whenever a design token changes. Mobile bans snapshots of
+rendered UI — `toMatchSnapshot()` in any form, and `toMatchInlineSnapshot()` of
+rendered UI — so do not add one to cover a styling change. If an existing
+rendered-UI snapshot fails because class names or static styles changed,
+replace it with explicit assertions (or update it) so CI stays green; that
+change is not coverage of the styling change.
+
+An existing test that asserts only static styling is safe to delete — keep any
+behavioral assertions it also makes, and if the repo's coverage gate flags the
+removal, assert what the user sees instead of keeping a style assertion.
 
 Test presentation only when JS logic decides it (state, props or data choose
 between styles, e.g. error vs default, selected, disabled). Prefer asserting
