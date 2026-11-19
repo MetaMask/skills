@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Add number and currency formatting guidance to the Mobile `coding/coding-guidelines` overlay: use `useFormatters` / `getFormatters`, which function fits each display, the deprecated helpers to avoid, and gotchas for percent ratios and Hermes compact notation.
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
 
 ## [0.4.0]

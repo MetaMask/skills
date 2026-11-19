@@ -43,6 +43,32 @@ ComponentName/
 └── index.ts
 ```
 
+## Formatting Numbers and Currency
+
+Use the shared formatters from `@metamask/client-utils` for every user-facing currency, number and percent.
+
+- **Components and hooks:** `const { formatCurrency } = useFormatters();` from `app/components/hooks/useFormatters`
+- **Utils, selectors and sagas:** `getFormatters()` from the same file (no hook rules)
+- **Never** hardcode a locale (`'en-US'`), build `$` + `toFixed(2)` by hand, or create a new `Intl.NumberFormat` for display
+- **Deprecated, do not add callers:** `renderFiat` (`app/util/number`), `formatCurrency` (`app/util/confirm-tx`), `formatFiat`, `formatSubscriptionFiat`, Bridge `formatCurrency` (`utils/currencyUtils`)
+
+| Display                           | Use                                                         |
+| --------------------------------- | ----------------------------------------------------------- |
+| Fiat amount                       | `formatCurrency(value, currency)`                           |
+| Fiat that can be tiny (`< $0.01`) | `formatCurrencyWithMinThreshold(value, currency)`           |
+| Compact fiat (`$1.2M`)            | `formatCurrencyCompact(value, currency)`                    |
+| Token price                       | `formatCurrencyTokenPrice(value, currency)`                 |
+| Token amount with symbol          | `formatToken` / `formatTokenQuantity` / `formatTokenAmount` |
+| Plain number                      | `formatNumber(value, options?)`                             |
+| Percent                           | `formatPercentWithMinThreshold(ratio, options?)`            |
+| Date and time                     | `formatDateTime(timestamp, options?)`                       |
+
+**Gotchas**:
+
+- `formatPercentWithMinThreshold` takes a **ratio** (`0.05` → `5.00%`), not a percent. It adds no `+` sign and raises values under 0.01% to `0.01%` with no `<`. Add the sign (and `<` if needed) at the call site.
+- `formatCompact` and `formatCurrencyCompact` use `Intl` compact notation, which Hermes may not support. Check on iOS and Android builds before using them.
+- Keep domain rounding rules (for example, Bridge minimum received rounds down) as explicit math before calling a formatter.
+
 ## Documentation Quick Reference
 
 **Core**: `/docs/readme/` (architecture, testing, debugging, performance, environment, expo-environment, storybook, troubleshooting, expo-e2e-testing, reassure, release-build-profiler)
