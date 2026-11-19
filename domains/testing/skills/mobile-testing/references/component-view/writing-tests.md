@@ -84,7 +84,7 @@ expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
 
 **Time-dependent UI** — fake timers are banned in view tests (*No fake timers*). Do not use a fixed `setTimeout` sleep or `Date.now()` to move the clock (*No fixed sleeps*). Cover countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state (an already-expired quote). Never widen a `waitFor` budget to cover a timer (*Keep time-dependent behaviour out of view tests*).
 
-**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`). An outer `waitFor` shares that budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Do not add a per-test `{ timeout }`. The default async wait is 5s ([metamask-mobile#40136](https://github.com/MetaMask/metamask-mobile/pull/40136)); a longer wait needs a comment naming its boundary (*No bare timeout bumps*, flagged by [metamask-mobile#39373](https://github.com/MetaMask/metamask-mobile/pull/39373)). Pick one waiter:
+**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`). An outer `waitFor` shares that budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Do not add a per-test `{ timeout }` (*No bare timeout bumps*). Pick one waiter:
 
 ```typescript
 // ✅ findBy* already waits
