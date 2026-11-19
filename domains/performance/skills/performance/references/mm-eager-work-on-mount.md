@@ -110,7 +110,7 @@ Rules:
 - **Only when a trace shows the JS thread busy during the push because of that subtree** and its data is already ready. For network-bound waits or cheap nodes it only adds latency.
 - **Tests:** with a hand-rolled navigation mock the hook never completes, so mock it (`jest.fn(() => true)`, reset in `beforeEach`) and add one test where it returns `false` and the heavy section is absent. View tests already emit `transitionEnd`.
 
-Measure the opening commit with a local Reassure `eager` (hook mocked to `true`) vs `held` (real hook, never released in the window) pair ([mm-tools.md](mm-tools.md)), then confirm on a real device through TestFlight. Reference adoptions: `MoneyHomeView`, `PerpsMarketDetailsView`, `TokenDetails`, `SocialV0View`, `SocialV1View`.
+Measure the opening commit with a local Reassure `eager` (hook mocked to `true`) vs `held` (real hook, never released in the window) pair ([mm-tools.md](mm-tools.md)), then confirm on a real device through TestFlight. Reference adoptions: `PerpsMarketDetailsView`, `TokenDetails`, `SocialV0View`, `SocialV1View`.
 
 ## Counter-example — DON'T gate a shared-subscription hook
 
