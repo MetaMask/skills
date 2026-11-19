@@ -27,7 +27,7 @@ Your job is to figure out whether the user needs to **write a new test**, **fix 
 Task → What do you need?
 ├─ Write new test or update after change
 │  → Read component + existing tests
-│  → Follow Rules (enforced by lint) in this file
+│  → Follow When writing a new test, then Rules (enforced by lint), in this file
 │  → Open component-view/writing-tests.md (use cases, coverage, renderer/preset, file structure)
 │  → If test needs navigation: also open component-view/navigation-mocking.md
 │  → After writing: yarn eslint <file>, run tests, then open component-view/reference.md for self-review
@@ -68,7 +68,7 @@ tests/component-view/
 
 ## Workflow (summary)
 
-- **Write new test**: Read component and existing tests → list use cases and map to test patterns → check coverage and deduplicate → use or create renderer/preset → write test (use `renderScreenWithRoutes` if asserting navigation). Every test must have at least one of: `fireEvent`, `waitFor`/`findBy`, `store.dispatch`/`act`, or Engine spy (no render-only scenarios). Follow *Rules (enforced by lint)*. Run `yarn eslint <file>`, run tests, then run the self-review checklist in `component-view/reference.md`.
+- **Write new test**: Read component and existing tests → list use cases and map to test patterns → check coverage and deduplicate → use or create renderer/preset → write test (use `renderScreenWithRoutes` if asserting navigation). Every test must have at least one of: `fireEvent`, `waitFor`/`findBy`, `store.dispatch`/`act`, or Engine spy (no render-only scenarios). Follow *When writing a new test* and *Rules (enforced by lint)*. Run `yarn eslint <file>`, run the test and check for `NetConnectNotAllowedError`, then run the self-review checklist in `component-view/reference.md`.
 - **Fix failing test**: Run with `jest.config.view.js` → identify error type from the table in `component-view/reference.md` (Diagnosing Failures) → apply the fix (remove disallowed mock, add state override, add preset, wrap in `waitFor`, add `deterministicFiat`, etc.) → re-run.
 - **Update after change**: Same as write — review existing tests, extend preset/renderer if needed, update tests, run and self-review.
 
@@ -96,9 +96,20 @@ yarn test:view:coverage:folder app/components/UI/MyFeature
 For run-by-name, watch mode, or other options, see `component-view/reference.md` (Run the Tests).
 
 
+## When writing a new test
+
+Do this for every new CV test, not only when fixing a flake. Sleeps, remounts, and timeouts already have bad/good forms under *Rules (enforced by lint)*.
+
+1. **Mock every request the screen makes.** An unmocked request leaves loaders and skeletons up. Check this first when the screen never becomes ready. Add the mock under `tests/component-view/api-mocking/` (see navigation-mocking.md).
+2. **Wait for the settled screen, not the first render.** The rows or value are visible and the skeleton or loader is gone. After a remount, query the element again (*Re-query after a remount, then press*).
+3. **Do not sleep, and do not time off `Date.now()`.** Put the screen in the target state with data, such as an already-expired quote (*No fake timers*, *No fixed sleeps*).
+4. **Do not add a per-test `{ timeout }`.** The default async wait is 5s ([metamask-mobile#40136](https://github.com/MetaMask/metamask-mobile/pull/40136)). If a test needs longer, say why in a comment. Bare timeouts are flagged by [metamask-mobile#39373](https://github.com/MetaMask/metamask-mobile/pull/39373).
+5. **Run the test and read the output before the PR.** An unmocked call fails with `NetConnectNotAllowedError: Nock: Disallowed net connect for "<host><path>"` (`disableNetConnect` in `tests/component-view/api-mocking/nockHelpers.ts`). Add the missing mock. Reviewers should ask for this.
+
+
 ## Rules (enforced by lint)
 
-ESLint on `*.view.test.tsx` in metamask-mobile rejects this list (`no-restricted-syntax` in `.eslintrc.js`, override `**/*.view.test.*`). Arbitrary `jest.mock` is already an error. The fake-timer API is already an error ([metamask-mobile#38995](https://github.com/MetaMask/metamask-mobile/pull/38995)). The remaining rules are the ESLint PR in progress. [skills#217](https://github.com/MetaMask/skills/pull/217) is merged: the Golden Rules below and [`component-view/reference.md`](component-view/reference.md) keep the diagnosis and the failure signatures. Write the good form here, and cite those rules by name.
+ESLint on `*.view.test.tsx` in metamask-mobile rejects this list (`no-restricted-syntax` in `.eslintrc.js`, override `**/*.view.test.*`). Arbitrary `jest.mock` and the fake-timer API are already errors ([metamask-mobile#38995](https://github.com/MetaMask/metamask-mobile/pull/38995)). The rest of this list is enforced by [metamask-mobile#39373](https://github.com/MetaMask/metamask-mobile/pull/39373). [skills#217](https://github.com/MetaMask/skills/pull/217) is merged: the Golden Rules below and [`component-view/reference.md`](component-view/reference.md) keep the diagnosis and the failure signatures. Write the good form here, and cite those rules by name.
 
 Run lint on every new or edited CV test before finishing. A green Jest run does not cover these.
 
@@ -195,18 +206,18 @@ expect(getByText('Quote refreshed')).toBeOnTheScreen();
 await waitFor(() => expect(getByText('Quote refreshed')).toBeOnTheScreen());
 ```
 
-**8. No bare timeout bumps** — pass `{ timeout }` only with a comment that names the async boundary (a debounce, a chained query). A raised budget alone is not a fix. The default is 1000 ms (*Do not nest `find*` inside `waitFor`*, *Fix a flake at its cause*).
+**8. No bare timeout bumps** — do not add a per-test `{ timeout }`. The default async wait is 5s (*When writing a new test*). A longer wait needs a comment that names the async boundary (a debounce, a chained query). A raised budget alone is not a fix (*Fix a flake at its cause*).
 
 ```typescript
 // ❌ raised budget, no named boundary
 await waitFor(() => expect(getByText('Ready')).toBeOnTheScreen(), {
-  timeout: 5000,
+  timeout: 10000,
 });
 
 // ✅
-// Quote-preview debounce; the default 1000 ms expires first.
+// Quote-preview debounce runs longer than the 5s default.
 await waitFor(() => expect(getByText('Preview')).toBeOnTheScreen(), {
-  timeout: 5000,
+  timeout: 10000,
 });
 ```
 

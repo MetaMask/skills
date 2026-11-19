@@ -10,6 +10,7 @@ Reference: [SKILL.md](../SKILL.md) · [Navigation & Mocking](navigation-mocking.
 
 Before writing any test, read:
 
+- [When writing a new test](../component-view.md#when-writing-a-new-test) — mock every request, wait for the settled screen, then run the test and check for `NetConnectNotAllowedError`.
 - [Rules (enforced by lint)](../component-view.md#rules-enforced-by-lint) — ESLint rejects that list on `*.view.test.tsx`. Run `yarn eslint <file>` before finishing.
 - The component file under test
 - Any existing `*.view.test.tsx` for the same component
