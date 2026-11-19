@@ -15,7 +15,7 @@ Before writing any test, read:
 - Any existing `*.view.test.tsx` for the same component
 - The relevant preset(s) in `tests/component-view/presets/`
 - The relevant renderer(s) in `tests/component-view/renderers/`
-- If the view calls an external HTTP API: mock every request in `tests/component-view/api-mocking/` (see navigation-mocking.md, External Service / API Mocking). An unmocked request leaves loaders and skeletons up; check that first when the screen never becomes ready. After the test runs, an unmocked call fails with `NetConnectNotAllowedError: Nock: Disallowed net connect for "<host><path>"` (`disableNetConnect` in `tests/component-view/api-mocking/nockHelpers.ts`). Add the missing mock before the PR. Reviewers should ask for this.
+- If the view calls an external HTTP API: mock every request in `tests/component-view/api-mocking/` (see navigation-mocking.md, External Service / API Mocking). An unmocked request leaves loaders and skeletons up; check that first when the screen never becomes ready. With `disableNetConnect`, nock blocks an unmocked HTTP request with `NetConnectNotAllowedError: Nock: Disallowed net connect for "<host><path>"`. Check the test output for that error: the app may catch it, so the test can still pass or only time out. Add the missing mock before the PR. Reviewers should ask for this.
 
 ---
 
