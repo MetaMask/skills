@@ -22,9 +22,12 @@ Preference skills encode repository norms, conventions, and rules.
 | `coding-guidelines` | Changed source or test files | Frozen diff and repository coding guidelines | Guided claim checks |
 | Repository testing skill | Application tests changed | Frozen test diff and the testing references selected by the overlay | Guided claim checks |
 | `controller-guidelines` | Controller implementation changed and the overlay selects it | Frozen controller diff | Guided claim checks |
-| `content-guidelines` | User-facing copy changed and the skill is installed | Frozen copy diff | Guided claim checks |
+| `ui-development` | The diff changes components, screens, sheets or modals, stories, styles or Sass, tokens or themes, Tailwind or `twClassName` classes, or imports from component-library or `@metamask/design-system-*` packages | Frozen diff and the installed `@metamask/design-system-*` package types | Guided claim checks |
+| `content-guidelines` | User-facing copy changed | Frozen copy diff | Guided claim checks |
 
 Template sections, screenshots, manual testing, linked issues, changelog, and check conclusions are author evidence. Report their status without finding severity.
+
+A routed preference skill that is not installed is not a silent skip. Record its routing block as `skipped — skill not installed` and list it as a coverage gap under **Author evidence** (for example, `content-guidelines` or `ui-development` missing from the checkout), so the reader sees which norms this review could not apply.
 
 ## Domain capabilities
 
@@ -42,7 +45,7 @@ Capability skills provide specialized review knowledge. Select one only when bot
 | `audit-observability` | Metrics, traces, or logs | Observability behavior changed | Frozen matching files |
 | `check-high-cardinality` | Metric labels | Label values or dimensions changed | Frozen matching files |
 
-A path match alone is insufficient for a capability. For example, copy-only changes in a React component select content guidance while rendering logic selects performance.
+A path match alone is insufficient for a capability. For example, copy-only changes in a React component select content guidance while rendering logic selects performance. `ui-development` is a preference, so a matching UI path selects it without a further semantic signal; performance and `check-nesting` still require theirs.
 
 ## Tooling, CI, and documentation
 
@@ -54,7 +57,7 @@ Apply repository preferences that match those files and any domain capability wh
 
 Use one reason:
 
-- skill not installed;
+- skill not installed (record it as a coverage gap under Author evidence);
 - required input `unavailable` or `failed`;
 - changed paths do not match;
 - semantic signal does not match;
