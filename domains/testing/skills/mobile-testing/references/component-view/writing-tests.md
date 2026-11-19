@@ -10,13 +10,12 @@ Reference: [SKILL.md](../SKILL.md) · [Navigation & Mocking](navigation-mocking.
 
 Before writing any test, read:
 
-- [When writing a new test](../component-view.md#when-writing-a-new-test) — mock every request, wait for the settled screen, then run the test and check for `NetConnectNotAllowedError`.
 - [Rules (enforced by lint)](../component-view.md#rules-enforced-by-lint) — ESLint rejects that list on `*.view.test.tsx`. Run `yarn eslint <file>` before finishing.
 - The component file under test
 - Any existing `*.view.test.tsx` for the same component
 - The relevant preset(s) in `tests/component-view/presets/`
 - The relevant renderer(s) in `tests/component-view/renderers/`
-- If the view calls an external HTTP API: `tests/component-view/api-mocking/` and any existing `api-mocking/<feature>.ts` for that API (see navigation-mocking.md, External Service / API Mocking)
+- If the view calls an external HTTP API: mock every request in `tests/component-view/api-mocking/` (see navigation-mocking.md, External Service / API Mocking). An unmocked request leaves loaders and skeletons up; check that first when the screen never becomes ready. After the test runs, an unmocked call fails with `NetConnectNotAllowedError: Nock: Disallowed net connect for "<host><path>"` (`disableNetConnect` in `tests/component-view/api-mocking/nockHelpers.ts`). Add the missing mock before the PR. Reviewers should ask for this.
 
 ---
 
@@ -75,7 +74,7 @@ expect(within(positionsTab).getByText('$50 on Yes to win $50')).toBeOnTheScreen(
 expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
 ```
 
-**Independent loading phases** — header, list, and action rows often have separate loading flags. Waiting for a details-content skeleton to leave does not mean the share control or buy buttons are mounted. Await the assertion subject (or the skeleton that owns that subject). The first list row mounting is not proof that every row has hydrated.
+**Independent loading phases** — header, list, and action rows often have separate loading flags. Wait for the settled screen, not the first render: the rows or value are visible and the skeleton or loader is gone. Waiting for a details-content skeleton to leave does not mean the share control or buy buttons are mounted. Await the assertion subject (or the skeleton that owns that subject). The first list row mounting is not proof that every row has hydrated.
 
 **Empty-state filters** — wait for the list loading indicator to clear, then assert description/CTA copy for the selected filter. A shared empty-state `testID` can unmount across filter re-renders.
 
@@ -83,9 +82,9 @@ expect(within(positionsTab).getByText('$60')).toBeOnTheScreen();
 
 **Remounts invalidate held nodes** — a `findBy*` result is valid only until the next state change. When a query resolving swaps the loading branch for the loaded one, the node you awaited detaches (`Unable to find node on an unmounted component`). Await a marker only the loaded tree renders, then re-query with `getBy*` (*A `findBy*` result is valid only until the next state change*).
 
-**Time-dependent UI** — fake timers are banned in view tests (*No fake timers*). Cover countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state. Never widen a `waitFor` budget to cover a timer (*Keep time-dependent behaviour out of view tests*).
+**Time-dependent UI** — fake timers are banned in view tests (*No fake timers*). Do not use a fixed `setTimeout` sleep or `Date.now()` to move the clock (*No fixed sleeps*). Cover countdowns, debounces, and expiry in a unit test, where fake timers are allowed, or serve fixtures already in the target state (an already-expired quote). Never widen a `waitFor` budget to cover a timer (*Keep time-dependent behaviour out of view tests*).
 
-**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`, default 1000 ms). An outer `waitFor` uses the same budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Pick one waiter:
+**Do not nest `find*` inside `waitFor`** — `findBy*` already polls (`waitFor` + `getBy`). An outer `waitFor` shares that budget, so under CI load the outer timeout fires first with a useless `Timed out in waitFor.` Do not add a per-test `{ timeout }`. The default async wait is 5s ([metamask-mobile#40136](https://github.com/MetaMask/metamask-mobile/pull/40136)); a longer wait needs a comment naming its boundary (*No bare timeout bumps*, flagged by [metamask-mobile#39373](https://github.com/MetaMask/metamask-mobile/pull/39373)). Pick one waiter:
 
 ```typescript
 // ✅ findBy* already waits
@@ -98,7 +97,7 @@ await waitFor(() => {
   expect(rows).toHaveLength(3);
 });
 
-// ❌ double polling — both timers are 1s; the outer one wins in CI
+// ❌ double polling — both share the default timeout; the outer one wins in CI
 await waitFor(async () => {
   expect(await findByText('Token A')).toBeOnTheScreen();
 });
