@@ -2,116 +2,90 @@
 name: deferred-render
 maturity: experimental
 description: >-
-  DeferredRender opt-in primitive that holds heavy below-the-fold sections out of a screen's opening transition in MetaMask Mobile. Use when a pushed screen is slow to transition, navigation feels janky on open, a "Top traders"-style screen mounts expensive rows/feed during the enter animation, you want to defer heavy sections with `useScreenTransitionComplete` / `<DeferredRender>`, or you need to measure opening-transition cost before/after with the local Reassure harness. Covers mode selection (transition vs paint), the isPushedScreen pattern, Reassure eager/held/flush arms, the eager-mock trick, and TestFlight verification on iPhone.
+  Hold heavy below-the-fold sections out of a pushed screen's opening transition in MetaMask Mobile by gating them on the existing `useScreenTransitionComplete()` hook. Use when a pushed screen is slow to transition, navigation feels janky on open, a "Top traders"-style screen mounts expensive rows/feed during the enter animation, or you need to measure opening-transition cost before/after with the local Reassure harness. Covers when to gate, the tab/pushed-screen split, the Reassure eager/held arms, mocking the hook in tests, and TestFlight verification on iPhone. Do not write a new deferral hook or wrapper.
 ---
 
-# DeferredRender
+# Deferring heavy sections
 
-Use this skill to keep a screen's opening transition light by deferring heavy below-the-fold sections until one frame after the transition (or first paint).
+Keep a pushed screen's opening transition light by mounting its heavy below-the-fold sections only after the transition ends.
 
-## Canonical API
+## The hook
 
-| Role | Path |
-|------|------|
-| Hook | `app/components/hooks/useScreenTransitionComplete.ts` (`useScreenTransitionComplete`) |
-| Component | `app/components/DeferredRender/` (`<DeferredRender>`, a thin wrapper over the hook) |
-| Docs | `app/components/DeferredRender/README.md` |
-| Origin PR | https://github.com/MetaMask/metamask-mobile/pull/38039 |
-| Reference integrations | `MoneyHomeView`, `PerpsMarketDetailsView` (+ `PerpsMarketSocialTabs`), `TokenDetails`, `SocialV0View`, `SocialV1View` |
+| Role                     | Path                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| Hook (already in `main`) | `app/components/hooks/useScreenTransitionComplete.ts`                                            |
+| Guidance                 | `docs/performance/anti-patterns.md` ("Deferring a heavy section until the push transition ends") |
+| Reference integrations   | `MoneyHomeView`, `PerpsMarketDetailsView`, `TokenDetails`, `SocialV0View`, `SocialV1View`        |
 
-`useScreenTransitionComplete({ enabled?, mode?, fallbackMs?, screenId? })` returns `false` until the gate releases, then always `true`. It is the same hook screens already call with no options to open the keyboard after the push (Card, Ramp OTP, Explore search); there is no separate deferral hook.
+`useScreenTransitionComplete()` takes no arguments and returns `false` until the screen's opening transition ends (a non-closing `transitionEnd`), or until a 450 ms fallback on a focused screen that never emits it. Then it stays `true`. It is the same hook Card, Ramp OTP and Explore search use to open the keyboard after a push. Do not add another hook, a wrapper component or a `useDeferredRender`: a TestFlight build with this hook alone transitioned fast on a real device (Perps, TokenDetails, Top traders), so the custom `requestAnimationFrame` + `startTransition` gate was dropped.
 
-- `mode: 'transition'` (default, pushed screens): releases one frame after `transitionEnd`, with a `fallbackMs` (450 ms) safety net.
-- `mode: 'paint'` (tabs / already-visible surfaces): releases one frame after mount.
-- Release runs inside `startTransition`, so it cannot block an incoming tap.
-- `screenId` turns on a `Deferred Render Release` Sentry span and tags it. Without it, no span is emitted (the keyboard-focus callers pass none).
-- `<DeferredRender>` wraps the hook with a placeholder when a component reads better than an inline boolean.
-- Need a boolean for a side effect after the push (focus an input, open the keyboard)? Call `useScreenTransitionComplete()` with no options and react to it in an effect. Need to hold back a heavy subtree? Use `<DeferredRender>` or the hook with a `screenId`.
+```tsx
+const isTransitionComplete = useScreenTransitionComplete(); // above any early return
+// ...
+{
+  isTransitionComplete ? <HeavySection /> : <SectionPlaceholder />;
+}
+```
+
+Screens reachable both as a pushed screen and as a tab root have no entering transition on the tab, so do not make the tab wait for the fallback:
+
+```tsx
+const isPushedScreen = route.name !== Routes.X.TAB;
+const isTransitionComplete = useScreenTransitionComplete();
+const isReady = !isPushedScreen || isTransitionComplete;
+```
+
+A screen with a variant that does not read the gate: `const isReady = Boolean(variant) || isTransitionComplete;` (still call the hook unconditionally).
 
 ## When to use
 
-- A pushed screen mounts heavy sections (long lists, feed/leaderboard rows) during the enter transition and the transition janks.
-- A tabbed/pager screen renders all pages eagerly; pages past the first mount with real content at open.
-- You have (or will take) a Reassure measurement showing the opening-commit cost.
+- A pushed screen mounts heavy sections (long lists, feed/leaderboard rows, chart panels) during the enter transition, and a trace shows the JS thread busy during the push because of that subtree.
+- A tabbed/pager screen renders all pages eagerly and the pages past the first mount real content at open.
+- You have (or will take) a Reassure measurement of the opening commit.
 
 ## When NOT to use
 
-- **First paint stays eager.** Header, summary, chart, banners, and the tab bar define the first paint — never gate them. Deferring them shows a broken/empty screen.
-- Tiny sections — deferring a few Text rows costs a gate and gains nothing.
-- **One gate per screen.** A screen has one opening transition; one `useScreenTransitionComplete` call gates all deferred sections on it.
-- **No nesting.** Do not mount a `DeferredRender` inside another gate's deferred content — nested gates re-introduce the stall they removed.
-- Correctness bugs, list-scroll jank after mount, or re-render storms — those are `mms-performance` territory, not a deferral problem.
+- **First paint stays eager.** Header, summary, chart, banners, tab bar and primary actions are never gated. Gating them shows a broken/empty screen.
+- Tiny or cheap sections: a few `Text` rows cost a gate and gain nothing.
+- Network-bound waits, or an idle gap between data-ready and content-ready: deferring only adds latency.
+- **One call per screen.** Every heavy section gates on the same value. Do not call the hook again inside gated content.
+- **Gate data, not `loading`.** Pass an empty constant (`const EMPTY: never[] = []`) while not ready; flipping a child's `loading` prop makes it tear down the subtree it should keep.
+- Correctness bugs, list-scroll jank after mount, re-render storms: those are `mms-performance` territory.
+- Tabs, modals and `animation: 'none'` screens without the `isPushedScreen` split above.
 
-## Integration pattern
+## Measuring before/after (local Reassure harness, never committed)
 
-Pick the mode from how the screen is reached, not from a prop drilled through:
+Write a local-only `*.perf-test.tsx` with two arms: `eager` (hook mocked to `true`, everything in the opening commit) and `held` (real hook, nothing releases inside the measured window, the cost of the opening commit). `runs: 10`, `warmupRuns: 1`. Mock `app/components/hooks/useScreenTransitionComplete` (named and default export) so `eager` returns `true` and `held` delegates to the real hook. With real timers the 450 ms fallback never fires inside a measured window, so `held` is a clean arm; do not use fake timers around it.
 
-```ts
-const isPushedScreen = route.name !== Routes.X.TAB;
-const showHeavy = useScreenTransitionComplete({
-  mode: isPushedScreen ? 'transition' : 'paint',
-  screenId: 'RouteName',
-});
-```
+Run `yarn test:reassure:branch` and compare `meanDuration` per arm in `.reassure/current.perf`. The win is `eager` vs `held` on the opening scenario.
 
-Then gate only the heavy sections:
+Reference numbers (opening commit, with an equivalent custom gate): MoneyHomeView 23.10→8.78 ms, PerpsMarketDetailsView 39.08→26.97 ms, TokenDetails 83.99→24.63 ms, Top traders V0 68.76→3.55 ms, V1 20.50→10.81 ms.
 
-```tsx
-{showHeavy && <HeavySection />}
-```
+## Tests
 
-or with the component:
-
-```tsx
-<DeferredRender mode={isPushedScreen ? 'transition' : 'paint'} screenId="RouteName">
-  <HeavySection />
-</DeferredRender>
-```
-
-Real integrations to copy: `MoneyHomeView`, `PerpsMarketDetailsView` (gates the `PerpsMarketSocialTabs` social path), `TokenDetails`, `SocialV0View` (gates both PagerView pages), `SocialV1View` (gates `renderPage` inside `renderScene` of the TabView; header + tab bar stay eager).
-
-## Measuring before/after (local Reassure harness — never committed)
-
-Write a local-only `*.perf-test.tsx` with three arms:
-
-| Arm | Gate | What it measures |
-|-----|------|------------------|
-| `eager` | no deferral | Baseline: everything in the opening commit |
-| `held` | gate on, nothing released in the measured window | Opening-commit cost with deferral |
-| `flush` | gate on, released during the scenario | Deferred-mount cost |
-
-`runs: 10`, `warmupRuns: 1`. When the shipped screen has no arm switch, mock `app/components/hooks/useScreenTransitionComplete` (named and default export) in the test setup so `useScreenTransitionComplete` returns `true` for the eager arm and delegates otherwise.
-
-Run with `yarn test:reassure:branch`, then read `meanDuration` / `meanCount` per arm from `.reassure/current.perf`. The win to report is `eager` vs `held` meanDuration on the opening scenario; `flush` shows the deferred work moved out, not away.
-
-Measured reference numbers (opening commit): MoneyHomeView 23.10→8.78 ms, PerpsMarketDetailsView 39.08→26.97 ms, Perps social 46.1→27.5 ms, TokenDetails 83.99→24.63 ms, Top traders V0 68.76→3.55 ms, V1 20.50→10.81 ms.
-
-### Jest caveats
-
-- `react-native-screens` is mocked as plain Views in Jest, so `transitionEnd` never fires; a `focus` event re-arms the 450 ms fallback.
-- With real timers the fallback never fires inside a measured window, so `held` is a clean arm. Do not use fake timers around the fallback.
+- View tests (`*.view.test.tsx`): `testSetupView` already emits `transitionEnd` after a short timeout, so deferred content appears with `findBy*`.
+- Unit tests with a hand-rolled navigation mock never emit `transitionEnd` and the hook calls `navigation.addListener` / `isFocused`. Mock the hook instead (`const mockUseScreenTransitionComplete = jest.fn(() => true)`), reset it to `true` in `beforeEach`, and add one test where it returns `false` and the heavy section is absent while the eager chrome is present.
 
 ## Workflow
 
-1. Confirm the symptom is opening-transition cost: the screen janks on push, and the heavy sections are below the fold.
-2. Measure the baseline with the local Reassure harness (`eager` arm) — no number, no deferral.
-3. Add one `useScreenTransitionComplete` gate per screen with the `isPushedScreen` mode choice; gate only the heavy sections.
-4. Re-measure (`held` vs `eager` on the opening commit) and record the numbers.
-5. Run the screen's existing unit tests; fix only deferral-caused breakage with `findBy*` / `waitFor`.
-6. Verify on a real iPhone via the TestFlight workflow, then revert the local harness.
+1. Confirm the symptom: janky push, heavy sections below the fold. Measure the `eager` baseline. No number, no deferral.
+2. Gate the heavy sections on one `useScreenTransitionComplete()` call, with the `isPushedScreen` split if the screen is also a tab root.
+3. Re-measure (`held` vs `eager`) and record the numbers.
+4. Run the screen's tests; mock the hook where navigation is hand-mocked.
+5. Verify on a real iPhone through the TestFlight workflow, then delete the local harness.
 
 ## Verification checklist
 
-- [ ] First paint (header, summary, chart, banners, tab bar) renders eagerly — screenshot or unit-assert it.
-- [ ] One gate per screen; no gate inside deferred content.
-- [ ] Existing screen unit tests green — deferred content may need `findBy*` instead of `getBy*`.
-- [ ] Reassure `eager` vs `held` meanDuration improved on the opening scenario; numbers recorded before reverting the local harness.
-- [ ] Device check on iPhone via the TestFlight GitHub workflow (see the real-iPhone rule); simulators do not reproduce transition jank faithfully.
+- [ ] First paint (header, summary, chart, banners, tab bar) renders eagerly.
+- [ ] One hook call per screen; no new deferral hook or wrapper added.
+- [ ] A tab root never waits for the fallback.
+- [ ] Existing screen tests green; one held-back test added.
+- [ ] `eager` vs `held` improved on the opening scenario; numbers recorded before deleting the harness.
+- [ ] Device check on iPhone via TestFlight; simulators do not reproduce transition jank faithfully.
 
 ## Reject
 
-- Gating header/summary/chart/banners/tab bar or anything that defines first paint
-- More than one `useScreenTransitionComplete` per screen, or gates nested inside gated content
-- `mode: 'paint'` on a pushed screen (transition runs first; you defer too early) or `mode: 'transition'` on a tab (no transition — gate releases on the 450 ms fallback)
-- Committing the Reassure harness, arm switches, or DeferredRender mocks
-- Reaching for `InteractionManager` / `setTimeout` delays instead of the primitive
+- A new `useDeferredRender`, `DeferredRender` wrapper, or `requestAnimationFrame` / `setTimeout` / `InteractionManager` delay instead of the existing hook
+- Gating header, summary, chart, banners, tab bar or anything that defines first paint
+- More than one call per screen, or a second gate inside gated content
+- Committing the Reassure harness or its arm mocks
