@@ -11,6 +11,7 @@ description: >-
   Also use when changing an existing user-facing string, including a
   one-word typo or spelling fix in `en.json` or `messages.json`.
 maturity: stable
+base: true
 ---
 
 # Content guidelines
