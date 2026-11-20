@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, test } from 'node:test';
 import {
+  BASE_DESCRIPTION_MIN,
   BUNDLE_DIRS,
   DESCRIPTION_MAX,
   KNOWN_FRONTMATTER,
@@ -178,10 +179,11 @@ describe('schema tracks the installer', () => {
 // The workflow invokes the linter WITH changed-file arguments. Every test above runs the
 // no-argument full-audit branch, so the branch CI actually depends on had no coverage —
 // which is how malformed paths reached main. These mirror the CI invocation.
-// 1,536 is a repo budget, not an operator limit — no observed operator rejects or
-// truncates a longer description, and several over 1,024 install and load today. The
-// check exists to bound always-on context, so what matters is that the number the docs
-// state and the number enforced are the same one.
+// 1,024 tracks the strictest operator observed so far: descriptions well over 1,024
+// install and load in Claude Code, and the pi coding agent loads longer ones too but
+// warns about them at startup. The check exists to bound always-on context, so what
+// matters is that the
+// number the docs state and the number enforced are the same one.
 describe('description budget', () => {
   test('the enforced ceiling is the one the docs state', () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -293,6 +295,46 @@ describe('changed-files mode', () => {
     const { code, output } = lint(root, 'domains/testing/skills/unit-testing/skill.md');
     assert.equal(code, 0, output);
     assert.match(output, /warning:/u);
+  });
+
+  // A base skill permanently occupies listing context for every engineer, so the
+  // length floor has to FAIL the job. As a warning it never set a non-zero exit
+  // code, which meant a thin description sat invisibly inside a green check and
+  // "CI warns until it is rewritten" did not actually hold.
+  test('a base skill with a short description fails, not warns', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: Write unit tests\nbase: true');
+    const { code, output } = lint(root);
+    assert.equal(code, 1);
+    assert.match(output, /base skill needs enough trigger cues/u);
+  });
+
+  test('a base skill at exactly BASE_DESCRIPTION_MIN passes', () => {
+    const root = makeRoot();
+    const description = 'x'.repeat(BASE_DESCRIPTION_MIN);
+    writeSkill(root, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${description}\nbase: true`);
+    assert.equal(lint(root).code, 0);
+  });
+
+  // A short description on a NON-base skill is still fine — the cost only applies
+  // to skills that load for everyone.
+  test('a short description on a non-base skill still passes', () => {
+    const root = makeRoot();
+    writeSkill(root, 'testing', 'unit-testing', 'name: unit-testing\ndescription: Write unit tests');
+    assert.equal(lint(root).code, 0);
+  });
+
+  // `on` was accepted by this linter alone. tools/install, tools/sync and the CLI
+  // all match 1/true/yes only, so `base: on` linted clean as a base skill while the
+  // installer silently skipped it.
+  test('`base: on` is not treated as truthy', () => {
+    const root = makeRoot();
+    const short = 'Write unit tests';
+    writeSkill(root, 'testing', 'unit-testing', `name: unit-testing\ndescription: ${short}\nbase: on`);
+    const { code, output } = lint(root);
+    // Not base -> the length floor must not fire; it is flagged as unrecognised instead.
+    assert.equal(code, 0);
+    assert.match(output, /neither truthy nor falsy/u);
   });
 
   test('a description of exactly DESCRIPTION_MAX passes, +1 fails', () => {

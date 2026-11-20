@@ -19,6 +19,7 @@ parent: coding-guidelines
 
 - TypeScript guidelines from contributor docs • Functional components + hooks • PascalCase (components) / camelCase (functions)
 - Reusable components/utilities • TSDoc format • Comprehensive tests following testing layers (below)
+- Redux selectors: install **selector-patterns** (`yarn skills --include coding/selector-patterns --save`) when writing or updating them.
 
 **Testing layers** (Mobile — canonical policy: testing domain `knowledge/testing-layers.md`, installed beside `mobile-testing`):
 
@@ -66,3 +67,5 @@ ComponentName/
 **Testing**: CV default for views → integration for app-to-controller flows → unit for allowed fallback → Appium for justified device journeys. Install `mobile-testing` and follow testing domain `knowledge/testing-layers.md`.
 
 **Forbidden**: ❌ npm/npx commands
+
+**Lint**: No new `eslint-disable`; fix the violation, or state in the same comment why it is unavoidable.

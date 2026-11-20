@@ -9,7 +9,7 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
+   `domains/testing/`, `domains/pr-workflow/`, etc. carry the conventions
    and review heuristics for `metamask-extension`, `metamask-mobile`, and `core`.
    These install into consumer repos via a small CLI.
 
@@ -54,7 +54,7 @@ metamask-skills list          # discover installable skills for the current repo
 metamask-skills search test   # search skill names and descriptions
 metamask-skills describe testing/mobile-testing
 metamask-skills sync          # infer repo + target, refresh cache, install skills
-metamask-skills postinstall   # refresh cache; run sync only when SKILLS_AUTO_UPDATE=1
+metamask-skills postinstall   # refresh cache; sync by default (SKILLS_AUTO_UPDATE=0 opts out)
 metamask-skills install       # lower-level installer wrapper
 ```
 
@@ -143,6 +143,7 @@ tools/
 | -------------- | ----------------- | ------------------------------------------- |
 | `web3-tools`   | dApp builders     | `gator-cli`, `smart-accounts-kit`, `oh-my-opencode` |
 | `coding`       | MM product eng    | Coding guidelines, controller patterns       |
+| `platform`     | MM product eng    | Product analytics and other platform skills  |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
 | `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
@@ -286,10 +287,10 @@ than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/
 inside an installed skill, while prune-stale removes whole generated skill
 directories that no longer exist in the resolved source/filter set.
 
-Recipe skills currently live in the experimental `agentic` domain. Install all
-lower-level recipe tools in this rollout with `--domain agentic --maturity
-experimental`, or cherry-pick only the ones you want with
-`--include agentic/<skill>`.
+Recipe skills install from this repository's experimental `agentic` domain.
+No private overlay is required. Install the recipe tools with
+`--domain agentic --maturity experimental`, or cherry-pick only the ones you want
+with `--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -311,6 +312,7 @@ Use these directly when steering/debugging:
 - `/mms-recipe-doctor` — check tool, skill, harness, runtime-context, and fixture/profile readiness before a run.
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-performance` — diagnose real-app bottlenecks and prove paired device performance.
 - `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
@@ -356,7 +358,8 @@ yarn skills
 ```
 
 Engineers without access to the private repo simply don't set
-`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own.
+`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own, including the
+`agentic` recipe skills.
 
 ## Authoring a skill
 
@@ -377,16 +380,24 @@ domains/<area>/
 ```yaml
 ---
 name: <slash-command-name>
-description: <≤1,536 chars including when_to_use cues>
+description: <≤1,024 chars including when_to_use cues>
 maturity: stable          # experimental | stable | deprecated (default stable)
 ---
 ```
 
 Extra metadata blocks (e.g. OpenClaw-style `metadata:` with emoji and
 homepage) are preserved through install — only `name`, `description`,
-`maturity`, `mandatory`, and `scope` are read by the CLI.
+`maturity`, `base`, and `scope` are read by the CLI.
 
-The 1,536-character ceiling is a repo budget rather than an operator limit — the
+`base: true` installs the skill even when its domain is filtered out.
+`--exclude` / `SKILLS_EXCLUDE` still wins. The maturity filter runs before the
+base bypass, so `--maturity stable` drops a `base: true` experimental skill.
+A skill with a `repos/` directory and no overlay for `--repo` is skipped
+(this `analytics` skill installs for Mobile and is skipped for Extension).
+
+The 1,024-character ceiling tracks the strictest operator rather than an opinion
+about ideal length — descriptions well over 1,024 install and load in Claude Code,
+but the pi coding agent warns about any description over 1,024 characters at startup. The
 description is always-on context for every installed skill, so it is capped
 deliberately. It is enforced by `yarn audit:skills` from
 [`tools/skill-schema.mjs`](tools/skill-schema.mjs), which is the source of truth.
@@ -425,3 +436,8 @@ MIT — see [LICENSE](LICENSE).
 
 See [SECURITY.md](SECURITY.md) for how to report issues with skills or
 the installer.
+
+
+### Explicit-only workflows
+
+Set `disable-model-invocation: true` in source skill frontmatter to require explicit invocation. The installer emits the native invocation controls for each supported runner. Other skills retain their existing selection behavior. Installation does not activate a workflow.
