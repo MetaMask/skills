@@ -24,7 +24,7 @@ Component READMEs are background. When they disagree with this file, follow this
 ## How to apply
 
 - Unmarked rules are confirmed. Follow them.
-- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are numeric ranges, a context-based period rule for single-sentence body text, plus the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
+- **PROPOSED** is not decided. Do not enforce it. The remaining drafts are numeric ranges, plus the locale-file, `toSentenceCase`, and translator-description notes in the overlays.
 - [Checks pending](#checks-pending) are not finished. Do not claim them done, and do not migrate strings ahead of them.
 
 ## When to use
@@ -82,7 +82,7 @@ Do not apologize in a routine error. Do not use "sorry" or "unfortunately" there
 | Avoid | Instead |
 | --- | --- |
 | successfully, "was successful", "has been" on a success | Past participle. "Order placed", "{{name}} added" |
-| please | Name the action. "Enter a limit price" |
+| please | Name the action. "Enter a limit price." |
 | sorry, unfortunately | State what happened, then the action |
 | click here | Name the control. "Tap to…" is allowed on mobile only |
 | fiat | The currency name (USD, EUR). "Local currency" only for the setting that picks one |
@@ -164,13 +164,16 @@ Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing a
 
 ### Periods
 
+Periods depend on context. Use a period at the end of a full sentence in body text, descriptions, error messages, toasts, and tooltips, even when it's a single sentence.
+
+Do not use a period on a fragment, header, title, menu item, subheader, label, button, tag, tab, field placeholder, or "Learn more". A label is a name, not a sentence ("Network fee").
+
 When a string has more than one sentence, end every sentence with a period. Never double-space after a period.
 
-Do not use a period on a header, menu item, subheader, label, button, tag, tab, or "Learn more".
-
-Do not apply the old rule that a single sentence never ends with a period. A context-based period rule for single-sentence body text is pending content design. See [PROPOSED](#proposed).
+This replaces the old rule that a single sentence never ends with a period. Write new and edited strings by the context rule above.
 
 ```
+✅ "Your transaction couldn't be completed, so it was canceled."
 ✅ "Network fee"
 ✅ "Turn on notifications"
 ❌ "Network fee."
@@ -270,7 +273,6 @@ Use an emoji sparingly. It can add delight on a lower-impact message, such as a 
 - Dates and clock times: `Jun 16 at 6:30 am`. Never ordinals (no "16th"). Never 24-hour time. Put a space before lowercase `am` or `pm`.
 - Days: Mon, Tue, Wed, Thu, Fri, Sat, Sun
 - Months: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
-- Large amounts: `$500K`, `$20M`, `$100B`
 - Thousands: comma separator (`100,000`). No exception for gas units.
 - **PROPOSED.** The Style Guide says both "a hyphen with no space, as in 1-20" and "an en dash (–) with no spaces for a fixed range." Do not treat either form as settled, and do not migrate ranges to one form.
 - A hyphen never joins two phrases. Use a comma, or split the string.
@@ -280,6 +282,29 @@ Use an emoji sparingly. It can add delight on a lower-impact message, such as a 
 - Addresses: `0x0000...0000`
 - Do not hardcode "EST" or "EDT". Show the user's local time. If you cannot, write "ET".
 - A time the locale formatter generates uses that formatter. Do not hand-build it.
+
+### Currency amounts
+
+Show amounts in the user's chosen currency. Write the currency's name (USD, EUR), not "fiat" (see [Words to avoid](#words-to-avoid)).
+
+Write English source strings with U.S. formatting: a comma for thousands and a period for decimals. Localization adapts the separators for each locale: 1,000.50 in English, 1.000,50 in German.
+
+Abbreviate large amounts with a capital letter: $500K, $20M, $100B. A lowercase k means distance, as in a 5k race.
+
+Whole dollars and cents depend on what the number is:
+
+- Prices and labels: drop .00 on a whole amount. Show cents only when they exist.
+- Balances, totals, and amounts where money moves: always show two decimals, so amounts line up and can be compared to the cent.
+- Lists and rows: use one format. If any amount needs cents, show cents on all of them.
+
+```
+✅ "$28" on a price label
+✅ "$28.50" on a price label
+❌ "$28.00" on a price label
+✅ "$28.00 USDC" on a balance
+✅ "$28.00, $28.50, $5,000.00" in one list
+❌ "$28, $28.50, $5,000" in one list
+```
 
 ## Buttons and actions
 
@@ -413,7 +438,7 @@ Use "We couldn't…" only when the system itself failed.
 ✅ "Not enough ETH to cover the network fee. Add ETH to continue."
 ❌ "Insufficient gas" (`bridge.insufficient_gas`, shown on the confirm button)
 ❌ "Please set a limit price" (`perps.order.validation.please_set_a_limit_price`)
-✅ "Enter a limit price"
+✅ "Enter a limit price."
 ❌ "Deposit of {{currency}} has failed. Please try again, sorry for the inconvenience."
 ✅ "Your {{currency}} deposit didn't go through. Check your payment method."
 ```
@@ -449,7 +474,7 @@ The title names the risk. Severity comes from the component (color and icon), no
 
 ```
 ❌ "Warning: the transaction gas cost will account for more than {{percentOverDeposit}}% of your deposit."
-✅ "The network fee is more than {{percentOverDeposit}}% of your deposit"
+✅ "The network fee is more than {{percentOverDeposit}}% of your deposit."
 
 ✅ "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." (`alertMessageSuggestedGasFeeHigh`)
 ✅ "You're sending assets to an address flagged by security partners. If this is a scam, your funds can't be recovered." (`blockaid_banner.transfer_farming_description`)
@@ -467,7 +492,7 @@ The title names the risk. Severity comes from the component (color and icon), no
 ✅ "Lock your wallet" with Lock / Cancel
 
 ❌ "Are you sure?" (`areYouSure`, `login.are_you_sure`)
-✅ "This removes browser history from this device"
+✅ "This removes browser history from this device."
 ```
 
 ## Consent
@@ -594,7 +619,7 @@ Account group labels are "Secret Recovery Phrase 1", "Secret Recovery Phrase 2",
 
 ```
 ❌ "Using a 12, 18 or 24-word seed phrase" (`multichain_accounts.add_wallet_srp_description`, `importAWalletDescription`)
-✅ "Using a 12, 18, or 24-word Secret Recovery Phrase"
+✅ "Using a 12, 18, or 24-word Secret Recovery Phrase."
 
 ❌ "Hold to reveal SRP" (`holdToRevealSRP`)
 ✅ "Hold to reveal Secret Recovery Phrase"
@@ -678,26 +703,26 @@ Real strings from MetaMask Mobile (`en.json` keys) and MetaMask Extension (`mess
 
 | Current | Use | Why |
 | --- | --- | --- |
-| "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee" | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
+| "Insufficient gas" (`bridge.insufficient_gas`) | "Not enough ETH to cover the network fee." | The row beside it already says "Network fee". Name the token. The next step is to add it, not to retry blindly |
 | MetaMask fee row labeled "Paid by MetaMask" when the MetaMask fee is $0 | No MetaMask fee row, or "No MetaMask fee" or a Promo badge under the primary button. Keep "Paid by MetaMask" only on a sponsored Network fee | "Paid by MetaMask" means MetaMask covers a fee the user would otherwise pay. A waived MetaMask fee is not MetaMask paying itself |
 | "Gas Price: (GWEI)" (`custom_gas.gas_price`) | "Gas limit", "Max base fee", "Priority fee", "Gwei", and only in the advanced editor | Retired label, colon, and unit casing |
 | "Increase allowance" (`transactions.increase_allowance`) | "Spending cap" as the label. "Approve" as the button | "Allowance" is retired. Approve is for a spending cap or a permission |
 | "Approve & submit" (`predict_next.order_approval.approve`) | "Confirm" if this is a transaction or final review. "Approve" only if it is a spending cap or permission | Ampersand, and Approve is not a generic submit |
-| "Using a 12, 18 or 24-word seed phrase" | "Using a 12, 18, or 24-word Secret Recovery Phrase" | Banned synonym, missing Oxford comma. Same text in `importAWalletDescription` |
+| "Using a 12, 18 or 24-word seed phrase" | "Using a 12, 18, or 24-word Secret Recovery Phrase." | Banned synonym, missing Oxford comma. Same text in `importAWalletDescription` |
 | "SRP #{{index}}" (`accounts.srp_index`) | "Secret Recovery Phrase {{index}}" | Produces "Secret Recovery Phrase 1" |
 | "Please, try to visit this page again." (`notificationsPageErrorContent`) | "This page didn't load. Try again." | "please", and a retry is plausible for a page load |
 | "Your password is incorrect. Try again." | Keep | State, then an action that can work. Replaces a bare "Incorrect password" |
 | "Card Added Successfully" | "Card added to Apple Wallet" | Title case, "successfully" |
-| "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase" | Exclamation on an error. Same for "Nope!" |
+| "Wrong! No one can help get your Secret Recovery Phrase back" | "No one can recover your Secret Recovery Phrase." | Exclamation on an error. Same for "Nope!" |
 | "Your wallet is ready!" (`onboarding_success.wallet_ready`) | Keep | A celebration. Major feature announcements may also use one, very sparingly. Never on an error or a warning |
 | "Learn more." (`app_settings.learn_more`, `predict.consent_sheet.learn_more`) | "Learn more" | No period |
 | "Dapp browser" / "Dapps" / "ÐApps" | "Sites" in consumer UI | `trending.tabs.dapps` already says "Sites". A technical audience may say "dapp" |
-| "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask" | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
+| "Display fiat values in using a specific currency throughout the application." (`app_settings.conversion_desc`) | "Show values in your local currency throughout MetaMask." | This setting does not name one currency. When a screen does, use that name (USD, EUR), not "fiat" |
 | "HyperLiquid" | "Hyperliquid" | Brand spelling. Migrate it |
-| "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site" and a plural string | "(s)" does not translate |
+| "Select the account(s) to use on this site:" (`accounts.select_accounts_description`) | "Select the account to use on this site." and a plural string | "(s)" does not translate |
 | "This site is suggesting a higher network fee than necessary. Edit the network fee to pay less." | Keep | Names the actor, the problem, and the action |
 | "Back up your Secret Recovery Phrase to keep your wallet and funds secure." (`backupApprovalNotice`) | Keep | Calm, and the right noun for the wallet |
-| "File import not working? Click here!" | "Try a different file" | Question, "click here", and an exclamation |
+| "File import not working? Click here!" | "Try a different file." | Question, "click here", and an exclamation |
 | "MetaMask is not connected to this site. To connect to a web3 site, find and click the connect button." | "MetaMask isn't connected to this site yet. You'll be asked to connect when the site needs an account." | "web3", "click", and a gesture instead of the situation |
 
 ## PROPOSED
@@ -707,7 +732,6 @@ Not decided. Do not rewrite existing copy to satisfy these.
 1. **Numeric ranges.** Hyphen (`1-20`) vs en dash is unresolved in the Style Guide.
 2. **Locale file and `toSentenceCase`.** Drafts in the mobile overlay. Do not enforce them until content design confirms them.
 3. **Translator descriptions.** A draft in the extension overlay. Do not enforce it until content design confirms it.
-4. **Single-sentence periods.** A context-based period rule for single-sentence body text is pending content design. Do not keep applying the old rule that a single sentence never ends with a period.
 
 ## Checks pending
 
@@ -723,7 +747,8 @@ Before you finish a user-facing string:
 
 - Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. "Hyperliquid" uses that spelling. First mention in a page or flow is "MetaMask Snaps".
 - Curly apostrophes and quotes. An ellipsis only in a shortened address. Loading uses animation, not `...` or `…`.
-- A description with more than one sentence periods every sentence. An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
+- A full sentence in body text, a description, an error, a toast, or a tooltip ends with a period, even when it is the only sentence. A string with more than one sentence periods every sentence. No period on a fragment, header, title, label, button, menu item, tab, tag, placeholder, or "Learn more". An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
+- Currency amounts use U.S. formatting in the English source (1,000.50) and the currency's name, never "fiat". Price labels drop .00 on whole amounts; balances, totals, and any list showing cents keep two decimals.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
