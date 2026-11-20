@@ -25,9 +25,9 @@ owner, the extension security team. Reviewing such a change still uses this skil
 
 ## Authoring a route
 
-Adding or changing a route is documented at `docs/deeplink-route-authoring.md`: the ownership split
-with the extension security team, the interstitial rule, the extension's trusted origins and
-canonicalization, and the four steps of adding a route.
+Adding or changing a route is documented in the "Adding a route" section of `docs/deep-links.md`:
+which files the feature team owns and which the extension security team owns, and the four steps
+of adding a route.
 
 1. Confirm which files the change touches, and whether any are security-owned.
 2. Write the route or handler, register it, and add the E2E test.
