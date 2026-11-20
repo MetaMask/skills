@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
+- Rename `deeplink-handler` to `deep-link-security` and add the signature-boundary checks for the extension: canonical parameters are not validated, nothing past them reaches a handler, title or destination, and a null report lists every check. `deeplink-handler` remains as a deprecated redirect stub. ([#139](https://github.com/MetaMask/skills/pull/139))
 
 ## [0.4.0]
 
