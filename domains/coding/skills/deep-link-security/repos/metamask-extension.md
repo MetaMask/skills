@@ -20,7 +20,7 @@ owner, the extension security team. Reviewing such a change still uses this skil
 ## How to use
 
 1. Read `docs/deep-links.md` in full before writing or reviewing the change.
-2. Answer its six review questions and its three checks under "Where a valid signature covers less than it appears to", for the change in hand.
+2. Answer its six review questions and its four checks under "Where a valid signature covers less than it appears to", for the change in hand.
 3. Report as below.
 
 ## Authoring a route
@@ -49,6 +49,7 @@ would replace per-client route registration in both clients.
 - Attribution is forwarded only from what the handler received.
 - What consumes a value after the handoff refuses what it cannot match.
 - Empty `sig_params`, repeated parameters, and path binding.
+- A parameter added after signing reaches only a consumer that shows it and waits for the user.
 - The destination is a feature that does not depend on the link.
 
 ## Defects that recur in review
@@ -60,6 +61,12 @@ keys, so `?param=constructor` returns `function Object() { [native code] }` and 
 *And the negative test must use an inherited key.* `'not-a-setting'` is `undefined` on the
 prototype chain too, so it passes against a broken implementation and a correct one alike. It
 cannot tell them apart. Test `'constructor'` or `'__proto__'`.
+
+**A parameter must not be dropped because `sig_params` leaves it out.** Referral links add `ref`
+to a signed link after signing, so ignoring an unlisted `ref` dropped the code from every one of
+them: MetaMask/metamask-extension#47901 (ignore referrals excluded from signature scope) was
+reverted by #48140 (restore previous referral handling). Ask what consumes the unsigned value
+instead. It can stay outside the signature where the user sees it and decides.
 
 ## CI coverage is neither re-verified nor narrated
 
@@ -91,6 +98,7 @@ head [`<sha>`](<commit URL>) · range [`<merge-base>..<head>`](<compare URL>)
 | Empty `sig_params` | … | <permalink> |
 | Repeated parameters | … | <permalink> |
 | Path binding | … | <permalink> |
+| A parameter added after signing reaches only a consumer that shows it and waits for the user | … | <permalink> |
 | The destination is a feature that does not depend on the link | … | <permalink> |
 | <each claim the pull request makes about the boundary> | … | <permalink> |
 

@@ -47,6 +47,13 @@ author writes `sig_params` too, so the canonical parameters are whatever the aut
 whole query minus `sig` when the list is absent. Only a `VALID` link's canonical parameters are
 covered by a signature.
 
+**A parameter outside `sig_params` can be added after signing, and links rely on that.** The list
+names what the signature covers so that values the signer never saw, such as a referral code
+each sharer adds, can travel on a signed link. A value that must be tamper-evident is listed in
+`sig_params` when the link is signed. A value left outside is acceptable only where its consumer
+shows it to the user and acts on their choice. Dropping it for being unsigned breaks the links
+already shared.
+
 **Use the validated parameter.** Validating a param and then hardcoding the path means the
 validation changes nothing. If a param is worth checking, the destination must depend on it.
 
