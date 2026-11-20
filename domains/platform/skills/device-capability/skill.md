@@ -1,16 +1,15 @@
 ---
 name: device-capability
 description: >-
-  Adapt UI to how capable the device and connection are, using the shared
-  hardware tier, network transport tier and measured latency signals. Use
-  when creating or editing a screen or component that adds or changes
+  Use when creating or editing a screen or component that adds or changes
   animation (Rive, Lottie, Reanimated), lists (FlashList, FlatList), a poll
   such as a price or balance poll, prefetch, realtime or websocket data,
   heavy images, a blurred backdrop or other blur or shadows; when adding
   offline, slow-network, slow-request or low-end-device behaviour or a
-  slow-connection banner; when touching NetInfo, DeviceInfo memory reads,
-  getHardwareTier, useNetworkTier or useNetworkLatency; or when reviewing a
-  PR that changes any of these.
+  slow-connection banner; or when touching NetInfo, DeviceInfo memory
+  reads, getHardwareTier, useNetworkTier or useNetworkLatency. Adapts UI
+  to how capable the device and connection are, using the shared hardware
+  tier, network transport tier and measured latency signals.
 maturity: stable
 base: true
 ---
