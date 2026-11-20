@@ -8,6 +8,7 @@ description: >
   MetaMaskController, FixtureBuilderV2, page objects, E2E flake, POM
   anti-patterns, or asks which Extension testing skill to install.
 maturity: stable
+base: true
 ---
 
 # Extension testing
