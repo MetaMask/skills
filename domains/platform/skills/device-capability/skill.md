@@ -3,12 +3,14 @@ name: device-capability
 description: >-
   Adapt UI to how capable the device and connection are, using the shared
   hardware tier, network transport tier and measured latency signals. Use
-  when creating or editing a screen or component that uses animation (Rive,
-  Lottie, Reanimated), lists (FlashList, FlatList), polling, prefetch,
-  realtime or websocket data, heavy images, blur or shadows; when adding
-  offline, slow-network or low-end-device behaviour; when touching NetInfo,
-  DeviceInfo memory reads, getHardwareTier, useNetworkTier or
-  useNetworkLatency; or when reviewing a PR that changes any of these.
+  when creating or editing a screen or component that adds or changes
+  animation (Rive, Lottie, Reanimated), lists (FlashList, FlatList), a poll
+  such as a price or balance poll, prefetch, realtime or websocket data,
+  heavy images, a blurred backdrop or other blur or shadows; when adding
+  offline, slow-network, slow-request or low-end-device behaviour or a
+  slow-connection banner; when touching NetInfo, DeviceInfo memory reads,
+  getHardwareTier, useNetworkTier or useNetworkLatency; or when reviewing a
+  PR that changes any of these.
 maturity: stable
 base: true
 ---
@@ -74,7 +76,7 @@ This skill never pauses the task and never asks the engineer to confirm. Pick th
 4. Apply that cell's levers inside the files the task already touches, without asking.
 5. List anything outside that scope (a shared hook, another screen, a matrix change) as a follow-up. Do not make it.
 6. If the engineer's instruction conflicts with the cell, follow the instruction. Tier handling that adds to the requested feature without contradicting it still applies, for example a static fallback around a requested animation on `LOW`.
-7. In the final summary, report the cell, the levers and any conflict or follow-up in one or two lines. Do not ask before the edit.
+7. In the final summary, report the cell, the levers and any conflict or follow-up in one or two lines. If the engineer's instruction conflicted with the cell, that line names the conflict. Do not ask before the edit.
 8. Do not migrate unrelated screens.
 
 ## UX matrix and levers
