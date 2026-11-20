@@ -146,7 +146,7 @@ tools/
 | `platform`     | MM product eng    | Product analytics and other platform skills  |
 | `agentic`      | MM product eng    | Experimental recipe workflows and runtime proof tools |
 | `assets`       | MM product eng    | Assets domain skills |
-| `general`      | All agents        | `codex`, `gemini` CLI usage guides           |
+| `general`      | All agents        | `codex`, `gemini` CLI usage guides, `jira-bug-reporter` |
 | `performance`  | MM product eng    | React rendering, hooks, state perf          |
 | `perps`        | MM product eng    | Perps feature dev + review                  |
 | `pr-workflow`  | MM product eng    | PR title, description, changelog            |

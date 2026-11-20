@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add the `jira-bug-reporter` skill for filing and updating MetaMask bug reports in Jira.
 - Add a `mobile-visual-testing` skill for MetaMask Mobile. ([#79](https://github.com/MetaMask/skills/pull/79))
 - Add skill for Flashlight, a lighthouse tool for Android vitals ([#146](https://github.com/MetaMask/skills/pull/146))
 - Add content-guidelines skill (MetaMask mobile) ([#137](https://github.com/MetaMask/skills/pull/137))
