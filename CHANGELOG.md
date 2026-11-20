@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
+
 ### Changed
 
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
