@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update the `assets/react-compiler-migration` skill (still `maturity: experimental`). Make it team-agnostic: drop assets file paths and ticket ids, label metamask-mobile specifics in a repo-notes section, and move compiler-forced helper context from code comments to the commit and PR. Add a section on a failing `yarn lint:react-compiler` burndown baseline and validated recipes for `useEffectEvent`, render-body helpers and mount-only effects behind `exhaustive-deps` suppressions, sync-effect ordering, `usePrevious` and state-held previous keys for render-time refs, and declaring `failRequest` as a function so TypeScript narrows after it. On a minimal component, an effect-scoped shared-value `.value =` fails marker 0.2.0 with compiler 1.0.0; if that file's own marker run is clean, leave the write, otherwise keep `.set()` in the effect.
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
 
 ## [0.4.0]
