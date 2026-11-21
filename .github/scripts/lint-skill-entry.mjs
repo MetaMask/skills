@@ -149,6 +149,22 @@ export function lintSkill(skill) {
     }
   }
 
+  // The installer prefixes every emitted skill, so a description advertising `/<name>`
+  // names a command no operator exposes. The description IS the discovery surface, so a
+  // wrong trigger string is a selection failure, not a typo.
+  //
+  // The lookbehind keeps a scoped package (`@metamask/gator-cli`) or a path
+  // (`skills/gator-cli`) from being read as a slash command.
+  if (raw.description && raw.name) {
+    const bare = new RegExp(`(?<![\\w@/-])/${raw.name}\\b`, 'u');
+    const prefixed = new RegExp(`(?<![\\w@/-])/${INSTALLED_PREFIX}${raw.name}\\b`, 'u');
+    if (bare.test(raw.description) && !prefixed.test(raw.description)) {
+      errors.push(
+        `\`description\` advertises \`/${raw.name}\` but the installer emits \`${INSTALLED_PREFIX}${raw.name}\`; name the installed form`,
+      );
+    }
+  }
+
   for (const section of RECOMMENDED_SECTIONS) {
     // A trailing `\b` let `## When To Use Cases` satisfy `When To Use` — a different
     // section. Anchoring to end-of-line fixes that but rejects `## Workflows` and
