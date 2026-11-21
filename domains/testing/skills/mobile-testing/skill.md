@@ -20,8 +20,7 @@ those separate.
 
 ## First step — choose the layer
 
-Read installed `knowledge/testing-layers.md` (source:
-[`../../knowledge/testing-layers.md`](../../knowledge/testing-layers.md))
+Read installed `knowledge/testing-layers.md`
 before writing any test. `references/layers.md` is only a redirect stub.
 
 ## Open next
