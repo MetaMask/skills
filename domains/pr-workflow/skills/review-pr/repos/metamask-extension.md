@@ -27,7 +27,7 @@ Treat these command names as evidence labels from check output or the pull reque
 | Changed files | Class | Module | Semantic signal |
 | --- | --- | --- | --- |
 | Application `*.test.ts`, `*.test.tsx`, `test/e2e/`, `test/integration/` | preference | `extension-testing` | Application behavior or test coverage changed |
-| UI components, modals, stories, Tailwind `className` classes, Sass styles, tokens or themes, or imports from `ui/components/component-library` or `@metamask/design-system-*` | preference | `ui-development` | A UI surface changed; no further signal is required |
+| UI components, for example under `ui/components` | preference | `ui-development` | Any UI component changed; no further signal is required |
 | UI rendering | capability | `perf-rendering` when installed | Render frequency, lists, loading cost, or interaction cost changed |
 | Hooks and effects | capability | `perf-hooks-effects` when installed | Effect lifecycle, dependencies, cancellation, or cascading updates changed |
 | React compiler-sensitive code | capability | `perf-react-compiler` when installed | Compiler compatibility or memoization behavior changed |
@@ -59,7 +59,7 @@ Use `provided`, `needs author evidence`, or `unread`. Keep these statuses outsid
 - Route application unit-test changes through `extension-testing` and cite the Jest guidance in `docs/testing.md`.
 - Route a capability only when both the changed surface and semantic signal match.
 - Route UI changes to `ui-development` and record which of its sources the review reached: installed package types, the Storybook component manifest, MMDS package docs, and Design Brain when Notion is reachable.
-- When a routed preference skill such as `ui-development` or `content-guidelines` is not installed, record the skip and list it as a coverage gap under **Author evidence**.
+- When a routed preference skill is skipped, record the skip and name it as a coverage gap in the review coverage conclusion.
 - For a tooling-only diff, review the tooling's own tests and matching domain skills.
 
 ## Reject
