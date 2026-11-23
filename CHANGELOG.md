@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
-- Route any UI component change in a MetaMask Mobile or Extension review to the `ui-development` base skill with no extra signal, cite the MMDS sources the review reached, and name a routed preference skill that is skipped (not installed or missing a required input) as a coverage gap in the review conclusion. Install `content-guidelines` by default; opt out with `yarn skills --exclude ui/content-guidelines --save`.
 
 ## [0.4.0]
 
