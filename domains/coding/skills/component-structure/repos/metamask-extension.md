@@ -16,6 +16,7 @@ Follow the hook file naming already used in the folder; `use-<name>.ts` and `use
 - React 18. Examples and fixes must not use React 19-only APIs (`use`, `useActionState`, `useOptimistic`, `ref` as a prop).
 - React Compiler runs only on the files matched by the `babel-plugin-react-compiler` override in `babel.config.js`, with `target: '18'`. Read that override for the current scope; it covers only part of the UI code and skips test, story and container files.
 - R7 applies only inside that scope. Files outside it are not compiled, so manual memoization there is not an R7 finding.
+- Bailouts: a component the compiler skips is an R7 exception. Signs you can read in the code: an `eslint-disable` of a `react-hooks` rule inside the component (the compiler skips any component that has one), a `try` with a `finally` clause, and a `throw` inside `try/catch` (both unsupported in `babel-plugin-react-compiler` 1.0). Confirm on current code by running the plugin on the file with the `babel.config.js` options. If it is not confirmed, report the R7 finding and name the possible bailout in the finding.
 - `react-hooks` lint rules are enforced, including `exhaustive-deps`. Do not silence them with `eslint-disable` to keep a mount-only effect; that is an R4 finding.
 
 ### Copy
@@ -30,6 +31,11 @@ Follow the hook file naming already used in the folder; `use-<name>.ts` and `use
 
 - `@tanstack/react-query` v5 for async reads instead of an effect with a `cancelled` flag.
 - Redux `dispatch` of background actions triggered by the user belongs in handlers inside `use<Screen>`.
+
+### Subscriptions (R9)
+
+- Live-data hooks: the Perps stream hooks in `ui/hooks/perps/stream/` (`usePerpsLivePrices`, `usePerpsLivePositions` and siblings) read from one shared `PerpsStreamManager` subscription through `useSyncExternalStore`. Calling one per row is the intended pattern, not an R9 finding. Calling one at the top of a large page whose value feeds only one region is.
+- Rows: a token or asset row that selects `getMarketData`, `getCurrencyRates` or `getAssetsRates` to price one asset, or to compute one conversion rate, is the R9 row case. Pass the value in, or read it with a selector that returns only that value.
 
 ### Performance depth
 

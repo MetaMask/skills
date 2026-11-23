@@ -203,3 +203,55 @@ useFocusEffect(useCallback(() => refresh(), [refresh]));
 // Both repos: a debounced function must survive renders.
 const debouncedValidate = useMemo(() => debounce(validate, 500), [validate]);
 ```
+
+## R9 — Subscribe where the value is used
+
+```tsx
+// Before: every price tick re-runs the whole screen body.
+const OrderScreen = ({ symbol }: Props) => {
+  const price = useLivePrice(symbol);
+  const form = useOrderForm();
+  // ...many hooks, derived values and handlers
+  return (
+    <>
+      <PriceHeader price={price} />
+      <OrderForm form={form} />
+    </>
+  );
+};
+
+// After: only the header re-renders on a tick.
+// OrderScreen/components/PriceHeader/PriceHeader.tsx
+export const PriceHeader = ({ symbol }: PriceHeaderProps) => {
+  const price = useLivePrice(symbol);
+  return <Text>{formatPrice(price)}</Text>;
+};
+
+// OrderScreen/OrderScreen.tsx
+const OrderScreen = ({ symbol }: Props) => {
+  const form = useOrderForm();
+  return (
+    <>
+      <PriceHeader symbol={symbol} />
+      <OrderForm form={form} />
+    </>
+  );
+};
+```
+
+List row:
+
+```tsx
+// Before: each row re-renders when any rate changes.
+const TokenRow = ({ token }: Props) => {
+  const rates = useSelector(selectAllRates);
+  const fiat = token.balance * (rates[token.id]?.price ?? 0);
+  return <ListItem label={token.symbol} value={fiat} />;
+};
+
+// After: the row reads only its own rate (a primitive).
+const TokenRow = ({ token }: Props) => {
+  const price = useSelector((state) => selectRateById(state, token.id));
+  return <ListItem label={token.symbol} value={token.balance * (price ?? 0)} />;
+};
+```
