@@ -39,6 +39,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 10. Record the root cause
   Write file:line, affected files and the fix plan in `artifacts/approach.md`.
+  If the ticket wording has two readings, name both and pick the one its ACs confirm; list the callers of the code you change and the states it can be in (disabled, loading, error, empty, flag on/off), marking which ones the fix covers.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
   On this path mark this step; never skip it. Skip it only when the bug reproduces.
