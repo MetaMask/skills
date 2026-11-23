@@ -15,7 +15,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Run the configured recipe doctor command for this checkout; its dev server must answer and CDP must be reachable.
+  Run the configured recipe doctor command for this checkout; its dev server must answer and the CDP port must be free or held by this slot's own browser. The doctor does not need a live browser: the recipe's launch node starts it.
   The doctor is the gate: it must exit 0. Retain its output as `artifacts/doctor.json` and cite that file as the readiness record for this task.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
