@@ -100,7 +100,7 @@ Before/after snippets for every rule: [references/examples.md](references/exampl
 - **Why.** The compiler already memoizes compiled components. Manual memoization adds dependency lists that drift and noise that hides the logic. Removing it in passing can change behavior in files with a compiler bailout.
 - **Detect.** New manual memoization in a compiled path without a stated reason. `useCallback` around a pure predicate or a handler only passed to a host element. In a full-file audit, existing manual memoization in a compiled path is also a finding: report it, with the fix applied when the file is restructured.
 - **Fix.** Remove it from the new code. When the file is being restructured under R3, the extracted hook follows the same rule.
-- **Exceptions.** API contracts that need stable identity (focus-effect callbacks, a debounced or throttled function, a dependency of an external subscription), including a callback whose only use is as the input of such a memo (the function passed to `debounce`); files with a logged compiler bailout; paths the compiler does not cover (see the repo overlay); a measured hot path, proven with `mms-react-render-delta`.
+- **Exceptions.** API contracts that need stable identity (focus-effect callbacks, a debounced or throttled function, a dependency of an external subscription), including a callback whose only use is as the input of such a memo (the function passed to `debounce`); files the compiler does not compile (a confirmed bailout, an unsupported construct, a `'use no memo'` directive, a class component; see the repo overlay for how to confirm); paths the compiler does not cover (see the repo overlay); a measured hot path, proven with `mms-react-render-delta`.
 
 ## Review Checklist
 
