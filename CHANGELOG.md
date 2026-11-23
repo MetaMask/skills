@@ -7,14 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Uncategorized
+
+- chore(recipe-setup): recommend mm-harness 0.96.42 ([#280](https://github.com/MetaMask/skills/pull/280))
+- chore(recipe-setup): recommend mm-harness 0.96.40 ([#279](https://github.com/MetaMask/skills/pull/279))
+- docs(processes): correct the releasing guide ([#265](https://github.com/MetaMask/skills/pull/265))
+- Stop testing skills prompting unit tests for static styling ([#182](https://github.com/MetaMask/skills/pull/182))
+- chore(skills): recommend mm-harness 0.96.37 ([#273](https://github.com/MetaMask/skills/pull/273))
+- chore(skills): recommend mm-harness 0.96.35 ([#267](https://github.com/MetaMask/skills/pull/267))
+- docs(testing): add CV rules for writing a new test ([#269](https://github.com/MetaMask/skills/pull/269))
+- chore(skills): recommend mm-harness 0.96.34 ([#266](https://github.com/MetaMask/skills/pull/266))
+- chore: add first-pass domain CODEOWNERS ([#59](https://github.com/MetaMask/skills/pull/59))
+
 ### Added
 
+- feat(skills): add device-capability base skill ([#276](https://github.com/MetaMask/skills/pull/276))
+- feat(review-pr): add the va-mmcx-terminal overlay ([#282](https://github.com/MetaMask/skills/pull/282))
+- feat(recipe-cook): add the Terminal fix-bug checklist ([#281](https://github.com/MetaMask/skills/pull/281))
+- feat(assets): add dependency-bump-audit skill ([#275](https://github.com/MetaMask/skills/pull/275))
 - Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
 
 ### Changed
 
 - Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees).
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
+
+### Fixed
+
+- fix(recipe-cook): freeze a clean candidate before final CI and after proof in Mobile fix-bug ([#272](https://github.com/MetaMask/skills/pull/272))
 
 ## [0.4.0]
 
@@ -149,7 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `metamask-skills` CLI with `sync`, `postinstall`, and `install` commands
 - Add repo inference, repo-local skills cache support, bundled package fallback, and `SKILLS_AUTO_UPDATE=1` handling for consumer repos
 
-[Unreleased]: https://github.com/MetaMask/skills/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MetaMask/skills/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MetaMask/skills/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MetaMask/skills/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MetaMask/skills/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MetaMask/skills/compare/v0.2.0...v0.3.0
