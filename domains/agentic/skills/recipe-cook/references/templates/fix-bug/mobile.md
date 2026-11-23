@@ -46,6 +46,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 12. Record the root cause
   In TASK.md `## Root Cause`, confirm file:line from the marker, `metro.log` and code path.
+  If the ticket wording has two readings, name both and pick the one its screenshot or ACs confirm; list the callers of the code you change and the states it can be in (disabled, loading, error, empty, flag on/off), marking which ones the fix covers.
   If the root cause is in a shared package (`@metamask/perps-controller` or another Core package), stop with `<task>/mark blocked --reason "..."` naming the Core fix; never work around it in this client.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 

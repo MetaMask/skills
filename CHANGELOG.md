@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
+
 ### Changed
 
 - Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees).
