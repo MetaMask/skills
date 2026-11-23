@@ -49,6 +49,34 @@ Is this scenario worth covering? (distinct realistic regression)
             └─ No → GAP / ACCEPT (do not invent E2E)
 ```
 
+## Not worth covering: static presentation
+
+A change to static or default presentation is **GAP / ACCEPT** at every layer.
+Do not unit test static styling: component-library defaults, or overrides
+passed through props (`twClassName`, `style`, color props) that don't depend
+on any logic. The rule covers Mobile component-view tests (`*.view.test.tsx`)
+too — they must not assert a static `twClassName` that no logic chooses, or
+other static styles. This includes:
+
+- Spacing, padding, margin, inset, and alignment
+- Color, typography, and design-token values
+- Unconditional `numberOfLines` / `ellipsizeMode` or other fixed layout props
+- Swapping one Tailwind class or style value for another
+
+The design system already tests that its props apply, and visual changes are
+verified with screenshots (`mobile-visual-testing`) and the PR's before/after
+evidence. Do not add a `testID` only so a test can read `style` or
+`className`.
+
+Test presentation only when JS logic decides it (state, props or data choose
+between styles, e.g. error vs default, selected, disabled). Prefer asserting
+what the user sees (text shown or hidden, disabled, accessibility state), and
+use a style assertion only when the style itself is the outcome of that logic.
+
+Do not use a coverage delta as the reason to add or skip a test. Coverage can
+rise from a render that asserts nothing, and a real bug fix can leave coverage
+flat. Coverage reports only point at uncovered branches worth considering.
+
 ## Defaults
 
 | Layer              | Owns                                                                                               | File pattern                      |

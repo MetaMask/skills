@@ -11,7 +11,7 @@ Apply the sections for this flow and platform at each step.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
 - Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
-- Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` on all three. Require `artifacts/sandbox.json` with `ready: true`. A ready record written by this task's preparation passes the gate; re-run the checks only when the app or dev server restarted since.
+- Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` — that flow is Mobile, Extension and Core, and they require `artifacts/sandbox.json` with `ready: true`. A `sandbox.json` written by this task's preparation passes their gate; re-run the checks only when the app or dev server restarted since. Terminal is not a `prepare-sandbox` platform, so no `sandbox.json` is written for it: its gate is the configured doctor exiting 0, retained as `artifacts/doctor.json`.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
 - Create or switch to the local task branch before product edits. Do not open a PR.
 
@@ -62,6 +62,7 @@ Apply the sections for this flow and platform at each step.
 ## Implementation and checks
 
 - Keep implementation AC-mapped; bug fixes are minimal, without unrelated refactoring.
+- If an existing test or doc contradicts your fix, keep it unless the ticket asks for that change, and quote the ticket line in the root-cause record when you edit one.
 - Development reuses domain helpers for external identifiers.
 - Reuse or extract a helper beside the existing hook/util before repeating a derivation or parser; leave unrelated duplication alone.
 - Core changes add each required package CHANGELOG entry.
@@ -109,7 +110,7 @@ Apply the sections for this flow and platform at each step.
 
 Apply [review verdicts](team-libraries.md#review-verdicts).
 
-- Mobile/Extension: run `/mms-review-pr non-interactive` as self-review of this checkout; apply Cook's blocked rule if the skill is missing.
+- Mobile/Extension/Terminal: run `/mms-review-pr non-interactive` as self-review of this checkout; apply Cook's blocked rule if the skill is missing.
 - Core has no `review-pr` overlay; review correctness, error/boundary paths, performance, named constants, separation of concerns, dead/debug code, scope, simpler alternatives, downstream compatibility and exports.
 - Include committed, staged, unstaged and untracked changes; record base, head, working-tree state, findings and skipped/unchecked areas in `artifacts/review.md`.
 - Fix findings here; repeat the deterministic CI mark after source/test changes and rerun proof when proven behavior changed.
