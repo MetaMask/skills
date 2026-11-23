@@ -7,18 +7,7 @@ parent: component-structure
 
 ### Folder convention (R1, R3)
 
-```text
-<Name>/
-  <Name>.tsx            # composition only
-  <Name>.types.ts
-  <Name>.styles.ts      # or Tailwind via useTailwind()
-  <Name>.testIds.ts
-  index.ts
-  use<Name>.ts          # state, async flows, handlers; returns { state, actions }
-  use<Name>.test.ts
-  components/
-    <Sub>/<Sub>.tsx
-```
+Where a component goes, its file set and styling follow `mms-component-scaffold`. This skill adds two things to that layout: the screen hook `use<Name>.ts` returns `{ state, actions }` and has its own test, and a sub-component split out under R1 goes in `components/<Sub>/` next to the parent.
 
 Many older screens live in `<Name>/index.tsx`. When restructuring one, move to `<Name>/<Name>.tsx` plus `index.ts` only if the change already touches the file's imports.
 
@@ -46,7 +35,7 @@ Many older screens live in `<Name>/index.tsx`. When restructuring one, move to `
 
 ### Async (R4)
 
-- `@tanstack/react-query` with the shared `QueryClient` from `app/core/ReactQueryService`. Use `useQuery` for async reads instead of an effect with a `cancelled` flag.
+- `@tanstack/react-query` with the app's shared `QueryClient`. Use `useQuery` for async reads instead of an effect with a `cancelled` flag.
 - Engine controller calls triggered by the user (`Engine.context.X.method()`) belong in handlers inside `use<Screen>`, not in effects.
 
 ### Testing extracted code

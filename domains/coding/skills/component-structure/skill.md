@@ -31,7 +31,8 @@ Out of scope, and where it goes instead:
 | Grep-style review of new `useEffect` in a diff | `mms-effect-antipattern-scan` |
 | Fixing React Compiler bailouts | `mms-react-compiler-migration` |
 | Splitting a very large file by subject | `mms-decompose-large-files` |
-| Creating a new Mobile component from scratch | `mms-component-scaffold` |
+| Creating a new Mobile component from scratch, folder and file layout | `mms-component-scaffold` |
+| Component choice (MMDS first, via the hosted `components.json` manifests), tokens and Tailwind | `mms-ui-development` |
 | TypeScript, naming and general file layout | `mms-coding-guidelines` |
 
 This skill does not ask for app code to be refactored outside the change being written or reviewed.
@@ -41,7 +42,7 @@ This skill does not ask for app code to be refactored outside the change being w
 1. Read the whole component, not only the diff. Most findings depend on the order and grouping of hooks across the body.
 2. Walk R1–R7 in order. For each finding, record file, line range, rule ID and the fix from the rule.
 3. Check the rule's exceptions before reporting. A finding that matches an exception is not a finding.
-4. Apply the repo overlay below (compiler scope, copy API, navigation, folder layout). It narrows R7 and names the paths for R1 and R3.
+4. Apply the repo overlay below (compiler scope, copy API, navigation, folder layout). It narrows R7 and says where R1 sub-components and R3 hooks go.
 5. In review mode, use the Review Checklist. Report only lines the PR adds or reshapes, unless the user asks for a full-file audit.
 
 Before/after snippets for every rule: [references/examples.md](references/examples.md).
@@ -51,7 +52,7 @@ Before/after snippets for every rule: [references/examples.md](references/exampl
 - **Rule.** One component per file. A sub-component gets its own file in a `components/` folder next to the parent. Never declare a component, or a function that returns JSX, inside another component's body.
 - **Why.** A component declared in the body is a new type on every render, so React remounts it and drops its state. A module-level sibling does not remount, but its logic cannot be found, tested or reused on its own.
 - **Detect.** More than one component (exported or module-level) in a `.tsx` file. A function returning JSX declared inside a component (`renderX`, `const Row = () => <...>`), including an inline render prop (`renderIcon={() => <Icon />}`). A custom hook declared in the component's file is the same signal: move it to `use<Name>.ts`.
-- **Fix.** Move the sub-component to `components/<Name>/<Name>.tsx` with its own types and test. Pass data as props. Move a same-file hook to its own `use<Name>.ts`.
+- **Fix.** First check whether an MMDS component already covers it (`mms-ui-development`); if so, use it instead of a new file. Otherwise move the sub-component to `components/<Name>/<Name>.tsx` with its own types and test. Pass data as props. Move a same-file hook to its own `use<Name>.ts`.
 - **Exceptions.** Private render helpers at module scope with no state and no hooks, under 20 lines. An inline `.map` callback that renders list items inside the JSX. Story and test files. A thin default-export wrapper that only adds a provider or router around the main component.
 
 ### R2 — Fixed body order
@@ -131,5 +132,6 @@ R3, R5 and R6 need judgment and stay review-only.
 - `mms-perf-react-compiler` and `mms-perf-hooks-effects`: performance depth behind R4 and R7.
 - `mms-react-compiler-migration`: fixing bailouts; keep linter-requested memoization during that work.
 - `mms-decompose-large-files`: splitting a file by subject, before or alongside R1 and R3.
-- `mms-component-scaffold`: creating a new Mobile component in the folder layout R1 expects.
+- `mms-component-scaffold`: creating a new Mobile component; owns folder layout, file set and styling.
+- `mms-ui-development`: MMDS component choice, tokens and Tailwind. Check it before R1 creates a new sub-component.
 - `mms-coding-guidelines`: TypeScript, naming and general file layout.
