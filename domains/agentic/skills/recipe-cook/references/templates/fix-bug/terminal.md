@@ -16,7 +16,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
   Run the configured recipe doctor command for this checkout; its dev server must answer and CDP must be reachable.
-  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
+  The doctor is the gate: it must exit 0. Retain its output as `artifacts/doctor.json` and cite that file as the readiness record for this task.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
