@@ -65,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Serialize updates of each shared skill source so concurrent syncs cannot race on Git's fetch state. ([#207](https://github.com/MetaMask/skills/pull/207))
 - Shorten skill descriptions that exceeded the 1024-character catalog limit, including `typescript/tsc-blindspots`. ([#158](https://github.com/MetaMask/skills/pull/158), [#207](https://github.com/MetaMask/skills/pull/207))
 
+### Changed
+
+- Tighten the AUS preference-key rollout gates and scope local verification to affected tests. Keep rollout incomplete until draft PR test checks pass.
+
 ## [0.3.1]
 
 ### Fixed
