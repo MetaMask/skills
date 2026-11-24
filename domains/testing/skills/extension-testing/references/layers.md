@@ -1,6 +1,6 @@
 # Extension testing layers — see domain knowledge
 
-**Canonical policy:** [`../../../knowledge/extension-testing-layers.md`](../../../knowledge/extension-testing-layers.md)
+**Canonical policy:** [`knowledge/extension-testing-layers.md`](knowledge/extension-testing-layers.md)
 
 When installed beside testing skills, open `knowledge/extension-testing-layers.md`.
 

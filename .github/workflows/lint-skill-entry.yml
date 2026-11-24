@@ -6,7 +6,11 @@ on:
       - 'domains/**'
       - 'tools/**'
       - '.github/scripts/lint-skill-entry.mjs'
+      - '.github/scripts/check-public-refs.mjs'
       - '.github/workflows/lint-skill-entry.yml'
+      - 'test/**'
+      - 'CONTRIBUTING.md'
+      - 'README.md'
 
 permissions:
   contents: read
@@ -64,3 +68,13 @@ jobs:
         run: |
           mapfile -d '' -t files < changed-skill-files.bin
           node .github/scripts/lint-skill-entry.mjs "${files[@]}"
+
+      # Runs on the WHOLE tree, not the changed files: a private-repo reference is a
+      # property of what this repository publishes, and a PR that touches nothing can
+      # still be the moment someone notices one. Unauthenticated by construction — a
+      # token would see private repos and pass them, which is the failure it prevents.
+      - name: Every referenced repository resolves anonymously
+        env:
+          GH_TOKEN: ''
+          GITHUB_TOKEN: ''
+        run: node .github/scripts/check-public-refs.mjs
