@@ -3,7 +3,7 @@
   "id": "perps",
   "source": {
     "repository": "MetaMask/experimental-metamask-recipe-perps",
-    "revision": "ac7f01bf4f1c1f7c7cda5db5a77353d4846dc9ee"
+    "revision": "88fe4da69502988e78874961dd9dba3b32aa566d"
   },
   "families": [
     {
@@ -815,6 +815,10 @@
         },
         {
           "label": "Per-consumer subscription bypasses the shared channel",
+          "why": "pre-0073"
+        },
+        {
+          "label": "Client-local stream manager",
           "why": "pre-0073"
         },
         {
