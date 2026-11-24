@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays.
 - Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
 - Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
 
