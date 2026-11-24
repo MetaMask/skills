@@ -93,6 +93,14 @@ Example: `yarn jest -c jest.config.view.js app/components/UI/Bridge/Views/Bridge
 yarn test:view:coverage:folder app/components/UI/MyFeature
 ```
 
+**Before opening the PR** — run every `*.view.test.tsx` you added or modified several times in random order, to catch flakiness locally instead of in the slower CI:
+
+```bash
+for i in 1 2 3 4 5; do yarn jest -c jest.config.view.js <files> --runInBand --silent --coverage=false --randomize; done
+```
+
+A failing repetition prints the seed it used — re-run with `--seed=<seed>` to reproduce it (*Fix a flake at its cause*). CI repeats changed CV test files on PRs to main the same way (`.github/scripts/qa-automation/cv-flakiness/cv-flakiness-detection.mjs`).
+
 For run-by-name, watch mode, or other options, see `component-view/reference.md` (Run the Tests).
 
 
