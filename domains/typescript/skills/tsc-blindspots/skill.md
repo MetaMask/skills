@@ -259,6 +259,8 @@ entry nobody is watching. The same edit in a hot path would be caught in minutes
 Weight findings by observability, not just by likelihood: **an unlikely failure in a
 swallowed path can outrank a likely one in a loud path.**
 
+On `metamask-extension` the prior question is whether the path reported at all: an uncaught throw already does, so a `catch` that only logs removes the report rather than softening a crash. See observability domain `knowledge/error-reporting-paths.md`, delivered beside `instrumentation`.
+
 ## Why the build stays green regardless
 
 - The hand-written type **compiles by construction** — that is why it was written.
