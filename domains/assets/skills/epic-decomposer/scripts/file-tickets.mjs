@@ -18,7 +18,7 @@
 //
 // Environment (only read with --apply): JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
 //
-// plan.json (md paths are relative to plan.json):
+// plan.json (md paths are relative to plan.json, and must be .md files inside its folder):
 //   {
 //     "project": "ASSETS",
 //     "fields": { "customfield_16983": { "value": "Not applicable" } },   (optional, set on every child)
@@ -75,7 +75,17 @@ function parseArgs(args) {
 // Plan checks: everything is validated before the first request is sent.
 // ---------------------------------------------------------------------------
 
-function checkPlan(plan) {
+// An md file must be a .md file inside the plan folder, so a plan can never
+// send some other file on this machine to Jira.
+function checkMdPath(planDir, mdFile, owner) {
+  const file = path.resolve(planDir, String(mdFile));
+  const relative = path.relative(planDir, file);
+  if (relative.startsWith('..') || path.isAbsolute(relative) || !file.endsWith('.md')) {
+    throw new Error(`${owner}: md path must be a .md file inside the plan folder: ${mdFile}`);
+  }
+}
+
+function checkPlan(plan, planDir) {
   if (!PROJECT_KEY.test(plan.project ?? '')) {
     throw new Error('plan.project must be a Jira project key, for example "ASSETS"');
   }
@@ -85,6 +95,9 @@ function checkPlan(plan) {
   if (plan.epic.key && !ISSUE_KEY.test(plan.epic.key)) {
     throw new Error(`plan.epic.key "${plan.epic.key}" is not a Jira issue key`);
   }
+  if (!plan.epic.key) {
+    checkMdPath(planDir, plan.epic.md, 'the epic');
+  }
   if (!Array.isArray(plan.tickets)) {
     throw new Error('plan.tickets must be a list');
   }
@@ -93,6 +106,7 @@ function checkPlan(plan) {
     if (!ticket.id || !ticket.summary || !ticket.md) {
       throw new Error('every ticket needs an id, a summary and an md file');
     }
+    checkMdPath(planDir, ticket.md, ticket.id);
     if (ids.has(ticket.id)) {
       throw new Error(`ticket id ${ticket.id} is used twice`);
     }
@@ -136,11 +150,15 @@ function withoutAiAgent(labels = []) {
   return labels.filter((label) => String(label).trim().toLowerCase() !== FORBIDDEN_LABEL);
 }
 
-function describe(plan, planDir, mdFile, owner) {
+// Converts a ticket's markdown to ADF. "<id>" becomes the ticket's key when it
+// has one; otherwise it becomes `placeholderKey` (used by the size check, which
+// runs before any key exists, so it passes the longest key Jira could return).
+function describe(plan, planDir, mdFile, owner, placeholderKey) {
   let markdown = readFileSync(path.resolve(planDir, mdFile), 'utf8');
   for (const ticket of plan.tickets) {
-    if (ticket.key) {
-      markdown = markdown.replaceAll(`<${ticket.id}>`, ticket.key);
+    const key = ticket.key ?? placeholderKey;
+    if (key) {
+      markdown = markdown.replaceAll(`<${ticket.id}>`, key);
     }
   }
   const adf = mdToAdf(markdown);
@@ -190,12 +208,16 @@ async function main() {
   const { planPath, apply } = parseArgs(process.argv.slice(2));
   const planDir = path.dirname(planPath);
   const plan = JSON.parse(readFileSync(planPath, 'utf8'));
-  checkPlan(plan);
+  checkPlan(plan, planDir);
   const tickets = blockersFirst(plan.tickets);
 
   // Fail on an oversized description before anything is sent.
+  const longestKey = `${plan.project}-99999`;
+  if (!plan.epic.key) {
+    describe(plan, planDir, plan.epic.md, 'the epic', longestKey);
+  }
   for (const ticket of tickets) {
-    describe(plan, planDir, ticket.md, ticket.id);
+    describe(plan, planDir, ticket.md, ticket.id, longestKey);
   }
 
   const post = apply ? jiraClient(process.env) : null;
