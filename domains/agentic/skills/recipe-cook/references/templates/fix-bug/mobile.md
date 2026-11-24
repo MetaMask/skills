@@ -46,45 +46,49 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 12. Record the root cause
   In TASK.md `## Root Cause`, confirm file:line from the marker, `metro.log` and code path.
+  If the ticket wording has two readings, name both and pick the one its screenshot or ACs confirm; list the callers of the code you change and the states it can be in (disabled, loading, error, empty, flag on/off), marking which ones the fix covers.
   If the root cause is in a shared package (`@metamask/perps-controller` or another Core package), stop with `<task>/mark blocked --reason "..."` naming the Core fix; never work around it in this client.
   With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 
 ## Fix
 - [ ] 13. Make the minimal AC-mapped fix
   No unrelated refactoring; locator `testID` additions are allowed (rules: proof-rules.md, Implementation and checks).
-- [ ] 14. Changed-file CI [DETERMINISTIC: ci.local_check]
-  Call `<task>/mark 14`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
+- [ ] 14. Write regression tests
+  Follow `/mms-mobile-testing` (rules: proof-rules.md, Tests).
 
 ## Validate
 - [ ] 15. Write the fixed-behavior after recipe and plan it
   `artifacts/recipe.json` keeps the baseline nodes, asserts fixed values, passes `--plan` and fails with the fix reverted (rules: proof-rules.md, Bug fixing).
-- [ ] 16. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-runs]
-  Run `mm-harness call app.lifecycle command=restart`, then `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Mobile runtime).
+- [ ] 16. Freeze the clean candidate
+  Restore the fix after the revert check. Commit only the marker removal as `chore(<ticket>): remove reproduction marker`, separately from the fix.
+  Commit the fix and regression tests locally. Verify the checkout is clean and record full HEAD in TASK.md as the candidate for final CI and after evidence. Do not push.
+- [ ] 17. Changed-file CI [DETERMINISTIC: ci.local_check]
+  Call `<task>/mark 17` on the clean candidate; the engine runs the frozen check. If a correction is needed, commit it, record the replacement clean HEAD, and repeat this mark. Do not launch validation commands.
+- [ ] 18. Run the recorded after recipe and pass the evidence gate [PROOF: artifacts/recipe-runs]
+  On the clean candidate, run `mm-harness call app.lifecycle command=restart`, then `<task>/mm-harness run <task>/artifacts/recipe.json --record-video=full-run --json` (rules: proof-rules.md, Mobile runtime).
   After captures must differ from `before-...` as the bug-to-fix claim describes; read every PNG (rules: proof-rules.md, UI evidence).
-- [ ] 17. Write regression tests and inspect the CI receipt
-  Follow `/mms-mobile-testing` (rules: proof-rules.md, Tests).
-  Read the step 14 receipt. Repeat its mark after source or test changes.
-- [ ] 18. Commit the marker removal separately
-  Commit only the marker removal as `chore(<ticket>): remove reproduction marker`, separately from the fix.
-  Afterwards `git diff HEAD` shows only the fix.
 
 ## Review
 - [ ] 19. Self-review the full diff
   Run `/mms-review-pr non-interactive` on this checkout (rules: proof-rules.md, Self-review).
   Include committed, staged, unstaged and untracked changes; record base, head, working-tree state, findings and skipped areas in `artifacts/review.md`.
-  Fix findings here; repeat `<task>/mark 14` after source or test changes.
-- [ ] 20. Run the domain review
+  If findings require a source or test change, commit the correction locally and record the replacement clean HEAD before refreshing its receipts.
+- [ ] 20. Verify the candidate CI and selected evidence
+  Read the step 17 deterministic receipt and verify it covers the clean candidate's inputs. Repeat its mark if stale.
+  Read the selected after attempt's product provenance and require `git_ref` equal to the clean candidate and `dirty: false`. Rerun the after proof in a fresh attempt if the binding is stale or proven behavior changed; otherwise record why no rerun is needed.
+  Write `artifacts/evidence-manifest.json` with `before_after_pairs` (rules: proof-rules.md, Coverage and finish). Verify the before evidence uses an accepted baseline and each selected media path matches its retained receipt and the mirrored hash when available. Record the missing or mismatched binding and resolve it before review.
+- [ ] 21. Record coverage and per-AC acceptance verdicts
+  Write `artifacts/recipe-coverage.md`, checked against the selected attempt's `trace.json` under `artifacts/recipe-runs/`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
+  Map every clause of every registered AC to an executed proof node and its retained evidence, or record an explicit gap with the reason. Keep pending visual judgment distinct from missing runtime proof.
+  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
+- [ ] 22. Run the domain review
+  Start only after the candidate, receipts and AC map in steps 20–21 agree.
   Read domain D from `<task>/inputs/handoff.json`; with no domain or review skill, record the N/A line in `artifacts/review.md` (rules: team-libraries.md, Dev and fix-bug domain review).
-  Otherwise reuse the child on resume or register it once: `<task>/mark sub start <D>-review --step 20 --from .agents/skills/mms-<D>-review-pr/SKILL.md`.
+  Otherwise reuse the child on resume or register it once: `<task>/mark sub start <D>-review --step 22 --from .agents/skills/mms-<D>-review-pr/SKILL.md`.
   Work it with `<task>/mark sub <D>-review <criterion-number>`; close it with `<task>/mark sub <D>-review complete --report artifacts/review.md`.
-- [ ] 21. Rerun proof or record no-rerun
-  Rerun the recipe when proven behavior changed; otherwise record an explicit no-rerun decision (rules: proof-rules.md, Runtime proof).
 
 ## Finish
-- [ ] 22. Record coverage and per-AC acceptance verdicts
-  Write `artifacts/recipe-coverage.md`, checked against the selected attempt's `trace.json` under `artifacts/recipe-runs/`, and build `artifacts/recipe-quality.json` (rules: proof-rules.md, Coverage and finish).
-  List ACs with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> list`, then render coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`. Never write verdicts.
 - [ ] 23. Render the PR body, retain artifacts and complete
   Write `artifacts/pr-description.md` with the root cause and marker SHA/log excerpt, run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` and read that file.
-  Write `artifacts/evidence-manifest.json` with `before_after_pairs`, and `artifacts/learnings.md` (rules: proof-rules.md, Coverage and finish).
+  Write `artifacts/learnings.md` (rules: proof-rules.md, Coverage and finish). If review changes the candidate or selected proof, refresh steps 20–21, identify the changed review inputs, and send the revised inputs through the applicable review path before completion.
   Finish with `<task>/mark complete --mark-last`.

@@ -11,7 +11,7 @@ Apply the sections for this flow and platform at each step.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
 - Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
-- Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` on all three. Require `artifacts/sandbox.json` with `ready: true`. A ready record written by this task's preparation passes the gate; re-run the checks only when the app or dev server restarted since.
+- Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` — that flow is Mobile, Extension and Core, and they require `artifacts/sandbox.json` with `ready: true`. A `sandbox.json` written by this task's preparation passes their gate; re-run the checks only when the app or dev server restarted since. Terminal is not a `prepare-sandbox` platform, so no `sandbox.json` is written for it: its gate is the configured doctor exiting 0, retained as `artifacts/doctor.json`.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
 - Create or switch to the local task branch before product edits. Do not open a PR.
 
@@ -62,6 +62,7 @@ Apply the sections for this flow and platform at each step.
 ## Implementation and checks
 
 - Keep implementation AC-mapped; bug fixes are minimal, without unrelated refactoring.
+- If an existing test or doc contradicts your fix, keep it unless the ticket asks for that change, and quote the ticket line in the root-cause record when you edit one.
 - Development reuses domain helpers for external identifiers.
 - Reuse or extract a helper beside the existing hook/util before repeating a derivation or parser; leave unrelated duplication alone.
 - Core changes add each required package CHANGELOG entry.
@@ -109,7 +110,7 @@ Apply the sections for this flow and platform at each step.
 
 Apply [review verdicts](team-libraries.md#review-verdicts).
 
-- Mobile/Extension: run `/mms-review-pr non-interactive` as self-review of this checkout; apply Cook's blocked rule if the skill is missing.
+- Mobile/Extension/Terminal: run `/mms-review-pr non-interactive` as self-review of this checkout; apply Cook's blocked rule if the skill is missing.
 - Core has no `review-pr` overlay; review correctness, error/boundary paths, performance, named constants, separation of concerns, dead/debug code, scope, simpler alternatives, downstream compatibility and exports.
 - Include committed, staged, unstaged and untracked changes; record base, head, working-tree state, findings and skipped/unchecked areas in `artifacts/review.md`.
 - Fix findings here; repeat the deterministic CI mark after source/test changes and rerun proof when proven behavior changed.
@@ -134,6 +135,8 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - Render the engine-owned coverage with `.agents/skills/mms-recipe-cook/scripts/acceptance-cli <task> render`; reconcile it with the retained recipe assertions and coverage rows.
 - Missing verdicts require eligible recipe proof, including non-UI claims. Never write verdicts; only a verified person handles exceptions.
 - Write `artifacts/pr-description.md` with only repository-template prose, `TICKET_URL` when set and proof summary; bug fixes include root cause, and Mobile includes marker SHA/log excerpt. Never paste recipe JSON or run output into renderer-owned sections.
+- Every ticket the description names is a markdown link, never a bare key: `[<KEY>](<URL>)` in the repository template's own related-issues section, under whatever heading that template uses (`Related issues` on Mobile and Extension, `References` on Core, `Tracking` on Terminal). Where that section ships a `Fixes:`/`Closes:`/`Refs:` line, as Mobile and Extension do, the link is that line's value and the verb stays as the template has it — Mobile CI fails the section when no such line carries a value. Core and Terminal have no such line, so the link stands on its own.
+- Ticket URLs come from the task, not from guesswork: the task's own ticket is `TICKET` at `TICKET_URL`, and TASK.md's `## Linked Tickets` section, when present, already lists keys in link form. For any other key the description names, build the URL from the project's Jira browse base, `<base>/browse/<KEY>` — take it from `TICKET_URL` when that is itself a Jira browse URL, and otherwise from the project's configured Jira base rather than inventing a host.
 - Run `mm-harness pr-body render <task> --out <task>/artifacts/pr-body.md --json` with mm-harness 0.92.21 or newer, then read that file. Preserve `--command <invocation>` when supplied. Require exit 0, `status: ok` and the generated body; renderer failure must not fall back to authored prose. Keep task markers and the locked harness receipt unchanged.
 - Write `artifacts/evidence-manifest.json`: UI includes PROVEN visual evidence only, paths relative to `artifacts/`. Read video names from each run's `artifact-manifest.json` and prefix its run folder; manifests use run-relative paths. `videos` is an object `{before, after, preferred, note}` (each optional), never a list.
 - Put visual comparisons under `before_after_pairs`, with `label`, `covers`, `before` and `after`; use `standalone` for evidence that is not a comparison. Keep paths relative to `artifacts/`, including their run folders; never match captures by basename or invent a missing side.
