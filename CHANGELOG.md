@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays.
+- Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
 - Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
 
 ### Changed
 
+- Update the `assets/react-compiler-migration` skill (still `maturity: experimental`). Make it team-agnostic: drop assets file paths and ticket ids, label metamask-mobile specifics in a repo-notes section, and move compiler-forced helper context from code comments to the commit and PR. Add a section on a failing `yarn lint:react-compiler` burndown baseline and validated recipes for `useEffectEvent`, render-body helpers and mount-only effects behind `exhaustive-deps` suppressions, sync-effect ordering, `usePrevious` and state-held previous keys for render-time refs, and declaring `failRequest` as a function so TypeScript narrows after it. On a minimal component, an effect-scoped shared-value `.value =` fails marker 0.2.0 with compiler 1.0.0; if that file's own marker run is clean, leave the write, otherwise keep `.set()` in the effect.
 - Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees).
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
 - Update `ui/content-guidelines`: periods depend on context, add a currency amounts section, name MetaMask Money and its access wording, and write "lockup" as one word. ([#257](https://github.com/MetaMask/skills/pull/257))
