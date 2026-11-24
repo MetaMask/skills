@@ -1,13 +1,13 @@
 {
   "repository": "MetaMask/experimental-metamask-recipe-perps",
-  "revision": "bd85e44264c5d9e0a5ef83ec9a46d072d2745417",
+  "revision": "88fe4da69502988e78874961dd9dba3b32aa566d",
   "files": {
-    "review/antipatterns.md": "0c5249ada9bef2b5f7f23b884cc42d46ab72dd18c2c2a69e03e19235a817d36c",
-    "review/antipatterns.mobile.md": "b22d90ef7ca7a9f71dad2ec04ea063f8033e8e1c6686a20e3999e88736879451",
+    "review/antipatterns.md": "5c43e1eb3e3f421aed0d4505cbb66664251a894558c72cd59f682eafa655dfa1",
+    "review/antipatterns.mobile.md": "68250605ac18ef589d609f36e3aa3ed609ef90b34b3d732e87f33c26d2e56700",
     "review/antipatterns.extension.md": "bc4179be1d56ced4979573ecb246943b211a85dac382c61955d2c97ab8f6f652",
-    "review/antipatterns.core.md": "434ca8caad8d6ab492ce476a156b6153884c82896e2f462237967ed25cc1f7b4",
-    "review/antipatterns.terminal.md": "c9837c90e1fa86624369794d8bb856ed38ae064bf97b73f93b9129b02d29a4cb",
-    "review/parity.md": "2b47ea7ba628effb0add9b3a85fbbb154ddcbf2930aadd4309783ab3235098ba",
+    "review/antipatterns.core.md": "b697a0dcf5aa91b3bcb7602436953f7a1cbc47d0c626bca3054b194fbf453ce1",
+    "review/antipatterns.terminal.md": "eeed0663e39ccd026c58c64c1b8224a7da3b2eb9570056f252e81879102d90b2",
+    "review/parity.md": "03618f36cb118b0a21d628bf82d0c6ba24fe9616843dfdb2f89f2bc119bf12b4",
     "review/shared-packages.md": "9e7bcba85dd29807d3660c5e22b7d263e4fa9933af02344da1efe5cb72b79693",
     "review/report-template.md": "06d4de2a2268d4721ac4e968bff836276c5270d70a4e41681c7dd464e3b19bb7",
     "owned-paths.json": "da97adc1bc225145dc729606804434901162f87eb5076ca9165b72f7e08ae010"

@@ -1,21 +1,23 @@
 ---
 platforms: [core, cli]
 description: Core dev checklist with runtime proof.
+produces: [artifacts/no-change-report.md]
 ---
 
 # Core dev checklist
 
-Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before step 1. Use its matching flow/platform rules at every gate.
+Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after marking step 1, before the first gate it governs. Use its matching flow/platform rules at every gate.
 
 ## Setup
 - [ ] 1. Confirm the checklist handoff
-  Confirm the handoff's checklist path; never estimate or rewrite it (rules: proof-rules.md, Task and sandbox).
+  Read `<task>/inputs/handoff.json` and confirm its checklist path is this CHECKLIST.md; never rewrite it. Mark this step before doing anything else.
 - [ ] 2. Capture the ACs and bind the recorded harness
   Record the summary and ACs in TASK.md, verify tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+  Mark this step before any source investigation. Investigate only this checkout and the reference checkouts listed in the task inputs; never search the host for an existing fix.
   If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - [ ] 3. Pass the sandbox ready gate
-  Follow `/mms-recipe-harness`: doctor/status/launch-or-reuse/verify for this checkout only.
-  Require `artifacts/sandbox.json` with `ready: true`.
+  Follow `/mms-recipe-harness`: doctor/status/verify for this checkout only.
+  Require `artifacts/sandbox.json` with `ready: true`; a fresh record from this task's preparation is enough.
 - [ ] 4. Create the local task branch
   Create or switch to `<ticket>-<flow>-<slug>-hhmm` before product edits. Do not open a PR.
 
@@ -23,6 +25,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 - [ ] 5. Write the approach
   `artifacts/approach.md`: affected files, current behavior or insertion point, chosen approach and trade-offs (rules: proof-rules.md, Development).
   Include a real commit subject when the task title is empty or generic; use it for any requested product commit.
+  With `inputs/plan.md`, apply proof-rules.md, Supplied plan.
 - [ ] 6. Build the AC matrix
   Rules: proof-rules.md, Plan and baseline.
 - [ ] 7. Record the target and rationale
@@ -31,10 +34,11 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
   The recipe drives the controller through its public API as Mobile or Extension do (real messenger, mocked only at the network boundary) and asserts the observable state or event; a Jest or unit-test probe is never the proof.
   Sign real testnet orders only with a testnet-wallet fixture; otherwise use read paths and record why.
   Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
-- [ ] 9. Draft the recipe and run pre-implementation proof
+- [ ] 9. Draft the recipe and run pre-implementation proof [PROOF: artifacts/recipe-baseline-run]
   Discover with `mm-harness run --list --json`, draft in reuse order and require `mm-harness run <recipe> --plan` PASS (rules: proof-rules.md, Development).
   Run it with `--artifacts-dir <task>/artifacts/recipe-baseline-run --json`; it must fail at the first new-behavior AC assertion, not setup. If every AC is a regression guard, it must pass end to end instead.
   Record the recipe path and command. Implement only after this gate is marked PASS.
+  App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 
 ## Implement
 - [ ] 10. Implement the gated, AC-mapped change
@@ -45,8 +49,8 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` before
 ## Validate
 - [ ] 12. Changed-file CI [DETERMINISTIC: ci.local_check]
   Call `<task>/mark 12`; the engine runs the frozen check. Read and fix failures, then repeat this mark. Do not launch validation commands.
-- [ ] 13. Run the recipe and inspect state and logs
-  `<task>/mm-harness run <task>/artifacts/recipe.json --artifacts-dir <task>/artifacts/recipe-run --json` (rules: proof-rules.md, Runtime proof).
+- [ ] 13. Run the recipe and inspect state and logs [PROOF: artifacts/recipe-runs]
+  `<task>/mm-harness run <task>/artifacts/recipe.json --json` (rules: proof-rules.md, Runtime proof).
   On setup failures, inspect retained state/logs and repair drift with `--heal auto`; never weaken assertions.
 
 ## Review
