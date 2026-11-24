@@ -164,13 +164,11 @@ Transaction Shield, MetaMask Swaps, and Basic functionality stay in the casing a
 
 ### Periods
 
-Periods depend on context. Use a period at the end of a full sentence in body text, descriptions, error messages, toasts, and tooltips, even when it's a single sentence.
+Periods depend on context. Use a period at the end of a full sentence in body text, descriptions, error messages, toasts, and tooltips, even when it's a single sentence. A short status such as "Order placed" is a fragment, so it takes no period.
 
 Do not use a period on a fragment, header, title, menu item, subheader, label, button, tag, tab, field placeholder, or "Learn more". A label is a name, not a sentence ("Network fee").
 
 When a string has more than one sentence, end every sentence with a period. Never double-space after a period.
-
-This replaces the old rule that a single sentence never ends with a period. Write new and edited strings by the context rule above.
 
 ```
 ✅ "Your transaction couldn't be completed, so it was canceled."
@@ -295,6 +293,7 @@ Whole dollars and cents depend on what the number is:
 
 - Prices and labels: drop .00 on a whole amount. Show cents only when they exist.
 - Balances, totals, and amounts where money moves: always show two decimals, so amounts line up and can be compared to the cent.
+- A price in a label drops .00. The same amount in a confirmation or total keeps two decimals ("Pay $28.00").
 - Lists and rows: use one format. If any amount needs cents, show cents on all of them.
 
 ```
@@ -381,7 +380,7 @@ An empty state is a moment, not a dead end. When someone hasn't started yet, giv
 1. **First-time empty (nothing yet).** Write it with warmth and a bit of optimism, tied to the feature. Add a button with a verb.
 2. **Search or filter with no results.** Keep it plain and helpful. Say what didn't match and what to try next.
 3. **Couldn't load.** That's an error, not an empty state, so follow the error rules.
-4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe. For MetaMask Money, never say "Withdraw anytime", or an equivalent promise such as "withdraw at any time". That is a promise. To say the user has access to their MetaMask Money balance, use "No lockups", "Direct access", and "No notice periods or penalties".
+4. **Keep it true.** Encouragement is good, but don't promise returns, profit, or that funds are safe. For MetaMask Money, never promise "Withdraw anytime" or similar. Use the access wording in the [glossary](#glossary).
 5. **Don't** sound sad or apologetic ("Nothing to see yet"), blame the person ("You don't have any…"), use emoji, or copy the same line across features.
 
 ```
@@ -748,7 +747,7 @@ Before you finish a user-facing string:
 - Sentence case, unless the word is on the title-case list. "Private Key" and "Secret Recovery Phrase" are title case. "Hyperliquid" uses that spelling. First mention in a page or flow is "MetaMask Snaps".
 - Curly apostrophes and quotes. An ellipsis only in a shortened address. Loading uses animation, not `...` or `…`.
 - A full sentence in body text, a description, an error, a toast, or a tooltip ends with a period, even when it is the only sentence. A string with more than one sentence periods every sentence. No period on a fragment, header, title, label, button, menu item, tab, tag, placeholder, or "Learn more". An em dash (—) may offset an aside, with no spaces. No `&` for "and". No "(s)". No newline inside a string. Do not split one sentence across keys. No question mark on a button.
-- Currency amounts use U.S. formatting in the English source (1,000.50) and the currency's name, never "fiat". Price labels drop .00 on whole amounts; balances, totals, and any list showing cents keep two decimals.
+- Currency amounts use U.S. formatting in the English source (1,000.50) and the currency's name, never "fiat". A price in a label drops .00; the same amount in a confirmation or total keeps two decimals. Balances and any list showing cents keep two decimals.
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
