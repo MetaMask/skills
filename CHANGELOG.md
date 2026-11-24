@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `perps/perps-manual-cpu-profile-audit`: a step-by-step workflow that takes a Perps slowdown from complaint to proven fix using a Hermes CPU profile recorded by hand in the shake-menu profiler, with a MetaMask Mobile overlay and a standalone `.cpuprofile` analyzer script (fixed metric table, baseline noise band, capture check, time windows). ([#205](https://github.com/MetaMask/skills/pull/205))
+- Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays.
 - Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
 - Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
 
