@@ -36,9 +36,9 @@ Many older screens live in `<Name>/index.tsx`. When restructuring one, move to `
 
 ### Subscriptions (R9)
 
-- Live-data hooks: the Perps stream hooks in `app/components/UI/Perps/hooks/stream/` (`usePerpsLivePrices`, `usePerpsLiveFocusedPrice`, `usePerpsLiveAccount` and siblings) read from one shared `PerpsStreamManager` subscription. Calling one per row (`symbols: [item.symbol]`) is the intended pattern, not an R9 finding. Calling one at the top of a large view whose value feeds only a price or PnL region is.
-- Controller state reaches Redux in batched flushes (`app/core/Batcher`, `EngineService`), so a rarely changing selector at the top of a screen is cheap. R9 targets values that change on most flushes: token rates and market data, balances, live prices.
-- Rows: `TokenListItem`-style rows that select `selectTokenMarketData`, `selectCurrencyRates` or `selectMultichainAssetsRates` to price one asset are the R9 row case. Pass the price in, or read it with a selector that takes the asset's id and returns only the price.
+- Live-data hooks: shared stream hooks (live prices, account, positions and similar) read from one shared subscription. Calling one per row, scoped to that row's symbol, is the intended pattern, not an R9 finding. Calling one at the top of a large view whose value feeds only a price or PnL region is.
+- Controller state reaches Redux in batched flushes, so a rarely changing selector at the top of a screen is cheap. R9 targets values that change on most flushes: token rates and market data, balances, live prices.
+- Rows: a list row that selects a whole market-data, currency-rate or asset-rate collection to price one asset is the R9 row case. Pass the price in, or read it with a selector that takes the asset's id and returns only the price.
 
 ### Testing extracted code
 

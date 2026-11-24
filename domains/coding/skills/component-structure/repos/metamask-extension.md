@@ -34,8 +34,8 @@ Follow the hook file naming already used in the folder; `use-<name>.ts` and `use
 
 ### Subscriptions (R9)
 
-- Live-data hooks: the Perps stream hooks in `ui/hooks/perps/stream/` (`usePerpsLivePrices`, `usePerpsLivePositions` and siblings) read from one shared `PerpsStreamManager` subscription through `useSyncExternalStore`. Calling one per row is the intended pattern, not an R9 finding. Calling one at the top of a large page whose value feeds only one region is.
-- Rows: a token or asset row that selects `getMarketData`, `getCurrencyRates` or `getAssetsRates` to price one asset, or to compute one conversion rate, is the R9 row case. Pass the value in, or read it with a selector that returns only that value.
+- Live-data hooks: shared stream hooks (live prices, positions and similar) read from one shared subscription through `useSyncExternalStore`. Calling one per row is the intended pattern, not an R9 finding. Calling one at the top of a large page whose value feeds only one region is.
+- Rows: a token or asset row that selects a whole market-data, currency-rate or asset-rate map to price one asset, or to compute one conversion rate, is the R9 row case. Pass the value in, or read it with a selector that returns only that value.
 
 ### Performance depth
 
