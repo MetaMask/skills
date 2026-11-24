@@ -21,6 +21,8 @@ Phase 6 only, after the user approves the plan and says to file.
 
 ## Steps
 
+`node <installed-skill>/scripts/file-tickets.mjs plan.json` runs steps 1-5 (blockers are filed first, so placeholders are filled as it goes). It prints every request and sends nothing until you add `--apply` (credentials from `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`), and it always drops `ai-agent`. Its header lists the `plan.json` fields it reads.
+
 1. **Dry run.** For the epic and each child, show: summary, labels, parent, Blocks edges, and the first lines of the description. Confirm the count matches `plan.json`. Write nothing.
 2. **Epic.** Create it (type Epic) from `epic.md`, or update the description of the epic the user gave you.
 3. **Children.** Create each ticket (type Task) with `parent` = the epic key, its labels and Release Number. Create in wave order so blockers get keys first, and record each key in `plan.json` as you go, so a failed run can resume without duplicates.
