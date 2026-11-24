@@ -21,6 +21,8 @@ node scripts/materialize-review.mjs --library <canonical-library> --check
 
 `references/review-sources.json` records the revision and content digests. The generator rejects uncommitted source rules. Do not hand-edit its generated checklist, overlays or references.
 
+`references/pack.json` is the machine-readable rule pack generated from the same families. It lists each family's anchor, reference file, areas, class and status, plus each rule with its cause (`pre-0073` until an edit records one). A family from a client file names that client in `clients`, so a hosted review never expects its row in another client's checklist. A direct invocation does not read the pack.
+
 For a shell-less consumer, `--analyzer-out <file> --client <client>` produces one self-contained copy with the same rules. Review that consumer change before enabling it.
 
 ## Another team's version
@@ -30,3 +32,7 @@ Keep the repository's `skill.md` plus `repos/` convention. Replace Perps knowled
 Write rules from observed failures. State what to inspect, where it applies and what would contradict the claim. Put client-specific APIs and tooling in that client's rules. Preserve useful examples; avoid duplicating a shared rule across clients.
 
 A family checkbox is navigation, not blanket approval. Each applicable rule needs its own outcome. Read source and tests before calling a rule passed; missing runtime evidence stays a gap. Feed a retrospective back into the canonical rules only when it changes a future review decision.
+
+Canonical `> Delegate: Run ...` entries become complete checklist actions, not summaries. Each names its owning skill and says to skip the call when Perps runs under `pr-workflow/review-pr`. Delegation-only sections do not create empty criterion rows.
+
+`review/report-template.md` owns the compact posted-review format and verdict policy. The generator copies it into `references/`; the full rule ledger is a separate run artifact.

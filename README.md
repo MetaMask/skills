@@ -9,7 +9,7 @@ Two audiences share this repo:
    `smart-accounts-kit`, OpenCode plugin, etc.). Drop them into your
    editor/agent and it will operate the tooling correctly.
 2. **MetaMask product engineers** — skills under `domains/perps/`,
-   `domains/testing/`, `domains/pr-workflow/`, `domains/agentic/`, etc. carry the conventions
+   `domains/testing/`, `domains/pr-workflow/`, etc. carry the conventions
    and review heuristics for `metamask-extension`, `metamask-mobile`, and `core`.
    These install into consumer repos via a small CLI.
 
@@ -287,10 +287,10 @@ than stale bundle cleanup: bundle cleanup removes old `references/` or `scripts/
 inside an installed skill, while prune-stale removes whole generated skill
 directories that no longer exist in the resolved source/filter set.
 
-Recipe skills currently live in the experimental `agentic` domain. Install all
-lower-level recipe tools in this rollout with `--domain agentic --maturity
-experimental`, or cherry-pick only the ones you want with
-`--include agentic/<skill>`.
+Recipe skills install from this repository's experimental `agentic` domain.
+No private overlay is required. Install the recipe tools with
+`--domain agentic --maturity experimental`, or cherry-pick only the ones you want
+with `--include agentic/<skill>`.
 
 **User-scope skills (`scope: user` in frontmatter).** Some skills target the
 engineer's home dir (`$HOME/.claude/skills`, `$HOME/.codex/skills`) instead
@@ -312,6 +312,7 @@ Use these directly when steering/debugging:
 - `/mms-recipe-doctor` — check tool, skill, harness, runtime-context, and fixture/profile readiness before a run.
 - `/mms-recipe-harness` — install/verify Mobile or Extension runtime harness.
 - `/mms-recipe-cook` — author/refine the executable recipe.
+- `/mms-recipe-performance` — diagnose real-app bottlenecks and prove paired device performance.
 - `/mms-recipe-quality` — critique recipe/evidence and force weak proof into explicit gaps.
 - `/mms-recipe-evidence` — format artifacts into reviewer-ready PR text.
 - `/mms-recipe-wallet-control` — optional wallet/app primitives for setup, navigation, state, and screenshots.
@@ -357,7 +358,8 @@ yarn skills
 ```
 
 Engineers without access to the private repo simply don't set
-`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own.
+`CONSENSYS_SKILLS_DIR` — the public set installs cleanly on its own, including the
+`agentic` recipe skills.
 
 ## Authoring a skill
 
