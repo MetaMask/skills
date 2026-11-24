@@ -3,7 +3,7 @@
   "id": "perps",
   "source": {
     "repository": "MetaMask/experimental-metamask-recipe-perps",
-    "revision": "f8b96429a09da37b71e0248307c5cbfee6021807"
+    "revision": "1b51d774a1937a4e6bea6f93d39c6314bfffc6d1"
   },
   "families": [
     {
@@ -819,6 +819,10 @@
         },
         {
           "label": "WS subscription leak",
+          "why": "pre-0073"
+        },
+        {
+          "label": "Polling for stream-owned data",
           "why": "pre-0073"
         },
         {
@@ -2200,6 +2204,10 @@
         {
           "label": "Package export changes without package-level tests",
           "why": "pre-0073"
+        },
+        {
+          "label": "One-client API shape",
+          "why": "pre-0073"
         }
       ]
     },
@@ -2504,6 +2512,10 @@
       "rules": [
         {
           "label": "Parallel controller state",
+          "why": "pre-0073"
+        },
+        {
+          "label": "React Query polling of controller data",
           "why": "pre-0073"
         },
         {
