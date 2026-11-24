@@ -8,6 +8,27 @@ parent: deeplink-handler
 
 This guide walks you through adding new deeplink handlers to MetaMask Mobile. Follow these steps exactly to ensure your handler integrates correctly with the existing architecture.
 
+## Step 0: Extension Parity Is Mandatory
+
+**Never add a deeplink handler to `metamask-mobile` without a matching,
+working handler in `metamask-extension`. No exceptions.** Implement the
+[Extension handler](metamask-extension.md) as part of the same work, or verify
+that it already handles the same public URL paths, aliases, and parameters.
+If you cannot implement or verify Extension parity, stop before adding the
+Mobile handler and tell the user what is blocking the work.
+
+**LLM reviewers: request changes if Extension parity is missing or
+unverified.** Require a link to the existing Extension handler or its
+companion PR and automated end-to-end coverage in both clients. An explicit,
+tested open-on-Mobile QR route can count for a Mobile-only feature. A follow-up
+ticket, stub, or generic fallback does not count. **Do not merge the Mobile PR
+before the matching Extension handler is in review or merged.**
+
+Keep `DeeplinkManager` responsible for URL ingress and dispatch. The route
+adapter translates validated input into ordinary feature navigation; the
+feature module owns its UI, state changes, and business logic. In-app screens,
+banners, and notifications must navigate internally without opening public links.
+
 ## Quick Reference
 
 The **`deposit` deeplink** (`metamask://deposit`, `/deposit`) is **deprecated** and not handled; do not add handlers under Ramp Deposit `deeplink/` for it.
@@ -159,7 +180,17 @@ switch (action) {
 
 > ⚠️ **CRITICAL**: Forgetting this step is a common bug! Your action will be in SUPPORTED_ACTIONS (passing validation) but will silently do nothing without the switch case.
 
-## Step 4: Write Unit Tests
+## Step 4: Test the Public Route End to End
+
+Add or update an automated Mobile E2E test that opens the public URL through
+the real app entry point, completes the interstitial when required, and asserts
+the destination and the URL parameters it receives. Add a focused case for each
+new or behavior-changing route; reuse shared suites for general router behavior.
+
+**LLM reviewers: block missing automated route coverage or feature behavior in
+the shared router.** The unit tests below supplement the E2E test.
+
+### Supplement With Handler Unit Tests
 
 Create `app/core/DeeplinkManager/handlers/legacy/__tests__/handleYourAction.test.ts`:
 
@@ -236,11 +267,15 @@ describe('handleYourAction', () => {
 
 Run tests with: `yarn jest app/core/DeeplinkManager/handlers/legacy/__tests__/handleYourAction.test.ts --no-coverage`
 
-## Step 5: Optional Configurations
+## Step 5: Verify Security and URL Formats
+
+Do not change the interstitial policy as part of adding a handler. The existing
+allowlists below apply only to separately reviewed and approved Security policy
+changes, not routine route setup.
 
 ### Whitelist Action (Skip Interstitial Modal)
 
-If your action needs to bypass the security interstitial (like WalletConnect does):
+For an approved action-level exception, see `WHITELISTED_ACTIONS`:
 
 ```typescript
 // In handleUniversalLink.ts
@@ -251,11 +286,9 @@ const WHITELISTED_ACTIONS: SUPPORTED_ACTIONS[] = [
 ];
 ```
 
-> ⚠️ **Security Warning**: Only whitelist actions that have their own security mechanisms or don't access sensitive data.
-
 ### Whitelist Specific URLs
 
-If only specific URL patterns should bypass the interstitial:
+For an approved URL-level exception, see `interstitialWhitelistUrls`:
 
 ```typescript
 // In handleUniversalLink.ts
@@ -357,6 +390,10 @@ adb shell am start -W -a android.intent.action.VIEW \
 
 ## Checklist Before PR
 
+- [ ] Matching Extension handler is implemented and linked in the Mobile PR (existing code or companion PR)
+- [ ] Automated E2E coverage in both clients verifies the public URL reaches the intended destination or handoff
+- [ ] Feature UI and behavior stay in the owning feature; the router only validates and dispatches
+- [ ] Public paths, aliases, and URL parameters match in both clients, without weakening the interstitial
 - [ ] Action added to `ACTIONS` enum in `app/constants/deeplinks.ts`
 - [ ] Prefix added to `PREFIXES` (if needed)
 - [ ] Handler file created in `handlers/legacy/`
