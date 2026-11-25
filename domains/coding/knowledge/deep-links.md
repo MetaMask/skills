@@ -11,8 +11,8 @@ description: >
 
 # Deep Links
 
-**This file is the single source of truth** for the deep-link security model
-and for how the Extension processes a link. The `deeplink-handler` skill
+**This file holds** the deep-link security model and how the Extension
+processes a link. The `deeplink-handler` skill
 carries the instructions (client parity, the router boundary, end-to-end
 coverage) and cites this file rather than repeating it.
 
@@ -32,8 +32,7 @@ These hold in both clients. The decision record is
 | A signature is a trust signal, not an authorization | `SignatureStatus` is `VALID`, `INVALID` or `MISSING`. It decides which interstitial shows, never what the route does. Signatures come from an admin interface MetaMask operates and are never reimplemented in a client |
 | Canonical is not validated | The handler runs on every status. On an unsigned or invalid link the author writes `sig_params` too, so the canonical parameters are whatever they listed, or the whole query minus `sig` when the list is absent. Only a `VALID` link's canonical parameters are signed |
 | A trusted origin skips the interstitial before the signature is consulted | Registering a route makes its destination reachable that way, unsigned and unwarned |
-| A parameter outside `sig_params` can be added after signing, and links rely on it | Referral links add each sharer's `ref` to a signed link. A value that must be tamper-evident is listed in `sig_params` when the link is signed. One left outside is acceptable only where its consumer shows it to the user and acts on their choice. Dropping it for being unsigned breaks every link already shared |
-| The interstitial is the security boundary | Showing it less often (a trusted origin, an allowlisted action or URL) is a Security policy change with its own approval, never part of adding a route |
+| A parameter outside `sig_params` can be added after signing, and links rely on it | Referral links add each sharer's `ref` to a signed link. A value that must be tamper-evident is listed in `sig_params` when the link is signed. One left outside is acceptable only where its consumer shows it to the user and acts on their choice. Dropping it for being unsigned breaks the links already shared that carry it |
 | A new class of destination is a security question | A destination that changes state, grants a permission or exposes a toggle goes to the client's security owners before it lands |
 
 Where each client implements the interstitial bypass:
@@ -65,27 +64,29 @@ dropping the link. Then, in order:
 |------|--------------|
 | 1. `canonicalize(url)` | Builds the signed string. Replaces an alternate host with the canonical signing origin (`https://link.metamask.io` unless `CANONICAL_DEEP_LINK_HOST` overrides it). With `sig_params`, keeps every value of each parameter it names, adds `sig_params` itself, and sorts. Without it, keeps every parameter except `sig` |
 | 2. Route handler | Receives the canonical parameters minus `sig_params`, before verification and on every status. A handler that throws makes `parse()` return `false` |
-| 3. `verify(url)` | Checks `sig` against the canonical string locally (ECDSA, P-256, SHA-256). On failure, retries the same path and query under each other configured HTTPS deep-link host. Returns `valid`, `invalid`, or `missing` |
+| 3. `verify(url)` | Checks `sig` against the canonical string locally (ECDSA, P-256, SHA-256). If that fails and the link is HTTPS on a configured deep-link host with no port, retries the same signed path and query under each other configured host. Returns `valid`, `invalid`, or `missing` |
 
 A `valid` link gets the trusted interstitial ("Redirecting to MetaMask"), any
 other status the untrusted one ("Proceed with caution"). Whether one shows at
 all: a deferred link skips it only when `valid`. An intercepted link skips it
 from a `TRUSTED_WEB_ORIGINS` origin, or when `valid` and either onboarding is
 incomplete or the user turned the warning off. Neither changes what the handler
-received. When it shows, the page in `ui/pages/deep-link/deep-link.tsx` parses
+received. The interstitial is the security boundary: a change that would show
+it less often needs documented approval from Extension Security, as the
+deep-link interstitial rule in `AGENTS.md` states. When it shows, the page in `ui/pages/deep-link/deep-link.tsx` parses
 `https://<canonical host><u>` again. So the destination the user continues to
 is also computed from the canonical parameters.
 
 Two readers use the original URL, outside the signature:
 
-- **Attribution.** The event built in `shared/lib/deep-links/metrics.ts` reads every parameter except `sig`. It records the last value of a repeated key, and records `ref` only when it appears once. So `signature: valid` sits beside UTM, `attributionId` and `referral_code` values the signature may not cover. The deferred flow's UTM parameters come from the stored link, via `getDeferredDeepLinkParameters` in `ui/selectors/selectors.js`.
+- **Attribution.** The event built in `shared/lib/deep-links/metrics.ts` reads every parameter except `sig`. It records the last value of a repeated key, and records `ref` only when it appears once. So on a `valid` link signed with `sig_params`, `signature: valid` sits beside UTM, `attributionId` and `referral_code` values the signature may not cover. The deferred flow's UTM parameters come from the stored link, via `getDeferredDeepLinkParameters` in `ui/selectors/selectors.js`.
 - **Referral.** The function `getReferralCode` accepts `ref` only when it appears once and is well formed. Then `withReferralCode` adds it to the destination, after the handler has run. The router does this when no interstitial shows, and the interstitial page does it when the user continues. A deferred link's code is read by `useOnboardingCompletion`. The referral invite shows the code, and the user decides whether to accept it.
 
 Three mechanisms are deliberately absent:
 
 - **No route opts in to the original parameters.** A handler receives the canonical parameters and nothing else.
 - **No route declares parameters that must be signed.** A route that forwards attribution decides what to forward in its own handler.
-- **`ref` is not ignored when `sig_params` leaves it out.** Keeping the code any other way costs the referral program. Every sharer's code would need its own link signed in the admin interface, or unsigned links would show every recipient the untrusted interstitial.
+- **`ref` is not ignored when `sig_params` leaves it out.** Keeping the code any other way costs the referral program. Every sharer's code would need its own link signed in the admin interface, or unsigned links would show every recipient the untrusted interstitial wherever one is shown.
 
 ## Extension: Routes and Ownership
 
