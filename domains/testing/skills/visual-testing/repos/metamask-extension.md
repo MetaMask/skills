@@ -309,7 +309,7 @@ Details:
 - Step args follow the tool schema, not CLI flags: `inspect` takes `"styles":["cursor"]`, `wait_for` takes `"timeoutMs"`
 - Use `within` in args to scope targeting within a parent element
 - Add `batchTimeoutMs` (1000–30000 ms) for an overall deadline. It is checked between steps: the step in progress finishes, then the rest are skipped with `MM_BATCH_TIMEOUT` and the call returns partial results (exit 0). Without `batchTimeoutMs` the whole call stops after 30 s with `MM_QUEUE_TIMEOUT`, so split longer flows into several batches
-- Add a top-level `observe` (`none` / `diff` / `full`, default `diff`) to set the observation collected after the batch. `includeObservations` was removed; check `summary.ok` to react to failures
+- Add a top-level `observe` (`none` / `diff` / `full`, default `diff`) to set the observation collected after the batch. Check `summary.ok` to react to failures
 - A failed step does not stop the batch and the call still exits 0: check `summary.ok`. Add `"stopOnError": true` to stop at the first failed step
 - Tool aliases like `navigate_home` and `navigate-home` are supported
 

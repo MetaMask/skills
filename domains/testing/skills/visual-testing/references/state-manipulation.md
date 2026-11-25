@@ -141,7 +141,7 @@ next.preferences = Object.assign({}, next.preferences, {showTestNetworks: true})
 
 Notes:
 - The `__reactFiber$` key suffix is a random hash per build. The traversal pattern is stable.
-- The store is a prop of the react-redux `<Provider>` (`ui/pages/index.js`), so read `memoizedProps.store`. The old `stateNode.store` check does not match it.
+- The store is a prop of the react-redux `<Provider>` (`ui/pages/index.js`), so read `memoizedProps.store` (`stateNode.store` does not hold it).
 - `UPDATE_METAMASK_STATE` does not persist. Change is lost on reload.
 - The next background state update can overwrite the change. See [Troubleshooting](#troubleshooting).
 - If the walk returns `"store not found"`, check that you started from `#app-content.firstElementChild` and that the UI has rendered.

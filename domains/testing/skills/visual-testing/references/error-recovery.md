@@ -96,7 +96,6 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_TARGET_NOT_FOUND`: `Frame not found: … is not an iframe` (exit 4) | `--frame` points at a wrapper, not the `<iframe>` | Use the iframe's ref from `mm describe-screen`, or `selector:<wrapper> iframe` |
 | `MM_INVALID_INPUT`: `frame cannot be used with a ref` (exit 2) | `--frame` plus a ref target | Drop `--frame` (`f1e*` refs point into the iframe), or target by `--testid` / `--selector` |
 | `MM_REQUEST_TIMEOUT`: `request timed out after <n>ms; state unknown` (exit 5) | The daemon did not answer before the CLI's limit | `mm describe-screen` before retry; the action can have happened |
-| `Error: unknown command 'knowledge-...'`                | Knowledge store removed                                                | No replacement. Discover with `mm describe-screen`                 |
 
 ## Daemon Log
 
