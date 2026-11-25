@@ -159,17 +159,17 @@ If `--within` isn't working or you can't identify the right parent testId, use a
 Check styling and disabled states with values instead of by eye:
 
 ```bash
-mm inspect --testid eth-overview-swap                 # disabled, attributes, styles
+mm inspect --testid send-continue-button            # disabled, attributes, styles
 mm inspect --testid eth-overview-send --styles color,opacity,cursor,display
 ```
 
-`mm inspect` returns `attributes`, `disabled`, `readOnly`, `styles` (default `color`, `background-color`, `opacity`, `cursor`) and `effectiveOpacity`. A faded, disabled Swap button reads `"disabled": true`, `"effectiveOpacity": 0.5`, `"cursor": "not-allowed"`. Compare two elements with the same `--styles`; do not compare one against unrelated text.
+`mm inspect` returns `attributes`, `disabled`, `readOnly`, `styles` (default `color`, `background-color`, `opacity`, `cursor`) and `effectiveOpacity`. On the send page, before a recipient and amount are set, the faded Continue button (`send-continue-button`) reads `"disabled": true`, `"effectiveOpacity": 0.5`, `"cursor": "not-allowed"`. Compare two elements with the same `--styles`; do not compare one against unrelated text.
 
 For hover-only UI and layout widths:
 
 ```bash
-mm hover --testid account-menu-icon
-mm screenshot --name account-menu-hovered
+mm hover --testid eth-overview-send
+mm screenshot --name send-hovered
 mm unhover
 mm set-viewport 400 600
 mm screenshot --name narrow
@@ -184,12 +184,13 @@ All interaction commands accept `--timeout <ms>` (default 15000). This is a **si
 
 Phase-specific error codes on timeout:
 - `MM_WAIT_TIMEOUT` — element never became visible. `retryable: true`.
-- `MM_TARGET_NOT_FOUND` — `mm click` without `--timeout`: nothing matched after 2 s (a wrong testId shows up here, for example `eth-overview-receive`; Receive is `eth-overview-default`). Pass `--timeout` to wait for a target that appears late.
-- `MM_CLICK_TIMEOUT` — click hung; state unknown. The message ends with Playwright's last step, for example `element is not enabled` (disabled Swap in the fixture) or `… intercepts pointer events` (a modal covers the target). Run `mm describe-screen` before retrying.
+- `MM_TARGET_NOT_FOUND` — `mm click` without `--timeout`: nothing matched after 2 s (usually a wrong testId; check `mm describe-screen`). Pass `--timeout` to wait for a target that appears late.
+- `MM_CLICK_TIMEOUT` — click hung; state unknown. The message ends with Playwright's last step, for example `element is not enabled` (Continue on an empty send form) or `… intercepts pointer events` (a modal covers the target). Run `mm describe-screen` before retrying.
 - `MM_TYPE_TIMEOUT` — the field did not appear or `fill()` hung; state unknown.
 - `MM_GETTEXT_TIMEOUT` — the element did not appear or `textContent()` hung. `retryable: true`.
 - `MM_PAGE_CLOSED` — page closed during action (expected for some confirmation flows); exits 3.
-- `MM_QUEUE_TIMEOUT` — the daemon stopped a command that has no action timeout after 30 s, for example `mm screenshot --selector` on a missing element. State unknown.
+- `MM_QUEUE_TIMEOUT` — the daemon stopped a command that has no action timeout after about 30 s, for example a `run-steps` batch without `batchTimeoutMs` whose steps take longer. State unknown.
+- `MM_SCREENSHOT_FAILED` — `mm screenshot --selector` on a missing element waits 30 s, then fails with this (exit 1, `locator.screenshot: Timeout 30000ms exceeded`) or with `MM_QUEUE_TIMEOUT` (exit 5), whichever ends first.
 
 For the full error code and exit code tables, see [references/error-recovery.md](references/error-recovery.md).
 
@@ -289,7 +290,7 @@ The review page shows `confirm-send-amount` and `recipient-address`. While it lo
 
 ## Iframes
 
-The asset page shows the TradingView chart in a cross-origin iframe when the `tokenDetailsAdvancedCharts` remote flag is on (off in the e2e fixture). `mm describe-screen` lists it as `{"role":"iframe","name":"Advanced Chart"}`. The `advanced-chart-iframe` testId is on the wrapper `<div>`, so pass the ref or `selector:[data-testid="advanced-chart-iframe"] iframe` to `--frame`. The chart draws on a canvas, so it has no accessibility nodes: use `mm screenshot --frame <ref>`. See [Iframes](references/cli-reference.md#iframes).
+The asset page shows the TradingView chart in a cross-origin iframe when the `tokenDetailsAdvancedCharts` remote flag is on and the candle chart is selected. Both are off in the e2e fixture. To show it there: mock the candles with `mm mock-network add` on `GET https://price.api.cx.metamask.io/v3/ohlcv-chart/**` (JSON `{"data":[{"timestamp":<ms>,"open":…,"high":…,"low":…,"close":…,"volume":…},…],"hasNext":false,"nextCursor":null}`), `mm click --testid multichain-token-list-button`, then write Redux state ([operation 3](references/state-manipulation.md#five-operations)) with `next.remoteFeatureFlags.tokenDetailsAdvancedCharts = true` and `next.preferences.tdpChartType = 1`, and `mm wait-for --testid advanced-chart-iframe`. Without the mock the chart shows no data. `mm describe-screen` lists it as `{"role":"iframe","name":"Advanced Chart"}`. The `advanced-chart-iframe` testId is on the wrapper `<div>`, so pass the ref or `selector:[data-testid="advanced-chart-iframe"] iframe` to `--frame`. The chart draws on a canvas, so it has no accessibility nodes: use `mm screenshot --frame <ref>`. See [Iframes](references/cli-reference.md#iframes).
 
 ## Batching with mm run-steps
 

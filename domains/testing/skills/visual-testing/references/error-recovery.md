@@ -55,7 +55,7 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | `MM_WAIT_TIMEOUT`            | `wait-for`, `hover`, `inspect` or `scroll-to-element` timed out                              |
 | `MM_NOTIFICATION_TIMEOUT`    | `wait-for-notification` timed out                                                            |
 | `MM_PAGE_CLOSED`             | Page closed during interaction — normal after some confirmations; exits 3                    |
-| `MM_SCREENSHOT_FAILED`       | Screenshot capture failed                                                                    |
+| `MM_SCREENSHOT_FAILED`       | Screenshot capture failed, for example `--selector` matched nothing for 30 s; exits 1         |
 | `MM_BATCH_TIMEOUT`           | `batchTimeoutMs` deadline exceeded                                                           |
 | `MM_CONTEXT_SWITCH_BLOCKED`  | Cannot switch context during active session                                                  |
 | `MM_SET_CONTEXT_FAILED`      | Context switch failed                                                                        |
@@ -92,7 +92,7 @@ Success has no `ok` field, and `mm stop` prints plain text. For the exact JSON s
 | A ref clicks the wrong element                          | After `--observe none`: a fallback `role=`/`text=` or icon-button ref  | `mm describe-screen`, or target by `--testid`                      |
 | Ref click fails at once with `MM_TARGET_NOT_FOUND`      | Removed, re-mounted or changed text after the snapshot                 | Expected; `mm describe-screen` and re-target                       |
 | `MM_CLICK_FAILED`: strict mode violation (exit 4)       | A fallback ref or an explicit selector/testId matches several elements | Target by `--testid`/`--selector`; scope it with `--within`        |
-| `MM_QUEUE_TIMEOUT`: `The daemon stopped the request after 30000ms` (exit 5) | A command with no action timeout ran past the queue limit, for example `mm screenshot --selector` on a missing element | `mm describe-screen` before retry; check the selector exists |
+| `MM_QUEUE_TIMEOUT`: `The daemon stopped the request after 30000ms` (exit 5) | A command with no action timeout ran past the queue limit, for example `run-steps` without `batchTimeoutMs` whose steps take longer, or `mm screenshot --selector` on a missing element | `mm describe-screen` before retry; add `batchTimeoutMs` or split the batch; check the selector exists |
 | `MM_TARGET_NOT_FOUND`: `Frame not found: … is not an iframe` (exit 4) | `--frame` points at a wrapper, not the `<iframe>` | Use the iframe's ref from `mm describe-screen`, or `selector:<wrapper> iframe` |
 | `MM_INVALID_INPUT`: `frame cannot be used with a ref` (exit 2) | `--frame` plus a ref target | Drop `--frame` (`f1e*` refs point into the iframe), or target by `--testid` / `--selector` |
 | `MM_REQUEST_TIMEOUT`: `request timed out after <n>ms; state unknown` (exit 5) | The daemon did not answer before the CLI's limit | `mm describe-screen` before retry; the action can have happened |

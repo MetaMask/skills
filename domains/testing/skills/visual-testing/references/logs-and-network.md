@@ -94,5 +94,5 @@ The session keeps `Network` enabled on every page and on the service worker. `mm
 
 Basic functionality is off in the fixture, so every e2e session records these. They are not regressions; compare against a mark taken before your flow.
 
-- `mm logs`: service-worker errors `… The Snaps platform requires basic functionality to be used …` (several per launch and unlock).
+- `mm logs`: service-worker errors `… The Snaps platform requires basic functionality to be used …` (several per launch and unlock) and one `ExtensionLazyListener: Possible memory leak detected …`.
 - `mm network --errors`: `401` from `sepolia.infura.io` and `linea-sepolia.infura.io` (`eth_blockNumber`), `400` from `gas.api.cx.metamask.io/networks/1337/suggestedGasFee` while a send is open, `400` from `accounts.api.cx.metamask.io/v5/multiaccount/transactions` on the asset page.

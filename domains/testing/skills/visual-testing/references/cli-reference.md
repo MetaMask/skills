@@ -205,7 +205,7 @@ mm screenshot --name chart --frame e13                                          
 mm run-steps '{"steps":[{"tool":"screenshot","args":{"name":"viewport","fullPage":false}}],"observe":"none"}'
 ```
 
-The result has the file `path`, `width` and `height`. A selector that matches nothing waits until the daemon stops the request: `MM_QUEUE_TIMEOUT` after 30 s, exit 5. Check that the element exists first.
+The result has the file `path`, `width` and `height`. A selector that matches nothing waits 30 s, then fails with `MM_SCREENSHOT_FAILED` (exit 1, `locator.screenshot: Timeout 30000ms exceeded`) or `MM_QUEUE_TIMEOUT` (exit 5), whichever ends first. Check that the element exists first.
 
 ### Iframes
 
@@ -255,26 +255,26 @@ Playwright's `click` already scrolls its target into view, so you do not need th
 `mm inspect <ref>` reads an element instead of judging it by eye. Browser only and read-only (no observation). Accepts `--styles <prop,prop>`, `--timeout <ms>` and `--within`.
 
 ```bash
-mm inspect --testid eth-overview-swap
+mm inspect --testid send-continue-button
 mm inspect --testid eth-overview-send --styles color,opacity,cursor,display
 ```
 
 Returns `target`, `tagName`, `attributes` (every attribute, by name), `disabled` (native, `fieldset` or `aria-disabled`), `readOnly` (the `readonly` property or `aria-readonly="true"`), `styles` and `effectiveOpacity`.
 
-`styles` has the computed value of each requested property, keyed as requested (default `color`, `background-color`, `opacity`, `cursor`); an unknown property is `""`. `effectiveOpacity` is the element's opacity times that of every ancestor, so a field faded by a parent shows it. A faded, disabled Swap button on the e2e fixture reads `"disabled":true`, `"effectiveOpacity":0.5`, `"cursor":"not-allowed"`. To check that a field is not faded, inspect it and the field you compare it to with the same `--styles`. `mm type` into a read-only or disabled field fails at once with `MM_ELEMENT_NOT_EDITABLE` instead of waiting for the timeout.
+`styles` has the computed value of each requested property, keyed as requested (default `color`, `background-color`, `opacity`, `cursor`); an unknown property is `""`. `effectiveOpacity` is the element's opacity times that of every ancestor, so a field faded by a parent shows it. On the e2e send page, before a recipient and amount are set, the faded Continue button (`send-continue-button`) reads `"disabled":true`, `"effectiveOpacity":0.5`, `"cursor":"not-allowed"`. To check that a field is not faded, inspect it and the field you compare it to with the same `--styles`. `mm type` into a read-only or disabled field fails at once with `MM_ELEMENT_NOT_EDITABLE` instead of waiting for the timeout.
 
 ### Hover and viewport
 
 `mm hover <ref>` moves the pointer over an element so hover-only UI shows (a tooltip, a popover, a hover style). It waits for the element and checks that nothing covers it, like `mm click`. `mm unhover` moves the pointer off the page, so the hovered element loses its state and no other element gets one. Browser only.
 
 ```bash
-mm hover --testid account-menu-icon
-mm screenshot --name account-menu-hovered
+mm hover --testid eth-overview-send
+mm screenshot --name send-hovered
 mm unhover
-mm screenshot --name account-menu-idle
+mm screenshot --name send-idle
 ```
 
-`mm inspect --testid account-menu-icon --styles background-color` shows the change: `rgb(243, 243, 244)` while hovered, `rgba(0, 0, 0, 0)` after `mm unhover`.
+`mm inspect --testid eth-overview-send --styles background-color` shows the change: `rgba(180, 180, 181, 0.24)` while hovered, `rgba(180, 180, 181, 0.157)` after `mm unhover`. An element hidden with opacity 0 (`effectiveOpacity: 0` in `mm inspect`) cannot be hovered: the hover waits for the full timeout and fails with `MM_WAIT_TIMEOUT`.
 
 The pointer stays where `mm hover` left it until the next hover, click or `mm unhover`, so take the screenshot right after the hover. Success is `{"hovered":true,"target":"testId:<id>"}`; `mm unhover` returns `{"unhovered":true}`. A target that does not appear, or stays covered, fails with `MM_WAIT_TIMEOUT`; other failures return `MM_HOVER_FAILED`.
 
