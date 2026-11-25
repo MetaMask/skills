@@ -249,7 +249,7 @@ Diagnosis for *Rules (enforced by lint)*. Cite these by name, not by number.
 
 22. **Fix a flake at its cause** — name the cause, reproduce it locally first, and show the fix passes under the same condition. A PR whose only change is a longer timeout is not a fix. See [`component-view/reference.md`](component-view/reference.md) (Fixing a Flake) for the reproduction commands.
 
-Before declaring the task done, work through the Self-Review Checklist in [`component-view/reference.md`](component-view/reference.md) — tests pass, format check, lint clean, and the pre-PR repeat of changed tests with `--randomize`.
+Before declaring the task done, work through the Self-Review Checklist in [`component-view/reference.md`](component-view/reference.md) — tests pass, the pre-PR repeat of changed tests with `--randomize`, format check, lint clean.
 
 ## Reference files (when to use)
 
