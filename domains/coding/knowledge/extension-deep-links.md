@@ -58,7 +58,7 @@ parameter, signed or not. To these readers, a parameter left out of
 - the route's `getTitle`, which the interstitial page calls
 - the deep-link analytics event (`shared/lib/deep-links/metrics.ts`). For an intercepted link to an in-extension destination it fires before the interstitial decision, so a link the user never continues is still recorded. For a deferred link it fires when onboarding completes
 - the App Installed event, which records the whole referring link
-- the referral code (`shared/lib/deep-links/referral.ts`), which the router or the interstitial page adds to the extension page URL, and which the referral invite shows for the user to accept or decline. A deferred link carries it only when `valid` and internal
+- the referral code (`shared/lib/deep-links/referral.ts`), which the router or the interstitial page adds to the extension page URL, outside the hash route and not in the route's query, and which the referral invite shows for the user to accept or decline. A deferred link carries it only when `valid` and its destination is in the extension
 - the Mobile QR page, and the deferred UTM selector
 
 Readers handle a repeated key differently: the analytics event keeps the last
@@ -107,7 +107,7 @@ or a pull request that says a parameter is signed.
 | # | Check | Look for |
 |---|-------|----------|
 | 1 | The signature still binds the `sig_params` list | `canonicalize` adds the list to the signed string, so rewriting it fails verification. A canonicalization change keeps that |
-| 2 | "Canonical" is not read as "validated" | "The handler receives canonical parameters only" bounds nothing unless the link is `valid`. From a trusted web origin, or in-app, a link skips the interstitial |
+| 2 | "Canonical" is not read as "validated" | "The handler receives canonical parameters only" bounds nothing unless the link is `valid`. From a trusted web origin a link skips the interstitial at any status, and an in-app link never shows one |
 | 3 | No handler or destination gets more than the canonical parameters | Reads of `url.searchParams`, `window.location`, or a value passed past `parse`. The readers outside the signature are the existing exceptions |
 | 4 | Attribution is forwarded only from what the handler received | `utm_*`, `source` or `attributionId` written into a destination carry whatever the handler received, unsigned on an unsigned link |
 | 5 | A value is traced past the handoff | A value written into a hash query and read back later is whatever the hash holds at that moment |
