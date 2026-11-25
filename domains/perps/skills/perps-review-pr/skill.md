@@ -13,7 +13,15 @@ Run only on explicit invocation by name or an explicitly selected workflow. Revi
 
 Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (`.agents/skills/mms-perps-review-pr/`, and the same path under `.claude/skills/` and `.cursor/rules/`).
 
-The installer appends the matching repos/ overlay to this checklist. For a direct source-checkout invocation, execute repos/<repository>.md after the shared checks. In a hosted frozen-source task, follow the parent's separate shared and repository child steps; do not append the overlay to the shared child. Use the existing TASK.md inputs and output directory.
+When a task already supplies TASK.md and a registered checklist, skip this section and follow that task: its `artifacts/` and `inputs/` are the ones named below. Otherwise start the review from the repository root with a PR, a branch or a commit range:
+
+```sh
+node .agents/skills/mms-perps-review-pr/scripts/review-task.mjs start <PR | branch | base..head>
+```
+
+It prints the round folder, the diff to review, the checklist and the commands to use. Every `artifacts/` and `inputs/` path below is inside that folder, which git ignores. Work one row at a time: check it, fill its section of `artifacts/review-ledger.md` (the outcome, then the evidence for each rule), mark it, then open the next row. Never mark several rows together. The finish command refuses a row with no outcome or no evidence.
+
+In a warm round, read `inputs/since-last.diff` and every earlier finding first. Check again each row those changes touch, each row with an earlier FINDING or NOT_CHECKED, and the Setup and Verdict rows. For any other row, repeat its earlier outcome and add "unchanged since" with that round. Report earlier findings as resolved or still open.
 
 For maintaining or adapting this skill to another team, see references/maintaining.md. That guide is not part of a routine review.
 

@@ -79,6 +79,59 @@ test('stale, hand-edited, orphaned or misdirected output is refused', () => with
   fails(['--library', elsewhere], /--out is required for swaps/);
 }));
 
+test('a review launched by hand keeps rounds, and only finished work counts', () => withTeam(({ temp, rules }) => {
+  run('--library', rules);
+  const repo = path.join(temp, 'repo'); mkdirSync(path.join(repo, 'app'), { recursive: true });
+  const env = { ...process.env, PATH: [path.dirname(process.execPath), '/usr/bin', '/bin'].join(path.delimiter), GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
+  const git = (...args) => execFileSync('git', ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', ...args], { encoding: 'utf8', stdio: 'pipe', env }).trim();
+  const put = (file, text) => writeFileSync(path.join(repo, file), text);
+  const commit = message => { git('add', '-A'); git('commit', '-qm', message); return git('rev-parse', 'HEAD'); };
+  git('init', '-q', '-b', 'main');
+  put('.gitignore', '.agents/\n.claude/\n.cursor/\n'); put('app/x.ts', 'one\n'); put('app/other.ts', 'one\n'); commit('base');
+  execFileSync('bash', [path.join(root, 'tools/install'), '--source', temp, '--target', repo, '--repo', 'metamask-mobile', '--domain', 'none', '--include', 'swaps-review-pr'], { stdio: 'pipe' });
+  // A mm-harness on the machine would own the checklist; this test covers the plain one.
+  const bin = path.join(temp, 'bin'); mkdirSync(bin); writeFileSync(path.join(bin, 'mm-harness'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  env.PATH = `${bin}${path.delimiter}${env.PATH}`;
+  const script = path.join(repo, '.agents/skills/mms-swaps-review-pr/scripts/review-task.mjs');
+  const task = (...args) => execFileSync(process.execPath, [script, ...args], { cwd: repo, encoding: 'utf8', stdio: 'pipe', env });
+  const refuses = (args, message) => assert.throws(() => task(...args), error => message.test(String(error.stderr)));
+  const base = 'temp/tasks/review/pr-7';
+  const at = (round, file) => path.join(repo, base, `r${round}`, file);
+  const json = round => JSON.parse(readFileSync(at(round, 'review.json'), 'utf8'));
+  const fill = (round, head, { evidence = 'app/x.ts:1' } = {}) => {
+    writeFileSync(at(round, 'artifacts/review-ledger.md'), readFileSync(at(round, 'artifacts/review-ledger.md'), 'utf8').replaceAll('Outcome:', `Outcome: PASS ${evidence}`));
+    writeFileSync(at(round, 'artifacts/learnings.md'), '- None\n');
+    writeFileSync(at(round, 'artifacts/line-comments.json'), '{"comments": []}');
+    writeFileSync(at(round, 'artifacts/review.md'), `VERDICT: APPROVE\nCOMMIT: ${head}\n`);
+    writeFileSync(at(round, 'CHECKLIST.md'), readFileSync(at(round, 'CHECKLIST.md'), 'utf8').replaceAll('- [ ]', '- [x]'));
+  };
+  git('checkout', '-qb', 'feature'); put('app/x.ts', 'two\n'); put('app/y.ts', 'one\n'); const first = commit('change');
+
+  assert.match(task('start', 'main..feature', '--pr', '7'), /Started cold round r1: first round/);
+  assert.equal(git('status', '--porcelain'), '', 'the task folder stays out of git');
+  assert.match(task('start', 'main..feature', '--pr', '7'), /Resuming cold round r1/);
+  refuses(['finish', `${base}/r1`], /is missing or empty/);
+  fill(1, first, { evidence: '' }); refuses(['finish', `${base}/r1`], /no evidence/);
+  writeFileSync(at(1, 'artifacts/review-ledger.md'), readFileSync(at(1, 'artifacts/review-ledger.md'), 'utf8').replaceAll(/^Outcome:.*$/gm, 'Outcome:'));
+  refuses(['finish', `${base}/r1`], /no outcome/);
+  fill(1, '0'.repeat(40)); refuses(['finish', `${base}/r1`], /must name COMMIT/);
+  writeFileSync(at(1, 'artifacts/review.md'), `VERDICT: APPROVE\nCOMMIT: ${first}\n`);
+  writeFileSync(at(1, 'CHECKLIST.md'), readFileSync(at(1, 'CHECKLIST.md'), 'utf8').replace('- [x]', '- [ ]'));
+  refuses(['finish', `${base}/r1`], /1 rows are still open/);
+  fill(1, first); assert.match(task('finish', `${base}/r1`), /Finished r1: APPROVE/);
+
+  git('checkout', '-q', 'main'); put('app/other.ts', 'main moved\n'); commit('main'); git('checkout', '-q', 'feature');
+  git('merge', '-q', '--no-edit', 'main'); put('app/y.ts', 'two\n'); const second = commit('fix');
+  assert.match(task('start', 'main..feature', '--pr', '7'), /Started warm round r2/);
+  assert.deepEqual(json(2).changedFiles, ['app/y.ts']);
+  assert.equal(json(2).previous, 'r1');
+  fill(2, second); task('finish', `${base}/r2`);
+  assert.match(task('start', 'main..feature', '--pr', '7', '--cold'), /Started cold round r3: cold was requested/);
+  git('checkout', '-q', '-B', 'feature', 'main'); put('app/y.ts', 'three\n'); commit('rewritten');
+  assert.match(task('start', 'main..feature', '--pr', '7'), /Started cold round r4: r3 did not finish/);
+  refuses(['start', 'nope'], /unknown review target/);
+}));
+
 test('every team library in this repository matches its generated review', () => {
   for (const domain of readdirSync(path.join(root, 'domains'))) {
     const skills = path.join(root, 'domains', domain, 'skills');

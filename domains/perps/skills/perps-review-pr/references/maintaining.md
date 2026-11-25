@@ -10,6 +10,8 @@ Read this when changing the skill or creating another team's domain review. `des
 
 An installed skill contains both parts. Farmslot freezes the source bundle and registers the shared file and selected overlay as consecutive child checklists. Both paths execute the same rules. There is no separate review-template catalog.
 
+`scripts/review-task.mjs` serves reviews launched by hand. `start` creates `temp/tasks/review/<target>/r<N>` with the checklist, a ledger section per row and `review.json`, and `finish` refuses unfinished work. With mm-harness the rows are timed marks that `mm-harness status --watch` shows; without it the checklist is a plain file. A later round is warm when the earlier one finished, the rules are the same and its head is part of the branch. It compares what the PR changes, so a merge from the default branch adds nothing. The folder stays on one machine, and nothing is posted. A host that registers the checklist itself does not use it.
+
 ## Knowledge ownership
 
 Perps maintains its canonical rules in the recipe library's `review/antipatterns.md` and `review/antipatterns.<client>.md`. Update that source, then run:
