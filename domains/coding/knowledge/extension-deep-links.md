@@ -17,9 +17,7 @@ does not repeat them.
 
 ## How a Link Is Processed
 
-The decision record is
-[Deep Linking Into Wallet](https://github.com/MetaMask/decisions/blob/aa3ad7e1c642cf5e080fafa92c450b323fe8ddca/decisions/core/0011-deep-linking-into-wallet.md#both-public-and-private-deep-links)
-(`decisions/core/0011`). A link reaches `parse()` (`shared/lib/deep-links/parse.ts`) three ways:
+A link reaches `parse()` (`shared/lib/deep-links/parse.ts`) three ways:
 
 - **Intercepted.** `app/scripts/lib/deep-links/deep-link-router.ts` catches top-level tab navigations to `DEEP_LINK_HOSTS` over http or https, up to `DEEP_LINK_MAX_LENGTH` (2,048 characters). A longer URL loads as an ordinary page. An unregistered path with `share=1` gets a QR page for Mobile instead, which opens no destination.
 - **Deferred.** The `referringLink` of the `deferred_deeplink` cookie on MetaMask's websites, read at install and parsed when onboarding completes, unless the cookie's own `createdAt` is more than two hours in the past. Only the link's path and query are used, whatever its host.
