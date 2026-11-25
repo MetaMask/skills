@@ -58,7 +58,7 @@ Use exactly one targeting method per command: a positional accessibility referen
 
 - **Supported:** `--testid <id>` and positional a11y refs (`e1`, `e2`, ...).
 - **Not supported:** `--selector <css>` throws `CSS selectors are not supported on mobile`. `--within <scope>` throws `Scoped element search (within) is not supported on mobile`. The parser accepts both flags, but the mobile driver rejects them at runtime.
-- **A test ID match is exact first, then a substring.** `--testid` resolves to an element whose identifier `equals` the value somewhere in the tree before it falls back to a case-insensitive substring match, so `--testid account-picker` no longer returns `account-picker-avatar`. When no exact match exists the substring fallback still applies: `--testid Confirm` can match `Confirm Transaction`. Prefer exact, unique test IDs; there is no `--within` scoping fallback on mobile.
+- **A test ID match is exact first, then a substring.** `--testid` resolves to an element whose identifier `equals` the value somewhere in the tree before it falls back to a case-insensitive substring match, so `--testid account-picker` returns `account-picker`, not `account-picker-avatar`. When no exact match exists the substring fallback still applies: `--testid Confirm` can match `Confirm Transaction`. Prefer exact, unique test IDs; there is no `--within` scoping fallback on mobile.
 - **`--testid` is lowercase.** `--testId` is not recognized as a flag and its value is treated as a positional target.
 
 ## Global Options
@@ -133,7 +133,7 @@ The locally installed core CLI parser exposes these launch flags that are meanin
 | `--metro-port <port>` | Attach to a running Metro bundler on the given port. Equivalent to `MM_METRO_PORT`; the flag wins when both are set |
 | `--force` | Replace an existing active session |
 
-`mm launch` has no `--goal` or `--flow-tags` flag. Session metadata is written to `test-artifacts/<sessionId>/session.json`. `MM_ARTIFACTS_DIR=<dir>` moves it to `<dir>/<sessionId>/session.json`: the daemon reads the variable when it starts, so set it before `mm launch` starts the daemon. On mobile it moves `session.json` only — `mm screenshot` keeps writing into device-mcp's own temporary directory.
+Session metadata is written to `test-artifacts/<sessionId>/session.json`. `MM_ARTIFACTS_DIR=<dir>` moves it to `<dir>/<sessionId>/session.json`: the daemon reads the variable when it starts, so set it before `mm launch` starts the daemon. On mobile it moves `session.json` only — `mm screenshot` keeps writing into device-mcp's own temporary directory.
 
 Launch timeout is 120 seconds. The project CLI does not build MetaMask. Install the intended app on the device before launching, or (iOS) pass `--app-bundle <path>` to install a specific build.
 
@@ -265,7 +265,7 @@ yarn mm run-steps '{"steps":[
 | --- | --- |
 | `steps` | Required array of `{tool, args}` objects |
 | `stopOnError` | Stop after the first failure; defaults to `false` (remaining steps still run). Set `true` to abort on the first error |
-| `observe` | `none`, `diff` (default) or `full`: the observation collected after the batch. Replaces `includeObservations`, which was removed; check `summary.ok` to react to failures |
+| `observe` | `none`, `diff` (default) or `full`: the observation collected after the batch. Check `summary.ok` to react to failures |
 | `batchTimeoutMs` | Overall deadline, 1000–30000 ms, checked between steps: the running step finishes with its own timeout, then the remaining steps are skipped (`summary.skipped`) and partial results come back. The CLI and the daemon wait for the deadline plus the slowest step |
 
 `ref` is shorthand for `a11yRef` in every target step (`click`, `type`, `wait_for`, `get_text`, `scroll_to_element`, `long_press`), for example `{"tool":"get_text","args":{"ref":"e14"}}`.
@@ -346,7 +346,7 @@ The core CLI is shared across consumers, so its help lists commands that this pr
 
 ### Browser-only
 
-These commands are gated off mobile sessions and fail cleanly with `MM_TOOL_NOT_SUPPORTED_ON_PLATFORM` (exit 6), for example `Tool "inspect" is not supported on ios platform`. They no longer reach the driver.
+These commands are gated off mobile sessions and fail cleanly with `MM_TOOL_NOT_SUPPORTED_ON_PLATFORM` (exit 6), for example `Tool "inspect" is not supported on ios platform`.
 
 | Command | Mobile behavior or alternative |
 | --- | --- |
