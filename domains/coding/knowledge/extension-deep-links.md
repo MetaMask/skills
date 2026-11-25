@@ -20,8 +20,8 @@ does not repeat them.
 A link reaches `parse()` (`shared/lib/deep-links/parse.ts`) three ways:
 
 - **Intercepted.** `app/scripts/lib/deep-links/deep-link-router.ts` catches top-level tab navigations to `DEEP_LINK_HOSTS` over http or https, up to `DEEP_LINK_MAX_LENGTH` (2,048 characters). A longer URL loads as an ordinary page. An unregistered path with `share=1` gets a QR page for Mobile instead, which opens no destination.
-- **Deferred.** The `referringLink` of the `deferred_deeplink` cookie on MetaMask's websites, read at install and parsed when onboarding completes, unless the cookie's own `createdAt` is more than two hours in the past. The route is looked up by path, but the signature is checked against the link's own origin, so a signed link stored under another host, or over http, is `invalid`.
-- **In-app.** `resolveTrustedDeepLinkHref` (`ui/helpers/utils/resolve-deep-link-href.ts`) resolves links in in-app content, such as the carousel, with no signature check and no interstitial. A new caller, including through `resolveCarouselHref`, needs documented Security approval, and the calling file has no Security owner to request it.
+- **Deferred.** The `referringLink` of the `deferred_deeplink` cookie on MetaMask's websites, read at install and parsed when onboarding completes, unless the cookie's own `createdAt` is more than two hours in the past. Its signature is checked the same way as an intercepted link's.
+- **In-app.** `resolveTrustedDeepLinkHref` (`ui/helpers/utils/resolve-deep-link-href.ts`) resolves links in in-app content, such as the carousel, with no signature check and no interstitial. A new caller, including through `resolveCarouselHref`, needs documented Security approval, and a calling file outside the deep-link security block has no Security owner to request it.
 
 `parse()` looks the route up by the lowercased path and returns `false` for an
 unknown one. Then, in order:
@@ -44,8 +44,9 @@ link is `invalid` at the router and `valid` on the page.
 
 A route handler that throws sends an intercepted link to the 404 page, drops a
 deferred link, and leaves an in-app link at its original URL. `Route`
-lowercases the pathname. In `DEBUG` builds `addRoute` throws when two routes
-claim one pathname, and production builds keep the later one without an error.
+lowercases the pathname. `addRoute` throws on a duplicate pathname only when
+`DEBUG` is set. Without it, the default in every build and test, the later
+route replaces the earlier one without an error.
 
 ## Readers Outside the Signature
 
@@ -56,7 +57,7 @@ parameter, signed or not. To these readers, a parameter left out of
 - the route's `getTitle`, which the interstitial page calls
 - the deep-link analytics event (`shared/lib/deep-links/metrics.ts`). For an intercepted link to an in-extension destination it fires before the interstitial decision, so a link the user never continues is still recorded. For a deferred link it fires when onboarding completes
 - the App Installed event, which records the whole referring link
-- the referral code (`shared/lib/deep-links/referral.ts`), which the router or the interstitial page adds to the extension page URL, outside the hash route and not in the route's query, and which the referral invite shows for the user to accept or decline. A deferred link that is `valid` and in-extension sets the code when onboarding completes. One that is not `valid` opens the interstitial page, which adds it if the user continues, unless an onboarding redirect is pending. A `valid` `redirectTo` link carries no code
+- the referral code (`shared/lib/deep-links/referral.ts`), which the router or the interstitial page adds to the extension page URL, outside the hash route and not in the route's query, and which the referral invite shows for the user to accept or decline. A deferred link that is `valid` and in-extension sets the code when onboarding completes. One that is not `valid` opens the interstitial page, which adds it if the user continues, unless an onboarding redirect is pending. A `redirectTo` link carries no code at any status
 - the Mobile QR page, and the deferred UTM selector
 
 Readers handle a repeated key differently: the analytics event keeps the last
@@ -70,7 +71,7 @@ to forward in its own handler.
 
 ## What a Valid Signature Pins
 
-- **Host.** Over HTTPS with no port, a signature verifies on every configured deep-link host, whichever one it was made for. A link signed for the canonical host also verifies on an alternate host at any scheme and port. On the canonical host, the scheme and port must match what was signed.
+- **Host.** A signature made for one configured deep-link host can verify on another, so it does not pin which host served the link.
 - **Parameters.** With `sig_params`, only the parameters it names, each with every value. Without it, every parameter except `sig`. A parameter added outside the list still verifies.
 - **Path.** It is bound to the path as written, so it cannot be replayed onto another route. The route lookup lowercases the path, the signature does not.
 - **Time.** `canonicalize` and `verify` check no expiry and no nonce, so a signed link stays valid. Changing a route's handler changes what every link already signed for that path does.

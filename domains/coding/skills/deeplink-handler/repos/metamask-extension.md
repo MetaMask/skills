@@ -52,7 +52,7 @@ router.** A mocked handler test is not evidence that the public URL works.
 - **Look a parameter up with a `Set`, a `Map` or `Object.hasOwn`, or check the result against the allowed values.** A bare lookup on `{}` resolves inherited keys, so `?param=constructor` returns a function and a `?? DEFAULT` fallback never fires. The negative test uses `constructor` or `__proto__`.
 - **A `redirectTo` destination leaves the extension**, so its origin, path and set of query keys are constants.
 - **`getTitle` receives every parameter of the original link, signed or not.** Return a constant.
-- **Check the pathname is not already registered, ignoring case.** Production builds replace the earlier route without an error.
+- **Check the pathname is not already registered, ignoring case.** Without `DEBUG` set, the default in every build and test, the later route replaces the earlier one without an error.
 - **Don't start the route file's name with `route`.** Its CODEOWNERS line names only that file, above the deep-link security block.
 
 `knowledge/extension-deep-links.md` covers how a link is processed, what a
