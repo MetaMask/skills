@@ -7,8 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0]
+
+### Uncategorized
+
+- docs(testing): point the pre-PR CV repeat at yarn test:view:repeat ([#300](https://github.com/MetaMask/skills/pull/300))
+- docs(testing): consolidate CV run commands and done-gates; add pre-PR --randomize repeat ([#290](https://github.com/MetaMask/skills/pull/290))
+- chore(recipe-setup): recommend mm-harness 0.96.44 ([#288](https://github.com/MetaMask/skills/pull/288))
+- docs(performance): defer heavy sections on the push transition via useScreenTransitionComplete ([#268](https://github.com/MetaMask/skills/pull/268))
+- chore(recipe-setup): recommend mm-harness 0.96.42 ([#280](https://github.com/MetaMask/skills/pull/280))
+- chore(recipe-setup): recommend mm-harness 0.96.40 ([#279](https://github.com/MetaMask/skills/pull/279))
+- docs(processes): correct the releasing guide ([#265](https://github.com/MetaMask/skills/pull/265))
+- Stop testing skills prompting unit tests for static styling ([#182](https://github.com/MetaMask/skills/pull/182))
+- chore(skills): recommend mm-harness 0.96.37 ([#273](https://github.com/MetaMask/skills/pull/273))
+- chore(skills): recommend mm-harness 0.96.35 ([#267](https://github.com/MetaMask/skills/pull/267))
+- docs(testing): add CV rules for writing a new test ([#269](https://github.com/MetaMask/skills/pull/269))
+- chore(skills): recommend mm-harness 0.96.34 ([#266](https://github.com/MetaMask/skills/pull/266))
+- chore: add first-pass domain CODEOWNERS ([#59](https://github.com/MetaMask/skills/pull/59))
+
 ### Added
 
+- feat(observability): add Spotlight skill for local Sentry events ([#294](https://github.com/MetaMask/skills/pull/294))
+- feat(review-pr): route UI changes to ui-development and make content-guidelines base ([#270](https://github.com/MetaMask/skills/pull/270))
+- feat(coding): add experimental component-structure skill ([#277](https://github.com/MetaMask/skills/pull/277))
+- feat(assets): add file-tickets script to epic-decomposer ([#291](https://github.com/MetaMask/skills/pull/291))
+- feat(assets): add md2adf script to epic-decomposer ([#287](https://github.com/MetaMask/skills/pull/287))
+- feat(perps-review-pr): block polling for stream-owned data and one-client Core APIs ([#289](https://github.com/MetaMask/skills/pull/289))
+- feat(assets): add experimental epic-decomposer skill ([#286](https://github.com/MetaMask/skills/pull/286))
+- feat(assets): update react-compiler-migration and make it team-agnostic ([#278](https://github.com/MetaMask/skills/pull/278))
+- feat(skills): add device-capability base skill ([#276](https://github.com/MetaMask/skills/pull/276))
+- feat(review-pr): add the va-mmcx-terminal overlay ([#282](https://github.com/MetaMask/skills/pull/282))
+- feat(recipe-cook): add the Terminal fix-bug checklist ([#281](https://github.com/MetaMask/skills/pull/281))
+- feat(assets): add dependency-bump-audit skill ([#275](https://github.com/MetaMask/skills/pull/275))
 - Add the `spotlight` skill for viewing Sentry events locally in the Spotlight browser UI. It is stable, so MetaMask Mobile installs it by default. The docs explain how to start it, query traces, and troubleshoot.
 - Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays.
 - Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
@@ -20,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees).
 - Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
 - Update `ui/content-guidelines`: periods depend on context, add a currency amounts section, name MetaMask Money and its access wording, and write "lockup" as one word. ([#257](https://github.com/MetaMask/skills/pull/257))
+
+### Fixed
+
+- fix(skills): narrow arbitrary-value ban and require MMDS manifest reads ([#302](https://github.com/MetaMask/skills/pull/302))
+- fix(recipe-cook): require Jira keys in PR bodies to be links ([#285](https://github.com/MetaMask/skills/pull/285))
+- fix(recipe-cook): gate Terminal step 3 on the doctor, not sandbox.json ([#283](https://github.com/MetaMask/skills/pull/283))
+- fix(recipe-cook): freeze a clean candidate before final CI and after proof in Mobile fix-bug ([#272](https://github.com/MetaMask/skills/pull/272))
 
 ## [0.4.0]
 
@@ -154,7 +191,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `metamask-skills` CLI with `sync`, `postinstall`, and `install` commands
 - Add repo inference, repo-local skills cache support, bundled package fallback, and `SKILLS_AUTO_UPDATE=1` handling for consumer repos
 
-[Unreleased]: https://github.com/MetaMask/skills/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MetaMask/skills/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MetaMask/skills/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MetaMask/skills/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MetaMask/skills/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MetaMask/skills/compare/v0.2.0...v0.3.0
