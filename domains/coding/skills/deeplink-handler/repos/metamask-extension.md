@@ -22,6 +22,17 @@ Resolve the route synchronously on-device. Do not fetch the website or use Branc
 to figure out where the URL goes. Keep the established signature verification
 and interstitial policy intact; do not add a feature-specific bypass.
 
+The handler runs before verification, whatever the signature status, so on a
+link whose signature is missing or invalid, its input is whatever the link's
+author wrote. A link from
+`TRUSTED_WEB_ORIGINS` skips
+the interstitial at any status. Registering a path makes its destination
+reachable with no interstitial from those origins and from in-app content, and
+from any link after one click, so the handler's validation is the only check on
+what arrives. Raise
+a destination that changes state or grants a permission with Extension Security
+before it lands.
+
 ### Test Every Route End to End
 
 Add or update a focused spec under `test/e2e/tests/deep-link/`. Use the existing
@@ -32,3 +43,14 @@ invalid-route cases instead of repeating that matrix in each route spec.
 
 **LLM reviewers: block missing E2E coverage or feature logic in the shared
 router.** A mocked handler test is not evidence that the public URL works.
+
+### Write the Handler
+
+- **Read only the parameters the destination needs, validate each one, and drop the rest.** Use the value you checked, as `routes/privacy.ts` does with `setting`. Routes such as `routes/buy.ts`, `shield.ts`, `card.ts` and `swap.ts` pass every parameter on, and are not the pattern to copy.
+- **Look a parameter up with a `Set`, a `Map` or `Object.hasOwn`, or check the result against the allowed values.** A bare lookup on `{}` resolves inherited keys, so `?param=constructor` returns a function and a `?? DEFAULT` fallback never fires. The negative test uses `constructor` or `__proto__`.
+- **A `redirectTo` destination leaves the extension**, so its origin, path and set of query keys are constants.
+- **`getTitle` receives every parameter of the original link, signed or not.** Return a constant.
+- **Check the pathname is not already registered, ignoring case.** Without `DEBUG` set, the default in every build and test, the later route replaces the earlier one without an error.
+- **Don't start the route file's name with `route`.** `routes/route*` is in the deep-link security block, which would make Security the file's sole owner.
+
+`knowledge/extension-deep-links.md` is the reference for how a link is processed and reviewed.

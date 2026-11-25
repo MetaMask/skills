@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `coding/knowledge/extension-deep-links.md`, covering how the Extension processes a deep link, what reads it outside the signature, what a signature pins, file ownership, review checks and boundary testing, and extend `deeplink-handler`'s Extension guide with how to write a handler.
 - Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
 - Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
 
