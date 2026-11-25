@@ -11,17 +11,15 @@ description: >
 # Extension Deep Links
 
 **Scope: MetaMask Extension only.** Mobile handles deep links through a
-different mechanism, covered by `deeplink-handler`'s Mobile guide. The rules
-for writing a route are in `deeplink-handler`'s Extension guide, and this file
-does not repeat them.
+different mechanism, covered by `deeplink-handler`'s Mobile guide.
 
 ## How a Link Is Processed
 
 A link reaches `parse()` (`shared/lib/deep-links/parse.ts`) three ways:
 
-- **Intercepted.** `app/scripts/lib/deep-links/deep-link-router.ts` catches top-level tab navigations to `DEEP_LINK_HOSTS` over http or https, up to `DEEP_LINK_MAX_LENGTH` (2,048 characters). A longer URL loads as an ordinary page. An unregistered path with `share=1` gets a QR page for Mobile instead, which opens no destination.
+- **Intercepted.** `app/scripts/lib/deep-links/deep-link-router.ts` catches top-level tab navigations to `DEEP_LINK_HOSTS` over http or https, up to `DEEP_LINK_MAX_LENGTH` (2,048 characters). A longer URL loads as an ordinary page.
 - **Deferred.** The `referringLink` of the `deferred_deeplink` cookie on MetaMask's websites, read at install and parsed when onboarding completes, unless the cookie's own `createdAt` is more than two hours in the past. Its signature is checked the same way as an intercepted link's.
-- **In-app.** `resolveTrustedDeepLinkHref` (`ui/helpers/utils/resolve-deep-link-href.ts`) resolves links in in-app content, such as the carousel, with no signature check and no interstitial. A new caller, including through `resolveCarouselHref`, needs documented Security approval, and a calling file outside the deep-link security block has no Security owner to request it.
+- **In-app.** `resolveTrustedDeepLinkHref` (`ui/helpers/utils/resolve-deep-link-href.ts`) resolves links in in-app content, such as the carousel, with no signature check and no interstitial. New in-app content uses ordinary routes instead, per `deeplink-handler`'s router and feature boundary.
 
 `parse()` looks the route up by the lowercased path and returns `false` for an
 unknown one. Then, in order:
@@ -29,7 +27,7 @@ unknown one. Then, in order:
 | Step | What it does |
 |------|--------------|
 | 1. `canonicalize(url)` | Builds the signed string. An alternate deep-link host becomes `https://` plus the canonical host, dropping the link's scheme and port. The canonical host keeps the link's own scheme and port. With `sig_params`, keeps every value of each parameter it names, adds `sig_params` itself, and sorts. Without it, keeps every parameter except `sig` |
-| 2. Route handler | Receives the canonical parameters minus `sig_params`. On a `missing` or `invalid` link every one of them is unsigned, and the handler cannot tell |
+| 2. Route handler | Receives the canonical parameters minus `sig_params` |
 | 3. `verify(url)` | Checks `sig` against the canonical string locally (ECDSA, P-256, SHA-256). If that fails and the link is HTTPS on a configured deep-link host with no port, retries the same signed path and query under each other configured host |
 
 A `valid` link gets the "Redirecting to MetaMask" interstitial, and any other
@@ -43,10 +41,7 @@ host, so the router and the page can disagree. A signed `http://link.metamask.io
 link is `invalid` at the router and `valid` on the page.
 
 A route handler that throws sends an intercepted link to the 404 page, drops a
-deferred link, and leaves an in-app link at its original URL. `Route`
-lowercases the pathname. `addRoute` throws on a duplicate pathname only when
-`DEBUG` is set. Without it, the default in every build and test, the later
-route replaces the earlier one without an error.
+deferred link, and leaves an in-app link at its original URL.
 
 ## Readers Outside the Signature
 
@@ -71,9 +66,7 @@ to forward in its own handler.
 
 ## What a Valid Signature Pins
 
-- **Host.** A signature made for one configured deep-link host can verify on another, so it does not pin which host served the link.
-- **Parameters.** With `sig_params`, only the parameters it names, each with every value. Without it, every parameter except `sig`. A parameter added outside the list still verifies.
-- **Path.** It is bound to the path as written, so it cannot be replayed onto another route. The route lookup lowercases the path, the signature does not.
+- **Path.** It is bound to the path as written, so it cannot be replayed onto another route.
 - **Time.** `canonicalize` and `verify` check no expiry and no nonce, so a signed link stays valid. Changing a route's handler changes what every link already signed for that path does.
 
 ## Who Owns What
@@ -87,9 +80,8 @@ them unowned.
 
 No other deep-link file has a Security owner, including `canonicalize.ts`,
 `common.ts`, `helpers.ts`, `referral.ts` and `routes/index.ts`. Of the route
-definition files, only `buy*`, `perps.ts` and `musd.ts` have an owner. Raise any
-change that affects what verifies, what skips the interstitial or what is
-reachable with Extension Security, since CODEOWNERS will not request it unless the change touches a file it owns.
+definition files, only `buy*`, `perps.ts` and `musd.ts` have an owner. CODEOWNERS
+requests Security only for a change that touches a file in the block.
 
 For a route's CODEOWNERS entry, name only the route file, above the deep-link
 security block, and never use a pattern that matches a Security path. The last
@@ -97,8 +89,7 @@ matching line wins.
 
 Some changes request Security without looking like it: a new file under
 `shared/lib/deep-links/` whose name starts with `parse`, `verify`, `utils` or
-`security-policy`, a route file whose name starts with `route`, any edit to the
-root `AGENTS.md` or to `.github/CODEOWNERS` (a new route's entry included), and
+`security-policy`, any edit to the root `AGENTS.md` or to `.github/CODEOWNERS` (a new route's entry included), and
 a destination constant re-exported from `routes/route.ts`.
 Importing the constant directly does not.
 
@@ -110,11 +101,8 @@ or a pull request that says a parameter is signed.
 | # | Check | Look for |
 |---|-------|----------|
 | 1 | The signature still binds the `sig_params` list | `canonicalize` adds the list to the signed string, so rewriting it fails verification. A canonicalization change keeps that |
-| 2 | "Canonical" is not read as "validated" | "The handler receives canonical parameters only" bounds nothing unless the link is `valid`. From a trusted web origin a link skips the interstitial at any status, and an in-app link never shows one |
-| 3 | No handler or destination gets more than the canonical parameters | Reads of `url.searchParams`, `window.location`, or a value passed past `parse`. The readers outside the signature are the existing exceptions |
-| 4 | Attribution is forwarded only from what the handler received | `utm_*`, `source` or `attributionId` written into a destination carry whatever the handler received, unsigned on an unsigned link |
-| 5 | A value is traced past the handoff | A value written into a hash query and read back later is whatever the hash holds at that moment |
-| 6 | The destination is a feature, not a page for the link | A page named for the link is also where mount-time actions sit, so read it under 3 and 5 |
+| 2 | No handler or destination gets more than the canonical parameters | Reads of `url.searchParams`, `window.location`, or a value passed past `parse`. The readers outside the signature are the existing exceptions |
+| 3 | A value is traced past the handoff | A value written into a hash query and read back later, including by mount-time actions on the destination page, is whatever the hash holds at that moment |
 
 ## Testing the Signature Boundary
 
