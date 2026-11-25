@@ -80,6 +80,8 @@ Mobile or Extension, or deciding whether a flow needs a deep link at all.
 
 For external links, apply the three requirements above and consult both repo
 guides: [Mobile](repos/metamask-mobile.md) and [Extension](repos/metamask-extension.md).
+The security model, what a signature covers, and the checks Security reviews
+against are in `knowledge/deep-links.md`.
 
 1. Identify the public URL path and any existing aliases. Register each
 	 supported path in the client's deep-link router and wire it to a handler.

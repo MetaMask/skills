@@ -22,6 +22,13 @@ Resolve the route synchronously on-device. Do not fetch the website or use Branc
 to figure out where the URL goes. Keep the established signature verification
 and interstitial policy intact; do not add a feature-specific bypass.
 
+The handler runs whatever the signature status, so on an unsigned link its input
+is whatever the link's author wrote. Registering a path also makes its
+destination reachable with no interstitial from `TRUSTED_WEB_ORIGINS`. Raise a
+destination that changes state or grants a permission with Extension Security
+before it lands. `knowledge/deep-links.md` covers how a link is processed, who
+owns which files, and the review checks.
+
 ### Test Every Route End to End
 
 Add or update a focused spec under `test/e2e/tests/deep-link/`. Use the existing
