@@ -1,14 +1,17 @@
 ---
-name: deep-links
+name: extension-deep-links
 domain: coding
 description: >
-  MetaMask deep links: how the Extension processes a link and what its
+  MetaMask Extension deep links: how a link is processed and what its
   signature covers, handler rules, route ownership, and the checks a
-  deep-link change is reviewed against. Reference for deeplink-handler and
-  for any review of a route or a link parameter.
+  deep-link change is reviewed against. Reference for deeplink-handler's
+  Extension guide and for any review of an Extension route or link parameter.
 ---
 
-# Deep Links
+# Extension Deep Links
+
+**Scope: MetaMask Extension only.** Mobile handles deep links through a
+different mechanism, covered by `deeplink-handler`'s Mobile guide.
 
 `deeplink-handler` states the rules: client parity, the router boundary,
 end-to-end coverage, and keeping validation, signatures and the interstitial
@@ -29,7 +32,7 @@ deep-link change comes down to which part. The decision record is
 - **An allowlist is a `Set`, a `Map` or `Object.create(null)`, never `{}`.** A lookup against `{}` resolves inherited keys, so `?param=constructor` returns a function and the `?? DEFAULT` fallback never fires. The negative test uses `constructor` or `__proto__`, since an arbitrary unknown key is `undefined` on a broken implementation too.
 - **A `redirectTo` destination leaves the extension**, so its origin and path are constants. Copying parameters into its query forwards whatever the handler received.
 
-## Extension: How a Link Is Processed
+## How a Link Is Processed
 
 A link reaches `parse()` (`shared/lib/deep-links/parse.ts`) from one of two places:
 
@@ -66,7 +69,7 @@ Three mechanisms are deliberately absent:
 - **No route declares parameters that must be signed.** A route that forwards attribution decides what to forward in its own handler.
 - **`ref` is not ignored when `sig_params` leaves it out.** Keeping the code any other way costs the referral program. Every sharer's code would need its own link signed in the admin interface, or unsigned links would show every recipient the untrusted interstitial wherever one is shown.
 
-## Extension: Routes and Ownership
+## Routes and Ownership
 
 A route is a `Route` in `shared/lib/deep-links/routes/`:
 
@@ -87,7 +90,7 @@ Two changes reach Security-owned files without looking like it: a route file
 whose name starts with `route`, and a destination constant that
 `routes/route.ts` does not already export.
 
-## Extension: Review Checks
+## Review Checks
 
 Apply these to any change to `shared/lib/deep-links/`, a new or changed route,
 or a pull request that says a parameter is signed.
@@ -110,7 +113,7 @@ this way:
 - **A parameter added after signing** looks the same as a signed one to an original-URL reader.
 - **Path binding.** A signature is bound to the signing origin and the path as written, so it cannot be replayed onto another route. The route lookup lowercases the path, the signature does not.
 
-## Extension: Testing the Signature Boundary
+## Testing the Signature Boundary
 
 - The suite `shared/lib/deep-links/signature-boundary.test.ts` signs with a real P-256 key and asserts what a handler receives, what `valid` covers and when `verify()` retries.
 - The suite `verify.test.ts` mocks the key, `parse.test.ts` mocks `verify`, and a route's own tests call its `handler` directly, so none reaches the boundary. The end-to-end specs sign through `helpers.ts`.

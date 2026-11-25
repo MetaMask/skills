@@ -26,7 +26,7 @@ The handler runs whatever the signature status, so on an unsigned link its input
 is whatever the link's author wrote. Registering a path also makes its
 destination reachable with no interstitial from `TRUSTED_WEB_ORIGINS`. Raise a
 destination that changes state or grants a permission with Extension Security
-before it lands. `knowledge/deep-links.md` covers how a link is processed, who
+before it lands. `knowledge/extension-deep-links.md` covers how a link is processed, who
 owns which files, and the review checks.
 
 ### Test Every Route End to End
