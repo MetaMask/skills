@@ -290,7 +290,7 @@ yarn mm cdp Runtime.evaluate '{"expression":"1+1","returnByValue":true}' --timeo
 | `--app-id <id>` | Use this app identity for this call only (`io.metamask.MetaMask` on iOS, `io.metamask` on Android) |
 | `--target hermes\|android-webview` | `hermes` (default): the React Native runtime. `android-webview`: a debuggable in-app WebView (Android only, not validated) |
 
-`cdp` uses the Metro port of the session: `mm launch --metro-port <port>`, else `HERMES_METRO_PORT`, else 8081. The session keeps one Hermes connection and reuses it, so after the first call a `Runtime.evaluate` takes single-digit milliseconds (0.15.0 run, `1+1` x10: Android p50 9 ms, first call 90 ms; iOS 1–6 ms). A call with `--metro-port` or `--app-id` uses a one-shot connection and leaves the session's connection alone. A failure names the port: `MM_CDP_FAILED` (exit 1), `[HERMES_CONNECTION_FAILED] Hermes CDP connection failed: fetch failed (Metro port 8099)`.
+`cdp` uses the Metro port of the session: the launch `--metro-port <port>` or `MM_METRO_PORT`, else `HERMES_METRO_PORT`, else 8081. The session keeps one Hermes connection and reuses it, so after the first call a `Runtime.evaluate` takes single-digit milliseconds (0.15.0 run, `1+1` x10: Android p50 9 ms, first call 90 ms; iOS 1–6 ms). A call with `--metro-port` or `--app-id` uses a one-shot connection and leaves the session's connection alone. A failure names the port: `MM_CDP_FAILED` (exit 1), `[HERMES_CONNECTION_FAILED] Hermes CDP connection failed: fetch failed (Metro port 8099)`.
 
 ### `yarn mm hermes-targets [flags]`
 

@@ -248,7 +248,7 @@ If Metro is not reachable on the given port, launch fails with `MM_INVALID_CONFI
 
 Node 20 may require `NODE_OPTIONS="--experimental-websocket"` for `mm cdp`; Node 22+ includes WebSocket support.
 
-`mm cdp` evaluates JavaScript in the Hermes runtime through Metro's inspector proxy. It uses the Metro port the session was launched with (`--metro-port`, else `HERMES_METRO_PORT`, else 8081), so no flag is needed after `mm launch --metro-port <port>`:
+`mm cdp` evaluates JavaScript in the Hermes runtime through Metro's inspector proxy. It uses the Metro port the session was launched with (`--metro-port` or `MM_METRO_PORT`), so no flag is needed on each call:
 
 ```bash
 yarn mm cdp Runtime.evaluate '{"expression":"JSON.stringify(globalThis.__DEV__)"}'
