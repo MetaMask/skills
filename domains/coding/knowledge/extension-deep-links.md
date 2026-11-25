@@ -26,15 +26,13 @@ unknown one. Then, in order:
 
 | Step | What it does |
 |------|--------------|
-| 1. `canonicalize(url)` | Builds the signed string. An alternate deep-link host becomes `https://` plus the canonical host, dropping the link's scheme and port. The canonical host keeps the link's own scheme and port. With `sig_params`, keeps every value of each parameter it names, adds `sig_params` itself, and sorts. Without it, keeps every parameter except `sig` |
+| 1. `canonicalize(url)` | Builds the signed string. With `sig_params`, keeps each parameter it names, with every value, plus `sig_params` itself. Without it, keeps every parameter except `sig`. The host and scheme rules are in `canonicalize.ts` |
 | 2. Route handler | Receives the canonical parameters minus `sig_params` |
-| 3. `verify(url)` | Checks `sig` against the canonical string locally (ECDSA, P-256, SHA-256). If that fails and the link is HTTPS on a configured deep-link host with no port, retries the same signed path and query under each other configured host |
+| 3. `verify(url)` | Checks `sig` against the canonical string. It can retry under the other configured deep-link hosts, under conditions set in `verify.ts` |
 
-A `valid` link gets the "Redirecting to MetaMask" interstitial, and any other
-status gets "Proceed with caution". A deferred link skips the interstitial only
-when `valid`. An intercepted link skips it from a trusted web origin at any
-status, or when `valid` and either onboarding is known to be incomplete or the
-user turned the warning off. An unknown onboarding state counts as complete.
+`shouldShowDeepLinkInterstitial` in `shared/lib/deep-links/security-policy.ts`
+decides whether an intercepted or deferred link shows the interstitial. It
+treats an unknown onboarding state as complete.
 
 The interstitial page parses the link again under `https://` plus the canonical
 host, so the router and the page can disagree. A signed `http://link.metamask.io`
@@ -71,26 +69,21 @@ to forward in its own handler.
 
 ## Who Owns What
 
-Extension Security is the sole owner of the files in the deep-link security
-block of `.github/CODEOWNERS`: the router and its test, `parse*`, `verify*`,
-`utils*`, `security-policy*` and `routes/route*` under `shared/lib/deep-links/`,
-`resolve-deep-link-href*`, `ui/pages/deep-link/` and the root `AGENTS.md`. Snapshot and
-story files are the exception: the exclusion section after the block leaves
-them unowned.
+Extension Security is the sole owner of the deep-link security block of
+`.github/CODEOWNERS`. Snapshot and story files are the exception: the exclusion
+section after the block leaves them unowned.
 
 No other deep-link file has a Security owner, including `canonicalize.ts`,
-`common.ts`, `helpers.ts`, `referral.ts` and `routes/index.ts`. Of the route
-definition files, only `buy*`, `perps.ts` and `musd.ts` have an owner. CODEOWNERS
+`common.ts`, `helpers.ts`, `referral.ts` and `routes/index.ts`. CODEOWNERS
 requests Security only for a change that touches a file in the block.
 
 For a route's CODEOWNERS entry, name only the route file, above the deep-link
 security block, and never use a pattern that matches a Security path. The last
 matching line wins.
 
-Some changes request Security without looking like it: a new file under
-`shared/lib/deep-links/` whose name starts with `parse`, `verify`, `utils` or
-`security-policy`, any edit to the root `AGENTS.md` or to `.github/CODEOWNERS` (a new route's entry included), and
-a destination constant re-exported from `routes/route.ts`.
+The block matches by filename prefix, so a new file under
+`shared/lib/deep-links/` that matches one of its patterns requests Security,
+and so does a destination constant re-exported from `routes/route.ts`.
 Importing the constant directly does not.
 
 ## Review Checks

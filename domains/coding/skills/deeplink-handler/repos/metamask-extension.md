@@ -25,7 +25,7 @@ and interstitial policy intact; do not add a feature-specific bypass.
 The handler runs before verification, whatever the signature status, so on a
 link whose signature is missing or invalid, its input is whatever the link's
 author wrote. A link from
-`TRUSTED_WEB_ORIGINS` (`https://metamask.io`, `https://app.metamask.io`) skips
+`TRUSTED_WEB_ORIGINS` skips
 the interstitial at any status. Registering a path makes its destination
 reachable with no interstitial from those origins and from in-app content, and
 from any link after one click, so the handler's validation is the only check on
