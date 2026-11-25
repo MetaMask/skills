@@ -21,6 +21,8 @@ Phase 6 only, after the user approves the plan and says to file.
 
 ## Steps
 
+`node <installed-skill>/scripts/file-tickets.mjs plan.json` runs steps 1, 3 and 5, and step 2 only when it creates the epic (a reused `epic.key` is not updated). It prints every request and sends nothing until you add `--apply` (credentials from `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`), and it always drops `ai-agent`. It reads each `md` file only from inside the plan folder. A `<id>` placeholder is filled in only when that ticket is already filed (a ticket's `blockedBy` tickets always are), and no description is updated after filing, so steps 4 and 6 stay manual. Its header lists the `plan.json` fields it reads.
+
 1. **Dry run.** For the epic and each child, show: summary, labels, parent, Blocks edges, and the first lines of the description. Confirm the count matches `plan.json`. Write nothing.
 2. **Epic.** Create it (type Epic) from `epic.md`, or update the description of the epic the user gave you.
 3. **Children.** Create each ticket (type Task) with `parent` = the epic key, its labels and Release Number. Create in wave order so blockers get keys first, and record each key in `plan.json` as you go, so a failed run can resume without duplicates.
@@ -31,7 +33,7 @@ Phase 6 only, after the user approves the plan and says to file.
 
 ## Description format
 
-Jira Cloud descriptions are Atlassian Document Format (ADF). Convert the ticket markdown to ADF, keeping headings, tables, fenced code, inline code, links, bold and quote panels. Keep the markdown as the source of truth in `tickets/` so tickets can be regenerated. Check one filed ticket in the browser before filing the rest: tables and links must render.
+Jira Cloud descriptions are Atlassian Document Format (ADF). Convert the ticket markdown to ADF, keeping headings, tables, fenced code, inline code, links, bold and quote panels. `node <installed-skill>/scripts/md2adf.mjs tickets/<id>.md` does this and prints the ADF JSON. Keep the markdown as the source of truth in `tickets/` so tickets can be regenerated. Check one filed ticket in the browser before filing the rest: tables and links must render.
 
 Descriptions are limited to 32,767 characters of ADF. A ticket that comes near that is too big; split it.
 
