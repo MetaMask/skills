@@ -133,7 +133,7 @@ The locally installed core CLI parser exposes these launch flags that are meanin
 | `--metro-port <port>` | Attach to a running Metro bundler on the given port. Equivalent to `MM_METRO_PORT`; the flag wins when both are set |
 | `--force` | Replace an existing active session |
 
-The `--goal` and `--flow-tags` launch flags were removed in `@metamask/client-mcp-core` 0.13.0. Session metadata is written to `test-artifacts/<sessionId>/session.json`. `MM_ARTIFACTS_DIR=<dir>` moves it to `<dir>/<sessionId>/session.json`: the daemon reads the variable when it starts, so set it before `mm launch` starts the daemon. On mobile it moves `session.json` only — `mm screenshot` keeps writing into device-mcp's own temporary directory.
+`mm launch` has no `--goal` or `--flow-tags` flag. Session metadata is written to `test-artifacts/<sessionId>/session.json`. `MM_ARTIFACTS_DIR=<dir>` moves it to `<dir>/<sessionId>/session.json`: the daemon reads the variable when it starts, so set it before `mm launch` starts the daemon. On mobile it moves `session.json` only — `mm screenshot` keeps writing into device-mcp's own temporary directory.
 
 Launch timeout is 120 seconds. The project CLI does not build MetaMask. Install the intended app on the device before launching, or (iOS) pass `--app-bundle <path>` to install a specific build.
 
@@ -200,7 +200,7 @@ yarn mm click --testid log-in-button --dismiss-keyboard
 
 On mobile a `click` result is `{"clicked":true,"target":"testId:…"}`. With an observation (any level except `--observe none`, and when there is an earlier screen to compare with) it also has `screenChanged`: `false` means the screen looks the same as before the click.
 
-Before the tap, iOS and Android (`@metamask/device-mcp` 0.9.0) hit-test the tap point. When another element covers it (keyboard, sheet, overlay, the Expo "Tools" button of dev builds) nothing is tapped and the click fails with `MM_TARGET_OBSCURED` (exit 4); the message names the cover, for example `… covered at (937, 1903) by the keyboard: android.widget.TextView`. A target outside the screen fails with `MM_TARGET_NOT_VISIBLE`. `screenChanged: true` does not prove navigation (press feedback counts as a change): check the new screen's test ID, and on Android `mm wait-for` it after a first visit to a slow tab.
+Before the tap, iOS and Android hit-test the tap point. When another element covers it (keyboard, sheet, overlay, the Expo "Tools" button of dev builds) nothing is tapped and the click fails with `MM_TARGET_OBSCURED` (exit 4); the message names the cover, for example `… covered at (937, 1903) by the keyboard: android.widget.TextView`. A target outside the screen fails with `MM_TARGET_NOT_VISIBLE`. `screenChanged: true` does not prove navigation (press feedback counts as a change): check the new screen's test ID, and on Android `mm wait-for` it after a first visit to a slow tab.
 
 `yarn mm dismiss-keyboard` closes the keyboard and returns `{"dismissed":true}`. On Android it checks that the keyboard is gone and fails with `MM_DEVICE_ACTION_FAILED` (exit 6) when it is still shown.
 
@@ -242,7 +242,7 @@ Failures carry no observations: `MM_TARGET_NOT_VISIBLE` (found, still outside th
 | `yarn mm get-state` | Return a partial app-state snapshot: `isLoaded`, `extensionId` (the bundle ID / package) and `source: "stub"`. There is no `currentScreen`, and wallet fields (unlock, account, network, balance) are omitted, not guessed. Identify the screen from `describe-screen` test IDs (for example `login-password-input` = unlock, `wallet-screen` = wallet home) |
 | `yarn mm get-context` | Report the static prod environment and available mobile capabilities |
 
-`visible` follows the tap rule on both platforms: `true` only when the element's frame overlaps the screen with a positive area. Android gives off-screen rows a zero height (`(0, 6718 1080x0)`), so they are `visible: false` (51 of 144 test IDs on the Android wallet home). Call `scroll-to-element` before you tap one.
+`visible` follows the tap rule on both platforms: `true` only when the element's frame overlaps the screen with a positive area. Android gives off-screen rows a zero height, so they are `visible: false`. Call `scroll-to-element` before you tap one.
 
 Mutating tools (`click`, `type`, ...) and `run-steps` return observations with fresh references, as a compact diff from the prior observation by default. Reads, discovery commands and `cdp` return no observation. Use `describe-screen` whenever a complete tree or refreshed baseline is needed.
 
@@ -290,7 +290,7 @@ yarn mm cdp Runtime.evaluate '{"expression":"1+1","returnByValue":true}' --timeo
 | `--app-id <id>` | Use this app identity for this call only (`io.metamask.MetaMask` on iOS, `io.metamask` on Android) |
 | `--target hermes\|android-webview` | `hermes` (default): the React Native runtime. `android-webview`: a debuggable in-app WebView (Android only, not validated) |
 
-`cdp` uses the Metro port of the session: the launch `--metro-port <port>` or `MM_METRO_PORT`, else `HERMES_METRO_PORT`, else 8081. The session keeps one Hermes connection and reuses it, so after the first call a `Runtime.evaluate` takes single-digit milliseconds (0.15.0 run, `1+1` x10: Android p50 9 ms, first call 90 ms; iOS 1–6 ms). A call with `--metro-port` or `--app-id` uses a one-shot connection and leaves the session's connection alone. A failure names the port: `MM_CDP_FAILED` (exit 1), `[HERMES_CONNECTION_FAILED] Hermes CDP connection failed: fetch failed (Metro port 8099)`.
+`cdp` uses the Metro port of the session: the launch `--metro-port <port>` or `MM_METRO_PORT`, else `HERMES_METRO_PORT`, else 8081. The session keeps one Hermes connection: the first call connects, so it can take a bit longer, and later calls reuse it. A call with `--metro-port` or `--app-id` uses a one-shot connection and leaves the session's connection alone. A failure names the port: `MM_CDP_FAILED` (exit 1), `[HERMES_CONNECTION_FAILED] Hermes CDP connection failed: fetch failed (Metro port 8099)`.
 
 ### `yarn mm hermes-targets [flags]`
 
