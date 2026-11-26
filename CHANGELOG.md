@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `testing/visual-testing` for `@metamask/client-mcp-core` 0.15.0. Add `mm events mark`, `mm logs` and `mm network` with a per-flow recipe in place of `console.error` hooks and CDP network capture, `mm cdp --target sw` and `--fresh`, iframe refs and `--frame`, `mm screenshot --selector`, mock-network request bodies and service-worker, offscreen and snap matching, the hidden-checkbox `clickedLabel` click, the `ref` shorthand in `run-steps`, and the one timeout budget with `MM_QUEUE_TIMEOUT`. ([#297](https://github.com/MetaMask/skills/pull/297))
+
 ## [0.5.0]
 
 ### Added
