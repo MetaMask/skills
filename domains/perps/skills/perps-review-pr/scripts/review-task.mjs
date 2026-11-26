@@ -108,6 +108,8 @@ function start() {
   }
   record.files = [...now.keys()].sort();
   materialize(dir, record);
+  record.checklist = 'CHECKLIST.md';
+  record.rows = rowsOf(checklistText()).length;
   fs.writeFileSync(path.join(dir, 'review.json'), `${JSON.stringify(record, null, 2)}\n`);
   report(dir, record, 'Started');
 }
@@ -129,24 +131,24 @@ function ledgerGaps(text) {
 
 // mm-harness owns the task and its marks. Without it the checklist is a plain file.
 function materialize(dir, record) {
-  const rows = checklistText();
+  let number = 0;
+  const rows = checklistText().replace(/^- \[ \] /gm, () => `- [ ] ${++number}. `);
   fs.writeFileSync(path.join(dir, 'artifacts/review-ledger.md'), `# Review ledger\n\n${rowsOf(rows).map((title, index) => `## ${index + 1}. ${title}\n\nOutcome:\n`).join('\n')}`);
   if (run('mm-harness', ['--version']).status === 0) {
     const templates = fs.mkdtempSync(path.join(os.tmpdir(), 'review-template-'));
     fs.mkdirSync(path.join(templates, 'review-pr'));
-    fs.writeFileSync(path.join(templates, 'review-pr/default.md'), `---\nplatforms: [mobile, extension, core, terminal, web-dapp, cli]\ndescription: Static review with the installed team checklist.\n---\n\n# Static review\n\n## Review\n\n- [ ] 1. Run the review checklist\n- [ ] 2. Finish the review\n`);
+    fs.writeFileSync(path.join(templates, 'review-pr/default.md'), `---\nplatforms: [mobile, extension, core, terminal, web-dapp, cli]\ndescription: Static review with the installed team checklist.\n---\n\n# Static review\n\n${rows}`);
     const init = run('mm-harness', ['task', 'init', dir, '--flow', 'review-pr', '--template', 'review-pr/default', '--dir', templates, '--title', `Review ${record.pr ? `PR ${record.pr}` : record.target} r${record.round}`, '--task-text', `Static review of ${record.forkPoint}..${record.head}`]);
     fs.rmSync(templates, { recursive: true, force: true });
     const mark = path.resolve(dir, 'mark');
-    if (init.status === 0 && run(mark, ['start']).status === 0 && run(mark, ['sub', 'start', checklistId, '--step', '1', '--from', path.relative(root, skillFile)]).status === 0) {
+    if (init.status === 0 && run(mark, ['start']).status === 0) {
       record.marks = true;
       return;
     }
     console.error(`review-task: mm-harness could not create the task, using a plain checklist: ${(init.stderr || init.stdout).trim().split('\n').filter(line => !/update available|→ .* available/.test(line)).at(-1)}`);
   }
   record.marks = false;
-  let number = 0;
-  fs.writeFileSync(path.join(dir, 'CHECKLIST.md'), rows.replace(/^- \[ \] /gm, () => `- [ ] ${++number}. `));
+  fs.writeFileSync(path.join(dir, 'CHECKLIST.md'), rows);
 }
 
 function report(dir, record, verb) {
@@ -157,7 +159,7 @@ function report(dir, record, verb) {
     `review: git diff ${record.forkPoint} ${record.head} (${record.forkPointKind}, ${record.files.length} files)`,
     ...(record.mode === 'warm' ? [`since ${record.previous}: ${record.changedFiles.length} files, ${dir}/inputs/since-last.diff`] : []),
     ...(record.previous ? [`earlier round: ${path.join(path.dirname(dir), record.previous)}/artifacts`] : []),
-    record.marks ? `checklist: ${dir}/subtasks/${checklistId}.md; after each row: ${dir}/mark sub ${checklistId} <row>` : `checklist: ${dir}/CHECKLIST.md; tick each row`,
+    record.marks ? `checklist: ${dir}/CHECKLIST.md; after each row: ${dir}/mark <row>` : `checklist: ${dir}/CHECKLIST.md; tick each row`,
     `ledger: ${dir}/artifacts/review-ledger.md; each Outcome is PASS, FINDING, NOT_APPLICABLE or NOT_CHECKED, then the evidence. A later row may correct an earlier one.`,
     ...(record.marks ? ['watch: mm-harness status --watch'] : []),
     `finish: node ${self} finish ${dir}`,
@@ -178,15 +180,13 @@ function finish() {
   if (body.match(/^COMMIT: ([0-9a-f]{40})\s*$/m)?.[1] !== record.head) fail(`review.md must name COMMIT: ${record.head}`);
   const comments = readJson(artifact('line-comments.json'));
   if (comments.recommendation !== undefined && comments.recommendation !== verdict) fail(`line-comments.json recommends ${comments.recommendation}, review.md says ${verdict}`);
-  const checklist = record.marks ? path.join(dir, 'subtasks', `${checklistId}.md`) : path.join(dir, 'CHECKLIST.md');
+  const checklist = path.join(dir, 'CHECKLIST.md');
   const open = (fs.readFileSync(checklist, 'utf8').match(/^- \[ \] /gm) ?? []).length;
   if (open) fail(`${open} rows are still open in ${checklist}`);
   if (record.marks) {
     const mark = path.resolve(dir, 'mark');
-    for (const args of [['sub', checklistId, 'complete', '--report', 'artifacts/review.md'], ['complete', '--mark-last']]) {
-      const result = run(mark, args);
-      if (result.status !== 0) fail((result.stderr || result.stdout).trim());
-    }
+    const result = run(mark, ['complete', '--mark-last']);
+    if (result.status !== 0) fail((result.stderr || result.stdout).trim());
   }
   fs.writeFileSync(file, `${JSON.stringify({ ...record, verdict, finishedAt: new Date().toISOString() }, null, 2)}\n`);
   console.log(`Finished r${record.round}: ${verdict}. Nothing was posted.`);
