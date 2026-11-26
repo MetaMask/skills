@@ -27,7 +27,7 @@ Apply these Mobile-specific families in addition to the shared checks. Compare c
 - [ ] Mobile Reference Paths
   Mobile UI constants live in `app/components/UI/Perps/constants/perpsConfig.ts`. See references/mobile.md#mobile-reference-paths
 - [ ] Run the mobile-testing skill
-  Run `domains/testing/skills/mobile-testing` by name for Mobile application behavior or test changes. Use its placement reference to inspect coverage and the applicable unit, component-view or integration reference when tests change. Record NOT_CHECKED if the owning skill or required client guidance is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
+  Run the installed `mms-mobile-testing` skill by name (`domains/testing/skills/mobile-testing` in a MetaMask/skills checkout) for Mobile application behavior or test changes. Use its placement reference to inspect coverage and the applicable unit, component-view or integration reference when tests change. Record NOT_CHECKED if the owning skill or required client guidance is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
 - [ ] Exercise the real order flow in tests
   Prevents: Order flows tested with everything mocked. See references/mobile.md#mobile-test-layers
 
