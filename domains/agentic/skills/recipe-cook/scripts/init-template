@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: init-template --task-kind dev|fix-bug|review-pr|qa [--platform mobile|extension|core] [--slug slug] [--task-file path] [--task-text text] [--acceptance criterion]... [--task-dir path] [--template ID] [--domain name] [--ticket id] [--source-ref ref] [--title text] [--plan path --plan-sha256 hex] [--ci-command cmd] [--prepare] [--harness-choice 1]
+Usage: init-template --task-kind dev|fix-bug|review-pr|qa [--platform mobile|extension|core|terminal] [--slug slug] [--task-file path] [--task-text text] [--acceptance criterion]... [--task-dir path] [--template ID] [--domain name] [--ticket id] [--source-ref ref] [--title text] [--plan path --plan-sha256 hex] [--ci-command cmd] [--prepare] [--harness-choice 1]
        init-template --resume-task-dir path
 
 Creates a task directory with TASK.md (the task document: title, ticket, source,
@@ -120,13 +120,13 @@ fi
 
 if [ -z "$platform" ]; then
   platform="$("$detect_platform")" || {
-    echo "init-template: pass --platform mobile|extension|core (auto-detect failed)" >&2
+    echo "init-template: pass --platform mobile|extension|core|terminal (auto-detect failed)" >&2
     exit 2
   }
 fi
 
 case "$task_kind" in dev|fix-bug|review-pr|qa) ;; *) echo "--task-kind must be dev, fix-bug, review-pr, or qa" >&2; exit 2 ;; esac
-case "$platform" in mobile|extension|core) ;; *) echo "--platform must be mobile, extension, or core" >&2; exit 2 ;; esac
+case "$platform" in mobile|extension|core|terminal) ;; *) echo "--platform must be mobile, extension, core, or terminal" >&2; exit 2 ;; esac
 case "$harness_choice" in ""|1) ;; *) echo "--harness-choice must be 1" >&2; exit 2 ;; esac
 if { [ "$task_kind" = "review-pr" ] || [ "$task_kind" = "qa" ]; } && [ "$prepare" = "true" ]; then
   echo "$task_kind must materialize without --prepare; freeze scope before runtime preparation" >&2
