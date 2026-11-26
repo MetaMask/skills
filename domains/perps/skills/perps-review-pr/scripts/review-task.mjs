@@ -134,7 +134,7 @@ function materialize(dir, record) {
   if (run('mm-harness', ['--version']).status === 0) {
     const templates = fs.mkdtempSync(path.join(os.tmpdir(), 'review-template-'));
     fs.mkdirSync(path.join(templates, 'review-pr'));
-    fs.writeFileSync(path.join(templates, 'review-pr/default.md'), `---\nplatforms: [mobile, extension, core, web-dapp, cli]\ndescription: Static review with the installed team checklist.\n---\n\n# Static review\n\n## Review\n\n- [ ] 1. Run the review checklist\n- [ ] 2. Finish the review\n`);
+    fs.writeFileSync(path.join(templates, 'review-pr/default.md'), `---\nplatforms: [mobile, extension, core, terminal, web-dapp, cli]\ndescription: Static review with the installed team checklist.\n---\n\n# Static review\n\n## Review\n\n- [ ] 1. Run the review checklist\n- [ ] 2. Finish the review\n`);
     const init = run('mm-harness', ['task', 'init', dir, '--flow', 'review-pr', '--template', 'review-pr/default', '--dir', templates, '--title', `Review ${record.pr ? `PR ${record.pr}` : record.target} r${record.round}`, '--task-text', `Static review of ${record.forkPoint}..${record.head}`]);
     fs.rmSync(templates, { recursive: true, force: true });
     const mark = path.resolve(dir, 'mark');
@@ -142,7 +142,7 @@ function materialize(dir, record) {
       record.marks = true;
       return;
     }
-    console.error(`review-task: mm-harness could not create the task, using a plain checklist: ${(init.stderr || init.stdout).trim().split('\n').at(-1)}`);
+    console.error(`review-task: mm-harness could not create the task, using a plain checklist: ${(init.stderr || init.stdout).trim().split('\n').filter(line => !/update available|→ .* available/.test(line)).at(-1)}`);
   }
   record.marks = false;
   let number = 0;
