@@ -13,7 +13,7 @@ Run only on explicit invocation by name or an explicitly selected workflow. Revi
 
 Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (`.agents/skills/mms-perps-review-pr/`, and the same path under `.claude/skills/` and `.cursor/rules/`).
 
-When a task already supplies TASK.md and a registered checklist, skip this section and follow that task: its `artifacts/` and `inputs/` are the ones named below. Otherwise start the review from the repository root with a PR, a branch or a commit range:
+Start the review from the repository root with a PR, a branch or a commit range. A host that runs the review starts it the same way:
 
 ```sh
 node .agents/skills/mms-perps-review-pr/scripts/review-task.mjs start <PR | branch | base..head>

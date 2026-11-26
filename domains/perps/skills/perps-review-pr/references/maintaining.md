@@ -8,9 +8,9 @@ Read this when changing the skill or creating another team's domain review. `des
 2. `repos/<repository>.md` adds that client's checks and the verdict steps. The standard installer appends it to the shared checklist.
 3. `references/shared.md` and the selected client's reference hold the detailed rules. Open the relevant sections as the checklist directs.
 
-An installed skill contains both parts. Farmslot freezes the source bundle and registers the shared file and selected overlay as consecutive child checklists. Both paths execute the same rules. There is no separate review-template catalog.
+An installed skill contains both parts. There is no separate review-template catalog.
 
-`scripts/review-task.mjs` serves reviews launched by hand. `start` creates `temp/tasks/review/<target>/r<N>` with the checklist, a ledger section per row and `review.json`, and `finish` refuses unfinished work. With mm-harness the rows are timed marks that `mm-harness status --watch` shows; without it the checklist is a plain file. A later round is warm when the earlier one finished, the rules are the same and its head is part of the branch. It compares what the PR changes, so a merge from the default branch adds nothing. The folder stays on one machine, and nothing is posted. A host that registers the checklist itself does not use it.
+`scripts/review-task.mjs` runs every review, launched by hand or by a host such as Farmslot. `start` creates `temp/tasks/review/<target>/r<N>` with the checklist, a ledger section per row and `review.json`, and `finish` refuses unfinished work. With mm-harness the rows are timed marks that `mm-harness status --watch` shows; without it the checklist is a plain file. A later round is warm when the earlier one finished, the rules are the same and its head is part of the branch. It compares what the PR changes, so a merge from the default branch adds nothing. The folder stays on one machine, and nothing is posted.
 
 ## Knowledge ownership
 
