@@ -108,7 +108,7 @@ Exit 0 is success. Exit 7 is reserved for a daemon version mismatch. Without a d
 
 `mm stop` is the exception: it prints plain text, not JSON (`Daemon stopped (was PID <pid> on port <port>).`). With no daemon it prints `No daemon is running.` on stderr and exits 0. See [error-recovery.md](error-recovery.md#reading-a-failure) for recovery per code.
 
-Run `mm` as `node_modules/.bin/mm` from the repository root; see [Prerequisites](../repos/metamask-mobile.md#prerequisites).
+Run `mm` as `node_modules/.bin/mm` from the repository root; see [Prerequisites](../SKILL.md#prerequisites).
 
 ## Lifecycle
 
