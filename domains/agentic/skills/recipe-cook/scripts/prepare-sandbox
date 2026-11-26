@@ -2,7 +2,7 @@
 set -euo pipefail
 
 task_dir="${1:-}"
-[ -n "$task_dir" ] || { echo "usage: prepare-sandbox <task-dir> --platform mobile|extension|core [--mobile-platform ios|android] [--harness-choice 1]" >&2; exit 2; }
+[ -n "$task_dir" ] || { echo "usage: prepare-sandbox <task-dir> --platform mobile|extension|core|terminal [--mobile-platform ios|android] [--harness-choice 1]" >&2; exit 2; }
 shift
 mobile_platform=""
 harness_choice=""
@@ -16,7 +16,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 case "$mobile_platform" in ""|ios|android) ;; *) echo "prepare-sandbox: --mobile-platform must be ios or android" >&2; exit 2 ;; esac
-case "$platform" in mobile|extension|core) ;; *) echo "prepare-sandbox: --platform must be mobile, extension, or core" >&2; exit 2 ;; esac
+case "$platform" in mobile|extension|core|terminal) ;; *) echo "prepare-sandbox: --platform must be mobile, extension, core, or terminal" >&2; exit 2 ;; esac
 case "$harness_choice" in ""|1) ;; *) echo "prepare-sandbox: --harness-choice must be 1" >&2; exit 2 ;; esac
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
