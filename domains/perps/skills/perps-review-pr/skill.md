@@ -7,7 +7,7 @@ maturity: stable
 
 # Perps static review
 
-Generated from the canonical Perps review rules @ 88fe4da69502988e78874961dd9dba3b32aa566d. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
+Generated from the canonical Perps review rules @ e58f6453292a3edb3432f491497b057398e36dad. Do not hand-edit: regenerate with scripts/materialize-review.mjs. references/review-sources.json records the source repository and every digest.
 
 Run only on explicit invocation by name or an explicitly selected workflow. Review source, diff and recorded evidence only: no tests, builds, recipes, installs, probes, app launch, product change, publish or workspace cleanup. Delegated skills inherit this static, read-only boundary. The criteria below are review criteria, not instructions to perform the fixes, releases or migrations they describe.
 
@@ -76,7 +76,7 @@ Check applicability against the frozen diff and its affected callers. Open each 
 - [ ] Send the order the user confirmed
   Prevents: An order sent with the wrong size, price, side or slippage. See references/shared.md#trade-flow-order-execution
 - [ ] Run the test-i18n-usage skill
-  Run `domains/testing/skills/test-i18n-usage` by name when locale strings, locale objects, translation call sites or locale-sensitive tests change. Use the applicable client guidance, recording NOT_CHECKED if it is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
+  Run the installed `mms-test-i18n-usage` skill by name (`domains/testing/skills/test-i18n-usage` in a MetaMask/skills checkout) when locale strings, locale objects, translation call sites or locale-sensitive tests change. Use the applicable client guidance, recording NOT_CHECKED if it is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
 - [ ] Write tests that fail when the code breaks
   Prevents: Tests that pass with the wrong formula. See references/shared.md#test-layer-coverage
 - [ ] Protect the embedded signer
@@ -88,7 +88,7 @@ Check applicability against the frozen diff and its affected callers. Open each 
 
 - [ ] Compare with the other clients
   Prevents: One client changing behavior the others still have the old way.
-  When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers only from the Mobile, Extension, Terminal and Core reference checkouts recorded in Setup and cite the revision you read; a checkout the comparison needs but cannot read is a FINDING that names it.
+  When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map in references/parity.md. Mobile is the reference implementation; do not copy Extension divergence back into Mobile. Read consumers only from the Mobile, Extension, Terminal and Core reference checkouts recorded in Setup and cite the revision you read; a checkout the comparison needs but cannot read is NOT_CHECKED, naming it and asking for it.
 - [ ] Check Core and its consumers
   Prevents: A controller change that breaks a client.
   When controller state, methods, events, exports or package versions change, inspect Core and its consumers at recorded revisions, using references/shared-packages.md for the shared surface and references/owned-paths.json for the paths this review covers. Check public imports, compatibility and migrations. Report evidence gaps; do not claim that clients compile from source inspection.
