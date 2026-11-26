@@ -7,19 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update `testing/mobile-visual-testing` for `@metamask/client-mcp-core` 0.15.0 and `@metamask/device-mcp` 0.9.0. Android taps on a covered target now fail with `MM_TARGET_OBSCURED`, `visible: false` now marks off-screen elements on Android too, `mm type <field> ""` clears a field, and `mm cdp` reuses the launch Metro port over one persistent connection. The "Android `visible` is always `true`", "pass `--metro-port` on every `cdp` call" and `press-button back` keyboard workarounds are removed. The skill adds the slow-first-screen recipe (`wait-for` the new screen, do not tap again), the `run-steps` `ref` shorthand, the shared timeout budget with `MM_QUEUE_TIMEOUT`, the iOS tab bar that is not in the tree, and a warning that a mobile ref is resolved again at tap time and can tap another element with the same test ID or label ([#298](https://github.com/MetaMask/skills/pull/298)).
+
+## [0.5.0]
+
 ### Added
 
-- Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays.
-- Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, and never adds the `ai-agent` label.
-- Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay.
+- Add the stable `spotlight` skill for viewing Sentry events (transactions, spans, errors, logs) locally in the Spotlight browser UI. It installs in MetaMask Mobile with `yarn skills` and ships a `spotlight.sh` script (`on`, `status`, `mcp`, `off`) that sets the env flag, starts the sidecar and opens the UI. ([#294](https://github.com/MetaMask/skills/pull/294))
+- Add the `device-capability` base skill for adapting UI to the hardware tier, network transport tier and measured latency, with a MetaMask Mobile overlay. ([#276](https://github.com/MetaMask/skills/pull/276))
+- Add experimental `component-structure` skill for laying out React and React Native components and screens (one component per file, body order, screen hooks, effects, state shape, memoization under React Compiler, subscription isolation), with a review checklist and Mobile and Extension overlays. ([#277](https://github.com/MetaMask/skills/pull/277))
+- Add the experimental, explicit-only `assets/epic-decomposer` skill for splitting tech-debt, cleanup and quality work into an epic of super-atomic Jira tickets (one small PR each, headless verification only) that cloud agents can land. It pilots one ticket, files only after approval, never adds the `ai-agent` label, and ships `md2adf` and `file-tickets` scripts. ([#286](https://github.com/MetaMask/skills/pull/286), [#287](https://github.com/MetaMask/skills/pull/287), [#291](https://github.com/MetaMask/skills/pull/291))
+- Add experimental `assets/dependency-bump-audit` skill for proving a dependency bump in any JS/TS repo safe against the repo's own code: lockfile inventory, upstream notes for every intermediate version, usage mapping and branch-vs-base checks. ([#275](https://github.com/MetaMask/skills/pull/275))
+- Add a Terminal fix-bug checklist to `recipe-cook` and the `va-mmcx-terminal` overlay to `review-pr`. ([#281](https://github.com/MetaMask/skills/pull/281), [#282](https://github.com/MetaMask/skills/pull/282))
 
 ### Changed
 
-- Update the `assets/react-compiler-migration` skill (still `maturity: experimental`). Make it team-agnostic: drop assets file paths and ticket ids, label metamask-mobile specifics in a repo-notes section, and move compiler-forced helper context from code comments to the commit and PR. Add a section on a failing `yarn lint:react-compiler` burndown baseline and validated recipes for `useEffectEvent`, render-body helpers and mount-only effects behind `exhaustive-deps` suppressions, sync-effect ordering, `usePrevious` and state-held previous keys for render-time refs, and declaring `failRequest` as a function so TypeScript narrows after it. On a minimal component, an effect-scoped shared-value `.value =` fails marker 0.2.0 with compiler 1.0.0; if that file's own marker run is clean, leave the write, otherwise keep `.set()` in the effect.
-- Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees).
-- Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR.
-- Update `testing/mobile-visual-testing` for `@metamask/client-mcp-core` 0.15.0 and `@metamask/device-mcp` 0.9.0. Android taps on a covered target now fail with `MM_TARGET_OBSCURED`, `visible: false` now marks off-screen elements on Android too, `mm type <field> ""` clears a field, and `mm cdp` reuses the launch Metro port over one persistent connection. The "Android `visible` is always `true`", "pass `--metro-port` on every `cdp` call" and `press-button back` keyboard workarounds are removed. The skill adds the slow-first-screen recipe (`wait-for` the new screen, do not tap again), the `run-steps` `ref` shorthand, the shared timeout budget with `MM_QUEUE_TIMEOUT`, the iOS tab bar that is not in the tree, and a warning that a mobile ref is resolved again at tap time and can tap another element with the same test ID or label ([#298](https://github.com/MetaMask/skills/pull/298)).
+- **BREAKING:** Install `ui/content-guidelines` by default as a `base` skill, and route UI component changes in Mobile and Extension reviews to `ui-development`. A routed preference skill that is skipped is now reported as a coverage gap instead of being skipped silently. ([#270](https://github.com/MetaMask/skills/pull/270))
+- `review-pr` now requires fetching and quoting the hosted `components.json` manifest entry for every MMDS component a PR adds or changes. Reading the installed package types does not replace this, and an entry that was not read is reported as a coverage gap. ([#302](https://github.com/MetaMask/skills/pull/302))
 - Update `ui/content-guidelines`: periods depend on context, add a currency amounts section, name MetaMask Money and its access wording, and write "lockup" as one word. ([#257](https://github.com/MetaMask/skills/pull/257))
+- Update the `assets/react-compiler-migration` skill (still `maturity: experimental`) and make it team-agnostic: drop assets file paths and ticket ids, label metamask-mobile specifics in a repo-notes section, and move compiler-forced helper context from code comments to the commit and PR. Add guidance for a failing `yarn lint:react-compiler` burndown baseline and validated recipes for `useEffectEvent`, render-body helpers, mount-only effects behind `exhaustive-deps` suppressions, sync-effect ordering, render-time refs and TypeScript narrowing after `failRequest`. ([#278](https://github.com/MetaMask/skills/pull/278))
+- Stop testing skills from prompting unit tests for static styling: component-library defaults and logic-free prop overrides (`twClassName`, `className`, `style`, color props) are GAP / ACCEPT, and presentation is tested only when JS logic chooses between styles (asserting what the user sees). ([#182](https://github.com/MetaMask/skills/pull/182))
+- Extend `testing/mobile-testing` component-view writing guidance: mock every request the screen makes, wait for the settled screen, do not sleep or time off `Date.now()`, do not add per-test `{ timeout }` bumps, and run the test checking for `NetConnectNotAllowedError` before opening the PR. ([#269](https://github.com/MetaMask/skills/pull/269))
+- Consolidate the `testing/mobile-testing` component-view run commands and done-gates, and add a pre-PR flakiness repeat with `yarn test:view:repeat` (randomized order, two repetitions by default, five for tests that share Engine or messenger mocks). Cloud agents can skip it because CI runs the repeat. ([#290](https://github.com/MetaMask/skills/pull/290), [#300](https://github.com/MetaMask/skills/pull/300))
+- Defer heavy sections on the push transition with `useScreenTransitionComplete` in the `performance` guidance. ([#268](https://github.com/MetaMask/skills/pull/268))
+- Flag polling for stream-owned data, client-local stream managers, React Query polling of controller data in Terminal, and Core APIs shaped for a single client in `perps-review-pr`. ([#289](https://github.com/MetaMask/skills/pull/289))
+- Recommend mm-harness 0.96.44 in the recipe skills. ([#266](https://github.com/MetaMask/skills/pull/266), [#267](https://github.com/MetaMask/skills/pull/267), [#273](https://github.com/MetaMask/skills/pull/273), [#279](https://github.com/MetaMask/skills/pull/279), [#280](https://github.com/MetaMask/skills/pull/280), [#288](https://github.com/MetaMask/skills/pull/288))
+
+### Fixed
+
+- Narrow the `ui-development` Tailwind arbitrary-value ban to padding, margin, gap, color, border radius and typography, and allow fixed `h-[..]`, `w-[..]` and `size-[..]` values when the design calls for a specific dimension. ([#302](https://github.com/MetaMask/skills/pull/302))
+- In Mobile fix-bug, `recipe-cook` now freezes a clean candidate before final CI and after proof. ([#272](https://github.com/MetaMask/skills/pull/272))
+- Gate the `recipe-cook` Terminal step 3 on the doctor rather than `sandbox.json`. ([#283](https://github.com/MetaMask/skills/pull/283))
+- Require Jira keys in `recipe-cook` PR bodies to be links. ([#285](https://github.com/MetaMask/skills/pull/285))
 
 ## [0.4.0]
 
@@ -154,7 +175,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `metamask-skills` CLI with `sync`, `postinstall`, and `install` commands
 - Add repo inference, repo-local skills cache support, bundled package fallback, and `SKILLS_AUTO_UPDATE=1` handling for consumer repos
 
-[Unreleased]: https://github.com/MetaMask/skills/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MetaMask/skills/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/MetaMask/skills/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MetaMask/skills/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/MetaMask/skills/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/MetaMask/skills/compare/v0.2.0...v0.3.0
