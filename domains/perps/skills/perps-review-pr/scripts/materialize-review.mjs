@@ -2,8 +2,7 @@
 // Generate distributable review instructions from the team's canonical rules.
 //
 // Output shape: a small common body (skill.md), one per-client overlay (repos/*.md)
-// merged into it at install time, and shared/client reference files. A hosting workflow
-// can run the shared source and selected repos/ overlay as consecutive child checklists.
+// merged into it at install time, and shared/client reference files.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -151,8 +150,8 @@ function baseBody(inline) {
       ? 'Each criterion carries its full text under its row. Record NOT_APPLICABLE with the reason for families the diff does not touch. Work from the supplied diff and report unavailable references honestly.'
       : `Each criterion row names a reference file. Read that file only when the diff touches that family; otherwise record NOT_APPLICABLE with the reason. Reference paths are relative to the installed skill directory (\`.agents/skills/mms-${skillName}/\`, and the same path under \`.claude/skills/\` and \`.cursor/rules/\`).`,
     '',
-    ...(inline ? ['The installer appends the matching repos/ overlay to this checklist. For a direct source-checkout invocation, execute repos/<repository>.md after the shared checks. In a hosted frozen-source task, follow the parent\'s separate shared and repository child steps; do not append the overlay to the shared child. Use the existing TASK.md inputs and output directory.', ''] : [
-      'When a task already supplies TASK.md and a registered checklist, skip this section and follow that task: its `artifacts/` and `inputs/` are the ones named below. Otherwise start the review from the repository root with a PR, a branch or a commit range:', '',
+    ...(inline ? ['The checks for the repository under review follow the shared checks.', ''] : [
+      'Start the review from the repository root with a PR, a branch or a commit range. A host that runs the review starts it the same way:', '',
       '```sh', `node .agents/skills/mms-${skillName}/scripts/review-task.mjs start <PR | branch | base..head>`, '```', '',
       'It prints the round folder, the diff to review, the checklist and the commands to use. Every `artifacts/` and `inputs/` path below is inside that folder, which git ignores. Work one row at a time: check it, fill its section of `artifacts/review-ledger.md` (the outcome, then the evidence for each rule), mark it, then open the next row. Never mark several rows together. The finish command refuses a row with no outcome or no evidence.', '',
       'In a warm round, read `inputs/since-last.diff` and every earlier finding first. Check again each row those changes touch, each row with an earlier FINDING or NOT_CHECKED, and the Setup and Verdict rows. For any other row, repeat its earlier outcome and add "unchanged since" with that round. Report earlier findings as resolved or still open.', '']),
@@ -198,8 +197,8 @@ function verdict(inline) {
     row('Write the review report', 'Prevents: A posted review nobody can scan.', report + '. Copy this template, replace its content and keep its order and marks. Follow the host\'s verdict/header fields. Keep findings concise, with only one collapsed Details for agents section; preserve full evidence and prior-round history in the ledger.'),
     row('Write line comments and learnings', 'Prevents: Findings with no line to act on.', comments + ' using the host contract, or {"pr_number": <number>, "recommendation": "APPROVE|REQUEST_CHANGES|COMMENT", "summary": "...", "comments": [{"path": "...", "line": 1, "body": "...", "severity": "must_fix|suggestion|nitpick"}]} for a PR task. Every actionable in-diff finding belongs in a line comment with its full problem, evidence and concrete ask; the review body is only its short index. Keep unanchored findings in Details for agents rather than inventing a line. ' + learnings + '. For a branch-only review, use an empty comments array without inventing a PR number when the terminal contract requires that file.',
       inline
-        ? 'In a hosted child checklist, return the report to the caller without completing the parent. For a standalone materialized task, satisfy inputs/worker-terminal-contract.json and its completion command. The caller owns publication, retained sessions and cleanup.'
-        : 'If you started the review yourself, mark this row and run the finish command that start printed. In a hosted child checklist, return the report to the caller without completing the parent. In another materialized task, satisfy its inputs/worker-terminal-contract.json and completion command. The caller owns publication, retained sessions and cleanup.'),
+        ? 'Return the report, the ledger, the line comments and the learnings in the analyzer response. The caller owns publication, retained sessions and cleanup.'
+        : 'Mark this row and run the finish command that start printed. The caller owns publication, retained sessions and cleanup.'),
   ];
 }
 
