@@ -33,7 +33,7 @@ Required for Extension changes, in addition to the Perps families above.
 - [ ] Evidence Expected Before Extension Perps Review
   The PR carries a controller package version and contract compatibility note, a state-flow matrix for the selectors and hooks touched, a market data source matrix across stream, detail, order, chart… See references/extension.md#evidence-expected-before-extension-perps-review
 - [ ] Run the extension-testing skill
-  Run `domains/testing/skills/extension-testing` by name for Extension application behavior or test changes. Record NOT_CHECKED if the owning skill or required client guidance is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
+  Run the installed `mms-extension-testing` skill by name (`domains/testing/skills/extension-testing` in a MetaMask/skills checkout) for Extension application behavior or test changes. Record NOT_CHECKED if the owning skill or required client guidance is unavailable. Skip this delegation when `perps-review-pr` runs as a capability under `pr-workflow/review-pr`; that router already owns specialist routing.
 
 ## Verdict and handoff
 

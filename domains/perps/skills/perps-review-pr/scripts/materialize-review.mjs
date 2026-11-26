@@ -113,9 +113,10 @@ const everyClient = slug => Object.keys(CLIENTS).every(client => inClient(slug, 
 // The blocking policy is a verdict rule, so the verdict row links it.
 const ALWAYS = new Set(['blocking-review-checks']);
 
-// Delegation rows come from `> Delegate:` lines; the title names the delegated skill.
+// Delegation rows come from `> Delegate:` lines; the title names the delegated skill,
+// written either as the installed `mms-<skill>` or as its `domains/.../<skill>` source path.
 function delegationTitle(instruction) {
-  const skill = instruction.match(/^Run `[^`]*\/([^/`]+)` by name\b/)?.[1];
+  const skill = instruction.match(/^Run (?:the installed )?`(?:[^`]*\/)?(?:mms-)?([^/`]+)`(?: skill)? by name\b/)?.[1];
   if (!skill) throw new Error(`Unrecognised delegation: ${instruction}`);
   return `Run the ${skill} skill`;
 }
@@ -171,7 +172,7 @@ function baseBody(inline) {
     'Check applicability against the frozen diff and its affected callers. Open each applicable family and examine every rule in it; a family checkbox is complete only when its individual outcomes are recorded.', '',
     ...rows('shared', perps.filter(({ slug }) => everyClient(slug) || (inline && inClient(slug, options.client))), inline),
     ...(documents['review/parity.md'] || documents['review/shared-packages.md'] ? ['## Cross-repository conformity', ''] : []),
-    ...(documents['review/parity.md'] ? [row('Compare with the other clients', 'Prevents: One client changing behavior the others still have the old way.', `When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map${inline ? ' below' : ' in references/parity.md'}. ${team.parityNote} Read consumers only from the Mobile, Extension, Terminal and Core reference checkouts recorded in Setup and cite the revision you read; a checkout the comparison needs but cannot read is a FINDING that names it.`)] : []),
+    ...(documents['review/parity.md'] ? [row('Compare with the other clients', 'Prevents: One client changing behavior the others still have the old way.', `When screens, hooks, formatters or shared behavior change, compare the affected client counterparts using the parity map${inline ? ' below' : ' in references/parity.md'}. ${team.parityNote} Read consumers only from the Mobile, Extension, Terminal and Core reference checkouts recorded in Setup and cite the revision you read; a checkout the comparison needs but cannot read is NOT_CHECKED, naming it and asking for it.`)] : []),
     ...(documents['review/shared-packages.md'] ? [row('Check Core and its consumers', 'Prevents: A controller change that breaks a client.', `When controller state, methods, events, exports or package versions change, inspect Core and its consumers at recorded revisions${inline ? '' : ', using references/shared-packages.md for the shared surface and references/owned-paths.json for the paths this review covers'}. Check public imports, compatibility and migrations. Report evidence gaps; do not claim that clients compile from source inspection.`), ''] : []),
     ...(inline
       ? [...['review/parity.md', 'review/shared-packages.md'].filter(file => documents[file]).flatMap(file => [documents[file].replace(/^#/gm, '##').trim(), '']),
