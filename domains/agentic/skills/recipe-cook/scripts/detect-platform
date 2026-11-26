@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Detect cook platform (mobile|extension|core) from the current client repo.
+# Detect cook platform (mobile|extension|core|terminal) from the current client repo.
 # Used by list-templates / init-template so agents never pass or discuss platform.
 set -euo pipefail
 
@@ -22,11 +22,16 @@ detect_platform() {
       printf '%s\n' core
       return 0
       ;;
+    *va-mmcx-terminal*)
+      printf '%s\n' terminal
+      return 0
+      ;;
   esac
   case "$base" in
     metamask-extension*) printf '%s\n' extension; return 0 ;;
     metamask-mobile*) printf '%s\n' mobile; return 0 ;;
     metamask-core*) printf '%s\n' core; return 0 ;;
+    va-mmcx-terminal*) printf '%s\n' terminal; return 0 ;;
   esac
 
   # package.json name (walk up to repo root; a non-matching manifest does not stop the walk)
@@ -67,6 +72,10 @@ detect_platform() {
       printf '%s\n' core
       return 0
       ;;
+    *va-mmcx-terminal*)
+      printf '%s\n' terminal
+      return 0
+      ;;
   esac
 
   return 1
@@ -75,5 +84,5 @@ detect_platform() {
 if detect_platform; then
   exit 0
 fi
-echo "detect-platform: could not detect mobile|extension|core from $(pwd)" >&2
+echo "detect-platform: could not detect mobile|extension|core|terminal from $(pwd)" >&2
 exit 1
