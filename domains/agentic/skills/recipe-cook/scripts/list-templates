@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: list-templates [--task-kind dev|fix-bug|review-pr|qa] [--platform mobile|extension|core] [--domain name] [--templates-dir path] [--json]
+Usage: list-templates [--task-kind dev|fix-bug|review-pr|qa] [--platform mobile|extension|core|terminal] [--domain name] [--templates-dir path] [--json]
 
 Lists compatible recipe-cook execution-template IDs.
 Uses the bundled catalog when mm-harness is not installed.
@@ -32,11 +32,11 @@ done
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -z "$platform" ]; then
   platform="$("$script_dir/detect-platform")" || {
-    echo "list-templates: pass --platform mobile|extension|core (auto-detect failed)" >&2
+    echo "list-templates: pass --platform mobile|extension|core|terminal (auto-detect failed)" >&2
     exit 2
   }
 fi
-case "$platform" in mobile|extension|core) ;; *) echo "--platform must be mobile, extension, or core" >&2; exit 2 ;; esac
+case "$platform" in mobile|extension|core|terminal) ;; *) echo "--platform must be mobile, extension, core, or terminal" >&2; exit 2 ;; esac
 case "$task_kind" in ""|dev|fix-bug|review-pr|qa) ;; *) echo "--task-kind must be dev, fix-bug, review-pr, or qa" >&2; exit 2 ;; esac
 
 harness="${MM_HARNESS_BIN:-}"
