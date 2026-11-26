@@ -15,8 +15,9 @@ mkdir -p "$tmp/renamed" && git -C "$tmp/renamed" init -q && git -C "$tmp/renamed
 got="$(cd "$tmp/renamed" && "$scripts/detect-platform")" || fail "detect-platform refused a Terminal remote"
 [ "$got" = terminal ] || fail "detect-platform from the remote said $got"
 
-# No harness on PATH: list-templates reads the packaged templates directly.
-path="$(dirname "$(command -v node)"):/usr/bin:/bin"
+# No harness on PATH (only node): list-templates reads the packaged templates directly.
+mkdir "$tmp/bin"; ln -s "$(command -v node)" "$tmp/bin/node"
+path="$tmp/bin:/usr/bin:/bin"
 for kind in dev fix-bug; do
   out="$(env -u MM_HARNESS_BIN PATH="$path" "$scripts/list-templates" --task-kind "$kind" --platform terminal --json)" \
     || fail "list-templates refused --platform terminal for $kind"

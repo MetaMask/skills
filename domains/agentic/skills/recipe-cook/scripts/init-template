@@ -285,7 +285,9 @@ if [ "$task_kind" = "dev" ] || [ "$task_kind" = "fix-bug" ]; then
   fi
 fi
 
-if [ "$prepare" = "true" ]; then
+if [ "$prepare" = "true" ] && [ "$platform" = "terminal" ]; then
+  echo "Terminal has no prepare-sandbox step; the checklist's doctor gate applies." >&2
+elif [ "$prepare" = "true" ]; then
   "$script_dir/prepare-sandbox" "$task_dir" --platform "$platform"
 fi
 
