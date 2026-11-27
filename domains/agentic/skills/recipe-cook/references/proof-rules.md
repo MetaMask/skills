@@ -145,4 +145,3 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - Core also writes `artifacts/report.md` with summary/root cause, changed files, validation commands/results, recipe verdict/evidence, risks and client follow-ups.
 - Write `artifacts/learnings.md` and satisfy host handoff prerequisites. Commit only when requested: one Conventional Commit of product paths, scope from the task domain/changed area, descriptive subject; never amend. Mobile marker commits remain separate.
 - Finish with `<task>/mark complete --mark-last`, subject to the skill's required-proof completion rules.
-- If the operator requests a debrief after completion, answer in the same conversation: “What slowed you down most, and what exact instruction or tool output would have helped?” Cite the task step or receipt when available and suggest one change.
