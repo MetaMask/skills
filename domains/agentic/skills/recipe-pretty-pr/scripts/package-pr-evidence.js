@@ -584,7 +584,9 @@ function main() {
       if (!exact && !legacy) return [];
       if (exact) selectedKeys.add(relative);
       if (legacy) selectedKeys.add(basename);
-      return [{ ...shot, caption: selectedFiles.get(exact ? relative : basename) ?? shot.caption }];
+      const exactCaption = exact ? selectedFiles.get(relative) : undefined;
+      const legacyCaption = legacy ? selectedFiles.get(basename) : undefined;
+      return [{ ...shot, caption: exactCaption ?? legacyCaption ?? shot.caption }];
     });
   if (visualEvidence && selectedKeys.size !== selectedFiles.size) {
     const missing = [...selectedFiles.keys()].filter((key) => !selectedKeys.has(key));

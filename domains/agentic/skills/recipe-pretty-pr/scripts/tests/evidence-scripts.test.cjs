@@ -293,7 +293,7 @@ try {
   writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
     version: 1,
     preferred_mode: 'screenshots',
-    standalone: [{ file: 'proof.png' }, { label: 'Selected image', file: 'recipe-run/screenshots/proof.png' }],
+    standalone: [{ label: 'Selected image', file: 'proof.png' }, { file: 'recipe-run/screenshots/proof.png' }],
   });
   mustRun(process.execPath, [packageScript, '--task', rerun.task]);
   assert.deepEqual(fs.readdirSync(rerunImages).filter((file) => file.endsWith('.png')), ['01-selected-image.png']);
