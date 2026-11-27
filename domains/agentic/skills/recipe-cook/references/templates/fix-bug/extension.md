@@ -39,7 +39,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Read every visual PNG (rules: proof-rules.md, UI evidence).
   Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 10. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
-  On this path mark this step; never skip it. Skip it only when the bug reproduces.
+  If the baseline reproduced the bug, skip this step now with `--skip "bug reproduces"`. Otherwise mark it on this path; never skip it.
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 11. Record the root cause

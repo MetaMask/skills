@@ -32,7 +32,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
 - [ ] 8. Add and commit the reproduction marker
   Add `console.error('[<ticket>] BUG_MARKER: <condition>')` at the bug condition, observe it in the app console log (`terminal/app-console.log`, listed by `mm-harness logs`), and commit it alone as `debug(<ticket>): add reproduction marker`.
 - [ ] 9. Draft the baseline recipe in reuse order
-  Draft `artifacts/recipe-baseline.json` asserting buggy real-app behavior and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
+  Draft `artifacts/recipe-baseline.json` asserting the fixed behavior, so the unfixed app fails at the first new-behavior `ac<N>` node, and require `--plan` PASS (rules: proof-rules.md, Bug fixing).
   Pair ordering, portal or z-index screenshots with a bounding-box read.
   App recipe only; tests come in Validate (rules: proof-rules.md, Plan and baseline).
 - [ ] 10. Run the recorded baseline and inspect visuals [PROOF: artifacts/recipe-baseline-run]
@@ -41,7 +41,7 @@ Read and apply `.agents/skills/mms-recipe-cook/references/proof-rules.md` after 
   Read every visual PNG (rules: proof-rules.md, UI evidence).
   Once marked, never delete or overwrite `artifacts/recipe-baseline-run`; if the baseline recipe must change, run it into `artifacts/recipe-baseline-run-2` (then `-3`) and record why in TASK.md.
 - [ ] 11. Exit early if already fixed or not reproduced [OPTIONAL: the bug still reproduces]
-  On this path mark this step; never skip it. Skip it only when the bug reproduces.
+  If the baseline reproduced the bug, skip this step now with `--skip "bug reproduces"`. Otherwise mark it on this path; never skip it.
   Write `artifacts/no-change-report.md` and `artifacts/learnings.md`, then follow Cook's Finish before `<task>/mark no-change --reason "..."` (rules: proof-rules.md, Bug fixing).
   Add `--already-fixed` to the terminal mark when this branch already fixes it.
 - [ ] 12. Record the root cause
