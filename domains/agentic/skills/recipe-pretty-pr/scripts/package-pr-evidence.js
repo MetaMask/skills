@@ -563,7 +563,7 @@ function main() {
   const selectedFiles = new Map(
     (Array.isArray(selection?.standalone) ? selection.standalone : [])
       .filter((item) => typeof item?.file === 'string' && item.file)
-      .map((item) => [item.file.replace(/^\.\//u, ''), typeof item.label === 'string' ? item.label : undefined]),
+      .map((item) => [path.posix.normalize(item.file), typeof item.label === 'string' ? item.label : undefined]),
   );
   const selectedKeys = new Set();
   const screenshots = (visualEvidence ? packagedEvidence.screenshots : [])
@@ -578,6 +578,10 @@ function main() {
       selectedKeys.add(key);
       return [{ ...shot, caption: selectedFiles.get(key) ?? shot.caption }];
     });
+  if (visualEvidence && selectedKeys.size !== selectedFiles.size) {
+    const missing = [...selectedFiles.keys()].filter((key) => !selectedKeys.has(key));
+    throw new Error(`EVIDENCE_SCREENSHOT_MISSING: ${missing.join(', ')}`);
+  }
 
   const copied = [];
   const seen = new Set();

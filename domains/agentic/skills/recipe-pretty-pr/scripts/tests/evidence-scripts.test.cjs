@@ -284,12 +284,20 @@ try {
   writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
     version: 1,
     preferred_mode: 'screenshots',
-    standalone: [{ label: 'Final head', covers: ['AC1'], file: 'recipe-runs/final-proof/screenshots/proof.png' }],
+    standalone: [{ label: 'Final head', covers: ['AC1'], file: 'recipe-runs/final-proof/./screenshots/proof.png' }],
   });
   mustRun(process.execPath, [packageScript, '--task', rerun.task]);
   const rerunImages = path.join(rerun.task, 'pr-package/images');
   assert.deepEqual(fs.readdirSync(rerunImages).filter((file) => file.endsWith('.png')), ['01-final-head.png']);
   assert.equal(fs.readFileSync(path.join(rerunImages, '01-final-head.png'), 'utf8'), 'final-head-image');
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ label: 'Missing attempt', covers: ['AC1'], file: 'recipe-runs/missing/screenshots/proof.png' }],
+  });
+  const missingProof = run(process.execPath, [packageScript, '--task', rerun.task]);
+  assert.equal(missingProof.status, 1);
+  assert.match(missingProof.stderr, /EVIDENCE_SCREENSHOT_MISSING: recipe-runs\/missing\/screenshots\/proof\.png/);
 
   const core = makeRepo('core', 'MetaMask/core');
   fs.mkdirSync(path.join(core.repo, '.github'), { recursive: true });
