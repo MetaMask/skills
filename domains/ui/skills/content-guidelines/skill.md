@@ -87,6 +87,7 @@ Do not apologize in a routine error. Do not use "sorry" or "unfortunately" there
 | sorry, unfortunately | State what happened, then the action |
 | click here | Name the control. "Tap to…" is allowed on mobile only |
 | fiat | The currency name (USD, EUR). "Local currency" only for the setting that picks one |
+| cashback, cash back | mUSD back. See [Glossary](#glossary) |
 | gas, gas fee, transaction fee in a default flow | network fee. See [Fees](#fees). Leadership confirmed this |
 | dApp, DAPP, ÐApps | site in consumer UI. A technical audience may say "dapp" |
 | native currency | network currency |
@@ -150,6 +151,8 @@ Sentence case for titles, buttons, menus, settings labels, section headers, tags
 "Predict" is only a verb. "Predictions" is the product. "predictions" is the generic noun. "Perps" is the product. "perps" is the generic noun.
 
 "Rewards" is the product. "rewards" is the generic noun. Keep three meanings apart: Rewards (the product), points, and redeemed rewards. Do not describe network rewards with yield, ROI, or securities analogies.
+
+Rewards paid in mUSD: say "mUSD back", for example "Get 3% mUSD back". Never "cashback" or "cash back". The reward is paid in mUSD, not cash. "back" stays lowercase, including in titles and labels ("mUSD back", not "mUSD Back").
 
 On the first mention in a page or flow, write "MetaMask Snaps". After that, "Snaps" is fine. "Snaps" is the platform. "A Snap" is one installed instance. Do not write "snap" for the platform.
 
@@ -688,6 +691,7 @@ Write "Gwei", not "GWEI". It still belongs only in the advanced editor, per [Fee
 | Lockup | lockup, lockups | lock-up, lock-ups | One word. Example: "No lockups" |
 | Snaps | MetaMask Snaps, then Snaps | snap for the platform | First mention in a page or flow is "MetaMask Snaps". "A Snap" is one instance |
 | Perps, Predictions, Rewards | Product form, or lower for the generic noun | Predict as a noun. Yield, ROI, or securities analogies for network rewards | Rewards (the product), points, and redeemed rewards are three meanings |
+| mUSD back | mUSD back | cashback, cash back, Cashback | The reward is paid in mUSD, not cash. Example: "Get 3% mUSD back" |
 | Settings | Settings | settings, when it names the screen | Sub-screens stay sentence case |
 | Terms of Use, Privacy Policy | Those titles | T&C, Terms and Conditions | MetaMask's own documents |
 | Pix key | Pix key | PIX key, pix key | |
@@ -752,6 +756,7 @@ Before you finish a user-facing string:
 - Button and link come from the tables. No Sign, Proceed, Submit, Accept, Retry, OK, or "Learn more." Social buttons may say "Sign in with Apple" or "Sign in with Google".
 - "Reject" is not a new button. Do not replace an existing "Reject" on a signature or permission request until someone confirms Cancel ("nothing changes") fits that decline. That check is not done.
 - Wallet, account, network fee, and spending cap match the glossary. No "fiat". No "allowance", including on Tron. "coin" only on a Perps market screen. The editor title is "Advanced network fee".
+- Rewards paid in mUSD say "mUSD back". Never "cashback" or "cash back".
 - "Paid by MetaMask" only when MetaMask covers a fee the user would otherwise pay. Never for a $0 or waived MetaMask fee.
 - An error is a state plus an action. "Try again" only when a retry can work. "Something went wrong" is only a title with a specific body.
 - No "please", "sorry", or "unfortunately" in a routine error. No "successfully". An exclamation point only for a really exciting moment, never in an error or an alert.
