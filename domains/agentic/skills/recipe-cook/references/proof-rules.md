@@ -73,10 +73,10 @@ Apply the sections for this flow and platform at each step.
 ## Runtime proof
 
 - Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --json` without `--artifacts-dir`. The harness places each attempt under `<task>/artifacts/recipe-runs/<attempt>/`; `artifacts/latest-valid-recipe-run.json` names the selected attempt.
-- When preparing proof for a PR and the task or operator authorizes a local commit, commit the intended changes before recording final proof. Confirm that `product-provenance.json` in the selected attempt records the proposed PR head in `git_ref` and `dirty: false`. Repeat final proof if the proposed head changes. Keep the commit local until publication is authorized.
+- Use early recipe runs to validate the change. For final PR proof, finish tests and review fixes, then make the local commit if the task or operator authorizes it. Select the earlier proof only if it already came from the proposed clean head. Keep the commit local until publication is authorized.
 - Mobile/Extension add `--record-video=full-run`; Mobile video is under the selected attempt's `videos/`. Core bug-fix recipes run only when required and must pass.
 - Core setup failures: inspect retained state/logs, diagnose and repair drift with `--heal auto`; never weaken assertions. Apply Cook's blocked rule.
-- At a rerun or no-rerun step, recapture final PR proof if the proposed head changed. Also rerun proof when proven behavior changed. Otherwise record an explicit no-rerun decision.
+- At a rerun or no-rerun step, check the selected attempt's `product-provenance.json`. When preparing final PR proof, recapture if `git_ref` differs from the proposed head, `dirty` is not `false`, or the record is missing. Also rerun proof when proven behavior changed. Update the evidence manifest to the selected attempt's paths. Otherwise record an explicit no-rerun decision.
 
 ### UI evidence
 
@@ -144,5 +144,5 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - The manifest accepts only `version`, `preferred_mode`, `summary`, `before_after_pairs`, `standalone`, `omit` and `videos`. Keep draft, review and runtime-status notes in the report, not additional manifest keys.
 - Development `before` images require screenshot nodes before the failing AC assertion. Core uses a media-free manifest, `{"version":1,"summary":"..."}`.
 - Core also writes `artifacts/report.md` with summary/root cause, changed files, validation commands/results, recipe verdict/evidence, risks and client follow-ups.
-- Write `artifacts/learnings.md` and satisfy host handoff prerequisites. Commit only when requested: one Conventional Commit of product paths, scope from the task domain/changed area, descriptive subject; never amend. Mobile marker commits remain separate.
+- Write `artifacts/learnings.md` and satisfy host handoff prerequisites. Commit only when the task or operator authorizes it. Use a Conventional Commit of intended contribution files before final PR proof. Use a new commit for later fixes and keep Mobile marker commits separate.
 - Finish with `<task>/mark complete --mark-last`, subject to the skill's required-proof completion rules.

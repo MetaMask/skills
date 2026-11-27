@@ -558,25 +558,26 @@ function main() {
   // Cook's artifacts/evidence-manifest.json is the strict visual selection
   // (`standalone[].file`). When it names files, only those are hosted; every
   // other indexed capture stays in the run packages for the audit trail.
-  const selection = readJson(path.join(taskDir, 'artifacts', 'evidence-manifest.json'));
-  const selectedFiles = new Set(
+  const artifactsDir = path.join(taskDir, 'artifacts');
+  const selection = readJson(path.join(artifactsDir, 'evidence-manifest.json'));
+  const selectedFiles = new Map(
     (Array.isArray(selection?.standalone) ? selection.standalone : [])
-      .map((item) => (item && typeof item.file === 'string' ? path.basename(item.file) : ''))
-      .filter(Boolean),
+      .filter((item) => typeof item?.file === 'string' && item.file)
+      .map((item) => [item.file.replace(/^\.\//u, ''), typeof item.label === 'string' ? item.label : undefined]),
   );
-  const selectedCaption = new Map(
-    (Array.isArray(selection?.standalone) ? selection.standalone : [])
-      .filter((item) => item && typeof item.file === 'string' && typeof item.label === 'string')
-      .map((item) => [path.basename(item.file), item.label]),
-  );
+  const selectedKeys = new Set();
   const screenshots = (visualEvidence ? packagedEvidence.screenshots : [])
-    .filter((shot) => selectedFiles.size === 0 || selectedFiles.has(path.basename(shot.file)))
-    // A selection names one image per file; when several packages carry that
-    // file name (a rerun, a call beside a run), the first in path order is hosted.
     .sort((a, b) => a.file.localeCompare(b.file))
-    .filter((shot, index, all) => selectedFiles.size === 0 || all.findIndex((other) => path.basename(other.file) === path.basename(shot.file)) === index)
-    .map((shot) => (selectedCaption.has(path.basename(shot.file)) ? { ...shot, caption: selectedCaption.get(path.basename(shot.file)) } : shot))
-    .sort((a, b) => a.file.localeCompare(b.file));
+    .flatMap((shot) => {
+      if (!selectedFiles.size) return [shot];
+      // Explicit attempt paths match the indexed file. A legacy basename
+      // still selects the first matching file in path order.
+      const relative = rel(artifactsDir, shot.file);
+      const key = selectedFiles.has(relative) ? relative : path.basename(shot.file);
+      if (!selectedFiles.has(key) || selectedKeys.has(key)) return [];
+      selectedKeys.add(key);
+      return [{ ...shot, caption: selectedFiles.get(key) ?? shot.caption }];
+    });
 
   const copied = [];
   const seen = new Set();

@@ -276,6 +276,21 @@ function resetLog(log) {
 
 try {
   installFakeHarness();
+  const rerun = makeRepo('qualified-selection', 'MetaMask/metamask-mobile');
+  makeVisualRun(rerun.task);
+  const finalProof = path.join(rerun.task, 'artifacts/recipe-runs/final-proof');
+  fs.cpSync(path.join(rerun.task, 'artifacts/recipe-run'), finalProof, { recursive: true });
+  fs.writeFileSync(path.join(finalProof, 'screenshots/proof.png'), 'final-head-image');
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ label: 'Final head', covers: ['AC1'], file: 'recipe-runs/final-proof/screenshots/proof.png' }],
+  });
+  mustRun(process.execPath, [packageScript, '--task', rerun.task]);
+  const rerunImages = path.join(rerun.task, 'pr-package/images');
+  assert.deepEqual(fs.readdirSync(rerunImages).filter((file) => file.endsWith('.png')), ['01-final-head.png']);
+  assert.equal(fs.readFileSync(path.join(rerunImages, '01-final-head.png'), 'utf8'), 'final-head-image');
+
   const core = makeRepo('core', 'MetaMask/core');
   fs.mkdirSync(path.join(core.repo, '.github'), { recursive: true });
   fs.writeFileSync(path.join(core.repo, '.github/pull-request-template.md'), [
