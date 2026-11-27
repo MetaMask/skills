@@ -9,7 +9,7 @@ Apply the sections for this flow and platform at each step.
 - Keep proof under `<task>/artifacts/` and out of product commits.
 - Put clones, installs, tooling and loop workspaces in `<task>/../scratch-<id>` or `temp/`, never `artifacts/`.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
-- Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+- Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>`. Run `<task>/mm-harness help --json | jq '{harnessVersion,adapter,target,discoveryCommands}'`. This compact view satisfies the checklist’s setup help read. Check `adapter` and `target` against the task before any live command. Use `discoveryCommands` for the next lookup and read the full guide when drafting the recipe.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` — that flow is Mobile, Extension and Core, and they require `artifacts/sandbox.json` with `ready: true`. A `sandbox.json` written by this task's preparation passes their gate; re-run the checks only when the app or dev server restarted since. Terminal is not a `prepare-sandbox` platform, so no `sandbox.json` is written for it: its gate is the configured doctor exiting 0, retained as `artifacts/doctor.json`.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
@@ -17,7 +17,7 @@ Apply the sections for this flow and platform at each step.
 
 ## Plan and baseline
 
-- Discover the harness catalog before drafting: `mm-harness run --list --json`; use Recipe v1 `workflow.{entry,nodes}` and live runtime evidence. Tests corroborate only.
+- Before drafting, find a reusable recipe with `mm-harness run --list --json`, adding `--domain <domain>` when known. For actions, search with `mm-harness actions <query> --json` or use `--category <category>`. Start with `.recipes[].name` or `.actions[].name`, then load the chosen recipe with `run <recipe> --describe --json` or action with `actions --action <name> --json` for its parameters. Use Recipe v1 `workflow.{entry,nodes}` and live runtime evidence. Tests corroborate only.
 - Reproduction and baseline happen only in the running app: a recipe through mm-harness with live actions, markers or logs. Before the Validate phase, do not write, run or embed unit, integration or E2E tests, and never put a test runner in a recipe node.
 - Core targets packages/controllers and fixtures, using headless `state`, `command` or `log` proof without PNGs. A `command` proof drives the controller through its public API as a client does (real messenger, mocked only at the network boundary); it never runs Jest or another unit-test probe.
 - Mobile targets iOS, Android or both; Extension targets popup, sidepanel, fullscreen or dapp. Record the rationale.
@@ -73,9 +73,10 @@ Apply the sections for this flow and platform at each step.
 ## Runtime proof
 
 - Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --json` without `--artifacts-dir`. The harness places each attempt under `<task>/artifacts/recipe-runs/<attempt>/`; `artifacts/latest-valid-recipe-run.json` names the selected attempt.
+- Use early recipe runs to validate the change. For final PR proof, finish tests and review fixes, then make the local commit if the task or operator authorizes it. Select the earlier proof only if it already came from the proposed clean head. Keep the commit local until publication is authorized.
 - Mobile/Extension add `--record-video=full-run`; Mobile video is under the selected attempt's `videos/`. Core bug-fix recipes run only when required and must pass.
 - Core setup failures: inspect retained state/logs, diagnose and repair drift with `--heal auto`; never weaken assertions. Apply Cook's blocked rule.
-- After self-review, rerun proof when proven behavior changed; otherwise record an explicit no-rerun decision.
+- At a rerun or no-rerun step, check the selected attempt's `product-provenance.json`. When preparing final PR proof, recapture if `git_ref` differs from the proposed head, `dirty` is not `false`, or the record is missing. Also rerun proof when proven behavior changed. Update the evidence manifest to the selected attempt's paths. Otherwise record an explicit no-rerun decision.
 
 ### UI evidence
 
@@ -143,5 +144,5 @@ Apply Cook's Mainnet rule in `.agents/skills/mms-recipe-cook/SKILL.md`.
 - The manifest accepts only `version`, `preferred_mode`, `summary`, `before_after_pairs`, `standalone`, `omit` and `videos`. Keep draft, review and runtime-status notes in the report, not additional manifest keys.
 - Development `before` images require screenshot nodes before the failing AC assertion. Core uses a media-free manifest, `{"version":1,"summary":"..."}`.
 - Core also writes `artifacts/report.md` with summary/root cause, changed files, validation commands/results, recipe verdict/evidence, risks and client follow-ups.
-- Write `artifacts/learnings.md` and satisfy host handoff prerequisites. Commit only when requested: one Conventional Commit of product paths, scope from the task domain/changed area, descriptive subject; never amend. Mobile marker commits remain separate.
+- Write `artifacts/learnings.md` and satisfy host handoff prerequisites. Commit only when the task or operator authorizes it. Use a Conventional Commit of intended contribution files before final PR proof. Use a new commit for later fixes and keep Mobile marker commits separate.
 - Finish with `<task>/mark complete --mark-last`, subject to the skill's required-proof completion rules.

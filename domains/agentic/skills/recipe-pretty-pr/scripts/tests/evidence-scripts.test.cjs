@@ -276,6 +276,44 @@ function resetLog(log) {
 
 try {
   installFakeHarness();
+  const rerun = makeRepo('qualified-selection', 'MetaMask/metamask-mobile');
+  makeVisualRun(rerun.task);
+  const finalProof = path.join(rerun.task, 'artifacts/recipe-runs/final-proof');
+  fs.cpSync(path.join(rerun.task, 'artifacts/recipe-run'), finalProof, { recursive: true });
+  fs.writeFileSync(path.join(finalProof, 'screenshots/proof.png'), 'final-head-image');
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ label: 'Final head', covers: ['AC1'], file: 'recipe-runs/final-proof/./screenshots/proof.png' }],
+  });
+  mustRun(process.execPath, [packageScript, '--task', rerun.task]);
+  const rerunImages = path.join(rerun.task, 'pr-package/images');
+  assert.deepEqual(fs.readdirSync(rerunImages).filter((file) => file.endsWith('.png')), ['01-final-head.png']);
+  assert.equal(fs.readFileSync(path.join(rerunImages, '01-final-head.png'), 'utf8'), 'final-head-image');
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ label: 'Selected image', file: 'proof.png' }, { file: 'recipe-run/screenshots/proof.png' }],
+  });
+  mustRun(process.execPath, [packageScript, '--task', rerun.task]);
+  assert.deepEqual(fs.readdirSync(rerunImages).filter((file) => file.endsWith('.png')), ['01-selected-image.png']);
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ label: 'Missing attempt', covers: ['AC1'], file: 'recipe-runs/missing/screenshots/proof.png' }],
+  });
+  const missingProof = run(process.execPath, [packageScript, '--task', rerun.task]);
+  assert.equal(missingProof.status, 1);
+  assert.match(missingProof.stderr, /EVIDENCE_SCREENSHOT_MISSING: recipe-runs\/missing\/screenshots\/proof\.png/);
+  writeJson(path.join(rerun.task, 'artifacts/evidence-manifest.json'), {
+    version: 1,
+    preferred_mode: 'screenshots',
+    standalone: [{ file: 'recipe-run/../proof.png' }],
+  });
+  const invalidProof = run(process.execPath, [packageScript, '--task', rerun.task]);
+  assert.equal(invalidProof.status, 1);
+  assert.match(invalidProof.stderr, /EVIDENCE_SCREENSHOT_PATH_INVALID/);
+
   const core = makeRepo('core', 'MetaMask/core');
   fs.mkdirSync(path.join(core.repo, '.github'), { recursive: true });
   fs.writeFileSync(path.join(core.repo, '.github/pull-request-template.md'), [

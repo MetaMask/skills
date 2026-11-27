@@ -104,4 +104,6 @@ If a required runtime claim remains unproved, keep repairing it. Use `./mark blo
 
 ## After task completion
 
+When the user asks Recipe Cook directly in chat for a dev or fix-bug debrief, answer in the same conversation after completion. Answer “What slowed you down most, and what exact instruction or tool output would have helped?” Cite the task step or receipt when available and suggest one change.
+
 Return the report, requested local draft and artifact paths, then stop. Do not inspect caller identity, publish, ask publication/cleanup questions or release resources. The caller controls any subsequent action. Pretty PR remains a separate explicit invocation when the original request did not ask for PR evidence or a PR description.
