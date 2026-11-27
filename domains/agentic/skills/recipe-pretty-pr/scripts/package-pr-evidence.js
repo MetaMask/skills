@@ -561,9 +561,14 @@ function main() {
   const artifactsDir = path.join(taskDir, 'artifacts');
   const selection = readJson(path.join(artifactsDir, 'evidence-manifest.json'));
   const selectedFiles = new Map(
-    (Array.isArray(selection?.standalone) ? selection.standalone : [])
+    (visualEvidence && Array.isArray(selection?.standalone) ? selection.standalone : [])
       .filter((item) => typeof item?.file === 'string' && item.file)
-      .map((item) => [path.posix.normalize(item.file), typeof item.label === 'string' ? item.label : undefined]),
+      .map((item) => {
+        if (path.posix.isAbsolute(item.file) || item.file.split('/').includes('..')) {
+          throw new Error(`EVIDENCE_SCREENSHOT_PATH_INVALID: ${item.file}`);
+        }
+        return [path.posix.normalize(item.file), typeof item.label === 'string' ? item.label : undefined];
+      }),
   );
   const selectedKeys = new Set();
   const screenshots = (visualEvidence ? packagedEvidence.screenshots : [])
@@ -573,10 +578,13 @@ function main() {
       // Explicit attempt paths match the indexed file. A legacy basename
       // still selects the first matching file in path order.
       const relative = rel(artifactsDir, shot.file);
-      const key = selectedFiles.has(relative) ? relative : path.basename(shot.file);
-      if (!selectedFiles.has(key) || selectedKeys.has(key)) return [];
-      selectedKeys.add(key);
-      return [{ ...shot, caption: selectedFiles.get(key) ?? shot.caption }];
+      const basename = path.basename(shot.file);
+      const exact = selectedFiles.has(relative) && !selectedKeys.has(relative);
+      const legacy = selectedFiles.has(basename) && !selectedKeys.has(basename);
+      if (!exact && !legacy) return [];
+      if (exact) selectedKeys.add(relative);
+      if (legacy) selectedKeys.add(basename);
+      return [{ ...shot, caption: selectedFiles.get(exact ? relative : basename) ?? shot.caption }];
     });
   if (visualEvidence && selectedKeys.size !== selectedFiles.size) {
     const missing = [...selectedFiles.keys()].filter((key) => !selectedKeys.has(key));
