@@ -73,9 +73,10 @@ Apply the sections for this flow and platform at each step.
 ## Runtime proof
 
 - Keep the authored final recipe at `artifacts/recipe.json`; run `<task>/mm-harness run <task>/artifacts/recipe.json --json` without `--artifacts-dir`. The harness places each attempt under `<task>/artifacts/recipe-runs/<attempt>/`; `artifacts/latest-valid-recipe-run.json` names the selected attempt.
+- When preparing proof for a PR and the task or operator authorizes a local commit, commit the intended changes before recording final proof. Confirm that `product-provenance.json` in the selected attempt records the proposed PR head in `git_ref` and `dirty: false`. Repeat final proof if the proposed head changes. Keep the commit local until publication is authorized.
 - Mobile/Extension add `--record-video=full-run`; Mobile video is under the selected attempt's `videos/`. Core bug-fix recipes run only when required and must pass.
 - Core setup failures: inspect retained state/logs, diagnose and repair drift with `--heal auto`; never weaken assertions. Apply Cook's blocked rule.
-- After self-review, rerun proof when proven behavior changed; otherwise record an explicit no-rerun decision.
+- At a rerun or no-rerun step, recapture final PR proof if the proposed head changed. Also rerun proof when proven behavior changed. Otherwise record an explicit no-rerun decision.
 
 ### UI evidence
 
