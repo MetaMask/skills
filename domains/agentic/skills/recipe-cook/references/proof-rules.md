@@ -9,7 +9,7 @@ Apply the sections for this flow and platform at each step.
 - Keep proof under `<task>/artifacts/` and out of product commits.
 - Put clones, installs, tooling and loop workspaces in `<task>/../scratch-<id>` or `temp/`, never `artifacts/`.
 - Confirm the handoff's checklist path; never estimate or rewrite it.
-- Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>` and read its recorded `mm-harness help --json`.
+- Capture the summary and ACs, then verify retained tooling with `.agents/skills/mms-recipe-cook/scripts/init-template --resume-task-dir <task>`. Run `<task>/mm-harness help --json | jq '{harnessVersion,adapter,target,discoveryCommands}'` for the startup view. Check `adapter` and `target` against the task before any live command and use `discoveryCommands` for the next lookup. Consult the full versioned guide when drafting the recipe.
 - Preserve TASK.md, CHECKLIST.md, markers and receipts. If tooling verification fails, stop with that cause; never resolve a replacement for this task.
 - Follow `/mms-recipe-harness`: doctor/status for this checkout, then `launch` on Extension and Mobile (quick launch reuses a healthy live runtime; Core is headless and has no launch), then `verify` — that flow is Mobile, Extension and Core, and they require `artifacts/sandbox.json` with `ready: true`. A `sandbox.json` written by this task's preparation passes their gate; re-run the checks only when the app or dev server restarted since. Terminal is not a `prepare-sandbox` platform, so no `sandbox.json` is written for it: its gate is the configured doctor exiting 0, retained as `artifacts/doctor.json`.
 - Mobile requires the running simulator/device app; Extension requires reachable CDP. First recover with harness launch/doctor; block only on an external farm/device failure.
@@ -17,7 +17,7 @@ Apply the sections for this flow and platform at each step.
 
 ## Plan and baseline
 
-- Discover the harness catalog before drafting: `mm-harness run --list --json`; use Recipe v1 `workflow.{entry,nodes}` and live runtime evidence. Tests corroborate only.
+- Before drafting, find a reusable recipe with `mm-harness run --list --json`, adding `--domain <domain>` when known. For actions, search with `mm-harness actions <query> --json` or use `--category <category>`. Start with `.recipes[].name` or `.actions[].name`, then load the chosen recipe with `run <recipe> --describe --json` or action with `actions --action <name> --json` for its parameters. Use Recipe v1 `workflow.{entry,nodes}` and live runtime evidence. Tests corroborate only.
 - Reproduction and baseline happen only in the running app: a recipe through mm-harness with live actions, markers or logs. Before the Validate phase, do not write, run or embed unit, integration or E2E tests, and never put a test runner in a recipe node.
 - Core targets packages/controllers and fixtures, using headless `state`, `command` or `log` proof without PNGs. A `command` proof drives the controller through its public API as a client does (real messenger, mocked only at the network boundary); it never runs Jest or another unit-test probe.
 - Mobile targets iOS, Android or both; Extension targets popup, sidepanel, fullscreen or dapp. Record the rationale.
